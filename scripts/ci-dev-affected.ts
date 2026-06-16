@@ -80,6 +80,12 @@ async function getChangedPaths(): Promise<string[]> {
 	const diff = await $`git diff --name-only -z ${range}`.cwd(repoRoot).quiet().nothrow();
 	if (diff.exitCode !== 0) {
 		const stderr = diff.stderr.toString().trim();
+		// Orphan commits or force-pushed history breaks git diff range — treat as "everything changed"
+		if (stderr.includes("Invalid revision range") || stderr.includes("no merge base")) {
+			console.log(`⚠ Cannot compute diff for ${range} (likely orphan/rebase). Treating all paths as affected.`);
+			const allFiles = await $`git ls-files -z`.cwd(repoRoot).quiet();
+			return new TextDecoder().decode(allFiles.stdout).split("\0").filter(Boolean).sort();
+		}
 		throw new Error(`Failed to compute changed paths for ${range}: ${stderr}`);
 	}
 	return new TextDecoder().decode(diff.stdout).split("\0").filter(Boolean).sort();
