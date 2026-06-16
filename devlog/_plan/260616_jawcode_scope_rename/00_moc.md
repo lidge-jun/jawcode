@@ -1,7 +1,18 @@
-# @gajae-code → @jawcode Scope Rename — MOC
+# @gajae-code → @jawcode Scope Rename — Loop Plan MOC
 
 Created: 2026-06-16
-Status: Plan ready for execution
+Status: Loop plan active
+
+## Loop Phases
+
+| Phase | Description | Status | Cycle |
+|---|---|---|---|
+| 0 | npm @jawcode org 생성 (수동) | pending | — |
+| 1 | Package manifests (name, deps, catalog) + bun.lock | pending | PABCD-1 |
+| 2 | Source imports bulk replace (~1,300 files) | pending | PABCD-2 |
+| 3 | Test imports bulk replace (~600 files) + fixtures | pending | PABCD-2 (병합) |
+| 4 | Gates, CI, scripts, docs (~20 files) | pending | PABCD-3 |
+| 5 | Verify + publish jawcode@1.0.2 | pending | PABCD-3 (병합) |
 
 ## Scale
 
@@ -10,9 +21,9 @@ Status: Plan ready for execution
 | Total @gajae-code occurrences | ~5,200+ |
 | Source imports (src/) | 1,171 |
 | Test imports (test/) | 2,114 |
-| Package.json refs | 58 (names + deps + catalog + repo URLs) |
+| Package.json refs | 58 |
 | Script/gate refs | 48 |
-| Test fixture refs | 186 (serialized session data) |
+| Test fixture refs | 186 |
 | Files affected | ~300+ |
 | Packages to rename | 10 |
 
@@ -30,74 +41,60 @@ Status: Plan ready for execution
 | `@gajae-code/bridge-client` | `@jawcode/bridge-client` |
 | `@gajae-code/typescript-edit-benchmark` | `@jawcode/typescript-edit-benchmark` |
 | `@gajae-code/orchestration-token-benchmark` | `@jawcode/orchestration-token-benchmark` |
-| `gajae-code` (root) | `jawcode-monorepo` (private, not published) |
-| `gajae-code` (packages/gajae-code) | DELETE or `jawcode-compat` |
+| `gajae-code` (root private) | `jawcode-monorepo` |
 
-## Prerequisite
+## Cycle Details
 
-**npm에서 `@jawcode` org 생성 필요** — https://www.npmjs.com/org/create
-이거 먼저 해야 패키지 publish 가능.
+### PABCD-1: Package Manifests
+**Scope**: ~15 files
+- All `packages/*/package.json` name fields
+- Root `package.json` name + catalog entries
+- `packages/jwc/package.json` deps + bundle --external
+- `packages/jwc/scripts/resolve-bun-runtime.cjs` (if any refs)
+- `bun install` → `bun.lock` regen
+- `bun run generate-schemas` (if schema references scope)
 
-## Execution Phases (병렬 가능)
+**Acceptance**: `bun install --frozen-lockfile` fails (expected, new lockfile), `bun install` succeeds, all package.json names are `@jawcode/*`
 
-### Phase 1: Package Manifests (~15 files)
-- 모든 `packages/*/package.json` name 필드 변경
-- Root `package.json` catalog `@gajae-code/*` → `@jawcode/*`
-- `packages/jwc/package.json` deps + bundle externals
-- `bun install` → `bun.lock` 재생성
+### PABCD-2: Source + Test Imports
+**Scope**: ~1,900 files, ~3,300 refs
+- Global text replace `@gajae-code/` → `@jawcode/` across `packages/*/src/**/*.ts` and `packages/*/test/**/*.ts`
+- Test fixtures (serialized JSON — careful with escaping)
+- Parallelizable: 6 source workers + 4 test workers
 
-### Phase 2: Source Imports (~1,300 files, 병렬 6개)
-Global text replace: `@gajae-code/` → `@jawcode/`
-대상: `packages/*/src/**/*.ts`
+**Acceptance**: `bun run check:ts` passes (all imports resolve), no `@gajae-code/` in src/ or test/ except excluded paths
 
-병렬 분할:
-1. `packages/coding-agent/src/` (1,020 refs)
-2. `packages/ai/src/` (62 refs)
-3. `packages/agent/src/` + `packages/tui/src/` (52 refs)
-4. `packages/stats/src/` + `packages/utils/src/` + `packages/jwc/` (18 refs)
-5. `packages/natives/` + benchmarks (6 refs)
-6. `scripts/` + root configs (42 refs)
-
-### Phase 3: Tests (~600 files, 병렬 4개)
-Global text replace: `@gajae-code/` → `@jawcode/`
-대상: `packages/*/test/**/*.ts` + test fixtures
-
-1. `packages/coding-agent/test/` (1,784 refs)
-2. `packages/ai/test/` + `packages/tui/test/` (257 refs)
-3. `packages/agent/test/` + others (73 refs)
-4. Test fixtures (186 refs — serialized JSON, careful with encoding)
-
-### Phase 4: Gates, CI, Docs (~20 files)
-수동 정밀 수정:
-- `scripts/rebrand-inventory.ts` — expectedPackageScope
-- `scripts/verify-g002-gates.ts` — 27 refs, scope checks
+### PABCD-3: Gates + CI + Docs + Verify + Publish
+**Scope**: ~20 files manual + full verification
+- `scripts/rebrand-inventory.ts` — expectedPackageScope → `@jawcode/`
+- `scripts/verify-g002-gates.ts` — 27 refs, scope constants
 - `scripts/check-public-legacy-zero.ts` — allowlist
 - `scripts/release.ts` — catalog regex
-- `scripts/jwc-release-validation.ts` — dep version match
+- `scripts/jwc-release-validation.ts` — dep version match refs
+- `scripts/ci-release-publish.ts` — package list
 - `scripts/install-tests/run-ci.sh` — npm overrides
-- `AGENTS.md` — upstream attribution
+- `AGENTS.md` — scope references
 - `Cargo.toml` — repo URL
-- `python/robojwc/tests/test_natives_cache.py`
+- Version bump → 1.0.2
+- Full verify: `ci:check:full` + `ci:test:smoke` + gates
+- Push + release
 
-### Phase 5: Verify
-- `bun install` (lockfile regen)
-- `bun run ci:check:full`
-- `bun run ci:test:smoke`
-- `bun scripts/rebrand-inventory.ts --strict`
-- `bun scripts/verify-g002-gates.ts`
-- `npm pack --dry-run` in packages/jwc
+**Acceptance**: All gates green, `npm publish` succeeds as `jawcode@1.0.2` with `@jawcode/natives` dep
 
-## NOT Changing
-- `ENGINE_NAME = "gjc"` (internal log path identifier)
-- `devlog/_upstream_gjc/` (upstream snapshot)
-- `struct_har/gjc_origin/` (comparison data)
-- Rust crate name `pi-natives` (unrelated to npm scope)
-- `packages/gajae-code/` (private compat wrapper — review for deletion)
+## NOT Changing (Explicit Exclusions)
+- `ENGINE_NAME = "gjc"` — internal log path identifier
+- `devlog/_upstream_gjc/` — upstream snapshot
+- `struct_har/gjc_origin/` — comparison data
+- Rust crate name `pi-natives` — unrelated to npm scope
+- `packages/gajae-code/` — DELETE after rename (gjc compat wrapper, private)
+- Any `@gajae-code` in devlog `_fin/` or `_reference/` (historical)
 
-## Risk
-- **npm @jawcode org must exist first** — create before Phase 1
-- ast_edit may miss string literals in serialized fixtures — text replace fallback
-- bun.lock regen may surface unrelated dep changes
-- Gate scripts (verify-g002-gates) are the most fragile — 27 hardcoded scope refs
+## Prerequisite (Phase 0)
+**npm에서 `@jawcode` org 생성**: https://www.npmjs.com/org/create
+이거 먼저 완료 후 Phase 1 시작.
 
-## Execution: 다른 세션에서 PABCD B-stage 병렬 subagent로 실행
+## Execution Strategy
+- 각 PABCD 사이클은 P(skip—plan은 이 MOC) → A(skip—mechanical rename) → B(실행) → C(verify) → D(close)
+- Phase 2는 subagent 10개 병렬 (src 6 + test 4)
+- Phase 4는 수동 정밀 작업 — main session이 직접
+- 전체 예상 시간: ~1-2시간 (병렬 기준)
