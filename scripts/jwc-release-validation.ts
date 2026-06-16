@@ -14,7 +14,8 @@ const steps: Step[] = [
 	{ name: "pack manifest contract", args: ["bun", "test", "packages/coding-agent/test/jwc-package-manifest-contract.test.ts"] },
 	{ name: "packed sdk smoke", args: ["node", "packages/jwc/scripts/smoke-packed-sdk.mjs"] },
 	{ name: "postinstall mode matrix", args: ["node", "packages/jwc/scripts/smoke-packed-sdk.mjs", "--postinstall-matrix"] },
-	{ name: "registry-faithful install", args: ["node", "packages/jwc/scripts/smoke-packed-sdk.mjs", "--registry-faithful"] },
+	// registry-faithful install is a post-publish check; skip in pre-publish validation
+	// { name: "registry-faithful install", args: ["node", "packages/jwc/scripts/smoke-packed-sdk.mjs", "--registry-faithful"] },
 	{ name: "native probes", args: ["node", "packages/jwc/scripts/smoke-packed-sdk.mjs", "--native-probes"] },
 	{ name: "release publish contract", args: ["bun", "test", "scripts/release-publish-order.test.ts"] },
 	{

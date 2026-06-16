@@ -61,7 +61,6 @@ jobs:
 
       - name: Canonical JWC release validation
         run: bun run validate:jwc-release
-        continue-on-error: true
 
       - name: Build bundles
         run: |
@@ -113,3 +112,8 @@ jobs:
           else
             npm publish --access public --provenance --tag ${{ inputs.tag }}
           fi
+      - name: Post-publish registry smoke
+        if: inputs.dry-run != true
+        run: |
+          sleep 10
+          node packages/jwc/scripts/smoke-packed-sdk.mjs --registry-faithful
