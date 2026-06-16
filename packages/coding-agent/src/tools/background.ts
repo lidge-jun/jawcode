@@ -14,7 +14,9 @@ import { JobsObserver } from "../modes/jobs-observer";
 import type { Theme } from "../modes/theme/theme";
 import backgroundDescription from "../prompts/tools/background.md" with { type: "text" };
 import type { ToolSession } from "./index";
+import { executeMonitor, type MonitorParams, monitorKindEnum } from "./monitor";
 import { PREVIEW_LIMITS, replaceTabs } from "./render-utils";
+import { ToolError } from "./tool-errors";
 
 const MAX_LIST_LIMIT = 100;
 const DEFAULT_LIST_LIMIT = 20;
@@ -23,7 +25,9 @@ const MAX_FOLLOW_LIMIT_BYTES = 32_768;
 const TEXT_PREVIEW_WIDTH = 120;
 
 const backgroundSchema = z.object({
-	op: z.enum(["list", "detail", "follow", "cancel", "settings"]).describe("background management operation"),
+	op: z
+		.enum(["list", "detail", "follow", "cancel", "settings", "start_monitor"])
+		.describe("background management operation"),
 	id: z.string().min(1).optional().describe("background row id (required for detail/follow/cancel)"),
 	limit: z.number().int().positive().max(MAX_LIST_LIMIT).optional().describe("max rows returned by list"),
 	offset: z.number().int().nonnegative().optional().describe("byte offset for follow continuation"),
@@ -34,6 +38,14 @@ const backgroundSchema = z.object({
 		.max(MAX_FOLLOW_LIMIT_BYTES)
 		.optional()
 		.describe("max bytes returned by follow"),
+	// start_monitor fields (required only when op = "start_monitor"):
+	command: z.string().optional().describe("Shell command for start_monitor op"),
+	kind: monitorKindEnum.optional().describe("Monitor category for start_monitor op"),
+	description: z.string().optional().describe("Monitor description for start_monitor op"),
+	timeout: z.number().min(1).optional().describe("Monitor timeout seconds for start_monitor op"),
+	persistent: z.boolean().optional().describe("Keep monitor past current turn for start_monitor op"),
+	silent: z.boolean().optional().describe("Silent notifications for start_monitor op"),
+	deduplicate: z.boolean().optional().describe("Dedup identical stdout lines for start_monitor op"),
 });
 
 type BackgroundParams = z.infer<typeof backgroundSchema>;
@@ -337,12 +349,38 @@ export class BackgroundTool implements AgentTool<typeof backgroundSchema, Backgr
 		return new BackgroundTool(session);
 	}
 
-	async execute(_toolCallId: string, params: BackgroundParams): Promise<AgentToolResult<BackgroundToolDetails>> {
+	async execute(
+		_toolCallId: string,
+		params: BackgroundParams,
+		_signal?: AbortSignal,
+		_onUpdate?: unknown,
+		context?: import("@gajae-code/agent-core").AgentToolContext,
+	): Promise<AgentToolResult<BackgroundToolDetails>> {
 		const manager = AsyncJobManager.instance();
 		if (!manager) {
 			return {
 				content: [{ type: "text", text: "Async execution is disabled; no background rows are available." }],
 				details: { op: params.op, rows: [] },
+			};
+		}
+
+		if (params.op === "start_monitor") {
+			if (!params.command) throw new ToolError("command is required for start_monitor");
+			if (!params.kind) throw new ToolError("kind is required for start_monitor");
+			if (!params.description) throw new ToolError("description is required for start_monitor");
+			const monitorParams: MonitorParams = {
+				command: params.command,
+				kind: params.kind,
+				description: params.description,
+				timeout: params.timeout,
+				persistent: params.persistent,
+				silent: params.silent,
+				deduplicate: params.deduplicate,
+			};
+			const result = await executeMonitor(this.session, monitorParams, context);
+			return {
+				content: result.content,
+				details: { op: "start_monitor" as const, monitor: result.details } as unknown as BackgroundToolDetails,
 			};
 		}
 

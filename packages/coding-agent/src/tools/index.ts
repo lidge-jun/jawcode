@@ -83,6 +83,7 @@ export * from "./gh";
 export * from "./image-gen";
 export * from "./inspect-image";
 export * from "./irc";
+export * from "./monitor";
 export * from "./read";
 export * from "./recipe";
 export * from "./render-mermaid";
