@@ -69,10 +69,10 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Install dependencies
-        run: bun install
+        run: |
+          sed -i.bak 's/minimumReleaseAge = 259200/minimumReleaseAge = 0/' bunfig.toml || true
+          bun install
         shell: bash
-        env:
-          BUN_INSTALL_MINIMUM_RELEASE_AGE: "0"
 
       - name: Build native addon
         run: |
