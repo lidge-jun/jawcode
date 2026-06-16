@@ -35,6 +35,7 @@ import {
 	readActorRegistry,
 	resolveCompatibleActor,
 	upsertActor,
+	type WorkflowActorKey,
 	type WorkflowActorRecord,
 	type WorkflowActorRegistry,
 	type WorkflowActorStage,
@@ -1571,7 +1572,7 @@ export class TaskTool implements AgentTool<TaskToolSchemaInstance, TaskToolDetai
 					actorRouting.kind === "actor" && actorRouting.runMode === "message"
 						? renderSubagentUserPrompt(task.assignment, simpleMode)
 						: undefined;
-				const taskSessionFile =
+				let taskSessionFile =
 					actorRouting.kind === "actor"
 						? actorRouting.actor.sessionFile
 						: (overrides?.sessionFile ?? executionOverrides?.sessionFiles?.get(task.id) ?? null);
@@ -1580,7 +1581,7 @@ export class TaskTool implements AgentTool<TaskToolSchemaInstance, TaskToolDetai
 						markActorRunning(registry, actorRouting.actor.id, task.id),
 					);
 				}
-				const finalizeWorkflowActorResult = async (result: SingleResult): Promise<void> => {
+				let finalizeWorkflowActorResult = async (result: SingleResult): Promise<void> => {
 					if (actorRouting.kind !== "actor") return;
 					await updateWorkflowActor(actorRouting.actor, registry =>
 						result.paused
@@ -1605,54 +1606,141 @@ export class TaskTool implements AgentTool<TaskToolSchemaInstance, TaskToolDetai
 									),
 					);
 				};
+				const runSubprocessBaseArgs = {
+					cwd: this.session.cwd,
+					agent: effectiveAgent,
+					task: renderSubagentUserPrompt(task.assignment, simpleMode),
+					assignment: task.assignment.trim(),
+					context: sharedContext,
+					description: task.description,
+					index,
+					id: task.id,
+					subagentId: task.id,
+					taskDepth,
+					modelOverride: effectiveModelOverride,
+					parentActiveModelPattern,
+					parentSessionId: this.session.getSessionId?.() ?? undefined,
+					thinkingLevel: thinkingLevelOverride,
+					outputSchema: effectiveOutputSchema,
+					persistArtifacts: !!artifactsDir,
+					artifactsDir: effectiveArtifactsDir,
+					contextFile: contextFilePath,
+					enableLsp: subagentLspEnabled,
+					signal,
+					eventBus: this.session.eventBus,
+					onProgress: (progress: AgentProgress) => {
+						progressMap.set(index, {
+							...structuredClone(progress),
+						});
+						AsyncJobManager.instance()?.recordSubagentProgress(task.id, progress);
+						emitProgress();
+					},
+					authStorage: this.session.authStorage,
+					modelRegistry: this.session.modelRegistry,
+					settings: this.session.settings,
+					contextFiles,
+					skills: availableSkills,
+					autoloadSkills: resolvedAutoloadSkills,
+					workspaceTree: this.session.workspaceTree,
+					promptTemplates,
+					localProtocolOptions,
+					parentArtifactManager,
+					parentHindsightSessionState: this.session.getHindsightSessionState?.(),
+					parentTelemetry: this.session.getTelemetry?.(),
+					forkContextSeed,
+				};
+				const attemptFreshFallback = async (
+					result: SingleResult,
+					worktree?: string,
+				): Promise<
+					{ result: SingleResult; freshActor: WorkflowActorRecord; freshSessionFile: string } | undefined
+				> => {
+					if (actorRouting.kind !== "actor" || actorRouting.runMode !== "message") return undefined;
+					if (result.paused || result.aborted) return undefined;
+					if (result.exitCode === 0 && !result.error) return undefined;
+					await finalizeWorkflowActorResult(result);
+					const freshSessionFile = path.join(
+						effectiveArtifactsDir,
+						`${workflowActorId(actorRouting.actor)}-${Date.now()}.jsonl`,
+					);
+					const actorKey: WorkflowActorKey = {
+						namespaceId: actorRouting.actor.namespaceId,
+						workflow: actorRouting.actor.workflow,
+						workflowSessionId: actorRouting.actor.workflowSessionId,
+						stage: actorRouting.actor.stage,
+						lane: actorRouting.actor.lane,
+						roleAgent: actorRouting.actor.roleAgent,
+						modelId: actorRouting.actor.modelId,
+						provider: actorRouting.actor.provider,
+						...(actorRouting.actor.thinkingLevel ? { thinkingLevel: actorRouting.actor.thinkingLevel } : {}),
+						rolePromptHash: actorRouting.actor.rolePromptHash,
+						cwdOrWorktree: actorRouting.actor.cwdOrWorktree,
+						writablePolicy: actorRouting.actor.writablePolicy,
+						toolSurfaceHash: actorRouting.actor.toolSurfaceHash,
+					};
+					const freshActor = allocateActorRecord(actorKey, freshSessionFile);
+					const wfSessionId = this.session.getSessionId?.();
+					if (wfSessionId) {
+						const reg = await readActorRegistry(this.session.cwd, wfSessionId);
+						await writeActorRegistryAtomic(
+							this.session.cwd,
+							wfSessionId,
+							markActorRunning(upsertActor(reg, freshActor), freshActor.id, task.id),
+						);
+					}
+					let freshResult: SingleResult;
+					try {
+						freshResult = await runSubprocess({
+							...runSubprocessBaseArgs,
+							...(worktree ? { worktree } : {}),
+							runMode: "initial",
+							resumeMessage: undefined,
+							sessionFile: freshSessionFile,
+							cacheAffinity: undefined,
+						});
+					} catch (err) {
+						if (wfSessionId) {
+							const reg = await readActorRegistry(this.session.cwd, wfSessionId);
+							const msg = err instanceof Error ? err.message : String(err);
+							await writeActorRegistryAtomic(
+								this.session.cwd,
+								wfSessionId,
+								markActorFailed(reg, freshActor.id, msg || "fresh spawn threw", task.id),
+							);
+						}
+						throw err;
+					}
+					if (wfSessionId) {
+						const reg2 = await readActorRegistry(this.session.cwd, wfSessionId);
+						const updatedReg = freshResult.paused
+							? markActorPaused(reg2, freshActor.id, freshSessionFile, task.id)
+							: freshResult.exitCode === 0 && !freshResult.error
+								? markActorIdle(reg2, freshActor.id, freshSessionFile, task.id)
+								: markActorFailed(
+										reg2,
+										freshActor.id,
+										freshResult.error ?? freshResult.stderr ?? "fresh spawn failed",
+										task.id,
+									);
+						await writeActorRegistryAtomic(this.session.cwd, wfSessionId, updatedReg);
+					}
+					return { result: freshResult, freshActor, freshSessionFile };
+				};
 				if (!isIsolated) {
 					const result = await runSubprocess({
-						cwd: this.session.cwd,
-						agent: effectiveAgent,
-						task: renderSubagentUserPrompt(task.assignment, simpleMode),
-						assignment: task.assignment.trim(),
-						context: sharedContext,
-						description: task.description,
-						index,
-						id: task.id,
+						...runSubprocessBaseArgs,
 						runMode: actorRunMode ?? overrides?.runMode ?? executionOverrides?.runMode,
 						resumeMessage: actorResumeMessage ?? overrides?.resumeMessage ?? executionOverrides?.resumeMessage,
-						subagentId: task.id,
-						taskDepth,
-						modelOverride: effectiveModelOverride,
-						parentActiveModelPattern,
-						parentSessionId: this.session.getSessionId?.() ?? undefined,
-						thinkingLevel: thinkingLevelOverride,
-						outputSchema: effectiveOutputSchema,
 						sessionFile: taskSessionFile,
-						persistArtifacts: !!artifactsDir,
-						artifactsDir: effectiveArtifactsDir,
-						contextFile: contextFilePath,
-						enableLsp: subagentLspEnabled,
-						signal,
-						eventBus: this.session.eventBus,
-						onProgress: progress => {
-							progressMap.set(index, {
-								...structuredClone(progress),
-							});
-							AsyncJobManager.instance()?.recordSubagentProgress(task.id, progress);
-							emitProgress();
-						},
-						authStorage: this.session.authStorage,
-						modelRegistry: this.session.modelRegistry,
-						settings: this.session.settings,
-						contextFiles,
-						skills: availableSkills,
-						autoloadSkills: resolvedAutoloadSkills,
-						workspaceTree: this.session.workspaceTree,
-						promptTemplates,
-						localProtocolOptions,
-						parentArtifactManager,
-						parentHindsightSessionState: this.session.getHindsightSessionState?.(),
-						parentTelemetry: this.session.getTelemetry?.(),
-						forkContextSeed,
 						cacheAffinity,
 					});
+					const freshFallback = await attemptFreshFallback(result);
+					if (freshFallback) {
+						const freshWithForkContext = forkContext
+							? { ...freshFallback.result, forkContext }
+							: freshFallback.result;
+						return freshWithForkContext;
+					}
 					const resultWithForkContext = forkContext ? { ...result, forkContext } : result;
 					await finalizeWorkflowActorResult(resultWithForkContext);
 					return resultWithForkContext;
@@ -1669,54 +1757,48 @@ export class TaskTool implements AgentTool<TaskToolSchemaInstance, TaskToolDetai
 					isolationHandle = await ensureIsolation(repoRoot, task.id, preferredIsolationBackend);
 					const isolationDir = isolationHandle.mergedDir;
 
-					const result = await runSubprocess({
-						cwd: this.session.cwd,
+					let result = await runSubprocess({
+						...runSubprocessBaseArgs,
 						worktree: isolationDir,
-						agent: effectiveAgent,
-						task: renderSubagentUserPrompt(task.assignment, simpleMode),
-						assignment: task.assignment.trim(),
-						context: sharedContext,
-						description: task.description,
-						index,
-						id: task.id,
 						runMode: actorRunMode ?? overrides?.runMode ?? executionOverrides?.runMode,
 						resumeMessage: actorResumeMessage ?? overrides?.resumeMessage ?? executionOverrides?.resumeMessage,
-						subagentId: task.id,
-						taskDepth,
-						modelOverride: effectiveModelOverride,
-						parentActiveModelPattern,
-						parentSessionId: this.session.getSessionId?.() ?? undefined,
-						thinkingLevel: thinkingLevelOverride,
-						outputSchema: effectiveOutputSchema,
 						sessionFile: taskSessionFile,
-						persistArtifacts: !!artifactsDir,
-						artifactsDir: effectiveArtifactsDir,
-						contextFile: contextFilePath,
-						enableLsp: subagentLspEnabled,
-						signal,
-						eventBus: this.session.eventBus,
-						onProgress: progress => {
-							progressMap.set(index, {
-								...structuredClone(progress),
-							});
-							AsyncJobManager.instance()?.recordSubagentProgress(task.id, progress);
-							emitProgress();
-						},
-						authStorage: this.session.authStorage,
-						modelRegistry: this.session.modelRegistry,
-						settings: this.session.settings,
-						contextFiles,
-						skills: availableSkills,
-						autoloadSkills: resolvedAutoloadSkills,
-						workspaceTree: this.session.workspaceTree,
-						promptTemplates,
-						localProtocolOptions,
-						parentArtifactManager,
-						parentHindsightSessionState: this.session.getHindsightSessionState?.(),
-						parentTelemetry: this.session.getTelemetry?.(),
-						forkContextSeed,
 						cacheAffinity,
 					});
+					// Fresh-spawn fallback for isolated path
+					const freshFallback = await attemptFreshFallback(result, isolationDir);
+					if (freshFallback) {
+						if (
+							freshFallback.result.paused ||
+							freshFallback.result.exitCode !== 0 ||
+							freshFallback.result.error
+						) {
+							// Fresh also failed/paused — helper already finalized, return directly
+							const freshWithForkContext = forkContext
+								? { ...freshFallback.result, forkContext }
+								: freshFallback.result;
+							return freshWithForkContext;
+						}
+						// Fresh succeeded — rebind for merge/patch post-processing
+						result = freshFallback.result;
+						taskSessionFile = freshFallback.freshSessionFile;
+						finalizeWorkflowActorResult = async (r: SingleResult): Promise<void> => {
+							const wfSid = this.session.getSessionId?.();
+							if (!wfSid) return;
+							const reg = await readActorRegistry(this.session.cwd, wfSid);
+							const updated = r.paused
+								? markActorPaused(reg, freshFallback.freshActor.id, freshFallback.freshSessionFile, task.id)
+								: r.exitCode === 0 && !r.error
+									? markActorIdle(reg, freshFallback.freshActor.id, freshFallback.freshSessionFile, task.id)
+									: markActorFailed(
+											reg,
+											freshFallback.freshActor.id,
+											r.error ?? r.stderr ?? "failed",
+											task.id,
+										);
+							await writeActorRegistryAtomic(this.session.cwd, wfSid, updated);
+						};
+					}
 					const resultWithForkContext = forkContext ? { ...result, forkContext } : result;
 					if (mergeMode === "branch" && resultWithForkContext.exitCode === 0) {
 						try {

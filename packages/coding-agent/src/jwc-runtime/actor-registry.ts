@@ -202,7 +202,12 @@ export function resolveCompatibleActor(
 }
 
 export function isWorkflowActorSelectable(actor: WorkflowActorRecord, key: WorkflowActorKey): boolean {
-	return actor.status !== "retired" && actor.status !== "running" && actorMatchesKey(actor, key);
+	return (
+		actor.status !== "retired" &&
+		actor.status !== "running" &&
+		actor.status !== "failed" &&
+		actorMatchesKey(actor, key)
+	);
 }
 
 export function findRunningActor(

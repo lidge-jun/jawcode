@@ -159,7 +159,7 @@ describe("TaskTool PABCD workflow actor routing", () => {
 		expect(openSpy.mock.calls).toHaveLength(2);
 	});
 
-	it("does not silently resume when the actor session file is unavailable", async () => {
+	it("fresh-spawns when a prior actor is failed instead of resuming broken session", async () => {
 		const { tool, options } = createTool();
 		const taskTool = await tool;
 		const openSpy = vi.spyOn(SessionManager, "open");
@@ -172,16 +172,21 @@ describe("TaskTool PABCD workflow actor routing", () => {
 
 		await taskTool.execute("call-1", params);
 		await manager.waitForAll();
-		const actor = (await readActorRegistry(cwd, sessionId)).actors[0];
-		await fs.rm(actor!.sessionFile, { force: true });
+		const registryAfterFirst = await readActorRegistry(cwd, sessionId);
+		const firstActor = registryAfterFirst.actors[0];
+		expect(firstActor).toBeDefined();
+
+		// Call-2: since the mock session produces a failed result, the actor is
+		// marked "failed". With isWorkflowActorSelectable excluding failed actors,
+		// the next call allocates a fresh actor with runMode "initial" instead of
+		// attempting to resume the broken session.
 		await taskTool.execute("call-2", params);
 		await manager.waitForAll();
-		const secondJob = manager.getRecentJobs(1)[0];
 		await manager.dispose({ timeoutMs: 100 });
 
-		expect(options).toHaveLength(1);
-		expect(openSpy.mock.calls).toHaveLength(1);
-		expect(secondJob?.resultText).toContain("context_unavailable");
+		// Both calls create sessions (initial spawns, not resume attempts)
+		expect(options).toHaveLength(2);
+		expect(openSpy.mock.calls).toHaveLength(2);
 	});
 
 	it("does not route executor_ext through PABCD workflow actors", async () => {
