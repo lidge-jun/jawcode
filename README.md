@@ -61,19 +61,24 @@ irm bun.sh/install.ps1 | iex
 # 1. Install WSL if you haven't (run in PowerShell as admin)
 wsl --install
 
-# 2. Inside WSL (Ubuntu), install prerequisites + bun
-sudo apt update && sudo apt install -y unzip curl
-curl -fsSL https://bun.sh/install | bash
-```
+# 2. Inside WSL (Ubuntu), install all prerequisites
+sudo apt update && sudo apt install -y unzip curl nodejs git
 
-After installing bun, restart your terminal and run:
-```sh
+# 3. Install bun
+curl -fsSL https://bun.sh/install | bash
+source ~/.bashrc
+
+# 4. Install jawcode
 bun install -g jawcode
 jwc --version
 ```
 
-> **Note:** On Windows without WSL, `jwc` runs but the agent's shell tool targets bash.
-> For the full experience (bash, tmux, fd, ripgrep), use WSL.
+> **Note:** `nodejs` is required because the `jwc` bin uses a Node shebang to bootstrap the managed Bun runtime.
+> For the full experience (bash, tmux, fd, ripgrep), also install:
+> ```sh
+> sudo apt install -y tmux fd-find ripgrep
+> ```
+> On Windows without WSL, `jwc` runs but the agent's shell tool targets bash — WSL gives full support.
 
 </details>
 
