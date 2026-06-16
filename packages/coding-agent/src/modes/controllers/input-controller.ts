@@ -106,7 +106,9 @@ export class InputController {
 		// controller (auto-compaction, auto-retry, manual compaction, etc.) has
 		// temporarily replaced editor.onEscape. This priority hook is never
 		// swapped out, so it always wins for the interrupt key.
-		this.ctx.editor.onInterruptPriority = () => (this.ctx.hasActiveBtw() ? this.ctx.handleBtwEscape() : false);
+		if (!this.#backgroundFooterHandlers) {
+			this.ctx.editor.onInterruptPriority = () => (this.ctx.hasActiveBtw() ? this.ctx.handleBtwEscape() : false);
+		}
 		this.ctx.editor.onEscape = () => {
 			if (this.ctx.hasActiveBtw() && this.ctx.handleBtwEscape()) {
 				return;
