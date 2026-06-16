@@ -98,6 +98,7 @@ function scanPublicFile(root: string, relativePath: string, prefix: string): Fin
 		}
 	}
 	return findings.filter(finding => {
+		// Allow @gajae-code imports in jwc package entrypoints
 		if (
 			prefix === "jawcode" &&
 			(finding.path.endsWith("packages/jwc/bin/jwc.js") ||
@@ -105,6 +106,23 @@ function scanPublicFile(root: string, relativePath: string, prefix: string): Fin
 			(finding.token === "@gajae-code" || finding.token === "gajae-code")
 		) {
 			return false;
+		}
+		// Allow upstream attribution in lineage/readme sections
+		if (prefix === "jawcode" && jawcodeActiveDocs.has(relativePath)) {
+			const filePath = path.join(root, relativePath);
+			const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
+			const line = lines[finding.line - 1] ?? "";
+			if (
+				line.includes("fork") ||
+				line.includes("upstream") ||
+				line.includes("Lineage") ||
+				line.includes("namespace originates") ||
+				line.includes("포크") ||
+				line.includes("업스트림") ||
+				line.includes("유래")
+			) {
+				return false;
+			}
 		}
 		return true;
 	});
