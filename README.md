@@ -29,9 +29,19 @@ Jawcode (`jwc`) is a standalone coding-agent harness. 46 providers, 3,600+ model
 ## Install
 
 ```sh
+bun install -g jawcode
+jwc --version
+```
+
+<details>
+<summary>npm (alternative)</summary>
+
+```sh
 npm install -g jawcode
 jwc --version
 ```
+
+</details>
 
 <details>
 <summary>From source (for contributors or latest dev)</summary>
@@ -48,6 +58,7 @@ To update a source build later:
 ```sh
 git pull && bun run setup
 ```
+
 </details>
 
 ```mermaid

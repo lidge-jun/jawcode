@@ -46,8 +46,8 @@
         <p class="hero-sub" style="max-width: 44ch;">46 providers. 3,600+ models. One structured workflow that plans before it builds, audits before it ships, and verifies before it reports done.</p>
         <div class="hero-cta">
           <div class="install-snippet">
-            <code>npm install -g jawcode</code>
-            <button class="copy-btn" onclick="copyText('npm install -g jawcode')" title="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>
+            <code>bun install -g jawcode</code>
+            <button class="copy-btn" onclick="copyText('bun install -g jawcode')" title="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>
 
           </div>
           <a href="#features" class="btn-primary">See how it works</a>
@@ -246,11 +246,15 @@
       <p class="section-label">Get Started</p>
       <h2 class="section-title">Install</h2>
       <div class="install-tabs">
-        <button class="tab-btn active" onclick="switchTab('npm')">npm</button>
+        <button class="tab-btn active" onclick="switchTab('bun')">bun</button>
+        <button class="tab-btn" onclick="switchTab('npm')">npm</button>
         <button class="tab-btn" onclick="switchTab('source')">source</button>
       </div>
-      <div class="tab-panel active" id="tab-npm">
-        <div class="code-block"><button class="copy-btn" onclick="copyText('npm install -g jawcode')">copy</button><code>npm install -g jawcode</code></div>
+      <div class="tab-panel active" id="tab-bun">
+        <div class="code-block"><button class="copy-btn" onclick="copyText('bun install -g jawcode')">copy</button><code>bun install -g jawcode</code></div>
+      </div>
+      <div class="tab-panel" id="tab-npm">
+        <div class="code-block"><code>npm install -g jawcode</code></div>
       </div>
       <div class="tab-panel" id="tab-source">
         <div class="code-block"><button class="copy-btn" onclick="copyText('git clone https://github.com/lidge-jun/jawcode.git\ncd jawcode\nbun run setup')">copy</button><code>git clone https://github.com/lidge-jun/jawcode.git
