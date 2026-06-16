@@ -63,13 +63,16 @@
 | 013 | [20.013_omp_chase_task_coordination.md](./20.013_omp_chase_task_coordination.md) | task coordination | P2 | ⬜ |
 | 014 | [20.014_omp_chase_extensions_plugins.md](./20.014_omp_chase_extensions_plugins.md) | extensions/plugins | P3 | ⬜ |
 | 015 | [20.015_omp_chase_terminal_resilience.md](./20.015_omp_chase_terminal_resilience.md) | terminal resilience | P2 | ⬜ |
-| 016 | [20.016_omp_chase_review_pr_url.md](./20.016_omp_chase_review_pr_url.md) | review PR URLs | P3 | ⬜ |
 | 017 | [20.017_omp_chase_unexpected_stop_detection.md](./20.017_omp_chase_unexpected_stop_detection.md) | unexpected-stop retry | P2 | ⬜ |
 | 018+ | _(미할당)_ | | | ⬜ |
 
 ## 완료
 
 → [_fin/20/](./_fin/20/README.md)
+
+| NNN | 문서 | 완료일 | 판정 |
+|---|---|---|---|
+| 016 | [_fin/20/20.016_omp_chase_review_pr_url.md](./_fin/20/20.016_omp_chase_review_pr_url.md) | 260616 | 비채택 — GitHub skill route 유지 |
 
 ## gjc
 

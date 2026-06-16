@@ -18,6 +18,7 @@
 | 10.018 | RPC registry + list_sessions + UDS Phase 2 | 260615 | [10/10.018](./10/10.018_gjc_chase_rpc_registry_uds.md) |
 | 10.026 | RPC/unattended issues audit pack — Phase 1 appendix + UDS issue 09 | 260615 | [10/10.026](./10/10.026_gjc_chase_rpc_issues_audit.md) |
 | 10.022 | goal-mode AgentBusyError continuation loop | 260615 | [10/10.022](./10/10.022_gjc_chase_goal_agent_busy_loop.md) |
+| 20.016 | review PR URL / diff-slice support — 비채택, GitHub skill route 유지 | 260616 | [20/20.016](./20/20.016_omp_chase_review_pr_url.md) |
 
 ## superseded (devlog)
 

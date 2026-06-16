@@ -63,11 +63,12 @@
 | 28 | 20.017 | [20.017 unexpected-stop](./20.017_omp_chase_unexpected_stop_detection.md) | P2 | ⬜ |
 | 29 | 20.003 | [20.003 memory/skills](./20.003_omp_chase_memory_skills.md) | P2 | ⬜ |
 | 30 | 20.007 | [20.007 session modules](./20.007_omp_chase_session_modularization.md) | P2 | ⬜ |
-| 31 | 20.014 · 20.016 | [20.014 extensions](./20.014_omp_chase_extensions_plugins.md) · [20.016 review PR URL](./20.016_omp_chase_review_pr_url.md) | P3 | ⬜ |
+| 31 | 20.014 | [20.014 extensions](./20.014_omp_chase_extensions_plugins.md) | P3 | ⬜ |
 | — | 20.008 | [20.008 15.13 delta](./20.008_omp_chase_pull_15_13_delta.md) | — | 🟡 index |
 
 ## 완료 (_fin)
 
-| NNN | [_fin/10](./_fin/INDEX.md) |
-|-----|---------------------------|
-| 009–017 | pi-shell, submit, perf×3, context, tool_choice, Fable N/A |
+| NNN | 내용 | 상태 |
+|-----|------|------|
+| 009–017 | pi-shell, submit, perf×3, context, tool_choice, Fable N/A | ✅ |
+| 20.016 | [20.016 review PR URL](./_fin/20/20.016_omp_chase_review_pr_url.md) | ✅ 비채택 — GitHub skill route |

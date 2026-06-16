@@ -78,7 +78,7 @@ Executor v2 (260614): **011 YES**, **008/026 RISKY**; **018 registry TS+Py lande
 | task coordination | roles, IRC, fallback chains | [20.013](./20.013_omp_chase_task_coordination.md) |
 | extensions/plugins | discovery/marketplace hardening | [20.014](./20.014_omp_chase_extensions_plugins.md) |
 | terminal resilience | keypad/multiplexer/resize/input | [20.015](./20.015_omp_chase_terminal_resilience.md) |
-| review PR URLs | remote PR review UX | [20.016](./20.016_omp_chase_review_pr_url.md) |
+| review PR URLs | remote PR review UX | ✅ [_fin/20.016](./_fin/20/20.016_omp_chase_review_pr_url.md) |
 | unexpected-stop retry | classifier + bounded retry | [20.017](./20.017_omp_chase_unexpected_stop_detection.md) |
 | collab/brew | — | **비채택** |
 
