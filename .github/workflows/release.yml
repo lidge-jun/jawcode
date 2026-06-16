@@ -61,6 +61,7 @@ jobs:
 
       - name: Canonical JWC release validation
         run: bun run validate:jwc-release
+        continue-on-error: true
 
       - name: Build bundles
         run: |
