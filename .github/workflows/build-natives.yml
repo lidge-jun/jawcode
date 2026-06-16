@@ -1,0 +1,131 @@
+name: Build & Publish Natives
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish to npm after build'
+        required: false
+        default: 'false'
+        type: boolean
+      version:
+        description: 'Version to publish (reads from package.json if empty)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            target: aarch64-apple-darwin
+            platform: darwin
+            arch: arm64
+            variant: ''
+          - os: macos-13
+            target: x86_64-apple-darwin
+            platform: darwin
+            arch: x64
+            variant: baseline
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            platform: linux
+            arch: x64
+            variant: baseline
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            platform: linux
+            arch: x64
+            variant: modern
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+            platform: win32
+            arch: x64
+            variant: baseline
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+            platform: win32
+            arch: x64
+            variant: modern
+
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.variant && format('-{0}', matrix.variant) || '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        shell: bash
+
+      - name: Build native addon
+        run: |
+          cd packages/natives
+          bun run build
+        env:
+          CROSS_TARGET: ${{ matrix.target }}
+          TARGET_PLATFORM: ${{ matrix.platform }}
+          TARGET_ARCH: ${{ matrix.arch }}
+          TARGET_VARIANT: ${{ matrix.variant }}
+        shell: bash
+
+      - name: List built artifacts
+        run: ls -la packages/natives/native/*.node
+        shell: bash
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.variant && format('-{0}', matrix.variant) || '' }}
+          path: packages/natives/native/*.node
+          if-no-files-found: error
+
+  package:
+    needs: build
+    runs-on: ubuntu-22.04
+    name: Package & Publish
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - name: Download all native artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: packages/natives/native/
+          pattern: native-*
+          merge-multiple: true
+
+      - name: List all binaries
+        run: ls -la packages/natives/native/*.node
+
+      - name: Set version
+        if: inputs.version != ''
+        run: |
+          cd packages/natives
+          npm version ${{ inputs.version }} --no-git-tag-version
+
+      - name: Publish to npm
+        if: inputs.publish == 'true'
+        run: |
+          cd packages/natives
+          npm publish --access public --tag latest --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
