@@ -67,7 +67,6 @@ jobs:
 
   mac-native-probes:
     runs-on: macos-14
-    needs: check-and-package
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
