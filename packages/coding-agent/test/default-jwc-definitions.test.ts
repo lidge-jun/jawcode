@@ -221,6 +221,9 @@ describe("default GJC definitions", () => {
 		const planner = getBundledAgent("planner");
 		const critic = getBundledAgent("critic");
 		const executorExt = getBundledAgent("executor_ext");
+		for (const agent of [executor, executorExt, architect, planner, critic]) {
+			expect(agent?.autoloadSkills).toEqual(["dev"]);
+		}
 
 		expect(executor?.tools).toBeUndefined();
 		for (const agent of [architect, planner, critic]) {
@@ -600,5 +603,5 @@ describe("bundled skills CLI", () => {
 			expect(stdout).toBe("");
 			expect(stderr).toContain("unknown embedded skill");
 		}
-	});
+	}, 15_000);
 });

@@ -222,6 +222,17 @@ describe("system Handlebars prompt templates", () => {
 		expect(rendered).toContain("`job` remains the generic background-job tool");
 	});
 
+	test("subagent prompt documents dev autoload for all callable role agents", async () => {
+		const templatePath = path.join(systemPromptsDir, "subagent-system-prompt.md");
+		const template = await Bun.file(templatePath).text();
+
+		expect(template).toContain("/skill:dev");
+		for (const role of ["executor", "executor_ext", "planner", "architect", "critic"]) {
+			expect(template).toContain(role);
+		}
+		expect(template).toContain("autoload");
+	});
+
 	test("system-prompt renders local reference and external web search guidance", async () => {
 		const templatePath = path.join(systemPromptsDir, "system-prompt.md");
 		const template = await Bun.file(templatePath).text();
@@ -280,6 +291,15 @@ describe("system Handlebars prompt templates", () => {
 		const systemPrompt = await Bun.file(templatePath).text();
 
 		expect(systemPrompt).toContain("five callable task role agents");
+		for (const sourcePath of [
+			"packages/coding-agent/src/prompts/agents/executor.md",
+			"packages/coding-agent/src/prompts/agents/planner.md",
+			"packages/coding-agent/src/prompts/agents/architect.md",
+			"packages/coding-agent/src/prompts/agents/critic.md",
+			"packages/coding-agent/src/task/agents.ts",
+		]) {
+			expect(systemPrompt).toContain(sourcePath);
+		}
 		expect(systemPrompt).toContain("executor_ext");
 		expect(systemPrompt).toContain("provider/modelId[:effort]");
 		expect(systemPrompt).toContain("Generic subagent/worker + named model/version");

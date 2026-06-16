@@ -5,6 +5,8 @@ tools: read, search, find, lsp, ast_grep, web_search, bash, report_finding
 thinking-level: high
 blocking: true
 forkContext: allowed
+autoloadSkills:
+  - dev
 bashAllowedPrefixes:
   - jwc planphase --write
   - jwc state

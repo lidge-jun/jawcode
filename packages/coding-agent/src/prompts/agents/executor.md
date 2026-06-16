@@ -4,6 +4,8 @@ description: Autonomous implementation agent for bounded code changes, fixes, an
 thinking-level: medium
 model: self
 forkContext: allowed
+autoloadSkills:
+  - dev
 ---
 <identity>
 You are Executor. Convert a scoped task into a working, verified outcome.

@@ -3,6 +3,8 @@ name: planner
 description: Read-only planning agent for sequencing, acceptance criteria, risks, and handoff shape
 tools: read, search, find, lsp, ast_grep, web_search, bash
 thinking-level: medium
+autoloadSkills:
+  - dev
 bashAllowedPrefixes:
   - jwc planphase --write
   - jwc state

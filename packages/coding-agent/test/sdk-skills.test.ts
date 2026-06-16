@@ -187,9 +187,15 @@ Loaded via symbolic link.
 			expect(skillNames).not.toContain("memory");
 			expect(skillNames).not.toContain("dev-pabcd");
 			expect(session.skills.find(skill => skill.name === "dev")?.source).toBe("cli-jaw:user");
+			expect(session.skills.find(skill => skill.name === "dev")?.filePath).toBe(
+				path.join(cliJawHome, "skills", "dev", "SKILL.md"),
+			);
 			const renderedPrompt = session.systemPrompt.join("\n");
 			expect(renderedPrompt).toContain("<dev-skill-routing>");
 			expect(renderedPrompt).toContain("/skill:dev");
+			expect(renderedPrompt).toContain(
+				`<skill name="dev" path="${path.join(cliJawHome, "skills", "dev", "SKILL.md")}">`,
+			);
 			for (const name of DEFAULT_JWC_DEFINITION_NAMES) {
 				expect(skillNames).toContain(name);
 			}

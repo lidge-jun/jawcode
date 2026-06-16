@@ -31,6 +31,7 @@ interface AgentFrontmatter {
 	hide?: boolean;
 	forkContext?: "forbidden" | "allowed";
 	bashAllowedPrefixes?: string[];
+	autoloadSkills?: string[];
 }
 
 type EmbeddedAgentDef =
@@ -63,6 +64,7 @@ function buildExecutorExtContent(): string {
 		model: "self",
 		thinkingLevel: Effort.Medium,
 		forkContext: "allowed",
+		autoloadSkills: ["dev"],
 		body,
 	});
 }
