@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team Mode — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Team Mode</h1>
+      <p><code>jwc team</code> is the tmux-based multi-worker execution mode. It splits the current tmux window into a leader pane and one or more worker panes, each running an independent JWC CLI session. Workers coordinate through shared state files and CLI APIs — not through the leader's conversation.</p>
+
+      <h2>Team vs native subagents</h2>
+      <p>JWC has two parallelism surfaces. Choose the right one:</p>
+      <table>
+        <thead>
+          <tr><th>Aspect</th><th>Native subagents (<code>executor</code>)</th><th>Team mode (<code>jwc team</code>)</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Lifetime</td>
+            <td>Bounded to one reasoning burst</td>
+            <td>Durable — survives beyond a single burst</td>
+          </tr>
+          <tr>
+            <td>Visibility</td>
+            <td>Background (results returned to parent)</td>
+            <td>Visible tmux panes you can watch and inspect</td>
+          </tr>
+          <tr>
+            <td>State</td>
+            <td>In-memory, ephemeral</td>
+            <td>Persisted in <code>.jwc/state/team/</code></td>
+          </tr>
+          <tr>
+            <td>Coordination</td>
+            <td>IRC messages between peers</td>
+            <td>Shared state files, mailbox, CLI APIs</td>
+          </tr>
+          <tr>
+            <td>Worktrees</td>
+            <td>Shares parent worktree</td>
+            <td>Can use dedicated git worktrees</td>
+          </tr>
+          <tr>
+            <td>Best for</td>
+            <td>Quick parallel tasks (research, bounded edits)</td>
+            <td>Long-running coordinated execution, multi-lane delivery</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Quick start</h2>
+      <pre><code># Default: 3 executor workers
+jwc team "analyze feature X and report flaws"
+
+# Explicit worker count and type
+jwc team 3:executor "debug flaky integration tests"
+
+# Single worker
+jwc team 1:executor "ship end-to-end fix with verification"</code></pre>
+
+      <h3>Prerequisites</h3>
+      <ul>
+        <li><code>tmux</code> installed (<code>tmux -V</code>)</li>
+        <li>Current session is inside tmux (<code>$TMUX</code> is set)</li>
+        <li>JWC CLI is available (<code>jwc --version</code>)</li>
+      </ul>
+
+      <h2>Architecture</h2>
+      <p>When <code>jwc team</code> launches:</p>
+      <ol>
+        <li>Detects the current tmux leader context.</li>
+        <li>Initializes team state under <code>.jwc/state/team/&lt;team-name&gt;/</code>.</li>
+        <li>Splits the tmux window: worker 1 horizontally to the right, workers 2..N vertically stacked in the right column.</li>
+        <li>Applies <code>main-vertical</code> layout — leader on the left (~50%), workers stacked on the right (~50%).</li>
+        <li>Launches each worker with environment variables: <code>GJC_TEAM_NAME</code>, <code>GJC_TEAM_WORKER_ID</code>, <code>GJC_TEAM_STATE_ROOT</code>.</li>
+        <li>Returns control to the leader for monitoring.</li>
+      </ol>
+
+      <h2>State files</h2>
+      <p>Team state lives under <code>.jwc/state/team/&lt;team&gt;/</code>:</p>
+      <table>
+        <thead>
+          <tr><th>File</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>config.json</code></td><td>Team configuration, tmux targets, pane IDs</td></tr>
+          <tr><td><code>manifest.v2.json</code></td><td>Team manifest with worker registry</td></tr>
+          <tr><td><code>phase.json</code></td><td>Current team phase</td></tr>
+          <tr><td><code>tasks/task-*.json</code></td><td>One per lane or worker, with completion evidence</td></tr>
+          <tr><td><code>mailbox/worker-*.json</code></td><td>Per-worker message inbox</td></tr>
+          <tr><td><code>workers/&lt;id&gt;/status.json</code></td><td>Worker runtime status</td></tr>
+          <tr><td><code>workers/&lt;id&gt;/lifecycle.json</code></td><td>Worker lifecycle state machine</td></tr>
+          <tr><td><code>workers/&lt;id&gt;/heartbeat.json</code></td><td>Liveness heartbeat</td></tr>
+          <tr><td><code>events.jsonl</code></td><td>Append-only event log</td></tr>
+          <tr><td><code>trace.jsonl</code></td><td>Structured trace records</td></tr>
+          <tr><td><code>integration-report.md</code></td><td>Worktree merge/cherry-pick results</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Lifecycle commands</h2>
+      <pre><code># Read-only status snapshot
+jwc team status &lt;team-name&gt;
+
+# Mutating monitor: recover stale claims, integrate worker commits, sync HUD
+jwc team monitor &lt;team-name&gt;
+
+# Reconnect/inspection with liveness recovery
+jwc team resume &lt;team-name&gt;
+
+# Graceful shutdown (only when all tasks are terminal)
+jwc team shutdown &lt;team-name&gt;
+
+# List known teams
+jwc team list</code></pre>
+
+      <h3>Shutdown rules</h3>
+      <p>Do not run <code>shutdown</code> while workers are actively writing. Wait for terminal task state:</p>
+      <ul>
+        <li><code>pending = 0</code></li>
+        <li><code>in_progress = 0</code></li>
+        <li>All tasks are <code>completed</code>, <code>failed</code>, or <code>blocked</code></li>
+        <li>No pending integration request or conflict</li>
+      </ul>
+      <p>Shutdown outcome depends on state:</p>
+      <table>
+        <thead>
+          <tr><th>Condition</th><th>Phase</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>All tasks verified, all workers gracefully stopped</td><td><code>complete</code></td></tr>
+          <tr><td>Tasks complete but integration still pending</td><td><code>awaiting_integration</code></td></tr>
+          <tr><td>Tasks failed or lack evidence</td><td><code>failed</code></td></tr>
+          <tr><td>Work still pending/in-progress</td><td><code>cancelled</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2>Worker protocol</h2>
+      <p>Each worker follows this sequence:</p>
+      <ol>
+        <li>Send startup ACK: <code>jwc team api worker-startup-ack</code></li>
+        <li>Claim a task: <code>jwc team api claim-task</code></li>
+        <li>Work on the task, updating status periodically.</li>
+        <li>Transition task to terminal: <code>jwc team api transition-task-status</code> with completion evidence.</li>
+        <li>Commit or leave changes in the worker worktree — the leader integrates them.</li>
+      </ol>
+
+      <h2>Worktree integration</h2>
+      <p>When workers use dedicated git worktrees, the leader's <code>monitor</code>/<code>resume</code> commands automatically integrate worker commits:</p>
+      <ul>
+        <li><strong>Dirty worktrees</strong> are auto-checkpointed before integration.</li>
+        <li><strong>Clean-ahead history</strong> is merged into the leader with a runtime merge commit.</li>
+        <li><strong>Diverged history</strong> is cherry-picked into the leader.</li>
+        <li><strong>Idle/done/failed workers</strong> are cross-rebased onto the updated leader after integration.</li>
+        <li><strong>Conflicts</strong> are aborted, recorded, and reported to the leader mailbox.</li>
+      </ul>
+
+      <h2>Goal bridge</h2>
+      <p>Team mode integrates with goal mode. When <code>jwc team</code> launches with an active goal:</p>
+      <ul>
+        <li>Workers receive goal context (objective, active goal ID) but do not own goal state.</li>
+        <li>Workers provide task status and verification evidence only.</li>
+        <li>The leader uses terminal team evidence plus a fresh goal snapshot to run the quality gate.</li>
+        <li>Workers must not run <code>jwc goal checkpoint</code> — checkpoint authority stays with the leader.</li>
+      </ul>
+
+      <h2>Typed lanes</h2>
+      <p>For complex multi-worker tasks, use explicit lane sections instead of inline splits:</p>
+      <pre><code>### Lane A — Delivery
+Implement delivery-only changes and evidence.
+
+### Lane B — Verification
+Run verification suite and report results.</code></pre>
+      <p>Inline "Split lanes: A..., B..." sentences are rejected because they cause every worker to receive the same broad task.</p>
+
+      <h2>Environment variables</h2>
+      <table>
+        <thead>
+          <tr><th>Variable</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>GJC_TEAM_NAME</code></td><td>Team identifier for worker sessions</td></tr>
+          <tr><td><code>GJC_TEAM_WORKER_ID</code></td><td>Worker identity (e.g. <code>worker-1</code>)</td></tr>
+          <tr><td><code>GJC_TEAM_STATE_ROOT</code></td><td>Team state root (default <code>&lt;cwd&gt;/.jwc/state/team</code>)</td></tr>
+          <tr><td><code>GJC_TEAM_WORKTREE_PATH</code></td><td>Worker worktree path when worktree mode is active</td></tr>
+          <tr><td><code>GJC_TEAM_WORKER_COMMAND</code></td><td>Override worker CLI command</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Common failures</h2>
+      <table>
+        <thead>
+          <tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Launch fails immediately</td>
+            <td>Not inside tmux</td>
+            <td>Start <code>jwc team</code> from an attached tmux pane</td>
+          </tr>
+          <tr>
+            <td>Worker API ENOENT</td>
+            <td>Team state missing or wrong <code>GJC_TEAM_STATE_ROOT</code></td>
+            <td>Check <code>.jwc/state/team/&lt;team&gt;/</code> exists</td>
+          </tr>
+          <tr>
+            <td>Integration conflict</td>
+            <td>Worker and leader diverged</td>
+            <td>Run <code>jwc team monitor</code>, inspect <code>integration-report.md</code></td>
+          </tr>
+          <tr>
+            <td>Shutdown says <code>awaiting_integration</code></td>
+            <td>Pending worker commits not yet merged</td>
+            <td>Run <code>jwc team resume</code> first to trigger integration</td>
+          </tr>
+        </tbody>
+      </table>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web &amp; Media — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Web &amp; Media</h1>
+      <p>
+        Tools for web search, image inspection, image generation, and diagram rendering.
+        These extend the agent's reach beyond the local filesystem into web content and visual media.
+      </p>
+
+      <!-- ════════════════════════════════════════════ web_search ═══ -->
+      <h2 id="web_search">web_search</h2>
+      <p>Searches the web for up-to-date information beyond knowledge cutoff. Searches are performed automatically within a single API call with no pagination needed.</p>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>query</code></td><td>string</td><td>Search query (required)</td></tr>
+          <tr><td><code>depth</code></td><td><code>"fast"</code> | <code>"deep"</code></td><td><code>fast</code> (default): synchronous 60s. <code>deep</code>: async 180s with heavier reasoning for complex multi-hop queries.</td></tr>
+          <tr><td><code>limit</code></td><td>number</td><td>Max results to return</td></tr>
+          <tr><td><code>num_search_results</code></td><td>number</td><td>Number of search results to fetch</td></tr>
+          <tr><td><code>recency</code></td><td><code>"day"</code> | <code>"week"</code> | <code>"month"</code> | <code>"year"</code></td><td>Recency filter for results</td></tr>
+          <tr><td><code>temperature</code></td><td>number</td><td>Sampling temperature</td></tr>
+          <tr><td><code>max_tokens</code></td><td>number</td><td>Max output tokens</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Usage guidelines</h3>
+      <ul>
+        <li>Prefer primary sources (papers, official docs) and corroborate key claims with multiple sources.</li>
+        <li>Always include links for cited sources in the final response.</li>
+        <li>Use the actual current year in queries. Do not hardcode outdated years.</li>
+        <li>For library/framework docs, prefer Context7 MCP or official docs first.</li>
+      </ul>
+
+      <!-- ════════════════════════════════════════════ inspect_image ═══ -->
+      <h2 id="inspect_image">inspect_image</h2>
+      <p>Inspects an image file with a vision-capable model and returns compact text analysis. Use for OCR, UI/screenshot debugging, and scene/object questions.</p>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>path</code></td><td>string</td><td>Path to the local image file (required)</td></tr>
+          <tr><td><code>question</code></td><td>string</td><td>Specific question about the image (required)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Question guidelines</h3>
+      <ul>
+        <li>Specify what to inspect, constraints, and desired output format.</li>
+        <li>Keep questions grounded in observable evidence.</li>
+        <li>Ask for uncertainty indication when details are unclear.</li>
+      </ul>
+
+      <h3>Examples</h3>
+      <pre><code>// OCR with strict formatting
+inspect_image({
+  path: "screenshots/error.png",
+  question: "Extract all visible text verbatim. Return as bullet list in reading order."
+})
+
+// Screenshot debugging
+inspect_image({
+  path: "screenshots/settings.png",
+  question: "Identify the likely cause of the disabled Save button. Return: (1) observations, (2) likely cause, (3) confidence."
+})
+
+// Scene/object question
+inspect_image({
+  path: "photos/shelf.jpg",
+  question: "List all clearly visible product labels and their shelf positions (top/middle/bottom)."
+})</code></pre>
+
+      <h3>Limitations</h3>
+      <ul>
+        <li>Only <code>path</code> and <code>question</code> are allowed as parameters.</li>
+        <li>Returns text-only analysis; no image content blocks in output.</li>
+        <li>Requires a vision-capable model. Configure one if the current model does not support image input.</li>
+      </ul>
+
+      <!-- ════════════════════════════════════════════ generate_image ═══ -->
+      <h2 id="generate_image">generate_image</h2>
+      <p>Generates or edits images from text descriptions.</p>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>subject</code></td><td>string</td><td>Detailed prompt for image generation or editing (required)</td></tr>
+          <tr><td><code>input</code></td><td>array</td><td>Input images for editing. Each: <code>{ path, data, mime_type }</code></td></tr>
+          <tr><td><code>style</code></td><td>string</td><td>Artistic style</td></tr>
+          <tr><td><code>scene</code></td><td>string</td><td>Location or environment</td></tr>
+          <tr><td><code>action</code></td><td>string</td><td>What the subject is doing</td></tr>
+          <tr><td><code>composition</code></td><td>string</td><td>Camera angle and framing</td></tr>
+          <tr><td><code>lighting</code></td><td>string</td><td>Lighting setup</td></tr>
+          <tr><td><code>text</code></td><td>string</td><td>Text to render in the image</td></tr>
+          <tr><td><code>changes</code></td><td>string[]</td><td>Edits to make (for editing mode)</td></tr>
+          <tr><td><code>aspect_ratio</code></td><td>string</td><td><code>1:1</code>, <code>3:4</code>, <code>4:3</code>, <code>9:16</code>, <code>16:9</code></td></tr>
+          <tr><td><code>image_size</code></td><td>string</td><td><code>1024x1024</code>, <code>1536x1024</code>, <code>1024x1536</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>Tips</h3>
+      <ul>
+        <li>When using multiple inputs, describe each image's role in <code>subject</code> (e.g. "Image 1 for composition, Image 2 for lighting").</li>
+        <li>For text rendering, add "sharp, legible, correctly spelled" and keep text short.</li>
+      </ul>
+
+      <!-- ════════════════════════════════════════════ render_mermaid ═══ -->
+      <h2 id="render_mermaid">render_mermaid</h2>
+      <p>Convert Mermaid graph source into ASCII diagram output.</p>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>mermaid</code></td><td>string</td><td>Mermaid graph text to render (required)</td></tr>
+          <tr><td><code>config</code></td><td>object</td><td>JSON render configuration (spacing and layout options)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Behavior</h3>
+      <ul>
+        <li>Returns ASCII diagram text.</li>
+        <li>Saves full output to <code>artifact://&lt;id&gt;</code> when storage is available.</li>
+        <li>Returns error when Mermaid input is invalid or rendering fails.</li>
+      </ul>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

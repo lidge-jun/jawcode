@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>112.4 — jaw ↔ Code 모드 시안</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── 토큰: cli-jaw public/css/variables.css 전량 동일 (신규 변수 0) ── */
+:root{
+--bg:oklch(7% .01 280);--surface:oklch(11% .01 280);--border:oklch(17% .01 270);
+--text:oklch(92% .01 270);--text-dim:oklch(53% .02 270);
+--accent:oklch(78% .14 200);--accent2:oklch(70% .13 200);--green:oklch(78% .16 150);
+--user-bg:oklch(15% .02 270);--agent-bg:oklch(9% .01 270);
+--status-running-bg:oklch(17% .02 75);--status-running-color:oklch(81% .14 85);
+--code-bg:oklch(9% .01 250);--modal-bg:oklch(0% 0 0 / .6);
+--error:oklch(63% .21 25);--error-dim:oklch(63% .21 25 / .15);
+--success:oklch(72% .17 150);--warning:oklch(78% .16 75);--warning-dim:oklch(78% .16 75 / .15);
+--text-on-accent:#000;
+--font-display:'Chakra Petch','Outfit','Pretendard',system-ui,sans-serif;
+--font-ui:'Outfit','Pretendard',-apple-system,system-ui,sans-serif;
+--font-mono:'SF Mono','JetBrains Mono','Fira Code',monospace;
+--sidebar-left-w:220px;
+--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-6:24px;
+--text-xs:11px;--text-sm:13px;--text-base:16px;
+--radius-sm:4px;--radius-md:8px;--radius-lg:12px;--radius-full:9999px;
+--ease-out-expo:cubic-bezier(.16,1,.3,1);--duration-fast:150ms;--duration-base:250ms;
+}
+[data-theme="light"]{
+--bg:oklch(97% 0 0);--surface:oklch(100% 0 0);--border:oklch(90% .01 270);
+--text:oklch(15% .02 270);--text-dim:oklch(53% .02 270);
+--accent:oklch(62% .11 200);--accent2:oklch(52% .1 200);--green:oklch(62% .16 150);
+--user-bg:oklch(95% .01 270);--agent-bg:oklch(98% .005 270);
+--status-running-bg:oklch(97% .06 90);--status-running-color:oklch(56% .12 70);
+--code-bg:oklch(96% .005 250);--modal-bg:oklch(0% 0 0 / .3);
+--error:oklch(57% .21 25);--error-dim:oklch(57% .21 25 / .15);
+--success:oklch(62% .16 150);--warning:oklch(63% .15 70);--warning-dim:oklch(63% .15 70 / .15);
+--text-on-accent:#fff;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font-ui);background:var(--bg);color:var(--text);height:100vh;
+display:grid;grid-template-columns:var(--sidebar-left-w) 1fr;overflow:hidden;
+transition:background-color 200ms ease,color 200ms ease}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ── 좌측 사이드바 ── */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);
+display:flex;flex-direction:column;padding:var(--space-4) var(--space-3);gap:var(--space-4);overflow-y:auto}
+.logo{font-family:var(--font-display);font-weight:700;font-size:var(--text-base);letter-spacing:.06em}
+.logo .shark{margin-right:var(--space-1)}
+
+/* 모드 토글 — 로고 바로 아래 (Claude Code 데스크톱 Chat|Code 패턴 동형, 단 우리는 jaw) */
+.mode-toggle{display:flex;background:var(--bg);border:1px solid var(--border);
+border-radius:var(--radius-full);padding:3px;gap:2px}
+.mode-toggle button{flex:1;border:none;background:none;color:var(--text-dim);cursor:pointer;
+font-family:var(--font-display);font-weight:600;font-size:var(--text-sm);
+padding:5px 0;border-radius:var(--radius-full);transition:all var(--duration-fast) var(--ease-out-expo)}
+.mode-toggle button.active{background:var(--accent);color:var(--text-on-accent)}
+.mode-toggle button:not(.active):hover{color:var(--text)}
+
+.section-title{font-size:var(--text-xs);color:var(--text-dim);text-transform:uppercase;
+letter-spacing:.08em;margin-bottom:var(--space-2);font-weight:600}
+
+/* Code 모드 사이드바: 워크스페이스 + 세션 */
+.workspace-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-md);
+padding:var(--space-2) var(--space-3);cursor:pointer;transition:border-color var(--duration-fast)}
+.workspace-card:hover{border-color:var(--accent2)}
+.workspace-card .path{font-family:var(--font-mono);font-size:var(--text-sm);
+white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.workspace-card .branch{font-size:var(--text-xs);color:var(--accent);margin-top:2px}
+.session-list{display:flex;flex-direction:column;gap:2px}
+.session-item{display:flex;align-items:center;gap:var(--space-2);padding:6px var(--space-2);
+border-radius:var(--radius-sm);cursor:pointer;font-size:var(--text-sm);border:1px solid transparent}
+.session-item:hover{background:var(--bg)}
+.session-item.active{background:var(--bg);border-color:var(--border)}
+.session-item .dot{width:7px;height:7px;border-radius:var(--radius-full);flex-shrink:0}
+.dot.streaming{background:var(--status-running-color);animation:ping 1.2s infinite}
+.dot.idle{background:var(--text-dim);opacity:.45}
+.dot.done{background:var(--success)}
+@keyframes ping{0%,100%{opacity:1}50%{opacity:.35}}
+.session-item .name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.session-item.fork{margin-left:var(--space-4)}
+.session-item .fork-chip{font-size:9px;color:var(--text-dim);border:1px solid var(--border);
+border-radius:var(--radius-sm);padding:0 4px}
+.btn-new-session{margin-top:var(--space-2);width:100%;background:none;border:1px dashed var(--border);
+color:var(--text-dim);padding:var(--space-2);border-radius:var(--radius-md);cursor:pointer;
+font-size:var(--text-sm);font-family:inherit;transition:all var(--duration-fast)}
+.btn-new-session:hover{border-color:var(--accent);color:var(--accent)}
+
+/* jaw 모드 사이드바 자리표시 (D112-1: 기존 UI 무변경) */
+.jaw-placeholder{color:var(--text-dim);font-size:var(--text-sm);line-height:1.7;
+border:1px dashed var(--border);border-radius:var(--radius-md);padding:var(--space-3)}
+
+/* ── 메인 ── */
+.main{display:flex;flex-direction:column;min-width:0;background:var(--agent-bg)}
+.code-header{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-4);
+border-bottom:1px solid var(--border);background:var(--surface);font-size:var(--text-sm);min-height:44px}
+.code-header .ws{font-family:var(--font-mono);color:var(--text)}
+.chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border);
+border-radius:var(--radius-full);padding:2px 10px;font-size:var(--text-xs);color:var(--text-dim);
+cursor:pointer;background:none;font-family:inherit;transition:border-color var(--duration-fast)}
+.chip:hover{border-color:var(--accent2);color:var(--text)}
+.chip .b{color:var(--accent)}
+.spacer{flex:1}
+.usage{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-dim)}
+.theme-switch{width:36px;height:20px;border-radius:var(--radius-full);border:1px solid var(--border);
+background:var(--bg);cursor:pointer;position:relative}
+.theme-switch::after{content:'';position:absolute;top:1px;left:2px;width:16px;height:16px;
+border-radius:var(--radius-full);background:var(--text-dim);transition:transform var(--duration-base) var(--ease-out-expo)}
+[data-theme="light"] .theme-switch::after{transform:translateX(14px);background:var(--warning)}
+
+.transcript{flex:1;overflow-y:auto;padding:var(--space-6) var(--space-6) var(--space-4);
+display:flex;flex-direction:column;gap:var(--space-3);max-width:920px;width:100%;margin:0 auto}
+
+.bubble-user{align-self:flex-end;max-width:70%;background:var(--user-bg);
+border:1px solid var(--border);border-radius:var(--radius-lg);
+padding:var(--space-2) var(--space-4);font-size:var(--text-sm);line-height:1.6}
+
+/* ThoughtCell */
+.thought{font-size:var(--text-sm);color:var(--text-dim);cursor:pointer;user-select:none}
+.thought .caret{display:inline-block;transition:transform var(--duration-fast)}
+.thought.open .caret{transform:rotate(90deg)}
+.thought-body{display:none;margin:var(--space-1) 0 0 var(--space-4);padding-left:var(--space-3);
+border-left:2px solid var(--border);line-height:1.6;font-size:var(--text-sm)}
+.thought.open .thought-body{display:block}
+
+/* ToolCell */
+.tool{border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);
+font-size:var(--text-sm);overflow:hidden}
+.tool-head{display:flex;align-items:center;gap:var(--space-2);padding:6px var(--space-3);cursor:pointer;user-select:none}
+.tool-head .icon{width:16px;text-align:center}
+.tool-head .label{font-family:var(--font-mono);font-size:var(--text-xs)}
+.tool-head .meta{color:var(--text-dim);font-size:var(--text-xs);margin-left:auto;display:flex;gap:var(--space-2);align-items:center}
+.tool.running{border-color:color-mix(in oklch,var(--status-running-color) 40%,var(--border));
+background:var(--status-running-bg)}
+.tool.running .label{color:var(--status-running-color)}
+.tool.failed{border-color:color-mix(in oklch,var(--error) 50%,var(--border))}
+.tool.failed .label{color:var(--error)}
+.tool .out{display:none;border-top:1px solid var(--border);background:var(--code-bg);
+font-family:var(--font-mono);font-size:var(--text-xs);line-height:1.7;
+padding:var(--space-2) var(--space-3);white-space:pre-wrap;max-height:220px;overflow-y:auto}
+.tool.open .out{display:block}
+.spinner{width:10px;height:10px;border:2px solid var(--status-running-color);
+border-top-color:transparent;border-radius:var(--radius-full);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.assistant{font-size:var(--text-sm);line-height:1.75;max-width:78ch}
+.assistant code{font-family:var(--font-mono);background:var(--code-bg);
+padding:1px 5px;border-radius:var(--radius-sm);font-size:var(--text-xs)}
+
+/* PermissionDialog — 인라인 카드 */
+.perm{border:1px solid var(--border);border-left:3px solid var(--warning);
+background:var(--warning-dim);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4)}
+.perm .q{font-size:var(--text-sm);margin-bottom:var(--space-2)}
+.perm .q code{font-family:var(--font-mono);font-size:var(--text-xs)}
+.perm .acts{display:flex;gap:var(--space-2)}
+.perm button{font-family:inherit;font-size:var(--text-xs);padding:5px 12px;
+border-radius:var(--radius-sm);cursor:pointer;border:1px solid var(--border);
+background:var(--surface);color:var(--text)}
+.perm button.primary{background:var(--accent);border-color:var(--accent);color:var(--text-on-accent);font-weight:600}
+.perm button.deny{color:var(--error)}
+
+/* 컴포저 */
+.composer{padding:var(--space-3) var(--space-6) var(--space-4);max-width:920px;width:100%;margin:0 auto}
+.composer-box{display:flex;align-items:flex-end;gap:var(--space-2);background:var(--surface);
+border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--space-2) var(--space-3);
+transition:border-color var(--duration-fast)}
+.composer-box:focus-within{border-color:var(--accent2)}
+.composer textarea{flex:1;background:none;border:none;color:var(--text);resize:none;
+font-family:var(--font-mono);font-size:var(--text-sm);line-height:1.6;outline:none;min-height:40px}
+.composer textarea::placeholder{color:var(--text-dim)}
+.btn-send{background:var(--accent);color:var(--text-on-accent);border:none;
+border-radius:var(--radius-md);padding:6px 14px;font-weight:600;font-size:var(--text-sm);
+cursor:pointer;font-family:var(--font-display)}
+.composer .hint{font-size:var(--text-xs);color:var(--text-dim);margin-top:var(--space-1);
+display:flex;gap:var(--space-3)}
+
+/* jaw 모드 메인 자리표시 */
+.jaw-main{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;
+gap:var(--space-3);color:var(--text-dim);font-size:var(--text-sm);text-align:center;line-height:1.8}
+.jaw-main .shark{font-size:40px}
+
+/* ── 변경 팝업 (모델/thinking/티어) — 헤더 칩 앵커 팝오버 ── */
+.popover{position:absolute;top:48px;background:var(--surface);border:1px solid var(--border);
+border-radius:var(--radius-lg);box-shadow:0 8px 32px oklch(0% 0 0/.45);z-index:40;display:none;
+min-width:280px;padding:var(--space-2);font-size:var(--text-sm)}
+.popover.show{display:block}
+.popover .grp{font-size:var(--text-xs);color:var(--text-dim);text-transform:uppercase;
+letter-spacing:.08em;padding:var(--space-2) var(--space-2) var(--space-1);font-weight:600}
+.model-row{display:flex;align-items:center;gap:var(--space-2);width:100%;text-align:left;
+background:none;border:none;color:var(--text);padding:6px var(--space-2);cursor:pointer;
+border-radius:var(--radius-sm);font-family:inherit;font-size:var(--text-sm)}
+.model-row:hover{background:var(--bg)}
+.model-row .nm{flex:1;font-family:var(--font-mono);font-size:var(--text-xs)}
+.model-row .cur{color:var(--accent);font-size:var(--text-xs)}
+.model-row .cap{font-size:9px;color:var(--text-dim);border:1px solid var(--border);
+border-radius:var(--radius-sm);padding:0 4px}
+.model-row .pend{font-size:9px;color:var(--status-running-color);border:1px solid currentColor;
+border-radius:var(--radius-full);padding:0 6px}
+.pop-divider{border:none;border-top:1px solid var(--border);margin:var(--space-1) 0}
+.pop-foot{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-2);
+color:var(--text-dim);font-size:var(--text-xs)}
+.seg{display:flex;background:var(--bg);border:1px solid var(--border);
+border-radius:var(--radius-full);padding:2px;gap:2px;margin:var(--space-1) var(--space-2)}
+.seg button{flex:1;border:none;background:none;color:var(--text-dim);cursor:pointer;
+font-size:var(--text-xs);padding:4px 10px;border-radius:var(--radius-full);font-family:inherit}
+.seg button.on{background:var(--accent);color:var(--text-on-accent);font-weight:600}
+.tier-row{display:flex;align-items:center;justify-content:space-between;
+padding:6px var(--space-2);border-radius:var(--radius-sm);cursor:pointer}
+.tier-row:hover{background:var(--bg)}
+.tier-row .desc{font-size:var(--text-xs);color:var(--text-dim)}
+
+/* WorkspacePicker 모달 */
+.modal-backdrop{position:fixed;inset:0;background:var(--modal-bg);display:none;
+align-items:center;justify-content:center;z-index:50}
+.modal-backdrop.show{display:flex}
+.picker{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+width:440px;max-width:90vw;padding:var(--space-4)}
+.picker h3{font-family:var(--font-display);font-size:var(--text-base);margin-bottom:var(--space-3)}
+.picker .recent{display:flex;flex-direction:column;gap:var(--space-1);margin-bottom:var(--space-3)}
+.picker .recent button{text-align:left;background:var(--bg);border:1px solid var(--border);
+border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);color:var(--text);cursor:pointer;
+font-family:var(--font-mono);font-size:var(--text-xs)}
+.picker .recent button:hover{border-color:var(--accent2)}
+.picker .recent .br{color:var(--accent);margin-left:var(--space-2)}
+.picker input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);
+padding:8px 10px;border-radius:var(--radius-md);font-family:var(--font-mono);font-size:var(--text-xs)}
+</style>
+</head>
+<body>
+
+<!-- ══ 좌측 사이드바 ══ -->
+<nav class="sidebar">
+  <div class="logo"><span class="shark">🦈</span>CLI-JAW</div>
+
+  <!-- 모드 토글: 로고 바로 아래. 라벨은 jaw|Code — "Chat" 금지 -->
+  <div class="mode-toggle" role="tablist" aria-label="모드 전환">
+    <button id="modeJaw" role="tab">jaw</button>
+    <button id="modeCode" role="tab" class="active">Code</button>
+  </div>
+
+  <!-- Code 모드 사이드바 -->
+  <div id="sideCode">
+    <div class="section-title">Workspace</div>
+    <div class="workspace-card" onclick="document.getElementById('picker').classList.add('show')">
+      <div class="path">~/Developer/new/700_projects/jawcode</div>
+      <div class="branch">⎇ agent</div>
+    </div>
+
+    <div class="section-title" style="margin-top:var(--space-4)">Sessions</div>
+    <div class="session-list">
+      <div class="session-item active"><span class="dot streaming"></span><span class="name">harness submit gate 포팅</span></div>
+      <div class="session-item"><span class="dot done"></span><span class="name">pi-shell UTF-8 cherry-pick</span></div>
+      <div class="session-item fork"><span class="dot idle"></span><span class="name">↳ 테스트 보강 분기</span><span class="fork-chip">fork</span></div>
+      <div class="session-item"><span class="dot idle"></span><span class="name">receipt spool 검토</span></div>
+    </div>
+    <button class="btn-new-session">+ 새 세션</button>
+  </div>
+
+  <!-- jaw 모드 사이드바 (자리표시 — 실제로는 기존 UI 그대로) -->
+  <div id="sideJaw" style="display:none">
+    <div class="jaw-placeholder">
+      D112-1: jaw 모드는 <b>기존 cli-jaw UI 무변경</b>.<br>
+      상태 · 메모리 · 통계 · CLI 상태 패널이<br>이 자리에 그대로 렌더됩니다.<br>
+      <span style="font-size:var(--text-xs)">(추가되는 건 위 토글 1개뿐)</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ══ 메인 ══ -->
+<div class="main" id="mainCode">
+  <div class="code-header" style="position:relative">
+    <span class="ws">jawcode</span>
+    <span class="chip"><span class="b">⎇</span> agent</span>
+    <button class="chip" id="chipModel" title="모델 변경 (S4)">claude-fable-5 <span class="b">▾</span></button>
+    <button class="chip" id="chipThink" title="thinking (S4)">think: high</button>
+    <span class="spacer"></span>
+    <span class="usage">42.1k tok · $0.3127</span>
+    <button class="theme-switch" id="themeBtn" title="Toggle theme" aria-label="Toggle theme"></button>
+
+    <!-- 모델 변경 팝업: 그룹 프리셋 (a12a751 group preset UX 정합) + 티어 -->
+    <div class="popover" id="popModel" style="left:140px">
+      <div class="grp">Claude</div>
+      <button class="model-row"><span class="nm">claude-fable-5</span><span class="cap">1M</span><span class="cap">think</span><span class="cur">● 현재</span></button>
+      <button class="model-row"><span class="nm">claude-opus-4-8</span><span class="cap">think</span></button>
+      <button class="model-row"><span class="nm">claude-sonnet-4-6</span><span class="cap">fast</span></button>
+      <div class="grp">Codex</div>
+      <button class="model-row"><span class="nm">gpt-5.2-codex</span><span class="cap">think</span><span class="pend">다음 턴 적용</span></button>
+      <div class="grp">Local</div>
+      <button class="model-row"><span class="nm">ollama/qwen3-coder</span></button>
+      <hr class="pop-divider">
+      <div class="grp">Service Tier</div>
+      <div class="tier-row"><span>standard</span><span class="desc">기본</span></div>
+      <div class="tier-row"><span style="color:var(--accent)">priority ●</span><span class="desc">현재 · 빠름</span></div>
+      <hr class="pop-divider">
+      <div class="pop-foot">턴 진행 중 변경 = <b>202 pending</b> 배지 후 다음 턴 적용</div>
+    </div>
+
+    <!-- thinking 레벨 팝업 -->
+    <div class="popover" id="popThink" style="left:268px;min-width:200px">
+      <div class="grp">Thinking Level</div>
+      <div class="seg">
+        <button>off</button><button>low</button><button>med</button><button class="on">high</button>
+      </div>
+      <div class="pop-foot">세션 즉시 적용 — config_option_update 수신으로 확정</div>
+    </div>
+  </div>
+
+  <div class="transcript">
+    <div class="bubble-user">harness submit gate upstream 패치 선별 포팅해줘. owner.ts는 우리 패치 보존하고.</div>
+
+    <div class="thought" onclick="this.classList.toggle('open')">
+      <span class="caret">▸</span> 추론 7초
+      <div class="thought-body">owner.ts diverge 원인을 먼저 확인한다. jwc 패치가 아니라 미수용 upstream 기능이면 hunk가 clean하게 적용될 가능성이 높다…</div>
+    </div>
+
+    <div class="tool open">
+      <div class="tool-head" onclick="this.parentElement.classList.toggle('open')">
+        <span class="icon">⌘</span><span class="label">bash · git apply --check harness_sm_types.patch</span>
+        <span class="meta">0.4s · exit 0 <span>⌄</span></span>
+      </div>
+      <div class="out">$ git apply --check /tmp/harness_sm_types.patch
+(clean — no conflicts)</div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-head" onclick="this.parentElement.classList.toggle('open')">
+        <span class="icon">✎</span><span class="label">edit · commands/harness.ts #submit</span>
+        <span class="meta">+16 −3 <span>⌄</span></span>
+      </div>
+      <div class="out">@@ async #submit(root, input, flagSession) @@
++ const noOwnerGate = submitUnavailableReason(state.lifecycle, false);
++ if (!noOwnerGate || noOwnerGate === "owner-not-live") { …</div>
+    </div>
+
+    <div class="tool running">
+      <div class="tool-head">
+        <span class="icon"><span class="spinner"></span></span>
+        <span class="label">bash · bun test test/harness-control-plane/</span>
+        <span class="meta">12s…</span>
+      </div>
+    </div>
+
+    <div class="tool failed">
+      <div class="tool-head" onclick="this.parentElement.classList.toggle('open')">
+        <span class="icon">✕</span><span class="label">bash · cargo test -p pi-shell (이전 턴)</span>
+        <span class="meta">exit 101 <span>⌄</span></span>
+      </div>
+      <div class="out">error[E0308]: mismatched types — fixup.rs:171 (수정 전 기록)</div>
+    </div>
+
+    <div class="assistant">
+      <code>state-machine.ts</code>·<code>types.ts</code>는 무충돌 선반영했고, <code>#submit</code>은 startup-blocker 의존부를 제외하고 lifecycle gate 체인만 이식했어요. 테스트 돌고 있어요 — 끝나면 <code>check:types</code>까지 확인할게요.
+    </div>
+
+    <div class="perm">
+      <div class="q">🦈 <b>권한 요청</b> — <code>git push origin agent</code> 실행을 허용할까요?</div>
+      <div class="acts">
+        <button class="primary">이번만 허용</button>
+        <button>세션 전체 허용</button>
+        <button class="deny">거부</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="composer">
+    <div class="composer-box">
+      <textarea rows="1" placeholder="jwc에게 코딩 작업 지시… (⏎ 전송 · ⇧⏎ 줄바꿈 · / 커맨드)"></textarea>
+      <button class="btn-send">전송</button>
+    </div>
+    <div class="hint"><span>/ 커맨드 팔레트</span><span>⌘K 세션 전환</span><span>스트리밍 중 입력 = steer</span></div>
+  </div>
+</div>
+
+<!-- jaw 모드 메인 (자리표시) -->
+<div class="main" id="mainJaw" style="display:none">
+  <div class="jaw-main">
+    <div class="shark">🦈</div>
+    <div>jaw 모드 — 기존 채팅·IPABCD 로드맵·우측 패널이 그대로.<br>본 시안의 변경분은 좌측 <b>[ jaw | Code ]</b> 토글뿐입니다.</div>
+  </div>
+</div>
+
+<!-- WorkspacePicker -->
+<div class="modal-backdrop" id="picker" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="picker">
+    <h3>🦈 작업장 선택</h3>
+    <div class="section-title">최근</div>
+    <div class="recent">
+      <button>~/Developer/new/700_projects/jawcode<span class="br">⎇ agent</span></button>
+      <button>~/Developer/new/700_projects/cli-jaw<span class="br">⎇ main</span></button>
+      <button>~/Developer/new<span class="br">⎇ agent</span></button>
+    </div>
+    <div class="section-title">경로 입력</div>
+    <input placeholder="/absolute/path/to/repo">
+  </div>
+</div>
+
+<script>
+const jawBtn=document.getElementById('modeJaw'),codeBtn=document.getElementById('modeCode');
+function setMode(m){
+  const code=m==='code';
+  jawBtn.classList.toggle('active',!code);codeBtn.classList.toggle('active',code);
+  document.getElementById('sideCode').style.display=code?'':'none';
+  document.getElementById('sideJaw').style.display=code?'none':'';
+  document.getElementById('mainCode').style.display=code?'':'none';
+  document.getElementById('mainJaw').style.display=code?'none':'';
+}
+jawBtn.onclick=()=>setMode('jaw');codeBtn.onclick=()=>setMode('code');
+document.getElementById('themeBtn').onclick=()=>{
+  const r=document.documentElement;
+  r.dataset.theme=r.dataset.theme==='light'?'':'light';
+};
+// 변경 팝업: 칩 클릭 토글 + 외부 클릭 닫기 (상호배제 — 113.1 409 미사용 원칙의 UI 짝)
+const pops={chipModel:'popModel',chipThink:'popThink'};
+for(const [chip,pop] of Object.entries(pops)){
+  document.getElementById(chip).onclick=e=>{e.stopPropagation();
+    const t=document.getElementById(pop);
+    document.querySelectorAll('.popover').forEach(p=>{if(p!==t)p.classList.remove('show')});
+    t.classList.toggle('show');};
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.popover'))document.querySelectorAll('.popover').forEach(p=>p.classList.remove('show'));
+});
+</script>
+</body>
+</html>

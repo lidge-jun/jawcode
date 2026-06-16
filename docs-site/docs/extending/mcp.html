@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCP Integration — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>MCP Integration</h1>
+      <p>Jawcode supports the Model Context Protocol (MCP) for integrating external tool servers. MCP servers provide additional tools that the agent can call during a session, extending Jawcode's built-in 40+ tool surface with domain-specific capabilities.</p>
+
+      <h2>Architecture</h2>
+      <p>Jawcode's MCP integration has two distinct surfaces:</p>
+      <table>
+        <thead>
+          <tr><th>Surface</th><th>Direction</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Client-side MCP</strong></td>
+            <td>Jawcode calls external servers</td>
+            <td>Add tools from external MCP servers (Context7, computer-use, custom servers)</td>
+          </tr>
+          <tr>
+            <td><strong>Coordinator bridge</strong></td>
+            <td>External coordinators call Jawcode</td>
+            <td>Hermes-style orchestration of Jawcode sessions via <code>jwc mcp-serve coordinator</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Intentional isolation</h3>
+      <p>The SDK surface intentionally isolates MCP runtime discovery. <code>createAgentSession</code> only uses an explicitly passed <code>options.mcpManager</code> and never performs its own discovery. The CLI path (<code>main.ts</code>) wires discovery for interactive sessions only.</p>
+
+      <h2>Configuring MCP servers</h2>
+      <p>MCP server configuration lives in JSON files at two scopes:</p>
+
+      <h3>Project-level</h3>
+      <pre><code># Either of these paths:
+.jwc/mcp.json
+.jwc/.mcp.json</code></pre>
+
+      <h3>User-level</h3>
+      <pre><code># Either of these paths:
+~/.jwc/agent/mcp.json
+~/.jwc/agent/.mcp.json</code></pre>
+
+      <h3>Configuration format</h3>
+      <pre><code>{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"],
+      "enabled": true
+    },
+    "my-custom-server": {
+      "command": "node",
+      "args": ["./tools/my-mcp-server.js"],
+      "env": {
+        "API_KEY": "..."
+      },
+      "enabled": true
+    }
+  }
+}</code></pre>
+
+      <h2>Managed defaults</h2>
+      <p>Running <code>jwc setup defaults</code> restores managed default MCP servers to the user-level configuration. Currently, the only managed default is <code>context7</code> (Context7 documentation server).</p>
+      <pre><code>jwc setup defaults</code></pre>
+
+      <h2>Runtime behavior</h2>
+      <h3>Startup and connection</h3>
+      <ol>
+        <li>MCP servers are discovered from project and user config files.</li>
+        <li>All enabled servers are connected in parallel via stdio transport.</li>
+        <li>A startup timeout of <strong>250ms</strong> applies. Servers that do not respond within this window are aborted (unless tool definitions are cached).</li>
+        <li>Connected server tools are injected as custom tools into the session.</li>
+      </ol>
+
+      <h3>Tool caching</h3>
+      <p>Server tool definitions (name, description, schema) are cached in <code>agent.db</code> after first successful connection. On subsequent startups, cached definitions allow the agent to proceed even if the server is slow to start. The cache is invalidated when the server configuration changes.</p>
+
+      <h3>Schema normalization</h3>
+      <p>Tool input schemas from MCP servers are normalized via <code>normalizeSchemaForMCP</code>. Note that <code>$ref</code> inlining (dereferencing) is not performed — schemas with broken <code>$ref</code> references will cause provider 400 errors at call time.</p>
+
+      <h3>Conflict detection</h3>
+      <p>If an MCP server provides a tool with the same name as a built-in tool, the MCP tool is skipped and an error is logged. Built-in tools always take precedence.</p>
+
+      <h2>Discoverable tools</h2>
+      <p>Jawcode prevents tool overexposure through a discovery and BM25 selection layer. Not all tools are presented to the model at once:</p>
+      <ul>
+        <li><strong>Always-loaded tools</strong> — Core tools (read, edit, bash, etc.) are always in the tool list.</li>
+        <li><strong>Discoverable tools</strong> — Less common tools are hidden until the agent searches for them via <code>search_tool_bm25</code>. Once activated, they remain available for the session.</li>
+      </ul>
+      <p>This applies to both built-in and MCP-provided tools. The built-in <code>computer_use</code> tool, for example, is discoverable rather than always-loaded.</p>
+
+      <h2>Coordinator bridge</h2>
+      <p>The coordinator bridge exposes Jawcode sessions as MCP tools for external orchestrators:</p>
+      <pre><code>jwc mcp-serve coordinator</code></pre>
+      <p>This is the outward MCP adapter for Hermes-style coordination. It provides tools to:</p>
+      <ul>
+        <li>List and manage sessions</li>
+        <li>Start worktree/tmux-oriented sessions</li>
+        <li>Queue bounded follow-up prompts</li>
+        <li>Read status, tail output, and artifacts</li>
+        <li>Handle structured questions</li>
+        <li>Write coordination reports</li>
+      </ul>
+
+      <h3>Setup</h3>
+      <pre><code>jwc setup hermes \
+  --root /path/to/repo \
+  --profile my-bot \
+  --repo jawcode \
+  --mutation sessions,questions,reports \
+  --profile-dir /path/to/hermes/profile \
+  --install</code></pre>
+
+      <h3>Safety model</h3>
+      <p>The bridge is read-only and fail-closed by default. See <a href="../security/permissions.html">Permissions</a> for the full safety model.</p>
+
+      <h3>Smoke check</h3>
+      <pre><code># Non-mutating contract verification
+jwc setup hermes --root /path/to/repo --smoke
+
+# JSON contract check
+jwc mcp-serve coordinator --check --json</code></pre>
+
+      <h2>Next steps</h2>
+      <ul>
+        <li><a href="skills.html">Skills</a> — workflow-level extensions</li>
+        <li><a href="hooks.html">Hooks & Plugins</a> — lifecycle event handling</li>
+        <li><a href="../security/permissions.html">Permissions</a> — MCP tool restrictions and safety tiers</li>
+      </ul>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

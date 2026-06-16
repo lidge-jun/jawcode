@@ -1,0 +1,17 @@
+{
+  "goal": {
+    "objective": "Implement stale jaw-interview cleanup through PABCD: handoff must stop mutation blocking, and PABCD P/idle transitions must retire stale jaw-interview active state with focused regression tests.",
+    "status": "active",
+    "updatedAt": "2026-06-15T07:25:44.764Z"
+  },
+  "details": {
+    "pabcd": "complete",
+    "commit": "7a49e08e",
+    "evidence": [
+      "devlog/_plan/260614_prompt_discipline_system_goal/30_d_summary.md",
+      "devlog/_plan/260614_prompt_discipline_system_goal/29_c_check_pass.md",
+      "bun run check PASS",
+      "affected tests 91 pass / 0 fail / 488 expects"
+    ]
+  }
+}

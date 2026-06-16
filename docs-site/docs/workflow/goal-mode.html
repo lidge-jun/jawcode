@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Goal Mode — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Goal Mode</h1>
+      <p>Goal mode (<code>jwc goal</code>) is the durable execution ledger that wraps IPABCD into autonomous, multi-cycle operation. It tracks objectives, records evidence, and only reports completion when every deliverable is verified.</p>
+
+      <h2>Lifecycle</h2>
+      <p>A goal moves through these states:</p>
+      <pre><code>create -> active -> [pause] -> active -> complete
+                         \-> drop (abandoned)</code></pre>
+
+      <h3>Operations</h3>
+      <table>
+        <thead>
+          <tr><th>Operation</th><th>What it does</th><th>When to use</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>create</code></td>
+            <td>Starts a new goal with an objective string. Requires no existing active or paused goal.</td>
+            <td>Beginning of a large task.</td>
+          </tr>
+          <tr>
+            <td><code>get</code></td>
+            <td>Returns the current goal state, usage (tokens, time), and latest evidence.</td>
+            <td>Anytime — inspection is always safe.</td>
+          </tr>
+          <tr>
+            <td><code>resume</code></td>
+            <td>Re-activates a paused goal so work can continue.</td>
+            <td>After a pause, when you're ready to continue.</td>
+          </tr>
+          <tr>
+            <td><code>pause</code></td>
+            <td>Suspends the active goal and stops continuation steers. In-memory state is updated immediately.</td>
+            <td>When deliverables are done but programmatic completion is blocked, or when the user should decide the next step.</td>
+          </tr>
+          <tr>
+            <td><code>complete</code></td>
+            <td>Marks the goal complete after verifying every deliverable against current evidence.</td>
+            <td>Only when all acceptance criteria have direct proof.</td>
+          </tr>
+          <tr>
+            <td><code>drop</code></td>
+            <td>Discards the current goal without completing it.</td>
+            <td>When the objective is no longer relevant.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Evidence trail</h2>
+      <p>Goal mode maintains a durable evidence trail in <code>.jwc/goal/</code>:</p>
+      <table>
+        <thead>
+          <tr><th>File</th><th>Format</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>goals.json</code></td>
+            <td>JSON</td>
+            <td>Current goal state: objective, status, milestones, timestamps.</td>
+          </tr>
+          <tr>
+            <td><code>ledger.jsonl</code></td>
+            <td>JSONL (append-only)</td>
+            <td>Every update, evidence checkpoint, pause, and resume event.</td>
+          </tr>
+          <tr>
+            <td><code>brief.md</code></td>
+            <td>Markdown</td>
+            <td>Human-readable summary of the current goal.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Recording milestones</h3>
+      <p>The agent records evidence at meaningful boundaries using the CLI:</p>
+      <pre><code>jwc goal update "B-stage complete: 11 pages generated" \
+  --evidence "11 HTML files in docs-site/docs/, sidebar updated, typecheck clean"</code></pre>
+      <p>Evidence is mandatory for every update. Updates without evidence are rejected.</p>
+
+      <h2>PABCD integration</h2>
+      <p>Goal mode does not bypass IPABCD — it wraps it. When a goal is active:</p>
+      <ol>
+        <li>Agent enters <code>orchestrate p</code> to plan the next piece of work.</li>
+        <li>PABCD stages (P, A, B, C, D) execute normally with all gates.</li>
+        <li>D-stage closes the cycle. Agent checks: is the goal fully achieved?</li>
+        <li>If work remains, agent loops back to <code>orchestrate p</code>.</li>
+        <li>If complete, agent runs <code>goal complete</code> with final evidence.</li>
+      </ol>
+
+      <pre><code>Goal: "Build docs site with 55 pages"
+  |
+  +-- PABCD cycle 1: Infrastructure + 11 pages (Getting Started, Architecture)
+  |     P -> Critic OKAY -> A -> dual PASS -> B -> verifier DONE -> C -> green -> D
+  |
+  +-- PABCD cycle 2: 10 workflow pages
+  |     P -> Critic OKAY -> A -> PASS -> B -> DONE -> C -> green -> D
+  |
+  +-- PABCD cycle 3: 15 tool + provider + subagent pages
+  |     ...
+  |
+  +-- goal complete (all 55 pages verified)</code></pre>
+
+      <h2>Continuation steers</h2>
+      <p>While a goal is active, the runtime generates <strong>continuation steers</strong> — automatic prompts that keep the agent working toward the objective. The agent does not wait for user input between PABCD cycles.</p>
+      <p>Pausing the goal (<code>goal pause</code>) stops these continuation steers immediately. The in-memory runtime state is updated, so no further prompts are generated. Resuming (<code>goal resume</code>) restarts them.</p>
+
+      <h2>Quality gate</h2>
+      <p>Before <code>goal complete</code> succeeds, the agent must audit the current repo state against every concrete deliverable. The completion contract requires:</p>
+      <ul>
+        <li>Reading the files that were supposed to be created or modified.</li>
+        <li>Running the relevant checks (tests, typecheck, lint) that cover the changes.</li>
+        <li>Matching the verification scope to the claim scope — no partial-work-as-complete.</li>
+      </ul>
+      <p>If any deliverable lacks direct current-state evidence, the goal stays active.</p>
+
+      <h2>CLI usage</h2>
+      <pre><code># Start a goal
+jwc goal create "Implement feature X with tests and docs"
+
+# Check status anytime
+jwc goal get
+
+# Record a milestone
+jwc goal update "Unit tests passing" --evidence "bun test src/feature.test.ts: 12/12 pass"
+
+# Pause (agent or user)
+jwc goal pause
+
+# Resume
+jwc goal resume
+
+# Complete (only when verified)
+jwc goal complete
+
+# Abandon
+jwc goal drop</code></pre>
+
+      <h2>Agent-initiated pause</h2>
+      <p>The agent can pause a goal through the <strong>2-tap audit gate</strong>:</p>
+      <pre><code>jwc goal pause --agent --audit "All deliverables implemented, awaiting user review"</code></pre>
+      <p>This records the pause reason in the ledger and signals that the agent chose to stop — not that something failed. The user can inspect the ledger, review the work, and resume or complete.</p>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

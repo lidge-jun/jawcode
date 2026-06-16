@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Package Map — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Package Map</h1>
+      <p>
+        Jawcode is a Bun monorepo with 8 TypeScript packages, a Rust workspace
+        containing 6 crates, and 2 Python packages. This page documents every
+        package, its role, key exports, and where it sits in the dependency graph.
+      </p>
+
+      <h2>TypeScript Packages</h2>
+
+      <h3>packages/jwc — <code>jawcode</code></h3>
+      <table>
+        <tbody>
+          <tr><td><strong>npm name</strong></td><td><code>jawcode</code></td></tr>
+          <tr><td><strong>Binary</strong></td><td><code>jwc</code></td></tr>
+          <tr><td><strong>SDK export</strong></td><td><code>jawcode/sdk</code></td></tr>
+          <tr><td><strong>Key files</strong></td><td><code>bin/jwc.js</code>, <code>src/sdk.ts</code>, <code>src/index.ts</code></td></tr>
+          <tr><td><strong>Depends on</strong></td><td><code>@gajae-code/coding-agent</code></td></tr>
+        </tbody>
+      </table>
+      <p>
+        The public npm package and CLI entry point. <code>bin/jwc.js</code> is a
+        Node.js launcher that resolves a managed Bun runtime and delegates to the
+        coding-agent CLI. <code>jawcode/sdk</code> re-exports the coding-agent SDK
+        for programmatic embedding — this is the official integration surface for
+        external hosts like cli-jaw.
+      </p>
+      <p>
+        A Node.js compatibility layer lives at <code>dist-node/</code> with
+        esbuild-bundled shims for <code>Bun.*</code> APIs, <code>bun:sqlite</code>,
+        and other Bun-specific surfaces. Node 22+ SDK import and
+        <code>createAgentSession()</code> streaming are verified green.
+      </p>
+
+      <h3>packages/coding-agent — <code>@gajae-code/coding-agent</code></h3>
+      <table>
+        <tbody>
+          <tr><td><strong>Role</strong></td><td>CLI runtime: tools, session, skills, prompts, modes, workflow</td></tr>
+          <tr><td><strong>Key files</strong></td><td><code>src/cli.ts</code>, <code>src/main.ts</code>, <code>src/sdk.ts</code></td></tr>
+          <tr><td><strong>Depends on</strong></td><td><code>agent-core</code>, <code>ai</code>, <code>tui</code>, <code>natives</code>, <code>utils</code>, <code>stats</code></td></tr>
+        </tbody>
+      </table>
+      <p>
+        The primary product surface. Contains all built-in tools (read, bash, edit,
+        AST, eval, find, search, LSP, browser, task/subagent, IRC, web search, etc.),
+        the default workflow skills (jaw-interview, plan, goal, team), bundled role
+        agent prompts (executor, architect, planner, critic), extensibility surfaces
+        (skills, slash commands, custom tools, MCP), session management, and all
+        execution modes (interactive TUI, print, RPC, ACP, bridge).
+      </p>
+
+      <h3>packages/agent — <code>@gajae-code/agent-core</code></h3>
+      <table>
+        <tbody>
+          <tr><td><strong>Role</strong></td><td>Provider-agnostic agent loop, state management, compaction</td></tr>
+          <tr><td><strong>Key exports</strong></td><td><code>Agent</code>, <code>agentLoop</code>, <code>agentLoopContinue</code>, <code>AppendOnlyContextManager</code></td></tr>
+          <tr><td><strong>Depends on</strong></td><td><code>ai</code>, <code>natives</code>, <code>utils</code></td></tr>
+        </tbody>
+      </table>
+      <p>
+        The core agent runtime. Owns the turn loop (prompt → model call → tool
+        dispatch → result append → continue/yield), mutable agent state,
+        subscriptions, abort/pause APIs, queued message handling, provider session
+        state, telemetry, and context compaction. Does not know about specific tools
+        or the TUI.
+      </p>
+
+      <h3>packages/ai — <code>@gajae-code/ai</code></h3>
+      <table>
+        <tbody>
+          <tr><td><strong>Role</strong></td><td>Multi-provider LLM client with streaming</td></tr>
+          <tr><td><strong>Key exports</strong></td><td><code>streamSimple</code>, <code>ModelManager</code>, <code>AuthBroker</code>, model registry, provider implementations</td></tr>
+          <tr><td><strong>Depends on</strong></td><td><code>utils</code>, provider SDKs (OpenAI, Anthropic, etc.)</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Supports 46+ providers and 3,600+ models. Handles model registry/resolution
+        (static, cached, dynamic, remote sources), provider-specific streaming
+        normalization, auth broker/gateway, OAuth flows, API key management,
+        retry/overflow, usage tracking, tool calling with partial streaming, and
+        thinking/reasoning mode control.
+      </p>
+
+      <h3>packages/tui — <code>@gajae-code/tui</code></h3>
+      <table>
+        <tbody>
+          <tr><td><strong>Role</strong></td><td>Terminal UI framework with differential rendering</td></tr>
+          <tr><td><strong>Key exports</strong></td><td>Components (text, input, editor, markdown, select, image, box), TUI core, keybindings</td></tr>
+          <tr><td><strong>Depends on</strong></td><td><code>natives</code>, <code>utils</code></td></tr>
+        </tbody>
+      </table>
+      <p>
+        Custom terminal UI library — not a wrapper around blessed/ink. Manages
+        component rendering with diffing, focus management, overlays, terminal
+        dimensions, cursor control, Kitty graphics protocol, synchronized output,
+        and appearance notifications. The welcome banner gradient sweep animation
+        and viewport scroll model (B2-lite fill + sticky gap) are hand-tuned
+        product features.
+      </p>
+
+      <h3>packages/natives — <code>@gajae-code/natives</code></h3>
+      <table>
+        <tbody>
+          <tr><td><strong>Role</strong></td><td>Rust N-API bindings for performance-critical operations</td></tr>
+          <tr><td><strong>Key exports</strong></td><td>grep, AST search/edit, clipboard, filesystem scan, syntax highlighting, PTY, shell, token counting, text measurement</td></tr>
+          <tr><td><strong>Depends on</strong></td><td><code>crates/pi-natives</code> (build artifact)</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Platform-specific native binaries are resolved at runtime with version
+        validation between the package and the native binary. Covers: AST search
+        and structural editing (tree-sitter/ast-grep), recursive grep/glob,
+        clipboard access, filesystem scan and cache, syntax highlighting,
+        HTML-to-Markdown conversion, keyboard parsing, process/PTY/shell support,
+        SIXEL image rendering, code summarization, token counting, and text
+        width measurement/wrapping/truncation.
+      </p>
+
+      <h3>packages/utils — <code>@gajae-code/utils</code></h3>
+      <table>
+        <tbody>
+          <tr><td><strong>Role</strong></td><td>Shared TypeScript utilities</td></tr>
+          <tr><td><strong>Key exports</strong></td><td>Logger, config dirs, color/env helpers, fetch retry, formatting, glob, JSON, MIME, sanitization, process tree, temp files</td></tr>
+          <tr><td><strong>Depends on</strong></td><td><code>natives</code>, handlebars, winston</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Common utilities used across all packages. Includes the centralized logger
+        (required instead of <code>console.log</code> in coding-agent to avoid TUI
+        corruption), abortable/async helpers, frontmatter parsing, prompt rendering
+        via Handlebars, and process tree management through native bindings.
+      </p>
+
+      <h3>packages/stats — <code>@gajae-code/stats</code></h3>
+      <table>
+        <tbody>
+          <tr><td><strong>Role</strong></td><td>Local observability dashboard</td></tr>
+          <tr><td><strong>Key exports</strong></td><td><code>jwc-stats</code> CLI, aggregation APIs, dashboard server</td></tr>
+          <tr><td><strong>Depends on</strong></td><td><code>ai</code>, <code>utils</code>, React, Tailwind, Chart.js</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Parses session-derived request metrics, writes aggregated data through
+        SQLite, and serves a local dashboard SPA with API routes. Accessed via
+        <code>jwc stats</code>.
+      </p>
+
+      <h2>Rust Crates</h2>
+      <table>
+        <thead>
+          <tr><th>Crate</th><th>Role</th><th>Key surface</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>crates/pi-natives</code></td>
+            <td>N-API <code>cdylib</code> root</td>
+            <td>Appearance, AST, clipboard, filesystem, grep, syntax, HTML-to-MD, keyboard, PTY, shell, SIXEL, summarization, token counting, text measurement, workspace scan</td>
+          </tr>
+          <tr>
+            <td><code>crates/pi-ast</code></td>
+            <td>AST parsing helper</td>
+            <td>tree-sitter + ast-grep grammars for multi-language structural search and edit</td>
+          </tr>
+          <tr>
+            <td><code>crates/pi-iso</code></td>
+            <td>OS isolation</td>
+            <td>Portable platform helpers with tokio async runtime</td>
+          </tr>
+          <tr>
+            <td><code>crates/pi-shell</code></td>
+            <td>Shell execution</td>
+            <td>Persistent/one-shot shell execution, streaming, environment, cancellation, output minimizer telemetry, bash fixups</td>
+          </tr>
+          <tr>
+            <td><code>crates/brush-builtins-vendored</code></td>
+            <td>Vendored POSIX/bash builtins</td>
+            <td>Shell built-in command implementations</td>
+          </tr>
+          <tr>
+            <td><code>crates/brush-core-vendored</code></td>
+            <td>Vendored bash core</td>
+            <td>Reusable shell core runtime</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Python Packages</h2>
+      <table>
+        <thead>
+          <tr><th>Package</th><th>Role</th><th>Key surface</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>python/jwc-rpc</code></td>
+            <td>Typed Python client for <code>jwc --mode rpc</code></td>
+            <td>Process-backed stdio client, typed command methods, event listeners, host-owned tools/URI schemes</td>
+          </tr>
+          <tr>
+            <td><code>python/robogjc</code></td>
+            <td>Self-hosted GitHub triage/fix bot</td>
+            <td>Webhook-to-worktree-to-jwc flow, FastAPI server, persistent per-issue sessions, sandbox execution</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Auxiliary Packages</h2>
+      <table>
+        <thead>
+          <tr><th>Package</th><th>Role</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>packages/bridge-client</code></td>
+            <td>TypeScript client SDK for the jwc backend bridge protocol</td>
+          </tr>
+          <tr>
+            <td><code>packages/orchestration-token-benchmark</code></td>
+            <td>Internal benchmark for orchestration token efficiency (deterministic, no live model calls)</td>
+          </tr>
+          <tr>
+            <td><code>packages/typescript-edit-benchmark</code></td>
+            <td>Benchmark for TypeScript edit mutation tasks</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Dependency Graph</h2>
+      <pre><code>jawcode (packages/jwc)
+  |
+  +---> @gajae-code/coding-agent
+  |       |
+  |       +---> @gajae-code/agent-core
+  |       |       |
+  |       |       +---> @gajae-code/ai
+  |       |       +---> @gajae-code/natives
+  |       |       +---> @gajae-code/utils
+  |       |
+  |       +---> @gajae-code/ai
+  |       +---> @gajae-code/tui
+  |       |       |
+  |       |       +---> @gajae-code/natives
+  |       |       +---> @gajae-code/utils
+  |       |
+  |       +---> @gajae-code/natives
+  |       +---> @gajae-code/utils
+  |       +---> @gajae-code/stats
+  |               |
+  |               +---> @gajae-code/ai
+  |               +---> @gajae-code/utils
+  |
+  +---> Bun managed runtime
+
+@gajae-code/natives
+  |
+  +---> crates/pi-natives (N-API cdylib)
+          |
+          +---> crates/pi-ast (tree-sitter grammars)
+          +---> crates/pi-iso (OS isolation)
+          +---> crates/pi-shell (shell execution)
+                  |
+                  +---> crates/brush-builtins-vendored
+                  +---> crates/brush-core-vendored</code></pre>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

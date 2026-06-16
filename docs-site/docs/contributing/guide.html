@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contributing Guide — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Contributing Guide</h1>
+      <p>Jawcode enforces strict code-quality rules across all packages. Every contribution — whether from a human or an automated agent — must follow these conventions. The rules exist to keep the codebase predictable and grep-friendly.</p>
+
+      <h2>Code quality rules</h2>
+
+      <h3>No <code>any</code></h3>
+      <p>Never use <code>any</code> unless absolutely necessary. If an external API forces an untyped boundary, add an explicit cast with a comment explaining why. Prefer <code>unknown</code> and narrow with type guards.</p>
+
+      <h3>No <code>ReturnType&lt;&gt;</code></h3>
+      <p>Write the actual type name instead of deriving it with <code>ReturnType&lt;typeof fn&gt;</code>. Explicit types are easier to search, rename, and reason about.</p>
+
+      <h3>No inline imports</h3>
+      <p>All imports must be top-level static declarations. The following patterns are banned:</p>
+      <pre><code>// BANNED — dynamic import
+const mod = await import("./heavy.ts");
+
+// BANNED — inline type import
+type Foo = import("./types").Foo;
+
+// CORRECT — top-level
+import type { Foo } from "./types";
+import { heavy } from "./heavy.ts";</code></pre>
+
+      <h3>ES <code>#private</code> fields</h3>
+      <p>Use ES native <code>#private</code> fields. Do not use the TypeScript <code>private</code>, <code>protected</code>, or <code>public</code> keywords on fields or methods, except for constructor parameter properties where TypeScript requires the modifier:</p>
+      <pre><code>class Agent {
+  #state: AgentState;          // correct — ES private
+  #loop(): void { ... }        // correct
+
+  constructor(private readonly id: string) {} // allowed — ctor param property
+}</code></pre>
+
+      <h3><code>Promise.withResolvers()</code></h3>
+      <p>Use <code>Promise.withResolvers()</code> instead of the <code>new Promise((resolve, reject) =&gt; ...)</code> constructor pattern. It produces cleaner code and avoids the nested-callback shape.</p>
+
+      <h3>Barrel exports</h3>
+      <p>Prefer <code>export * from "./module"</code> in barrel files. If star exports create ambiguity (duplicate names from different modules), remove the redundant path rather than switching to named re-exports.</p>
+
+      <h3>Prompts in <code>.md</code> files</h3>
+      <p>All prompts live in static <code>.md</code> files imported with the <code>with { type: "text" }</code> assertion. Never build prompts inline in TypeScript code:</p>
+      <pre><code>// CORRECT
+import systemPrompt from "./prompts/system-prompt.md" with { type: "text" };
+
+// BANNED — inline string template
+const prompt = `You are an agent that...`;</code></pre>
+
+      <h3>Check <code>node_modules</code> for types</h3>
+      <p>When consuming an external library, check its actual type declarations in <code>node_modules</code> instead of guessing the API surface. This prevents phantom type mismatches and keeps imports accurate.</p>
+
+      <h3><code>models.json</code> is generated</h3>
+      <p>Never edit <code>packages/ai/src/models.json</code> directly. Modify the generator, descriptors, or resolvers, then regenerate:</p>
+      <pre><code>bun --cwd=packages/ai run generate-models</code></pre>
+
+      <h2>Bun and filesystem conventions</h2>
+      <p>Prefer Bun APIs where they are cleaner:</p>
+      <table>
+        <thead>
+          <tr><th>Operation</th><th>Use</th><th>Avoid</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>File read/write</td><td><code>Bun.file()</code>, <code>Bun.write()</code></td><td><code>readFileSync</code>, <code>writeFileSync</code></td></tr>
+          <tr><td>Spawn commands</td><td>Bun Shell (<code>$`cmd`</code>)</td><td><code>child_process</code></td></tr>
+          <tr><td>Sleep</td><td><code>Bun.sleep(ms)</code></td><td>timeout promises</td></tr>
+          <tr><td>JSON5/JSONL</td><td><code>Bun.JSON5</code>, <code>Bun.JSONL</code></td><td>ad-hoc parsers</td></tr>
+          <tr><td>String width</td><td><code>Bun.stringWidth</code>, <code>Bun.wrapAnsi</code></td><td>custom ANSI wrapping</td></tr>
+        </tbody>
+      </table>
+      <p>Use namespace imports for Node built-in modules:</p>
+      <pre><code>import * as fs from "node:fs/promises";
+import * as path from "node:path";
+import * as os from "node:os";</code></pre>
+      <p>Use <code>node:fs/promises</code> for directory operations. Avoid redundant parent-directory creation before <code>Bun.write()</code> — Bun creates parent directories automatically.</p>
+
+      <h2>Worker scripts</h2>
+      <p>Spawn workers with the compile-safe hybrid pattern that works in both source and compiled binary modes:</p>
+      <pre><code>import { isCompiledBinary } from "@gajae-code/pi-utils";
+
+const worker = isCompiledBinary()
+  ? new Worker("./packages/&lt;pkg&gt;/src/&lt;worker&gt;.ts", { type: "module" })
+  : new Worker(new URL("./&lt;worker&gt;.ts", import.meta.url).href, { type: "module" });</code></pre>
+      <p>Every worker entry must also be listed as an extra compile entrypoint in <code>packages/coding-agent/scripts/build-binary.ts</code>.</p>
+
+      <h2>Logging and TUI safety</h2>
+      <p>Do not use <code>console.log</code>, <code>console.warn</code>, or <code>console.error</code> in <code>packages/coding-agent/</code>. Console output corrupts TUI rendering. Use the centralized logger from <code>@gajae-code/pi-utils</code>.</p>
+      <p>All text displayed in tool renderers must be sanitized:</p>
+      <ul>
+        <li>Tabs to spaces via <code>replaceTabs()</code></li>
+        <li>Truncation via <code>truncateToWidth()</code> / <code>ui.truncate()</code></li>
+        <li>Home paths shortened via <code>shortenPath()</code></li>
+        <li>Previews bounded by shared preview constants</li>
+      </ul>
+
+      <h2>Verification gates</h2>
+      <p>After any workflow-definition or rebrand-surface change, run the full gate suite:</p>
+      <pre><code># All four gates — run in order
+bun scripts/check-visible-definitions.ts
+bun scripts/verify-g002-gates.ts
+bun scripts/rebrand-inventory.ts --strict
+bun test packages/coding-agent/test/default-jwc-definitions.test.ts</code></pre>
+
+      <table>
+        <thead>
+          <tr><th>Gate</th><th>What it checks</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>check-visible-definitions</code></td><td>Only the four public workflow skills + two tool-help skills are registered as defaults</td></tr>
+          <tr><td><code>verify-g002-gates</code></td><td>G002 rebrand contract — all public-facing names use <code>jwc</code>/<code>.jwc</code></td></tr>
+          <tr><td><code>rebrand-inventory --strict</code></td><td>No stale upstream names leak into user-visible surfaces</td></tr>
+          <tr><td><code>default-jwc-definitions.test</code></td><td>Bundled skill/agent definitions load correctly and match expected shapes</td></tr>
+        </tbody>
+      </table>
+
+      <h2>General rules</h2>
+      <ul>
+        <li>Never run <code>tsc</code> or <code>npx tsc</code>; use <code>bun check</code> / <code>bun run check:ts</code>.</li>
+        <li>For focused changes, prefer targeted tests first, then type/lint/build checks.</li>
+        <li>Commit completed changes proactively; stage only intended files and preserve unrelated work.</li>
+        <li>Package changelogs live at <code>packages/*/CHANGELOG.md</code>. Add entries under <code>## [Unreleased]</code>; never edit released sections.</li>
+        <li>Release flow: <code>bun run release</code> after changelogs and verification.</li>
+      </ul>
+
+      <h2>Next steps</h2>
+      <p>See <a href="development.html">Development Setup</a> for cloning, installing, and running tests locally.</p>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: [main, preview, dev]
+  pull_request:
+    branches: [main, preview]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-ci-check-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+      - run: bun install --frozen-lockfile
+      - run: bun run build:native
+      - run: bun run ci:check:full
+      - run: bun run ci:test:smoke
+
+  package:
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: bun install --frozen-lockfile
+      - run: bun run build:native
+
+      - name: Canonical JWC release validation
+        run: bun run validate:jwc-release
+
+      - name: Build bundles
+        run: |
+          bun --cwd=packages/jwc run bundle
+          bun --cwd=packages/jwc run build:node
+
+      - name: Node SDK smoke test
+        run: node packages/jwc/scripts/smoke-node-sdk.mjs
+
+      - name: Node bin syntax check
+        run: node --check packages/jwc/bin/jwc.js
+
+      - name: Pack dry-run
+        run: cd packages/jwc && npm pack --dry-run
+
+      - name: Pack size guard
+        run: |
+          cd packages/jwc
+          npm pack 2>/dev/null
+          SIZE=$(stat -c%s jawcode-*.tgz 2>/dev/null || stat -f%z jawcode-*.tgz)
+          MAX=$((15 * 1024 * 1024))
+          echo "Pack size: $SIZE bytes (max: $MAX)"
+          if [ "$SIZE" -gt "$MAX" ]; then
+            echo "::error::Package tarball exceeds 15MB limit ($SIZE bytes)"
+            exit 1
+          fi
+          rm -f jawcode-*.tgz
+
+      - name: Pack file count guard
+        run: |
+          cd packages/jwc
+          COUNT=$(npm pack --dry-run 2>&1 | grep "^npm notice total files:" | grep -o '[0-9]*')
+          MAX=15
+          echo "File count: $COUNT (max: $MAX)"
+          if [ "$COUNT" -gt "$MAX" ]; then
+            echo "::error::Package contains $COUNT files (max $MAX)"
+            exit 1
+          fi
+
+  mac-native-probes:
+    runs-on: macos-14
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: bun install --frozen-lockfile
+      - run: bun run build:native
+      - run: bun --cwd=packages/jwc run bundle
+      - run: bun --cwd=packages/jwc run build:node
+      - run: node packages/jwc/scripts/smoke-packed-sdk.mjs --native-probes

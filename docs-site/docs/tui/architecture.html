@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TUI Architecture — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>TUI Architecture</h1>
+      <p>Jawcode's terminal UI is a scrollback-native differential renderer. The frame is the entire transcript; the terminal scrollback buffer is the primary history store. Scroll up and you see real history, not a virtual reconstruction.</p>
+
+      <h2>Core Constraint</h2>
+      <p>Terminals cannot un-scroll. Once a line enters the scrollback buffer, it can only be erased (ESC[2K), never retrieved. This single physical constraint drives every design decision in the scroll model:</p>
+      <ul>
+        <li>Frame shrinkage always leaves residual blank lines</li>
+        <li>Where those blanks go and when they're cleaned determines scroll UX</li>
+        <li>3J (scrollback wipe) is permanently forbidden once any line is committed</li>
+      </ul>
+
+      <h2>Frame Layout (B2-lite)</h2>
+      <p>The frame stacks top-to-bottom in this order:</p>
+      <pre><code>[ Welcome Banner ]              &larr; scrolls naturally into scrollback
+[ ViewportFill ]                &larr; stretches to fill remaining viewport height
+[ chatContainer ]               &larr; committed transcript cells (monotonic growth)
+[ pendingMessages ]             &brvbar;
+[ liveToolContainer ]           &brvbar; &larr; live zone: active tool previews
+[ statusContainer (loader) ]    &brvbar;
+[ todo / btw / statusLine ]     &brvbar; composer cluster &mdash; always pinned to terminal bottom
+[ hookAbove / editor / hookBelow ] &rfloor;</code></pre>
+
+      <p>The fill region sits <strong>above</strong> the chat, not below. This is the B2-lite design: content and slash output cluster around the input (bottom), while shrinkage delta is absorbed by the top margin. Shrinkage only happens before content overflows the viewport.</p>
+
+      <h2>ViewportFill Mechanism</h2>
+      <p>ViewportFill is the spacer that keeps the composer pinned to the bottom when transcript content is shorter than the terminal viewport.</p>
+
+      <table>
+        <thead>
+          <tr><th>Phase</th><th>Location</th><th>Behavior</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Sentinel emit</td>
+            <td><code>viewport-fill.ts</code></td>
+            <td>Emits <code>VIEWPORT_FILL_SENTINEL</code> (1 line; 0 if disabled for legacy compat)</td>
+          </tr>
+          <tr>
+            <td>Expand</td>
+            <td><code>tui.ts #expandViewportFill</code></td>
+            <td>After tree render, before overlay compositing. Replaces sentinel with <code>max(0, target - contentLines)</code> blank lines</td>
+          </tr>
+          <tr>
+            <td>Sticky gap</td>
+            <td><code>#viewportFillGap / #viewportFillFloor</code></td>
+            <td>On shrink: gap grows to keep composer at bottom (one full-render). On growth: gap freezes &mdash; frame grows from bottom, preserving append-only diff</td>
+          </tr>
+          <tr>
+            <td>Gap tracking</td>
+            <td><code>#viewportFillGap</code></td>
+            <td>Counts blank lines accumulated by floor</td>
+          </tr>
+          <tr>
+            <td>Compact</td>
+            <td><code>compactViewportFill()</code></td>
+            <td>Resets floor/gap + <code>requestRender(true)</code> &mdash; reprints the full transcript to rebuild scrollback without blanks. No-op when gap is 0</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Compact Triggers</h3>
+      <ul>
+        <li><strong>Prompt submit</strong> &mdash; <code>input-controller.ts:457</code>, after <code>commitFinalizedBacklog</code></li>
+        <li><strong>Slash dispatch</strong> &mdash; <code>input-controller.ts:328</code>, when <code>slashResult === true</code></li>
+        <li><strong>Ctrl+O toggle</strong> &mdash; current-turn output expand/collapse</li>
+      </ul>
+      <p>Ctrl+O toggles only the current live turn; previously committed turns are unaffected. Ctrl+T opens the full transcript overlay (not a compact trigger).</p>
+
+      <h2>Viewport Repaint Policy</h2>
+      <p>When a change occurs outside the visible viewport, the renderer chooses a physical path based on <code>isViewportAtBottom()</code>:</p>
+
+      <table>
+        <thead>
+          <tr><th><code>isViewportAtBottom()</code></th><th>Path</th><th>Rationale</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>true</code></td>
+            <td>append + viewportRepaint</td>
+            <td>Terminal is bottom-locked; safe to append growth lines</td>
+          </tr>
+          <tr>
+            <td><code>false</code></td>
+            <td>viewportRepaint only</td>
+            <td>User is reading history; don't force-scroll to bottom</td>
+          </tr>
+          <tr>
+            <td><code>undefined</code></td>
+            <td>viewportRepaint only</td>
+            <td>Real terminal state unknown; speculative CRLF append risks duplicate/pushed rows</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p><code>viewportRepaint</code> (<code>tui.ts:1353</code>) reprints the visible N rows in-place without 2J/3J. The cursor moves to screen top, each row is erased (2K) and rewritten. Scrollback pixels are untouched.</p>
+      <p><code>fullRender(true)</code> uses 2J+H to clear the screen and reprint the entire frame. Scrollback is rebuilt identically, so history is preserved. Triggered by width changes, <code>clearOnShrink</code>, or explicit <code>requestRender(true)</code>.</p>
+
+      <h3>3J Prohibition</h3>
+      <pre><code>buffer += isMultiplexerSession() || this.#hasCommittedHistory
+    ? "\x1b[2J\x1b[H"       // 3J omitted
+    : "\x1b[2J\x1b[H\x1b[3J";</code></pre>
+      <p>Once <code>#hasCommittedHistory</code> is true (any line was committed to scrollback), 3J is permanently forbidden. The scrollback is now the canonical transcript and must not be wiped. Multiplexers (tmux/zellij) also suppress 3J since users scroll their own pane history.</p>
+
+      <h2>Commit Lane (Dual-Lane Architecture)</h2>
+      <p>Jawcode separates rendering into two lanes:</p>
+
+      <table>
+        <thead>
+          <tr><th>Lane</th><th>Description</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Virtual lane</td>
+            <td>Finalized cells added to <code>chatContainer</code>; the differential renderer reprints every frame</td>
+            <td>Always active (fallback)</td>
+          </tr>
+          <tr>
+            <td>Commit lane</td>
+            <td>Finalized cells written to scrollback exactly once; the renderer never touches them again</td>
+            <td><strong>ON</strong> &mdash; opt-out with <code>JWC_COMMIT_LANE=0</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>commitLines() Entry Conditions</h3>
+      <pre><code>Commit lane entry requires:
+  #historyLane === "standard"           // not Zellij or dumb terminal
+  && !stopped && terminalAvailable
+  && overlayStack.length === 0          // no overlay open
+  && liveZoneTop > 0                    // fill region exists (history area)
+  && lines.length > 0</code></pre>
+      <p>On success, <code>#committedScreenRows</code> increments and <code>#hasCommittedHistory</code> becomes true (3J permanently forbidden). On failure, the caller falls back to the virtual lane.</p>
+
+      <h3>Terminal Lane Detection</h3>
+      <table>
+        <thead>
+          <tr><th>Environment</th><th>Lane Mode</th><th>Reason</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>TERM=dumb</code></td>
+            <td>unsupported</td>
+            <td>No ANSI escape support</td>
+          </tr>
+          <tr>
+            <td>Zellij (<code>ZELLIJ</code> env var)</td>
+            <td>zellij-raw</td>
+            <td>Scroll regions break soft-wrap in Zellij</td>
+          </tr>
+          <tr>
+            <td>Everything else (incl. tmux)</td>
+            <td>standard</td>
+            <td>tmux pane history receives committed lines as intended</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Scrollback Commit Protocol</h3>
+      <p><code>buildInsertHistorySequence()</code> (<code>insert-history.ts:56</code>) runs a 2-phase commit:</p>
+      <ol>
+        <li><strong>Phase 1</strong> (conditional): If the live zone doesn't touch the screen bottom, Reverse Index (<code>\x1bM</code>) pushes the live zone down, creating empty history rows above.</li>
+        <li><strong>Phase 2</strong> (always): Sets a scroll region from row 1 to <code>liveZoneTop</code>. For each line, <code>\r\n</code> scrolls the region up (pushing the top line into real scrollback since top=1), <code>\x1b[2K</code> cleans the freed row, then the line content is written.</li>
+      </ol>
+      <p>Critical: only scroll regions with top=1 push lines into actual scrollback. A region starting at row &gt; 1 discards scrolled-off lines instead of preserving them.</p>
+
+      <h2>Commit-Time Folding</h2>
+      <p>The <code>tool.renderMode</code> setting controls how tool output enters history:</p>
+      <table>
+        <thead>
+          <tr><th>Mode</th><th>Behavior</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>commit</code> (jwc default)</td>
+            <td>Active tools preview in <code>liveToolContainer</code> only. On completion, they enter <code>chatContainer</code> as <code>setMinimized(true)</code> &mdash; one-line summary. History grows monotonically; tool-induced shrinkage is eliminated.</td>
+          </tr>
+          <tr>
+            <td><code>verbose</code> (legacy)</td>
+            <td>Tool previews stream inline in the transcript. Post-completion folding relies on ViewportFill safety nets.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Ctrl+O sweeps only <code>liveToggleEligible</code> children in the chat and live zone. It preserves the thinking-expanded coupling (<code>thinkingExpanded</code>).</p>
+
+      <h2>Key Implementation Files</h2>
+      <table>
+        <thead>
+          <tr><th>File</th><th>Responsibility</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>packages/tui/src/tui.ts</code></td><td>Differential renderer, viewport fill, commit lane, repaint policy</td></tr>
+          <tr><td><code>packages/tui/src/components/viewport-fill.ts</code></td><td>ViewportFill sentinel component</td></tr>
+          <tr><td><code>packages/tui/src/insert-history.ts</code></td><td>Scrollback commit protocol (2-phase escape sequences)</td></tr>
+          <tr><td><code>packages/coding-agent/src/modes/interactive-mode.ts</code></td><td>Frame layout mount order (B2-lite)</td></tr>
+          <tr><td><code>packages/coding-agent/src/modes/utils/ui-helpers.ts</code></td><td><code>commitOrAppend()</code> / <code>commitLaneEnabled()</code></td></tr>
+          <tr><td><code>packages/coding-agent/src/modes/components/input-controller.ts</code></td><td>Compact triggers on prompt submit, slash dispatch</td></tr>
+        </tbody>
+      </table>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

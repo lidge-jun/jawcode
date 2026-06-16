@@ -1,0 +1,78 @@
+{
+  "nav": {
+    "features": "Features",
+    "pipeline": "Pipeline",
+    "agents": "Agents",
+    "install": "Install",
+    "docs": "Docs"
+  },
+  "sidebar": {
+    "install": "Install",
+    "workflow": "Workflow",
+    "tools": "Tools",
+    "settings": "Settings",
+    "lineage": "Lineage"
+  },
+  "hero": {
+    "eyebrow": "Coding Agent Runner",
+    "title": "Encode intention. Decode software.",
+    "subtitle": "46 providers. 3,600+ models. One structured workflow that plans before it builds, audits before it ships, and verifies before it reports done."
+  },
+  "agents": {
+    "label": "Subagent System",
+    "title": "Five role agents. Parallel. Adversarial. De-anchored.",
+    "desc": "Spawn executors for implementation, architects for review, critics for plan quality. They run in parallel, don't duplicate each other's work, and when corrected, generate 3+ fresh hypotheses instead of patching their prior answer."
+  },
+  "pipeline": {
+    "label": "Workflow",
+    "title": "IPABCD — six gates from idea to verified delivery",
+    "desc": "No guessing. No skipping. Each stage has explicit gates. The agent cannot report done without passing adversarial review.",
+    "i": { "name": "Interview", "desc": "Socratic requirements with ambiguity scoring" },
+    "p": { "name": "Plan", "desc": "Critic consensus loop until OKAY" },
+    "a": { "name": "Audit", "desc": "Planner + Architect must both PASS" },
+    "b": { "name": "Build", "desc": "Implement + adversarial verifier" },
+    "c": { "name": "Check", "desc": "Gates + review + 3-way reject routing" },
+    "d": { "name": "Done", "desc": "Summary, reflections, cycle close" }
+  },
+  "providers": {
+    "label": "All Providers",
+    "title": "46 providers. Switch models mid-conversation.",
+    "desc": "Anthropic, OpenAI, Google, xAI, Groq, DeepSeek, Mistral, Amazon Bedrock, Google Vertex, OpenRouter, Ollama, and 35 more. API keys, OAuth, or local inference. 1M context window supported for Claude models."
+  },
+  "speed": {
+    "label": "Performance",
+    "title": "Bun-native. Fast startup. Streaming-first.",
+    "desc": "Built on Bun from the ground up. Prompt caching, streaming tool output, background job management, and compaction keep long sessions fast. No webpack, no transpile step, no cold-start lag."
+  },
+  "tools": {
+    "label": "Built-in",
+    "title": "40+ Tools",
+    "desc": "From AST-aware code search to browser automation. Essential tools load by default; discoverable tools activate on demand."
+  },
+  "install": {
+    "label": "Get Started",
+    "title": "Install"
+  },
+  "lineage": {
+    "label": "Heritage",
+    "title": "Lineage"
+  },
+  "workflow": {
+    "title": "IPABCD Workflow",
+    "lead": "Six stages from vague idea to verified delivery. Each stage has explicit gates — no guessing, no skipping.",
+    "meta": { "purpose": "Purpose", "input": "Input", "output": "Output", "gate": "Gate", "command": "Command" },
+    "i": { "title": "Interview", "purpose": "Clarify ambiguous requirements via Socratic interview with mathematical ambiguity scoring.", "input": "Vague user request or feature idea.", "output": "Approved spec under .jwc/specs/.", "gate": "Ambiguity score below threshold — dual-audit confirmation.", "detail": "The interview stage uses a Socratic questioning loop to surface hidden assumptions, resolve ambiguities, and produce a concrete specification." },
+    "p": { "title": "Plan", "purpose": "Consensus planning with critic revision loop.", "input": "Spec from Interview, or a clear requirement.", "output": "pending-approval.md under .jwc/plans/planphase/.", "gate": "Critic verdict: OKAY.", "detail": "The planning stage writes a concrete implementation plan. A Critic subagent reviews through multiple rounds; the plan advances only when the Critic responds with OKAY." },
+    "a": { "title": "Audit", "purpose": "Independent feasibility check by Planner and Architect subagents.", "input": "Approved plan.", "output": "Planner PASS + Architect PASS verdicts.", "gate": "Both audit_status = pass required for A to B.", "detail": "Two independent subagents audit the plan without seeing each other's output. Both must PASS." },
+    "b": { "title": "Build", "purpose": "Direct implementation of the audited plan.", "input": "Audited plan with PASS verdicts.", "output": "Code changes + verifier DONE verdict.", "gate": "verification_status = done required for B to C.", "detail": "The main session implements the plan. Bounded slices may be delegated to executor subagents. A read-only adversarial verifier checks the implementation." },
+    "c": { "title": "Check", "purpose": "Mechanical gates + adversarial review.", "input": "Implemented code with verifier DONE.", "output": "All gates pass + adversarial review clear.", "gate": "3-way reject: code to B, plan to P, spec to I.", "detail": "Runs bun run check + affected tests, then an adversarial reviewer inspects for contract violations and regressions." },
+    "d": { "title": "Done", "purpose": "Cycle summary and reflections.", "input": "All C-stage gates passed.", "output": "Cycle summary + WONDER/REFLECT reflections.", "detail": "Closes the cycle with structured summary, decisions, and verification evidence." },
+    "control": {
+      "title": "Human Control Model",
+      "intro": "Two control modes depending on agent autonomy.",
+      "hitl": { "label": "Human-in-the-Loop", "desc": "User advances each stage manually. Maximum oversight." },
+      "hotl": { "label": "Human-on-the-Loop", "desc": "Goal wraps PABCD. Agent advances autonomously, pausing at approval gates." },
+      "note": "Both modes enforce the same gates. HOTL automates transitions while preserving verification checkpoints."
+    }
+  }
+}

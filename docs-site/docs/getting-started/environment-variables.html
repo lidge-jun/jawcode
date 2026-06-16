@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Environment Variables — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Environment Variables</h1>
+      <p>
+        Jawcode reads environment variables at startup to configure providers,
+        directory layout, model selection, and tool behavior. Variables prefixed
+        <code>JWC_</code> are the canonical names; legacy <code>GJC_</code> and
+        <code>PI_</code> aliases are accepted for backward compatibility but
+        should not be used in new setups.
+      </p>
+
+      <!-- ── Core Provider Keys ── -->
+      <h2>Core Provider Keys</h2>
+      <p>At least one provider key is required. Jawcode auto-discovers which
+         providers are available based on which keys are set.</p>
+
+      <table>
+        <thead><tr><th>Variable</th><th>Description</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>ANTHROPIC_API_KEY</code></td>
+            <td>Anthropic Claude models (Sonnet, Opus, Haiku).</td>
+            <td>none</td>
+          </tr>
+          <tr>
+            <td><code>ANTHROPIC_OAUTH_TOKEN</code></td>
+            <td>Anthropic OAuth token. Takes precedence over <code>ANTHROPIC_API_KEY</code>.</td>
+            <td>none</td>
+          </tr>
+          <tr>
+            <td><code>OPENAI_API_KEY</code></td>
+            <td>OpenAI GPT / o-series models.</td>
+            <td>none</td>
+          </tr>
+          <tr>
+            <td><code>GEMINI_API_KEY</code></td>
+            <td>Google Gemini models.</td>
+            <td>none</td>
+          </tr>
+          <tr>
+            <td><code>GITHUB_TOKEN</code></td>
+            <td>GitHub Copilot models. Also accepted: <code>GH_TOKEN</code>,
+                <code>COPILOT_GITHUB_TOKEN</code>.</td>
+            <td>none</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- ── Additional LLM Providers ── -->
+      <h2>Additional LLM Providers</h2>
+      <table>
+        <thead><tr><th>Variable</th><th>Provider</th></tr></thead>
+        <tbody>
+          <tr><td><code>AZURE_OPENAI_API_KEY</code></td><td>Azure OpenAI</td></tr>
+          <tr><td><code>GROQ_API_KEY</code></td><td>Groq</td></tr>
+          <tr><td><code>CEREBRAS_API_KEY</code></td><td>Cerebras</td></tr>
+          <tr><td><code>XAI_API_KEY</code></td><td>xAI Grok</td></tr>
+          <tr><td><code>OPENROUTER_API_KEY</code></td><td>OpenRouter (aggregated)</td></tr>
+          <tr><td><code>KILO_API_KEY</code></td><td>Kilo Gateway</td></tr>
+          <tr><td><code>MISTRAL_API_KEY</code></td><td>Mistral</td></tr>
+          <tr><td><code>ZAI_API_KEY</code></td><td>z.ai / ZhipuAI (GLM)</td></tr>
+          <tr><td><code>MINIMAX_API_KEY</code></td><td>MiniMax</td></tr>
+          <tr><td><code>OPENCODE_API_KEY</code></td><td>OpenCode Zen / Go</td></tr>
+          <tr><td><code>CURSOR_ACCESS_TOKEN</code></td><td>Cursor AI</td></tr>
+          <tr><td><code>AI_GATEWAY_API_KEY</code></td><td>Vercel AI Gateway</td></tr>
+        </tbody>
+      </table>
+
+      <!-- ── Cloud Providers ── -->
+      <h2>Cloud Providers</h2>
+      <table>
+        <thead><tr><th>Variable</th><th>Description</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>AWS_PROFILE</code></td>
+            <td>AWS Bedrock. Also accepts <code>AWS_ACCESS_KEY_ID</code> +
+                <code>AWS_SECRET_ACCESS_KEY</code>.</td>
+            <td>none</td>
+          </tr>
+          <tr>
+            <td><code>GOOGLE_CLOUD_PROJECT</code></td>
+            <td>Google Vertex AI project ID. Requires <code>GOOGLE_CLOUD_LOCATION</code>.</td>
+            <td>none</td>
+          </tr>
+          <tr>
+            <td><code>GOOGLE_APPLICATION_CREDENTIALS</code></td>
+            <td>Service account JSON path for Vertex AI.</td>
+            <td>none</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- ── Anthropic Foundry / mTLS ── -->
+      <h2>Anthropic Foundry / mTLS</h2>
+      <table>
+        <thead><tr><th>Variable</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>CLAUDE_CODE_USE_FOUNDRY</code></td>
+            <td>Enable Anthropic Foundry mode (Foundry endpoint + mTLS).</td>
+          </tr>
+          <tr>
+            <td><code>FOUNDRY_BASE_URL</code></td>
+            <td>Foundry base URL, e.g. <code>https://&lt;foundry-host&gt;</code>.</td>
+          </tr>
+          <tr>
+            <td><code>ANTHROPIC_FOUNDRY_API_KEY</code></td>
+            <td>Bearer token for Foundry mode.</td>
+          </tr>
+          <tr>
+            <td><code>ANTHROPIC_CUSTOM_HEADERS</code></td>
+            <td>Extra Foundry headers, e.g. <code>"user-id: USERNAME"</code>.</td>
+          </tr>
+          <tr>
+            <td><code>CLAUDE_CODE_CLIENT_CERT</code></td>
+            <td>Client certificate PEM path or inline PEM for mTLS.</td>
+          </tr>
+          <tr>
+            <td><code>CLAUDE_CODE_CLIENT_KEY</code></td>
+            <td>Client private key PEM path or inline PEM for mTLS.</td>
+          </tr>
+          <tr>
+            <td><code>NODE_EXTRA_CA_CERTS</code></td>
+            <td>CA bundle path (or inline PEM) for server certificate validation.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- ── Search & Tools ── -->
+      <h2>Search and Tool Providers</h2>
+      <table>
+        <thead><tr><th>Variable</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>EXA_API_KEY</code></td><td>Exa web search</td></tr>
+          <tr><td><code>BRAVE_API_KEY</code></td><td>Brave web search</td></tr>
+          <tr><td><code>PERPLEXITY_API_KEY</code></td><td>Perplexity web search (API key)</td></tr>
+          <tr><td><code>PERPLEXITY_COOKIES</code></td><td>Perplexity web search (session cookie)</td></tr>
+          <tr><td><code>TAVILY_API_KEY</code></td><td>Tavily web search</td></tr>
+          <tr><td><code>ANTHROPIC_SEARCH_API_KEY</code></td><td>Anthropic search provider</td></tr>
+          <tr><td><code>SEARXNG_ENDPOINT</code></td><td>Self-hosted SearXNG instance URL</td></tr>
+          <tr><td><code>SEARXNG_TOKEN</code></td><td>SearXNG bearer auth token</td></tr>
+          <tr><td><code>SEARXNG_BASIC_USERNAME</code></td><td>SearXNG HTTP Basic auth username</td></tr>
+          <tr><td><code>SEARXNG_BASIC_PASSWORD</code></td><td>SearXNG HTTP Basic auth password</td></tr>
+          <tr><td><code>SMITHERY_API_KEY</code></td><td>Smithery MCP marketplace API key</td></tr>
+        </tbody>
+      </table>
+
+      <!-- ── Directory & Session ── -->
+      <h2>Directory and Session Layout</h2>
+      <p>Jawcode stores configuration, sessions, and caches under <code>~/.jwc/</code>
+         by default. On Linux, XDG base directories are honored when set.</p>
+
+      <table>
+        <thead><tr><th>Variable</th><th>Description</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>JWC_CONFIG_DIR</code></td>
+            <td>Config directory name relative to home. Legacy aliases:
+                <code>GJC_CONFIG_DIR</code>, <code>PI_CONFIG_DIR</code>.</td>
+            <td><code>.jwc</code></td>
+          </tr>
+          <tr>
+            <td><code>JWC_CODING_AGENT_DIR</code></td>
+            <td>Full path to agent session storage. Legacy: <code>GJC_CODING_AGENT_DIR</code>.</td>
+            <td><code>~/.jwc/agent</code></td>
+          </tr>
+          <tr>
+            <td><code>JWC_SESSION_ID</code></td>
+            <td>Override the auto-generated session ID. Legacy: <code>GJC_SESSION_ID</code>.</td>
+            <td>auto-generated</td>
+          </tr>
+          <tr>
+            <td><code>JWC_PACKAGE_VERSION</code></td>
+            <td>Override the version string shown by the CLI.</td>
+            <td>from <code>package.json</code></td>
+          </tr>
+          <tr>
+            <td><code>JWC_PACKAGE_DIR</code></td>
+            <td>Override package directory. Useful for Nix/Guix store paths.</td>
+            <td>auto-detected</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>XDG Base Directories (Linux)</h3>
+      <p>When running on Linux, Jawcode maps its storage to XDG locations:</p>
+      <table>
+        <thead><tr><th>Variable</th><th>Maps to</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>XDG_DATA_HOME</code></td>
+            <td>Sessions, blobs, worktrees, stats</td>
+            <td><code>~/.local/share</code></td>
+          </tr>
+          <tr>
+            <td><code>XDG_STATE_HOME</code></td>
+            <td>Logs, crash logs, terminal sessions</td>
+            <td><code>~/.local/state</code></td>
+          </tr>
+          <tr>
+            <td><code>XDG_CACHE_HOME</code></td>
+            <td>Natives, GPU cache, Puppeteer data</td>
+            <td><code>~/.cache</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- ── Model Selection ── -->
+      <h2>Model Selection Overrides</h2>
+      <table>
+        <thead><tr><th>Variable</th><th>Description</th><th>CLI equivalent</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>JWC_SMOL_MODEL</code></td>
+            <td>Override the fast/small model for lightweight tasks.</td>
+            <td><code>--smol</code></td>
+          </tr>
+          <tr>
+            <td><code>JWC_SLOW_MODEL</code></td>
+            <td>Override the slow/reasoning model for deep analysis.</td>
+            <td><code>--slow</code></td>
+          </tr>
+          <tr>
+            <td><code>JWC_PLAN_MODEL</code></td>
+            <td>Override the planning model for orchestration.</td>
+            <td><code>--plan</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- ── Behavior Flags ── -->
+      <h2>Behavior Flags</h2>
+      <table>
+        <thead><tr><th>Variable</th><th>Description</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>JWC_BRAND_NAME</code></td>
+            <td>Override display name shown in the TUI. Legacy: <code>GJC_BRAND_NAME</code>.</td>
+            <td><code>jwc</code></td>
+          </tr>
+          <tr>
+            <td><code>JWC_NO_PTY</code></td>
+            <td>Disable PTY-based interactive bash execution.</td>
+            <td>unset (PTY enabled)</td>
+          </tr>
+          <tr>
+            <td><code>JWC_COMMIT_LANE</code></td>
+            <td>Enable or disable the commit lane. Set to <code>0</code> or
+                <code>false</code> to disable.</td>
+            <td><code>true</code></td>
+          </tr>
+          <tr>
+            <td><code>JWC_LAUNCH_POLICY</code></td>
+            <td>Launch policy for <code>--tmux</code> startup: <code>tmux</code>
+                or <code>direct</code>.</td>
+            <td><code>tmux</code></td>
+          </tr>
+          <tr>
+            <td><code>JWC_TMUX_SESSION</code></td>
+            <td>Explicit tmux session name for <code>--tmux</code> startup.</td>
+            <td>auto-generated</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- ── Browser / Puppeteer ── -->
+      <h2>Browser / Puppeteer</h2>
+      <table>
+        <thead><tr><th>Variable</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>PUPPETEER_EXECUTABLE_PATH</code></td>
+            <td>Path to a Chrome/Chromium binary. Auto-detected if unset.</td>
+          </tr>
+          <tr>
+            <td><code>PUPPETEER_PROXY</code></td>
+            <td>HTTP proxy for browser traffic, e.g. <code>http://127.0.0.1:8080</code>.</td>
+          </tr>
+          <tr>
+            <td><code>PUPPETEER_PROXY_BYPASS_LOOPBACK</code></td>
+            <td>Set to <code>true</code> to route localhost traffic through the proxy.</td>
+          </tr>
+          <tr>
+            <td><code>PUPPETEER_PROXY_IGNORE_CERT_ERRORS</code></td>
+            <td>Set to <code>true</code> to ignore certificate errors (insecure).</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- ── GitHub ── -->
+      <h2>GitHub Integration</h2>
+      <table>
+        <thead><tr><th>Variable</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>GH_TOKEN</code> / <code>GITHUB_TOKEN</code></td>
+            <td>Personal access token for GitHub API, PR creation, issue reads.</td>
+          </tr>
+          <tr>
+            <td><code>GH_HOST</code></td>
+            <td>GitHub Enterprise host, e.g. <code>github.mycompany.com</code>.
+                Default: <code>github.com</code>.</td>
+          </tr>
+          <tr>
+            <td><code>GH_CONFIG_DIR</code></td>
+            <td>Override the <code>gh</code> CLI config directory for auth token discovery.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- ── Example .env ── -->
+      <h2>Example Setup</h2>
+      <pre><code># ~/.bashrc or ~/.zshrc
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-..."
+export GEMINI_API_KEY="AIza..."
+
+# Optional: point config to a custom location
+export JWC_CONFIG_DIR=".my-jwc"
+
+# Optional: override model selection
+export JWC_SMOL_MODEL="anthropic/claude-sonnet-4-20250514"
+export JWC_SLOW_MODEL="anthropic/claude-sonnet-4-20250514:high"
+
+# Optional: self-hosted search
+export SEARXNG_ENDPOINT="http://localhost:8888"</code></pre>
+
+      <p>
+        Run <code>jwc --list-models</code> to verify which providers are active
+        after setting your keys.
+      </p>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

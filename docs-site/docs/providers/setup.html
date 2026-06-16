@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Provider Setup — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Provider Setup</h1>
+      <p>
+        Every provider needs credentials before its models become available.
+        Jawcode resolves credentials through a layered chain — you only need
+        to configure one layer.
+      </p>
+
+      <h2>Auth Resolution Order</h2>
+      <p>
+        When Jawcode needs a key for a provider, it checks these sources in
+        order and uses the first match:
+      </p>
+      <ol>
+        <li><strong>Runtime override</strong> — CLI <code>--api-key</code> flag</li>
+        <li><strong>Stored API key</strong> — saved in <code>agent.db</code> via <code>/login</code></li>
+        <li><strong>Stored OAuth credential</strong> — saved in <code>agent.db</code> with automatic refresh</li>
+        <li><strong>Environment variable</strong> — standard provider env vars (<code>OPENAI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, etc.)</li>
+        <li><strong>models.yml fallback</strong> — <code>apiKey</code> field in provider config (treated as env var name first, then literal)</li>
+      </ol>
+
+      <h2>Quick Setup Methods</h2>
+
+      <h3>OAuth Login (Recommended)</h3>
+      <p>
+        The fastest path for major providers. Run <code>jwc</code> and use the
+        <code>/login</code> slash command:
+      </p>
+      <pre><code># Inside the TUI
+/login
+
+# Providers with OAuth support:
+# - OpenAI (includes Codex access)
+# - Anthropic (Claude)
+# - Google (Gemini CLI / Antigravity)
+# - xAI (Grok)
+# - Perplexity
+# - Kimi / Moonshot</code></pre>
+      <p>
+        OAuth tokens are stored in <code>~/.jwc/agent/agent.db</code> and
+        refreshed automatically. A single OAuth login also unlocks that
+        provider's native web search engine.
+      </p>
+
+      <h3>Environment Variables</h3>
+      <p>
+        Set the standard environment variable for your provider. Jawcode
+        recognizes these automatically:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Provider</th><th>Environment Variable</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>OpenAI</td><td><code>OPENAI_API_KEY</code></td></tr>
+          <tr><td>Anthropic</td><td><code>ANTHROPIC_API_KEY</code></td></tr>
+          <tr><td>Google AI</td><td><code>GOOGLE_API_KEY</code> or <code>GEMINI_API_KEY</code></td></tr>
+          <tr><td>xAI</td><td><code>XAI_API_KEY</code></td></tr>
+          <tr><td>Groq</td><td><code>GROQ_API_KEY</code></td></tr>
+          <tr><td>Together</td><td><code>TOGETHER_API_KEY</code></td></tr>
+          <tr><td>Fireworks</td><td><code>FIREWORKS_API_KEY</code></td></tr>
+          <tr><td>DeepSeek</td><td><code>DEEPSEEK_API_KEY</code></td></tr>
+          <tr><td>Mistral</td><td><code>MISTRAL_API_KEY</code></td></tr>
+          <tr><td>Cohere</td><td><code>COHERE_API_KEY</code></td></tr>
+          <tr><td>Perplexity</td><td><code>PERPLEXITY_API_KEY</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>Provider Presets</h3>
+      <p>
+        For providers that need specific configuration (base URL, compat flags,
+        model entries), use presets to write a correct <code>models.yml</code>
+        block in one command:
+      </p>
+      <pre><code># CLI setup
+jwc setup provider --preset minimax
+jwc setup provider --preset minimax-cn
+jwc setup provider --preset glm
+
+# Inside the TUI
+/provider add --preset minimax
+/provider add --preset glm
+/provider add zai</code></pre>
+      <p>
+        Presets write <code>models.yml</code> entries that reference environment
+        variable names (<code>MINIMAX_CODE_API_KEY</code>,
+        <code>ZAI_API_KEY</code>, etc.) but do not store or validate actual
+        credentials.
+      </p>
+
+      <h2>Custom Provider Configuration</h2>
+      <p>
+        Add any OpenAI-compatible endpoint as a custom provider in
+        <code>~/.jwc/agent/models.yml</code>:
+      </p>
+      <pre><code>providers:
+  my-provider:
+    baseUrl: https://api.example.com/v1
+    apiKey: MY_PROVIDER_API_KEY    # env var name or literal
+    api: openai-completions
+    auth: apiKey                   # apiKey | none | oauth
+    headers:
+      X-Team: platform
+    models:
+      - id: my-model
+        name: My Model
+        reasoning: true
+        input: [text]
+        contextWindow: 128000
+        maxTokens: 16384
+        cost:
+          input: 0
+          output: 0
+          cacheRead: 0
+          cacheWrite: 0</code></pre>
+
+      <h3>Azure OpenAI</h3>
+      <p>
+        Azure uses canonical OpenAI model IDs and resolves them to deployment
+        names at request time:
+      </p>
+      <pre><code>providers:
+  azure-openai:
+    baseUrl: https://my-resource.openai.azure.com/openai/v1
+    apiKeyEnv: AZURE_OPENAI_API_KEY
+    api: azure-openai-responses
+    models:
+      - id: gpt-4.1
+      - id: o3</code></pre>
+      <pre><code># Map model IDs to Azure deployment names
+export AZURE_OPENAI_DEPLOYMENT_NAME_MAP='gpt-4.1=gpt-41-prod,o3=o3-reasoning-prod'</code></pre>
+
+      <h3>Amazon Bedrock</h3>
+      <p>
+        Bedrock uses the native <code>bedrock-converse-stream</code> transport
+        and standard AWS credential chain. Do not put AWS access keys in
+        <code>models.yml</code>:
+      </p>
+      <pre><code>providers:
+  amazon-bedrock:
+    baseUrl: https://bedrock-runtime.us-east-1.amazonaws.com
+    api: bedrock-converse-stream
+    models:
+      - id: us.anthropic.claude-opus-4-6-v1
+      - id: anthropic.claude-3-5-sonnet-20241022-v2:0</code></pre>
+      <pre><code># Configure via standard AWS environment
+export AWS_REGION=us-east-1
+export AWS_PROFILE=my-profile</code></pre>
+
+      <h3>OpenAI-Compatible Proxy</h3>
+      <p>
+        Any proxy exposing <code>/v1/chat/completions</code> works as a
+        custom provider. Use <code>requestTransform</code> to strip telemetry
+        headers if needed:
+      </p>
+      <pre><code>providers:
+  proxy-provider:
+    baseUrl: https://api.proxy.example/v1
+    apiKeyEnv: PROXY_API_KEY
+    api: openai-completions
+    auth: apiKey
+    headers:
+      User-Agent: curl/8.7.1
+    models:
+      - id: local-gpt
+        name: Local GPT
+        reasoning: true
+        input: [text]
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
+        contextWindow: 400000
+        maxTokens: 128000</code></pre>
+
+      <h2>Keyless Providers</h2>
+      <p>
+        Local inference servers (Ollama, llama.cpp, LM Studio) are treated as
+        keyless — <code>auth: none</code> means no credentials are required.
+        Jawcode auto-discovers them on their default ports without any
+        configuration.
+      </p>
+
+      <h2>Broker Mode</h2>
+      <p>
+        For team deployments, set <code>JWC_AUTH_BROKER_URL</code> to replace
+        the local SQLite credential store with a remote broker. The broker
+        serves credential snapshots with redacted refresh tokens; expiry
+        triggers a refresh request to the broker instead of a local OAuth flow.
+      </p>
+      <pre><code>export JWC_AUTH_BROKER_URL=https://broker.internal/v1
+export JWC_AUTH_BROKER_TOKEN=team-secret</code></pre>
+      <p>
+        See the <a href="../architecture/overview.html">Architecture docs</a>
+        for the full broker/gateway design.
+      </p>
+
+      <h2>Validation Rules</h2>
+      <p>
+        <code>models.yml</code> is strictly validated on load. Common rules:
+      </p>
+      <ul>
+        <li>Full custom providers (non-empty <code>models</code>) require <code>baseUrl</code>, <code>apiKey</code> (unless <code>auth: none</code>), and <code>api</code></li>
+        <li>Override-only providers (empty/missing <code>models</code>) need at least one of: <code>baseUrl</code>, <code>headers</code>, <code>compat</code>, <code>requestTransform</code>, <code>disableStrictTools</code>, <code>modelOverrides</code>, <code>discovery</code></li>
+        <li><code>contextWindow</code> and <code>maxTokens</code> must be positive</li>
+        <li>Unknown keys fail validation — remove stale keys rather than leaving them</li>
+      </ul>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

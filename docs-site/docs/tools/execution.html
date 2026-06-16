@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Execution Tools — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Execution Tools</h1>
+      <p>Five tools run code and interact with the outside world: <code>bash</code> for shell commands, <code>eval</code> for in-process Python/JavaScript, <code>browser</code> for Chromium automation, <code>debug</code> for DAP debugging, and <code>computer_use</code> for desktop app control.</p>
+
+      <h2>bash</h2>
+      <p>Executes shell commands for terminal operations like git, bun, cargo, and python. This is the only way to run external processes, but dedicated tools should be preferred over shell equivalents.</p>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Parameter</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>command</code></td><td>Yes</td><td>&mdash;</td><td>Shell command to execute</td></tr>
+          <tr><td><code>cwd</code></td><td>No</td><td>Project root</td><td>Working directory (use instead of <code>cd dir &amp;&amp;</code>)</td></tr>
+          <tr><td><code>env</code></td><td>No</td><td>&mdash;</td><td>Extra environment variables as key-value pairs</td></tr>
+          <tr><td><code>pty</code></td><td>No</td><td><code>false</code></td><td>Run in PTY mode (for <code>sudo</code>, <code>ssh</code>, interactive input)</td></tr>
+          <tr><td><code>timeout</code></td><td>No</td><td>300</td><td>Wall-clock timeout in seconds (1 to 3600)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Rules</h3>
+      <ul>
+        <li>Use <code>cwd</code> to set directory, not <code>cd dir &amp;&amp; ...</code></li>
+        <li>Prefer <code>env: { NAME: "..." }</code> for multiline or quote-heavy values</li>
+        <li>Quote variable expansions: <code>"$NAME"</code></li>
+        <li>Never pipe through <code>| head</code> or <code>| tail</code> &mdash; output is already truncated with full result in <code>artifact://</code></li>
+        <li>Never redirect with <code>2&gt;&amp;1</code> or <code>2&gt;/dev/null</code> &mdash; stdout and stderr are merged</li>
+        <li>Never use shell for operations that have dedicated tools (cat, grep, find, sed)</li>
+      </ul>
+
+      <h3>Async mode</h3>
+      <p>Set <code>async: true</code> to run commands in the background. The call returns immediately with a job ID; the result is delivered as a notification when the command completes. Use for long-running builds, dev servers, or any command where the agent should continue working.</p>
+      <p>Async mode does <strong>not</strong> extend or disable the timeout. For daemons that must survive beyond the timeout, use <code>nohup ... &amp;</code> or <code>setsid ... &amp;</code>.</p>
+
+      <h3>Example</h3>
+      <pre><code>// Run tests in a specific package
+bash({ command: "bun test", cwd: "packages/agent" })
+
+// Git operations with env
+bash({ command: "git commit -m \"$MSG\"", env: { MSG: "feat: add parser" } })
+
+// Background dev server
+bash({ command: "bun run dev", async: true, timeout: 3600 })</code></pre>
+
+      <h2>eval</h2>
+      <p>Run code in persistent kernels. State persists within each language across cells and across tool calls. Ideal for data exploration, quick calculations, or testing logic without writing to disk.</p>
+
+      <h3>Cell fields</h3>
+      <table>
+        <thead><tr><th>Field</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>language</code></td><td>Yes</td><td><code>"py"</code> for IPython, <code>"js"</code> for JavaScript VM</td></tr>
+          <tr><td><code>code</code></td><td>Yes</td><td>Cell body (JSON-encoded, no fences)</td></tr>
+          <tr><td><code>title</code></td><td>No</td><td>Short label shown in transcript</td></tr>
+          <tr><td><code>timeout</code></td><td>No</td><td>Per-cell timeout in seconds (1-600, default 30)</td></tr>
+          <tr><td><code>reset</code></td><td>No</td><td>Wipe this cell's language kernel before running</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Built-in helpers</h3>
+      <p>Available in both Python and JavaScript kernels with the same API:</p>
+      <pre><code>display(value)                    # Render a value in output
+print(value, ...)                 # Print to cell text output
+read(path, offset?, limit?)       # Read file contents
+write(path, content)              # Write content to file
+append(path, content)             # Append to file
+tree(path?, max_depth?, hidden?)  # Render directory tree
+diff(a, b)                        # Unified diff between files
+env(key?, value?)                 # Get/set environment variables</code></pre>
+
+      <h3>Best practices</h3>
+      <ul>
+        <li>One logical step per cell (imports, define, test, use)</li>
+        <li>Pass multiple small cells in one call</li>
+        <li>On failure, resubmit only the fixed cell</li>
+        <li>Python cells run in IPython with a live event loop &mdash; use top-level <code>await</code>, not <code>asyncio.run()</code></li>
+      </ul>
+
+      <h2>browser</h2>
+      <p>Controls a real Chromium tab for JavaScript execution, interactive actions, and authentication flows. For static web content, prefer <code>read</code> with a URL.</p>
+
+      <h3>Actions</h3>
+      <table>
+        <thead><tr><th>Action</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>open</code></td><td>Acquire a named tab, optionally navigate to a URL</td></tr>
+          <tr><td><code>close</code></td><td>Release tab(s)</td></tr>
+          <tr><td><code>run</code></td><td>Execute JavaScript with page/tab helpers</td></tr>
+          <tr><td><code>act</code></td><td>Structured interaction steps (preferred for routine actions)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Act verbs</h3>
+      <p>The <code>act</code> action accepts an array of structured steps:</p>
+      <pre><code>browser({
+  action: "act",
+  actions: [
+    { verb: "navigate", url: "https://example.com" },
+    { verb: "observe" },
+    { verb: "click", id: 42 },
+    { verb: "fill", id: 15, value: "hello" },
+    { verb: "screenshot" }
+  ]
+})</code></pre>
+
+      <h3>Rules</h3>
+      <ul>
+        <li>Must call <code>open</code> before <code>run</code> or <code>act</code></li>
+        <li>After navigation, prior element IDs from <code>observe</code> are invalidated</li>
+        <li>Default to <code>observe</code> over <code>screenshot</code> for understanding page state</li>
+      </ul>
+
+      <h2>debug</h2>
+      <p>Debugger access through the Debug Adapter Protocol (DAP). Supports launching, attaching, breakpoints, stepping, thread/stack inspection, and expression evaluation.</p>
+
+      <h3>Key actions</h3>
+      <table>
+        <thead><tr><th>Action</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>launch</code></td><td>Start a debug session (<code>program</code> required)</td></tr>
+          <tr><td><code>attach</code></td><td>Connect to existing process (<code>pid</code> or <code>port</code>)</td></tr>
+          <tr><td><code>set_breakpoint</code></td><td>Set breakpoint by file+line or function name</td></tr>
+          <tr><td><code>continue</code></td><td>Resume execution</td></tr>
+          <tr><td><code>step_over</code> / <code>step_in</code> / <code>step_out</code></td><td>Single-step execution</td></tr>
+          <tr><td><code>pause</code></td><td>Interrupt a running program</td></tr>
+          <tr><td><code>threads</code> / <code>stack_trace</code> / <code>scopes</code> / <code>variables</code></td><td>Inspect runtime state</td></tr>
+          <tr><td><code>evaluate</code></td><td>Evaluate expression (with optional <code>context: "repl"</code>)</td></tr>
+          <tr><td><code>terminate</code></td><td>End the debug session</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Example</h3>
+      <pre><code>// Launch and debug a Python script
+debug({ action: "launch", adapter: "debugpy", program: "scripts/job.py" })
+debug({ action: "set_breakpoint", file: "scripts/job.py", line: 42 })
+debug({ action: "continue" })
+
+// Inspect state when stopped
+debug({ action: "stack_trace" })
+debug({ action: "variables" })</code></pre>
+
+      <h2>computer_use</h2>
+      <p>Control desktop applications through the lazy cua-driver backend. The driver process starts only when this tool is first called. This is a discoverable tool, activated via <code>search_tool_bm25</code>.</p>
+
+      <h3>Key actions</h3>
+      <table>
+        <thead><tr><th>Action</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>list_apps</code></td><td>Discover running applications</td></tr>
+          <tr><td><code>observe</code> / <code>window_state</code></td><td>Inspect window state with PID and window ID</td></tr>
+          <tr><td><code>click</code></td><td>Click by <code>element_index</code> (preferred) or coordinates</td></tr>
+          <tr><td><code>type_text</code></td><td>Type text into the focused element</td></tr>
+          <tr><td><code>press_key</code></td><td>Send a key press</td></tr>
+          <tr><td><code>scroll</code></td><td>Scroll with <code>dx</code>/<code>dy</code></td></tr>
+        </tbody>
+      </table>
+      <p>Always call <code>list_apps</code> first to discover running apps, then <code>observe</code> or <code>window_state</code> to get element indices before interacting.</p>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

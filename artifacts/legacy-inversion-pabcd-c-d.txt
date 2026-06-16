@@ -1,0 +1,14 @@
+Legacy workflow name inversion PABCD C→D verification artifact.
+
+Mechanical gates:
+- bun run check: passed (check:ts + check:rs parallel).
+- Focused legacy inversion suite: 274 tests, 0 failures across 15 files.
+- Workflow gates: manifest check, visible definitions, G002, rebrand strict, public legacy zero.
+
+PABCD session 019ec666-0820-7000-9492-75864c2d8de5:
+- orchestrate status: active=false, stage=complete, verification_status=done.
+- Devlog: 21_c_check_report_pass.md, 22_d_done_summary.md.
+
+Contract spot-check:
+- Bundled workflow skills: plan, goal (not ralplan/ultragoal as canonical).
+- Spec: .jwc/specs/jaw-interview-legacy-workflow-name-inversion.md.

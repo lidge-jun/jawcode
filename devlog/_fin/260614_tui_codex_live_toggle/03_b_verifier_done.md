@@ -1,0 +1,2 @@
+DONE
+No findings for the scoped fix. In `event-controller.ts`, the post-tool assistant segment created during `message_update` is marked with `markLiveToggleEligible(..., true)` before being added to `chatContainer`. `message_end` then clears `ctx.streamingComponent` without clearing that marker, and `input-controller.ts`’s ctrl+o path still sweeps live-eligible `chatContainer` children, so current-turn post-tool segments remain toggleable after the stream ends. No tests/builds/formatters run by verifier per instruction.

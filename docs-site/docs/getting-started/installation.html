@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Installation — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Installation</h1>
+      <p>Jawcode (<code>jwc</code>) runs on Node.js 18+ and works best with <a href="https://bun.sh">Bun</a> as the runtime. Choose any install method below.</p>
+
+      <h2>npm (recommended)</h2>
+      <p>The fastest path. One command, globally available:</p>
+      <pre><code>npm install -g jawcode</code></pre>
+      <p>This installs the <code>jwc</code> binary globally. Verify:</p>
+      <pre><code>jwc --version</code></pre>
+
+      <h2>From source</h2>
+      <p>Clone and build from the repository for the latest development version:</p>
+      <pre><code>git clone https://github.com/lidge-jun/jawcode.git
+cd jawcode
+bun run setup</code></pre>
+
+      <p><code>bun run setup</code> runs <code>bun install</code>, bootstraps <code>~/.cli-jaw/</code> (skills, settings, prompts), and installs bundled defaults (themes, keybindings, workflow skills). Override the home location with <code>CLI_JAW_HOME</code>.</p>
+
+      <p>Run directly from source:</p>
+      <pre><code>bun packages/jwc/bin/jwc.js --version</code></pre>
+
+      <p>Or link globally:</p>
+      <pre><code>bun link
+jwc --version</code></pre>
+
+      <h3>Updating a source build</h3>
+      <pre><code>git pull && bun run setup</code></pre>
+      <p>This pulls the latest code, reinstalls dependencies, and propagates any updated defaults.</p>
+
+      <h2>Requirements</h2>
+      <table>
+        <thead>
+          <tr><th>Dependency</th><th>Version</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Node.js</td><td>&gt;= 18</td><td>Required for npm install</td></tr>
+          <tr><td>Bun</td><td>Latest</td><td>Required for source builds; recommended runtime</td></tr>
+          <tr><td>Git</td><td>Any</td><td>Required for source builds and repo-aware features</td></tr>
+          <tr><td>tmux</td><td>Any</td><td>Optional; required for <code>--tmux</code> mode and <code>jwc session</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2>Provider API keys</h2>
+      <p>Jawcode needs at least one LLM provider key. Set it as an environment variable before running:</p>
+      <pre><code># Pick one (or more)
+export ANTHROPIC_API_KEY="sk-ant-..."    # Anthropic Claude
+export OPENAI_API_KEY="sk-..."           # OpenAI GPT
+export GEMINI_API_KEY="..."              # Google Gemini
+export XAI_API_KEY="..."                 # xAI Grok
+export GROQ_API_KEY="..."               # Groq</code></pre>
+      <p>See <a href="environment-variables.html">Environment Variables</a> for the full list of 46 supported providers.</p>
+
+      <h2>Verify the installation</h2>
+      <pre><code># Check version
+jwc --version
+
+# Run smoke test (validates runtime, tools, provider connectivity)
+jwc --smoke-test
+
+# List available models for your configured providers
+jwc --list-models</code></pre>
+
+      <h2>Uninstall</h2>
+      <pre><code># npm global
+npm uninstall -g jawcode
+
+# Source build — just remove the cloned directory
+rm -rf jawcode</code></pre>
+
+      <h2>Next steps</h2>
+      <p>Installation done? Head to the <a href="quickstart.html">Quick Start</a> to run your first session.</p>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

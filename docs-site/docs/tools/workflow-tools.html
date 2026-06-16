@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workflow Tools — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Workflow Tools</h1>
+      <p>
+        These tools manage durable execution state: goals, skill chains,
+        pending-action resolution, and context checkpointing.
+        They are the control surface for IPABCD orchestration and
+        long-running multi-turn workflows.
+      </p>
+
+      <!-- ════════════════════════════════════════════ goal ═══ -->
+      <h2 id="goal">goal</h2>
+      <p>Manage the active goal-mode objective. Goals persist across turns and drive continuation steers until paused, completed, or dropped.</p>
+
+      <h3>Operations</h3>
+      <table>
+        <thead><tr><th>op</th><th>Required</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td><code>create</code></td><td><code>objective</code></td><td>Start a new goal. Use only when no goal exists and none is paused.</td></tr>
+          <tr><td><code>get</code></td><td>-</td><td>Return the current goal and usage state.</td></tr>
+          <tr><td><code>resume</code></td><td>-</td><td>Re-activate a paused goal so work can continue.</td></tr>
+          <tr><td><code>complete</code></td><td>-</td><td>Mark the goal complete after verifying every deliverable.</td></tr>
+          <tr><td><code>pause</code></td><td>-</td><td>Suspend the active goal and stop continuation steers. Use when deliverables are done but programmatic completion is blocked, or when the user should decide next.</td></tr>
+          <tr><td><code>drop</code></td><td>-</td><td>Discard the current goal without completing it.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Examples</h3>
+      <pre><code>// Start a goal
+goal({ op: "create", objective: "Implement feature X" })
+
+// Check status
+goal({ op: "get" })
+
+// Pause when blocked
+goal({ op: "pause" })
+
+// Resume paused goal
+goal({ op: "resume" })
+
+// Mark done after verification
+goal({ op: "complete" })</code></pre>
+
+      <h3>Lifecycle rules</h3>
+      <ul>
+        <li>Call <code>complete</code> only when the goal is actually done and verified.</li>
+        <li>If <code>get</code> shows a paused goal, call <code>resume</code> before continuing work.</li>
+        <li>Goal continuation steers stop when the goal is paused, completed, or dropped.</li>
+        <li>The CLI surface <code>jwc goal pause --agent --audit</code> writes to disk but does not update in-memory runtime state. Use the tool <code>pause</code> op instead for reliable continuation control.</li>
+      </ul>
+
+      <!-- ════════════════════════════════════════════ skill ═══ -->
+      <h2 id="skill">skill</h2>
+      <p>Invoke another available skill in the current turn. This is the chaining mechanism between workflow skills (e.g. orchestrate p to goal).</p>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>name</code></td><td>string</td><td>Skill name as it appears in <code>/skill:&lt;name&gt;</code></td></tr>
+          <tr><td><code>args</code></td><td>string</td><td>Free-form argument string passed to the skill</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Chaining mechanism</h3>
+      <p>
+        The skill tool dispatches the callee's SKILL.md as a user-attribution custom
+        message. Before dispatch, it atomically demotes the caller and promotes the
+        callee in <code>.jwc/state/</code> via
+        <code>jwc state &lt;caller&gt; handoff --to &lt;callee&gt;</code>.
+      </p>
+
+      <h3>Chain guard</h3>
+      <p>
+        The chain is refused unless the caller's <code>current_phase</code> is in
+        <code>{complete, completed, handoff, failed, cancelled, canceled, inactive}</code>.
+        Prepare with:
+      </p>
+      <pre><code>jwc state &lt;skill&gt; write --input '{"current_phase":"handoff"}' --json</code></pre>
+
+      <h3>Rules</h3>
+      <ul>
+        <li>Do not use this tool to remind yourself of an already-running skill.</li>
+        <li>Do not chain into the same skill recursively.</li>
+        <li>The chained skill's planning/execution-boundary rules still apply.</li>
+        <li>Call once per chain step. To chain A to B to C, A calls <code>skill(B)</code>; B calls <code>skill(C)</code>.</li>
+      </ul>
+
+      <h3>Examples</h3>
+      <pre><code>// Hand off from orchestrate p to goal
+skill({ name: "goal", args: "track execution of .jwc/plans/..." })
+
+// Trigger jaw-interview
+skill({ name: "jaw-interview" })</code></pre>
+
+      <!-- ════════════════════════════════════════════ resolve ═══ -->
+      <h2 id="resolve">resolve</h2>
+      <p>Resolves a pending action by either applying or discarding it. Pending actions include preview-style staging (e.g. <code>ast_edit</code>) and long-lived approval gates (e.g. plan approval).</p>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>action</code></td><td><code>"apply"</code> | <code>"discard"</code></td><td>Persist or reject the pending action.</td></tr>
+          <tr><td><code>reason</code></td><td>string</td><td>One short complete sentence explaining why. Starts with capital, ends with period.</td></tr>
+          <tr><td><code>extra</code></td><td>object (optional)</td><td>Free-form metadata. For plan-approval gates, supply <code>extra.title</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Behavior</h3>
+      <ul>
+        <li>Valid whenever a pending action exists.</li>
+        <li>Fails with an error when no pending action exists.</li>
+        <li>For plan approvals, <code>extra.title</code> provides the kebab/PascalCase slug for the approved plan filename.</li>
+      </ul>
+
+      <!-- ════════════════════════════════════════════ checkpoint ═══ -->
+      <h2 id="checkpoint">checkpoint</h2>
+      <p>Creates a context checkpoint before exploratory work so you can later rewind and keep only a concise report. This minimizes context cost for investigative work that requires many intermediate tool calls.</p>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>goal</code></td><td>string</td><td>Clear explanation of what you are investigating.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Flow</h3>
+      <pre><code>1. checkpoint({ goal: "Investigate auth failure root cause" })
+2. Perform exploratory work (read, search, find, lsp...)
+3. rewind({ report: "Root cause: expired JWT validation..." })</code></pre>
+
+      <h3>Rules</h3>
+      <ul>
+        <li>You must call <code>rewind</code> before yielding after starting a checkpoint.</li>
+        <li>You must provide a clear <code>goal</code> explaining what you are investigating.</li>
+        <li>Never call <code>checkpoint</code> while another checkpoint is active.</li>
+        <li>Not available in subagents.</li>
+      </ul>
+
+      <!-- ════════════════════════════════════════════ rewind ═══ -->
+      <h2 id="rewind">rewind</h2>
+      <p>End an active checkpoint. Rewinds context to the checkpoint, replacing intermediate exploration with your report.</p>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>report</code></td><td>string</td><td>Concise, factual, actionable summary of findings.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Report guidelines</h3>
+      <ul>
+        <li>Include key findings, decisions, and unresolved risks.</li>
+        <li>Do not include raw scratch logs unless essential.</li>
+        <li>On success, the session rewinds and keeps the report as retained context.</li>
+        <li>Errors if no checkpoint is active.</li>
+      </ul>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

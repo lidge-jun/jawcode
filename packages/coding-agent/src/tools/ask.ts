@@ -1,0 +1,984 @@
+/**
+ * Ask Tool - Interactive user prompting during execution
+ *
+ * Use this tool when you need to ask the user questions during execution.
+ * This allows you to:
+ *   1. Gather user preferences or requirements
+ *   2. Clarify ambiguous instructions
+ *   3. Get decisions on implementation choices as you work
+ *   4. Offer choices to the user about what direction to take
+ *
+ * Usage notes:
+ *   - Users will always be able to select "Other" to provide custom text input
+ *   - Use multi: true to allow multiple answers to be selected for a question
+ *   - Use recommended: <index> to mark the default option; "(Recommended)" suffix is added automatically
+ *   - Questions may time out and auto-select the recommended option (configurable, disabled in plan mode)
+ */
+
+import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@gajae-code/agent-core";
+import {
+	type Component,
+	Container,
+	Markdown,
+	renderInlineMarkdown,
+	TERMINAL,
+	Text,
+	visibleWidth,
+	wrapTextWithAnsi,
+} from "@gajae-code/tui";
+import { prompt, untilAborted } from "@gajae-code/utils";
+import * as z from "zod/v4";
+import type { RenderResultOptions } from "../extensibility/custom-tools/types";
+import {
+	formatInterviewSelectorPrompt,
+	isStructuredInterviewQuestion,
+	renderInterviewQuestion,
+} from "../jaw-interview/structured-renderer";
+import { gateAnswerToResult, questionToGate } from "../modes/shared/agent-wire/jaw-interview-gate";
+import { getMarkdownTheme, type Theme, theme } from "../modes/theme/theme";
+import askDescription from "../prompts/tools/ask.md" with { type: "text" };
+import { renderStatusLine } from "../tui";
+import type { ToolSession } from ".";
+import { formatErrorMessage, formatMeta, formatTitle } from "./render-utils";
+import { ToolAbortError } from "./tool-errors";
+
+// =============================================================================
+// Types
+// =============================================================================
+
+const OptionItem = z.object({
+	label: z.string().describe("display label"),
+	description: z.string().describe("optional one-line tradeoff/description").optional(),
+});
+
+/** Structured round metadata for jaw-interview questions (042 D041-A) — replaces the legacy text-header protocol. */
+const QuestionMeta = z.object({
+	kind: z.enum(["round", "topology", "progress"]).describe("question kind").optional(),
+	round: z.number().describe("interview round number").optional(),
+	component: z.string().describe("target component name").optional(),
+	targeting: z.string().describe("weakest dimension being targeted").optional(),
+	whyNow: z.string().describe("one-sentence targeting rationale").optional(),
+	ambiguity: z.number().describe("latest external ambiguity score (0-1)").optional(),
+	mode: z.string().describe("active challenge mode").optional(),
+});
+
+const QuestionItem = z.object({
+	id: z.string().describe("question id"),
+	question: z.string().describe("question text"),
+	options: z.array(OptionItem).describe("available options"),
+	multi: z.boolean().describe("allow multiple selections").optional(),
+	recommended: z.number().describe("recommended option index").optional(),
+	meta: QuestionMeta.describe("structured interview round metadata").optional(),
+});
+
+const askSchema = z.object({
+	questions: z.array(QuestionItem).min(1).describe("questions to ask"),
+});
+
+export type AskToolInput = z.infer<typeof askSchema>;
+
+/** Result for a single question */
+export interface QuestionResult {
+	id: string;
+	question: string;
+	options: string[];
+	multi: boolean;
+	selectedOptions: string[];
+	customInput?: string;
+}
+
+export interface AskToolDetails {
+	question?: string;
+	options?: string[];
+	multi?: boolean;
+	selectedOptions?: string[];
+	customInput?: string;
+	/** Multi-part question mode */
+	results?: QuestionResult[];
+}
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+const OTHER_OPTION = "Other (type your own)";
+const RECOMMENDED_SUFFIX = " (Recommended)";
+/** Upper bound for interview ask title viewport; actual rows come from terminal budget in ExtensionUiController. */
+const JAW_INTERVIEW_SELECTOR_SCROLL_TITLE_ROWS = 48;
+
+function getDoneOptionLabel(): string {
+	return `${theme.status.success} Done selecting`;
+}
+
+/** Add "(Recommended)" suffix to the option at the given index if not already present */
+function addRecommendedSuffix(labels: string[], recommendedIndex?: number): string[] {
+	if (recommendedIndex === undefined || recommendedIndex < 0 || recommendedIndex >= labels.length) {
+		return labels;
+	}
+	return labels.map((label, i) => {
+		if (i === recommendedIndex && !label.endsWith(RECOMMENDED_SUFFIX)) {
+			return label + RECOMMENDED_SUFFIX;
+		}
+		return label;
+	});
+}
+
+function getAutoSelectionOnTimeout(optionLabels: string[], recommended?: number): string[] {
+	if (optionLabels.length === 0) return [];
+	if (typeof recommended === "number" && recommended >= 0 && recommended < optionLabels.length) {
+		return [optionLabels[recommended]];
+	}
+	return [optionLabels[0]];
+}
+
+/** Strip "(Recommended)" suffix from a label */
+function stripRecommendedSuffix(label: string): string {
+	return label.endsWith(RECOMMENDED_SUFFIX) ? label.slice(0, -RECOMMENDED_SUFFIX.length) : label;
+}
+
+function formatNumberedOptionLabel(label: string, index: number): string {
+	if (/^\s*\d+[.)]\s+/.test(label)) {
+		return label;
+	}
+	return `${index + 1}. ${label}`;
+}
+
+function numberOptionLabels(labels: string[]): string[] {
+	return labels.map(formatNumberedOptionLabel);
+}
+
+// =============================================================================
+// Question Selection Logic
+// =============================================================================
+
+interface SelectionResult {
+	selectedOptions: string[];
+	customInput?: string;
+	timedOut: boolean;
+	navigation?: "back" | "forward";
+	cancelled?: boolean;
+}
+
+interface NavigationControls {
+	allowBack: boolean;
+	allowForward: boolean;
+	progressText?: string;
+}
+interface AskSingleQuestionOptions {
+	recommended?: number;
+	timeout?: number;
+	signal?: AbortSignal;
+	initialSelection?: Pick<SelectionResult, "selectedOptions" | "customInput">;
+	navigation?: NavigationControls;
+	scrollTitleRows?: number;
+	otherOptionLabel?: string;
+	/** v2 grammar (99.20.01, all single-select): inline composer slot in the list, no Other row. */
+	useDockedCustomInput?: boolean;
+}
+
+interface UIContext {
+	select(
+		prompt: string,
+		options: string[],
+		options_?: {
+			initialIndex?: number;
+			timeout?: number;
+			signal?: AbortSignal;
+			outline?: boolean;
+			wrapFocused?: boolean;
+			scrollTitleRows?: number;
+			onTimeout?: () => void;
+			onLeft?: () => void;
+			onRight?: () => void;
+			helpText?: string;
+			customInput?: { optionLabel: string; onSubmit: (text: string) => void };
+			customInputListSlot?: boolean;
+			listSlotCustomInput?: { label?: string; onSubmit: (text: string) => void };
+			customInputDocked?: boolean;
+			dockedCustomInput?: { label?: string; prompt?: string; onSubmit: (text: string) => void };
+		},
+	): Promise<string | undefined>;
+	editor(
+		title: string,
+		prefill?: string,
+		dialogOptions?: { signal?: AbortSignal },
+		editorOptions?: { promptStyle?: boolean },
+	): Promise<string | undefined>;
+}
+
+async function askSingleQuestion(
+	ui: UIContext,
+	question: string,
+	optionLabels: string[],
+	multi: boolean,
+	options: AskSingleQuestionOptions = {},
+): Promise<SelectionResult> {
+	const { recommended, timeout, signal, initialSelection, navigation, scrollTitleRows, useDockedCustomInput } =
+		options;
+	const doneLabel = getDoneOptionLabel();
+	const otherOptionLabel = options.otherOptionLabel ?? OTHER_OPTION;
+	let selectedOptions = [...(initialSelection?.selectedOptions ?? [])];
+	let customInput = initialSelection?.customInput;
+	let timedOut = false;
+
+	const selectOption = async (
+		prompt: string,
+		optionsToShow: string[],
+		initialIndex?: number,
+	): Promise<{
+		choice: string | undefined;
+		timedOut: boolean;
+		navigation?: "back" | "forward";
+		inlineInput?: string;
+	}> => {
+		let timeoutTriggered = false;
+		const onTimeout = () => {
+			timeoutTriggered = true;
+		};
+		// Inline custom input: the TUI selector keeps the question and option
+		// list on screen and collects the "Other" text below the list, instead
+		// of swapping to a separate editor screen that hides the question.
+		let inlineInput: string | undefined;
+		let navigationAction: "back" | "forward" | undefined;
+		const baseHelpText = navigation
+			? "up/down navigate  enter select  ←/→ question  esc cancel"
+			: "up/down navigate  enter select  esc cancel";
+		// 99.20.05: the wheel stays with the terminal (native scrollback) — only
+		// keyboard paging scrolls the question.
+		const helpText = scrollTitleRows === undefined ? baseHelpText : `${baseHelpText}  PgUp/PgDn scroll question`;
+		const useDockedCustomInput = options.useDockedCustomInput === true;
+		const dialogOptions = {
+			initialIndex,
+			timeout,
+			signal,
+			outline: true,
+			wrapFocused: true,
+			scrollTitleRows,
+			onTimeout,
+			helpText,
+			...(useDockedCustomInput
+				? {
+						customInputListSlot: true,
+						listSlotCustomInput: {
+							label: `${optionLabels.length + 1}. Type your own`,
+							onSubmit: (text: string) => {
+								inlineInput = text;
+							},
+						},
+					}
+				: {
+						customInput: {
+							optionLabel: otherOptionLabel,
+							onSubmit: (text: string) => {
+								inlineInput = text;
+							},
+						},
+					}),
+			onLeft: navigation?.allowBack
+				? () => {
+						navigationAction = "back";
+					}
+				: undefined,
+			onRight: navigation?.allowForward
+				? () => {
+						navigationAction = "forward";
+					}
+				: undefined,
+		};
+		const startMs = Date.now();
+		const choice = signal
+			? await untilAborted(signal, () => ui.select(prompt, optionsToShow, dialogOptions))
+			: await ui.select(prompt, optionsToShow, dialogOptions);
+		if (!timeoutTriggered && choice === undefined && typeof timeout === "number") {
+			timeoutTriggered = Date.now() - startMs >= timeout;
+		}
+		return { choice, timedOut: timeoutTriggered, navigation: navigationAction, inlineInput };
+	};
+
+	// Fallback for UI contexts that don't support inline custom input (they
+	// resolve the "Other" label without invoking customInput.onSubmit).
+	const promptForCustomInput = async (): Promise<{ input: string | undefined }> => {
+		const dialogOptions = signal ? { signal } : undefined;
+		const showCustomInput = () => ui.editor("Enter your response:", undefined, dialogOptions, { promptStyle: true });
+		const input = signal ? await untilAborted(signal, showCustomInput) : await showCustomInput();
+		return { input };
+	};
+
+	const promptWithProgress = navigation?.progressText ? `${question} (${navigation.progressText})` : question;
+	if (multi) {
+		const selected = new Set<string>(selectedOptions);
+		let cursorIndex = Math.min(Math.max(recommended ?? 0, 0), Math.max(optionLabels.length - 1, 0));
+		const firstSelected = selectedOptions[0];
+		if (firstSelected) {
+			const selectedIndex = optionLabels.indexOf(firstSelected);
+			if (selectedIndex >= 0) cursorIndex = selectedIndex;
+		}
+		while (true) {
+			const opts: string[] = [];
+
+			for (const opt of optionLabels) {
+				const checkbox = selected.has(opt) ? theme.checkbox.checked : theme.checkbox.unchecked;
+				opts.push(`${checkbox} ${opt}`);
+			}
+
+			if (!navigation?.allowForward && selected.size > 0) {
+				opts.push(doneLabel);
+			}
+			opts.push(otherOptionLabel);
+
+			const prefix = selected.size > 0 ? `(${selected.size} selected) ` : "";
+			const {
+				choice,
+				timedOut: selectTimedOut,
+				navigation: arrowNavigation,
+				inlineInput,
+			} = await selectOption(`${prefix}${promptWithProgress}`, opts, cursorIndex);
+
+			if (arrowNavigation) {
+				return { selectedOptions: Array.from(selected), customInput, timedOut, navigation: arrowNavigation };
+			}
+			if (choice === undefined) {
+				if (selectTimedOut) {
+					timedOut = true;
+					break;
+				}
+				return { selectedOptions: Array.from(selected), customInput, timedOut, cancelled: true };
+			}
+			if (choice === doneLabel) break;
+
+			if (choice === otherOptionLabel) {
+				if (selectTimedOut) {
+					timedOut = true;
+					break;
+				}
+				const input = inlineInput !== undefined ? inlineInput : (await promptForCustomInput()).input;
+				if (input === undefined) {
+					break;
+				}
+				customInput = input;
+				break;
+			}
+
+			const selectedIdx = opts.indexOf(choice);
+			if (selectedIdx >= 0) {
+				cursorIndex = selectedIdx;
+			}
+
+			const checkedPrefix = `${theme.checkbox.checked} `;
+			const uncheckedPrefix = `${theme.checkbox.unchecked} `;
+			let opt: string | undefined;
+			if (choice.startsWith(checkedPrefix)) {
+				opt = choice.slice(checkedPrefix.length);
+			} else if (choice.startsWith(uncheckedPrefix)) {
+				opt = choice.slice(uncheckedPrefix.length);
+			}
+			if (opt) {
+				if (selected.has(opt)) {
+					selected.delete(opt);
+				} else {
+					selected.add(opt);
+				}
+			}
+
+			if (selectTimedOut) {
+				timedOut = true;
+				break;
+			}
+		}
+		selectedOptions = Array.from(selected);
+	} else {
+		const displayLabels = addRecommendedSuffix(optionLabels, recommended);
+		const optionsWithNavigation = options.useDockedCustomInput ? displayLabels : [...displayLabels, otherOptionLabel];
+
+		let initialIndex = recommended;
+		const previouslySelected = selectedOptions[0];
+		if (previouslySelected) {
+			const selectedIndex = optionLabels.indexOf(previouslySelected);
+			if (selectedIndex >= 0) initialIndex = selectedIndex;
+		} else if (customInput !== undefined) {
+			initialIndex = displayLabels.length;
+		}
+		if (initialIndex !== undefined) {
+			// With the v2 list slot the input row sits at index options.length, so a
+			// stored customInput may legitimately point one past the last option.
+			const maxIndex = options.useDockedCustomInput
+				? optionsWithNavigation.length
+				: Math.max(optionsWithNavigation.length - 1, 0);
+			initialIndex = Math.max(0, Math.min(initialIndex, maxIndex));
+		}
+
+		const {
+			choice,
+			timedOut: selectTimedOut,
+			navigation: arrowNavigation,
+			inlineInput,
+		} = await selectOption(promptWithProgress, optionsWithNavigation, initialIndex);
+		timedOut = selectTimedOut;
+
+		if (arrowNavigation) {
+			return { selectedOptions, customInput, timedOut, navigation: arrowNavigation };
+		}
+		if (choice === undefined) {
+			if (!timedOut) {
+				if (useDockedCustomInput && inlineInput !== undefined) {
+					customInput = inlineInput;
+					selectedOptions = [];
+				} else {
+					return { selectedOptions, customInput, timedOut, cancelled: true };
+				}
+			}
+		} else if (choice === otherOptionLabel) {
+			if (!selectTimedOut) {
+				const input = inlineInput !== undefined ? inlineInput : (await promptForCustomInput()).input;
+				if (input !== undefined) {
+					customInput = input;
+					selectedOptions = [];
+				}
+				// If input was dismissed (undefined), keep prior selectedOptions/customInput intact
+			}
+		} else {
+			selectedOptions = [stripRecommendedSuffix(choice)];
+			customInput = undefined;
+		}
+		if (navigation?.allowForward) {
+			return { selectedOptions, customInput, timedOut, navigation: "forward" };
+		}
+	}
+
+	if (timedOut && selectedOptions.length === 0 && customInput === undefined) {
+		selectedOptions = getAutoSelectionOnTimeout(optionLabels, recommended);
+	}
+
+	return { selectedOptions, customInput, timedOut };
+}
+
+function formatQuestionResult(result: QuestionResult): string {
+	if (result.customInput !== undefined) {
+		return `${result.id}: "${result.customInput}"`;
+	}
+	if (result.selectedOptions.length > 0) {
+		return result.multi
+			? `${result.id}: [${result.selectedOptions.join(", ")}]`
+			: `${result.id}: ${result.selectedOptions[0]}`;
+	}
+	return `${result.id}: (cancelled)`;
+}
+
+// =============================================================================
+// Tool Class
+// =============================================================================
+
+type AskParams = AskToolInput;
+
+/**
+ * Ask tool for interactive user prompting during execution.
+ *
+ * Allows gathering user preferences, clarifying instructions, and getting decisions
+ * on implementation choices as the agent works.
+ */
+export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
+	readonly name = "ask";
+	readonly label = "Ask";
+	readonly summary = "Ask the user a clarifying question";
+	readonly description: string;
+	readonly parameters = askSchema;
+	readonly strict = true;
+	readonly loadMode = "discoverable";
+
+	constructor(private readonly session: ToolSession) {
+		this.description = prompt.render(askDescription);
+	}
+
+	static createIf(session: ToolSession): AskTool | null {
+		return session.hasUI || session.getWorkflowGateEmitter?.() ? new AskTool(session) : null;
+	}
+
+	/** Send terminal notification when ask tool is waiting for input */
+	#sendAskNotification(): void {
+		const method = this.session.settings.get("ask.notify");
+		if (method === "off") return;
+		TERMINAL.sendNotification("Waiting for input");
+	}
+
+	async execute(
+		_toolCallId: string,
+		params: AskParams,
+		signal?: AbortSignal,
+		_onUpdate?: AgentToolUpdateCallback<AskToolDetails>,
+		context?: AgentToolContext,
+	): Promise<AgentToolResult<AskToolDetails>> {
+		const gateEmitter = this.session.getWorkflowGateEmitter?.();
+		const canUseWorkflowGate = gateEmitter?.isUnattended() === true;
+
+		// Headless fallback: unattended workflow gates are the non-TUI answer path.
+		if (!canUseWorkflowGate && (!context?.hasUI || !context.ui)) {
+			context?.abort();
+			throw new ToolAbortError("Ask tool requires interactive mode");
+		}
+
+		const extensionUi = context?.ui;
+		const ui: UIContext = {
+			select: (prompt, options, dialogOptions) => {
+				if (!extensionUi) throw new ToolAbortError("Ask tool requires interactive mode");
+				return extensionUi.select(prompt, options, dialogOptions);
+			},
+			editor: (title, prefill, dialogOptions, editorOptions) => {
+				if (!extensionUi) throw new ToolAbortError("Ask tool requires interactive mode");
+				return extensionUi.editor(title, prefill, dialogOptions, editorOptions);
+			},
+		};
+
+		// Determine timeout based on settings and plan mode
+		const planModeEnabled = this.session.getPlanModeState?.()?.enabled ?? false;
+		// Settings.get("ask.timeout") returns seconds (0 = disabled), convert to ms
+		const timeoutSeconds = this.session.settings.get("ask.timeout");
+		const settingsTimeout = timeoutSeconds === 0 ? null : timeoutSeconds * 1000;
+		const timeout = planModeEnabled ? null : settingsTimeout;
+
+		// Send notification if waiting and not suppressed
+		this.#sendAskNotification();
+
+		if (params.questions.length === 0) {
+			return {
+				content: [{ type: "text" as const, text: "Error: questions must not be empty" }],
+				details: {},
+			};
+		}
+
+		const askQuestion = async (
+			q: AskParams["questions"][number],
+			options?: { previous?: QuestionResult; navigation?: NavigationControls },
+		) => {
+			const rawOptionLabels = q.options.map(o => o.label);
+			// Unattended (#316/#323/G011): route the question through the workflow-gate
+			// emitter instead of the interactive UI; the external agent answers over RPC.
+			if (gateEmitter && canUseWorkflowGate) {
+				const gateQuestion = {
+					id: q.id,
+					question: q.question,
+					options: q.options,
+					multi: q.multi,
+					recommended: q.recommended,
+					meta: q.meta,
+				};
+				const answer = await gateEmitter.emitGate(questionToGate(gateQuestion));
+				const decoded = gateAnswerToResult(gateQuestion, answer);
+				return {
+					optionLabels: rawOptionLabels,
+					selectedOptions: decoded.selectedOptions,
+					customInput: decoded.customInput,
+					navigation: undefined as NavigationControls | undefined,
+					cancelled: false,
+					timedOut: false,
+				};
+			}
+			try {
+				const jawInterviewPrompt = isStructuredInterviewQuestion(q.meta)
+					? formatInterviewSelectorPrompt({ question: q.question, meta: q.meta })
+					: null;
+				const displayQuestion = jawInterviewPrompt ?? q.question;
+				// 99.20.01: every single-select ask uses the v2 grammar (numbered
+				// options + inline composer slot) — only the interview header above
+				// stays meta-gated, since it needs round/component data to render.
+				const shouldNumberOptions = !(q.multi ?? false);
+				const optionLabels = shouldNumberOptions ? numberOptionLabels(rawOptionLabels) : rawOptionLabels;
+				const initialSelection =
+					shouldNumberOptions && options?.previous
+						? {
+								...options.previous,
+								selectedOptions: options.previous.selectedOptions.map(selected => {
+									const rawIndex = rawOptionLabels.indexOf(selected);
+									return rawIndex >= 0 ? (optionLabels[rawIndex] ?? selected) : selected;
+								}),
+							}
+						: options?.previous;
+				const {
+					selectedOptions: displaySelectedOptions,
+					customInput,
+					navigation,
+					cancelled,
+					timedOut,
+				} = await askSingleQuestion(ui, displayQuestion, optionLabels, q.multi ?? false, {
+					recommended: q.recommended,
+					timeout: timeout ?? undefined,
+					signal,
+					initialSelection,
+					navigation: options?.navigation,
+					scrollTitleRows: jawInterviewPrompt === null ? undefined : JAW_INTERVIEW_SELECTOR_SCROLL_TITLE_ROWS,
+					useDockedCustomInput: shouldNumberOptions ? true : undefined,
+				});
+				const selectedOptions = shouldNumberOptions
+					? displaySelectedOptions.map(selected => {
+							const displayIndex = optionLabels.indexOf(selected);
+							return displayIndex >= 0 ? (rawOptionLabels[displayIndex] ?? selected) : selected;
+						})
+					: displaySelectedOptions;
+				return { optionLabels: rawOptionLabels, selectedOptions, customInput, navigation, cancelled, timedOut };
+			} catch (error) {
+				if (error instanceof Error && error.name === "AbortError") {
+					throw new ToolAbortError("Ask input was cancelled");
+				}
+				throw error;
+			}
+		};
+
+		if (params.questions.length === 1) {
+			const [q] = params.questions;
+			const { optionLabels, selectedOptions, customInput, cancelled, timedOut } = await askQuestion(q);
+
+			if (!timedOut && (cancelled || (selectedOptions.length === 0 && customInput === undefined))) {
+				context?.abort();
+				throw new ToolAbortError("Ask tool was cancelled by the user");
+			}
+			const details: AskToolDetails = {
+				question: q.question,
+				options: optionLabels,
+				multi: q.multi ?? false,
+				selectedOptions,
+				customInput,
+			};
+
+			const responseParts: string[] = [];
+			if (selectedOptions.length > 0) {
+				responseParts.push(
+					q.multi ? `User selected: ${selectedOptions.join(", ")}` : `User selected: ${selectedOptions[0]}`,
+				);
+			}
+			if (customInput !== undefined) {
+				responseParts.push(
+					customInput.includes("\n")
+						? `User provided custom input:\n${customInput
+								.split("\n")
+								.map(line => `  ${line}`)
+								.join("\n")}`
+						: `User provided custom input: ${customInput}`,
+				);
+			}
+			const responseText = responseParts.length > 0 ? responseParts.join("\n") : "User cancelled the selection";
+
+			return { content: [{ type: "text" as const, text: responseText }], details };
+		}
+
+		const resultsByIndex: Array<QuestionResult | undefined> = Array.from({ length: params.questions.length });
+		let questionIndex = 0;
+		while (questionIndex < params.questions.length) {
+			const q = params.questions[questionIndex]!;
+			const previous = resultsByIndex[questionIndex];
+			const navigation: NavigationControls = {
+				allowBack: questionIndex > 0,
+				allowForward: true,
+				progressText: `${questionIndex + 1}/${params.questions.length}`,
+			};
+			const {
+				optionLabels,
+				selectedOptions,
+				customInput,
+				navigation: navAction,
+				cancelled,
+				timedOut,
+			} = await askQuestion(q, { previous, navigation });
+
+			if (cancelled && !timedOut) {
+				context?.abort();
+				throw new ToolAbortError("Ask tool was cancelled by the user");
+			}
+
+			resultsByIndex[questionIndex] = {
+				id: q.id,
+				question: q.question,
+				options: optionLabels,
+				multi: q.multi ?? false,
+				selectedOptions,
+				customInput,
+			};
+
+			if (navAction === "back") {
+				questionIndex = Math.max(0, questionIndex - 1);
+				continue;
+			}
+
+			questionIndex += 1;
+		}
+
+		const results = resultsByIndex.map((result, index) => {
+			if (result) return result;
+			const q = params.questions[index]!;
+			return {
+				id: q.id,
+				question: q.question,
+				options: q.options.map(o => o.label),
+				multi: q.multi ?? false,
+				selectedOptions: [],
+			};
+		});
+
+		const details: AskToolDetails = { results };
+		const responseLines = results.map(formatQuestionResult);
+		const responseText = `User answers:\n${responseLines.join("\n")}`;
+
+		return { content: [{ type: "text" as const, text: responseText }], details };
+	}
+}
+
+// =============================================================================
+// TUI Renderer
+// =============================================================================
+
+interface AskRenderArgs {
+	question?: string;
+	options?: Array<{ label: string }>;
+	multi?: boolean;
+	questions?: Array<{
+		id: string;
+		question: string;
+		options: Array<{ label: string }>;
+		multi?: boolean;
+		meta?: z.infer<typeof QuestionMeta>;
+	}>;
+}
+
+/** Render custom input as a single block with continuation lines (not one entry per line) */
+function renderCustomInput(
+	uiTheme: Theme,
+	prefix: string,
+	customInput: string,
+	isLastEntry: boolean,
+	includeLeadingNewline = true,
+): string {
+	const lines = customInput.split("\n");
+	const branch = isLastEntry ? uiTheme.tree.last : uiTheme.tree.branch;
+	const firstLine = lines[0] ?? "";
+	let text = `${includeLeadingNewline ? "\n" : ""}${prefix}${uiTheme.fg("dim", branch)} ${uiTheme.styledSymbol("status.success", "success")} ${uiTheme.fg("toolOutput", firstLine)}`;
+	const continuationIndent = isLastEntry ? "   " : `${uiTheme.fg("dim", uiTheme.tree.vertical)}  `;
+	for (let i = 1; i < lines.length; i++) {
+		text += `\n${prefix}${continuationIndent}   ${uiTheme.fg("toolOutput", lines[i])}`;
+	}
+	return text;
+}
+
+interface RenderOptionListEntry {
+	prefix: string;
+	label: string;
+}
+
+class AskOptionList implements Component {
+	constructor(private readonly entries: RenderOptionListEntry[]) {}
+
+	render(width: number): string[] {
+		const lines: string[] = [];
+		for (const entry of this.entries) {
+			const prefixWidth = visibleWidth(entry.prefix);
+			const availableWidth = Math.max(1, width - prefixWidth);
+			const wrapped = wrapTextWithAnsi(entry.label, availableWidth);
+			const continuation = " ".repeat(prefixWidth);
+			for (let i = 0; i < wrapped.length; i++) {
+				lines.push(`${i === 0 ? entry.prefix : continuation}${wrapped[i]}`);
+			}
+		}
+		return lines;
+	}
+
+	invalidate(): void {}
+}
+
+export const askToolRenderer = {
+	renderCall(args: AskRenderArgs, _options: RenderResultOptions, uiTheme: Theme): Component {
+		const label = formatTitle("Ask", uiTheme);
+		const mdTheme = getMarkdownTheme();
+		const accentStyle = { color: (t: string) => uiTheme.fg("accent", t) };
+
+		// Multi-part questions
+		if (args.questions && args.questions.length > 0) {
+			const container = new Container();
+			container.addChild(new Text(`${label} ${uiTheme.fg("muted", `${args.questions.length} questions`)}`, 0, 0));
+
+			for (let i = 0; i < args.questions.length; i++) {
+				const q = args.questions[i];
+				const isLastQ = i === args.questions.length - 1;
+				const qBranch = isLastQ ? uiTheme.tree.last : uiTheme.tree.branch;
+				const continuation = isLastQ ? " " : uiTheme.tree.vertical;
+
+				const meta: string[] = [];
+				if (q.multi) meta.push("multi");
+				if (q.options?.length) meta.push(`options:${q.options.length}`);
+				const metaStr = meta.length > 0 ? uiTheme.fg("dim", ` · ${meta.join(" · ")}`) : "";
+
+				container.addChild(
+					new Text(` ${uiTheme.fg("dim", qBranch)} ${uiTheme.fg("dim", `[${q.id}]`)}${metaStr}`, 0, 0),
+				);
+				const jawInterviewQuestion = isStructuredInterviewQuestion(q.meta)
+					? renderInterviewQuestion({ question: q.question, meta: q.meta }, uiTheme)
+					: null;
+				container.addChild(jawInterviewQuestion ?? new Markdown(q.question, 3, 0, mdTheme, accentStyle));
+
+				const qOptions = q.options;
+				if (qOptions?.length) {
+					const entries = qOptions.map((opt, j) => {
+						const isLastOpt = j === qOptions.length - 1;
+						const optBranch = isLastOpt ? uiTheme.tree.last : uiTheme.tree.branch;
+						const shouldNumberOption = jawInterviewQuestion !== null;
+						const displayLabel = shouldNumberOption ? formatNumberedOptionLabel(opt.label, j) : opt.label;
+						const optLabel = renderInlineMarkdown(displayLabel, mdTheme, t => uiTheme.fg("muted", t));
+						return {
+							prefix: ` ${uiTheme.fg("dim", continuation)}   ${uiTheme.fg("dim", optBranch)} ${uiTheme.fg("dim", uiTheme.checkbox.unchecked)} `,
+							label: optLabel,
+						};
+					});
+					container.addChild(new AskOptionList(entries));
+				}
+			}
+			return container;
+		}
+
+		// Single question
+		if (!args.question) {
+			return new Text(formatErrorMessage("No question provided", uiTheme), 0, 0);
+		}
+		const question = args.question;
+
+		const container = new Container();
+		const meta: string[] = [];
+		if (args.multi) meta.push("multi");
+		if (args.options?.length) meta.push(`options:${args.options.length}`);
+		container.addChild(new Text(`${label}${formatMeta(meta, uiTheme)}`, 0, 0));
+		container.addChild(new Markdown(question, 1, 0, mdTheme, accentStyle));
+
+		const options = args.options;
+		if (options?.length) {
+			const entries = options.map((opt, i) => {
+				const isLast = i === options.length - 1;
+				const branch = isLast ? uiTheme.tree.last : uiTheme.tree.branch;
+				const displayLabel = opt.label;
+				const optLabel = renderInlineMarkdown(displayLabel, mdTheme, t => uiTheme.fg("muted", t));
+				return {
+					prefix: ` ${uiTheme.fg("dim", branch)} ${uiTheme.fg("dim", uiTheme.checkbox.unchecked)} `,
+					label: optLabel,
+				};
+			});
+			container.addChild(new AskOptionList(entries));
+		}
+
+		return container;
+	},
+
+	renderResult(
+		result: { content: Array<{ type: string; text?: string }>; details?: AskToolDetails },
+		_options: RenderResultOptions,
+		uiTheme: Theme,
+	): Component {
+		const { details } = result;
+		const mdTheme = getMarkdownTheme();
+		const accentStyle = { color: (t: string) => uiTheme.fg("accent", t) };
+
+		if (!details) {
+			const txt = result.content[0];
+			const fallback = txt?.type === "text" && txt.text ? txt.text : "";
+			const header = renderStatusLine({ icon: "warning", title: "Ask" }, uiTheme);
+			return new Text(`${header}\n${uiTheme.fg("dim", fallback)}`, 0, 0);
+		}
+
+		// Multi-part results
+		if (details.results && details.results.length > 0) {
+			const hasAnySelection = details.results.some(
+				r => r.customInput !== undefined || (r.selectedOptions && r.selectedOptions.length > 0),
+			);
+			const header = renderStatusLine(
+				{
+					icon: hasAnySelection ? "success" : "warning",
+					title: "Ask",
+					meta: [`${details.results.length} questions`],
+				},
+				uiTheme,
+			);
+			const container = new Container();
+			container.addChild(new Text(header, 0, 0));
+
+			for (let i = 0; i < details.results.length; i++) {
+				const r = details.results[i];
+				const isLastQuestion = i === details.results.length - 1;
+				const branch = isLastQuestion ? uiTheme.tree.last : uiTheme.tree.branch;
+				const continuation = isLastQuestion ? "   " : `${uiTheme.fg("dim", uiTheme.tree.vertical)}  `;
+				const hasSelection = r.customInput !== undefined || r.selectedOptions.length > 0;
+				const statusIcon = hasSelection
+					? uiTheme.styledSymbol("status.success", "success")
+					: uiTheme.styledSymbol("status.warning", "warning");
+
+				container.addChild(
+					new Text(` ${uiTheme.fg("dim", branch)} ${statusIcon} ${uiTheme.fg("dim", `[${r.id}]`)}`, 0, 0),
+				);
+				container.addChild(new Markdown(r.question, 3, 0, mdTheme, accentStyle));
+
+				const answerLines: string[] = [];
+				for (let j = 0; j < r.selectedOptions.length; j++) {
+					const isLast = j === r.selectedOptions.length - 1 && r.customInput === undefined;
+					const optBranch = isLast ? uiTheme.tree.last : uiTheme.tree.branch;
+					const selectedLabel = renderInlineMarkdown(r.selectedOptions[j], mdTheme, t =>
+						uiTheme.fg("toolOutput", t),
+					);
+					answerLines.push(
+						`${continuation}${uiTheme.fg("dim", optBranch)} ${uiTheme.fg("success", uiTheme.checkbox.checked)} ${selectedLabel}`,
+					);
+				}
+				if (answerLines.length > 0) {
+					container.addChild(new Text(answerLines.join("\n"), 0, 0));
+				}
+				if (r.customInput !== undefined) {
+					container.addChild(new Text(renderCustomInput(uiTheme, continuation, r.customInput, true, false), 0, 0));
+				} else if (r.selectedOptions.length === 0) {
+					container.addChild(
+						new Text(
+							`${continuation}${uiTheme.fg("dim", uiTheme.tree.last)} ${uiTheme.styledSymbol("status.warning", "warning")} ${uiTheme.fg("warning", "Cancelled")}`,
+							0,
+							0,
+						),
+					);
+				}
+			}
+			return container;
+		}
+
+		// Single question result
+		if (!details.question) {
+			const txt = result.content[0];
+			const fallback = txt?.type === "text" && txt.text ? txt.text : "";
+			return new Text(fallback, 0, 0);
+		}
+
+		const hasSelection =
+			details.customInput !== undefined || (details.selectedOptions && details.selectedOptions.length > 0);
+		const header = renderStatusLine({ icon: hasSelection ? "success" : "warning", title: "Ask" }, uiTheme);
+		const container = new Container();
+		container.addChild(new Text(header, 0, 0));
+		container.addChild(new Markdown(details.question, 1, 0, mdTheme, accentStyle));
+
+		const answerLines: string[] = [];
+		if (details.selectedOptions && details.selectedOptions.length > 0) {
+			for (let i = 0; i < details.selectedOptions.length; i++) {
+				const isLast = i === details.selectedOptions.length - 1 && details.customInput === undefined;
+				const branch = isLast ? uiTheme.tree.last : uiTheme.tree.branch;
+				const selectedLabel = renderInlineMarkdown(details.selectedOptions[i], mdTheme, t =>
+					uiTheme.fg("toolOutput", t),
+				);
+				answerLines.push(
+					` ${uiTheme.fg("dim", branch)} ${uiTheme.fg("success", uiTheme.checkbox.checked)} ${selectedLabel}`,
+				);
+			}
+		}
+		if (answerLines.length > 0) {
+			container.addChild(new Text(answerLines.join("\n"), 0, 0));
+		}
+		if (details.customInput !== undefined) {
+			container.addChild(new Text(renderCustomInput(uiTheme, " ", details.customInput, true, false), 0, 0));
+		} else if (!details.selectedOptions || details.selectedOptions.length === 0) {
+			container.addChild(
+				new Text(
+					` ${uiTheme.fg("dim", uiTheme.tree.last)} ${uiTheme.styledSymbol("status.warning", "warning")} ${uiTheme.fg("warning", "Cancelled")}`,
+					0,
+					0,
+				),
+			);
+		}
+
+		return container;
+	},
+};

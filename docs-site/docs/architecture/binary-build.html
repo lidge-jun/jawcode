@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Binary Build — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+      <h1>Binary Build</h1>
+      <p>
+        Jawcode compiles to a single self-contained binary using <code>bun build --compile</code>.
+        The output is a portable executable that bundles the TypeScript source, worker
+        entrypoints, and native addons into one file.
+      </p>
+
+      <h2>Build Command</h2>
+      <p>
+        The build script lives at <code>packages/coding-agent/scripts/build-binary.ts</code>
+        and produces the binary at <code>packages/coding-agent/dist/jwc</code>.
+      </p>
+      <pre><code>bun run build:binary
+# or directly:
+bun packages/coding-agent/scripts/build-binary.ts</code></pre>
+
+      <h2>Build Pipeline</h2>
+      <p>
+        The build runs through several stages in sequence:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Step</th><th>Command</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1. Stats bundle</td>
+            <td><code>bun --cwd=../stats scripts/generate-client-bundle.ts --generate</code></td>
+            <td>Generate the stats dashboard client bundle for embedding</td>
+          </tr>
+          <tr>
+            <td>2. Native embed</td>
+            <td><code>bun --cwd=../natives run embed:native</code></td>
+            <td>Stage native N-API addons for compile-time bundling</td>
+          </tr>
+          <tr>
+            <td>3. Compile</td>
+            <td><code>bun build --compile ...</code></td>
+            <td>Compile TypeScript to a single binary with embedded workers</td>
+          </tr>
+          <tr>
+            <td>4. Stage addons</td>
+            <td><code>stageWorkspaceNativeAddons()</code></td>
+            <td>Copy native <code>.node</code> files alongside the binary</td>
+          </tr>
+          <tr>
+            <td>5. Code sign</td>
+            <td><code>codesign --force --sign - dist/jwc</code></td>
+            <td>Ad-hoc sign on macOS (Bun 1.3.12+ workaround for truncated Mach-O signatures)</td>
+          </tr>
+          <tr>
+            <td>6. Cleanup</td>
+            <td><code>embed:native --reset</code> + stats <code>--reset</code></td>
+            <td>Restore native and stats packages to development state</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Compile Flags</h2>
+      <p>The <code>bun build</code> invocation uses these flags:</p>
+      <table>
+        <thead>
+          <tr><th>Flag</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>--compile</code></td><td>Produce a standalone executable</td></tr>
+          <tr><td><code>--no-compile-autoload-bunfig</code></td><td>Skip bunfig.toml to avoid dev-only config</td></tr>
+          <tr><td><code>--no-compile-autoload-dotenv</code></td><td>Skip .env files</td></tr>
+          <tr><td><code>--no-compile-autoload-tsconfig</code></td><td>Skip tsconfig resolution</td></tr>
+          <tr><td><code>--no-compile-autoload-package-json</code></td><td>Skip package.json resolution</td></tr>
+          <tr><td><code>--keep-names</code></td><td>Preserve function/class names for stack traces</td></tr>
+          <tr>
+            <td><code>--define process.env.PI_COMPILED="true"</code></td>
+            <td>Compile-time constant for <code>isCompiledBinary()</code> checks</td>
+          </tr>
+          <tr><td><code>--external mupdf</code></td><td>Exclude mupdf (optional native dependency)</td></tr>
+          <tr><td><code>--root ../..</code></td><td>Set monorepo root so worker paths resolve correctly</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Entrypoints</h2>
+      <p>
+        The main entrypoint is <code>src/cli.ts</code>. Three worker entrypoints are listed
+        as additional compile entries so Bun embeds them into the binary filesystem:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Entrypoint</th><th>Purpose</th><th>Binary Path</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>packages/stats/src/sync-worker.ts</code></td>
+            <td>Stats synchronization background worker</td>
+            <td><code>/$bunfs/root/packages/stats/src/sync-worker.js</code></td>
+          </tr>
+          <tr>
+            <td><code>src/tools/browser/tab-worker-entry.ts</code></td>
+            <td>Browser tab isolation worker</td>
+            <td><code>/$bunfs/root/packages/coding-agent/src/tools/browser/tab-worker-entry.js</code></td>
+          </tr>
+          <tr>
+            <td><code>src/eval/js/worker-entry.ts</code></td>
+            <td>JavaScript eval sandbox worker</td>
+            <td><code>/$bunfs/root/packages/coding-agent/src/eval/js/worker-entry.js</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Worker Spawn Pattern</h2>
+      <p>
+        Workers must use the compile-safe hybrid pattern to work both in development
+        and in the compiled binary:
+      </p>
+      <pre><code>import { isCompiledBinary } from "@gajae-code/pi-utils";
+
+const worker = isCompiledBinary()
+  ? new Worker(
+      "./packages/&lt;pkg&gt;/src/&lt;worker&gt;.ts",
+      { type: "module" }
+    )
+  : new Worker(
+      new URL("./&lt;worker&gt;.ts", import.meta.url).href,
+      { type: "module" }
+    );</code></pre>
+      <p>
+        In compiled mode, the path is relative to the monorepo root (matching <code>--root</code>).
+        In development, <code>import.meta.url</code> resolves to the actual file location.
+      </p>
+      <p>
+        Every new worker entry must be added to the <code>bun build</code> arguments in
+        <code>build-binary.ts</code>. Validate with <code>jwc --smoke-test</code>.
+      </p>
+
+      <h2>Native Addons</h2>
+      <p>
+        The Rust native bindings (<code>@gajae-code/natives</code>) compile to a
+        <code>.node</code> file via napi-rs. This file cannot be embedded in the Bun
+        binary and must be distributed alongside it.
+      </p>
+      <p>
+        <code>stageWorkspaceNativeAddons()</code> copies the compiled <code>.node</code>
+        file to the <code>dist/</code> directory next to the binary. At runtime,
+        <code>require()</code> loads it from the adjacent path.
+      </p>
+
+      <h2>Compile Targets</h2>
+      <p>
+        The binary is built for the host platform by default. Cross-compilation
+        is possible with Bun's <code>--target</code> flag but is not used in the
+        standard build script.
+      </p>
+      <table>
+        <thead>
+          <tr><th>Platform</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>macOS (arm64)</td>
+            <td>Primary development target. Ad-hoc code signing applied automatically.</td>
+          </tr>
+          <tr>
+            <td>macOS (x64)</td>
+            <td>Supported via Bun cross-compile. Same code signing.</td>
+          </tr>
+          <tr>
+            <td>Linux (x64/arm64)</td>
+            <td>Supported. No code signing needed.</td>
+          </tr>
+          <tr>
+            <td>Windows</td>
+            <td>Bun supports Windows compilation but native addon compatibility
+                may require additional testing.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Node Distribution</h2>
+      <p>
+        In addition to the Bun binary, Jawcode provides a Node.js distribution
+        via the <code>jawcode</code> npm package. The <code>packages/jwc</code> package
+        includes:
+      </p>
+      <ul>
+        <li><code>bin/jwc.js</code> — Node launcher that downloads and manages a Bun runtime</li>
+        <li><code>dist-node/</code> — esbuild bundle with Bun API shims for Node 22+ compatibility</li>
+        <li><code>src/shims/</code> — Bun.file, Bun.write, Bun.spawn, bun:sqlite, and other
+            API polyfills for Node environments</li>
+      </ul>
+      <p>
+        The Node distribution passes adversarial audit rounds including path traversal,
+        archive security, and TLS handling validation.
+      </p>
+
+      <h2>Verification</h2>
+      <p>After building, verify the binary works:</p>
+      <pre><code># Smoke test (validates binary, workers, native addons)
+./dist/jwc --smoke-test
+
+# Version check
+./dist/jwc --version
+
+# Full test suite against compiled binary
+PI_COMPILED=true bun test</code></pre>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

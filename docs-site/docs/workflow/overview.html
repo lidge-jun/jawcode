@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IPABCD Workflow Overview — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>IPABCD Workflow Overview</h1>
+      <p>Jawcode structures every non-trivial task through six sequential stages. Each stage has an explicit gate that must pass before the next stage begins. The pipeline prevents the agent from guessing requirements, shipping untested code, or silently reducing scope.</p>
+
+      <h2>The six stages</h2>
+      <table>
+        <thead>
+          <tr><th>Stage</th><th>Name</th><th>Purpose</th><th>Gate</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>I</strong></td>
+            <td>Interview</td>
+            <td>Socratic requirements gathering via <code>jaw-interview</code>. Asks targeted questions, scores ambiguity mathematically, and produces a spec under <code>.jwc/specs/</code>.</td>
+            <td>Ambiguity score below resolved threshold</td>
+          </tr>
+          <tr>
+            <td><strong>P</strong></td>
+            <td>Planning</td>
+            <td>Main session authors a plan. A Critic subagent reviews it in a consensus loop: <code>OKAY</code> / <code>ITERATE</code> / <code>REJECT</code>.</td>
+            <td>Critic verdict = <code>OKAY</code>; plan written to <code>.jwc/plans/planphase/</code></td>
+          </tr>
+          <tr>
+            <td><strong>A</strong></td>
+            <td>Plan Audit</td>
+            <td>Independent Planner and Architect subagents audit the approved plan for sequencing gaps and architectural risks.</td>
+            <td><code>audit_status = pass</code> from both auditors</td>
+          </tr>
+          <tr>
+            <td><strong>B</strong></td>
+            <td>Build</td>
+            <td>Main session implements the plan. A read-only verifier subagent confirms each deliverable.</td>
+            <td><code>verification_status = done</code></td>
+          </tr>
+          <tr>
+            <td><strong>C</strong></td>
+            <td>Check</td>
+            <td>Mechanical gates (<code>bun run check</code> + affected tests) plus adversarial review with 3-way reject routing.</td>
+            <td>All mechanical checks pass; adversarial review finds no blockers</td>
+          </tr>
+          <tr>
+            <td><strong>D</strong></td>
+            <td>Done</td>
+            <td>Cycle summary with WONDER (observations) and REFLECT (process improvements) sections.</td>
+            <td>Summary written; state closed</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Entry points</h2>
+      <p>Not every task needs every stage. The agent classifies work by risk and enters at the appropriate stage:</p>
+      <table>
+        <thead>
+          <tr><th>Classification</th><th>Entry</th><th>Example</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>C0 trivial</td>
+            <td>Direct edit</td>
+            <td>Fix a typo in a comment</td>
+          </tr>
+          <tr>
+            <td>C1 single-file</td>
+            <td>Direct edit + verification</td>
+            <td>Fix a bug in one function</td>
+          </tr>
+          <tr>
+            <td>C2 one subsystem</td>
+            <td>Compact local plan, then build</td>
+            <td>Add a new CLI flag</td>
+          </tr>
+          <tr>
+            <td>C3 cross-domain</td>
+            <td>P stage</td>
+            <td>Add a new provider integration</td>
+          </tr>
+          <tr>
+            <td>C4 high-risk</td>
+            <td>P + A stages</td>
+            <td>Auth system changes, schema migration</td>
+          </tr>
+          <tr>
+            <td>C5 vague</td>
+            <td>I stage</td>
+            <td>"I have an idea for a new feature"</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Reject routing</h2>
+      <p>The C stage (Check) can reject work back to three different stages depending on the issue type:</p>
+      <pre><code>C stage finds a code issue     → route back to B (Build)
+C stage finds a plan issue     → route back to P (Planning)
+C stage finds a spec issue     → route back to I (Interview)</code></pre>
+      <p>This 3-way reject routing ensures problems are fixed at their source rather than patched over at the wrong level.</p>
+
+      <h2>State management</h2>
+      <p>IPABCD state lives in a session-scoped JSON file:</p>
+      <pre><code>.jwc/state/sessions/&lt;session-id&gt;/pabcd-state.json</code></pre>
+      <p>The <code>jwc orchestrate</code> command scopes to the live session automatically via <code>JWC_SESSION_ID</code>. You never pass a session ID manually. Advance stages by running:</p>
+      <pre><code>jwc orchestrate i   # Start interview
+jwc orchestrate p   # Start planning
+jwc orchestrate a   # Start audit
+jwc orchestrate b   # Start build
+jwc orchestrate c   # Start check
+jwc orchestrate d   # Close cycle</code></pre>
+      <p>To abandon the pipeline from any stage:</p>
+      <pre><code>jwc orchestrate reset</code></pre>
+
+      <h2>HITL and HOTL modes</h2>
+      <p>The pipeline supports two interaction modes:</p>
+      <ul>
+        <li><strong>HITL (Human-in-the-Loop)</strong> — the agent pauses at each gate and waits for explicit user approval before advancing. Default for high-risk work.</li>
+        <li><strong>HOTL (Hands-off-the-Loop)</strong> — the agent advances through gates automatically, stopping only on failures or ambiguity. Used when the user explicitly trusts the pipeline.</li>
+      </ul>
+
+      <h2>Next steps</h2>
+      <ul>
+        <li><a href="interview.html">I: Interview</a> — Socratic requirements gathering</li>
+        <li><a href="plan.html">P: Planning</a> — Critic consensus loop</li>
+        <li><a href="audit.html">A: Plan Audit</a> — Dual subagent audit</li>
+        <li><a href="build.html">B: Build</a> — Implementation + verification</li>
+        <li><a href="check.html">C: Check</a> — Mechanical gates + adversarial review</li>
+      </ul>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

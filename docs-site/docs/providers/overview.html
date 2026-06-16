@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Providers Overview — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Providers Overview</h1>
+      <p>
+        Jawcode connects to <strong>46 providers</strong> and exposes over
+        <strong>3,600 models</strong> out of the box. Every provider speaks one of the
+        supported transport APIs; you pick a model and Jawcode handles the wire format,
+        auth, streaming, and tool-call translation.
+      </p>
+
+      <h2>Supported Transport APIs</h2>
+      <p>
+        Each provider is backed by one of these transport implementations. Custom
+        providers in <code>models.yml</code> set the <code>api</code> field to one of
+        these values:
+      </p>
+      <table>
+        <thead>
+          <tr><th>API</th><th>Wire Format</th><th>Providers</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>openai-completions</code></td>
+            <td>OpenAI Chat Completions (<code>/v1/chat/completions</code>)</td>
+            <td>OpenAI, xAI, Groq, Together, Fireworks, DeepSeek, Mistral, Ollama, LM Studio, custom proxies</td>
+          </tr>
+          <tr>
+            <td><code>openai-responses</code></td>
+            <td>OpenAI Responses API</td>
+            <td>OpenAI (non-Codex), Ollama, llama.cpp</td>
+          </tr>
+          <tr>
+            <td><code>openai-codex-responses</code></td>
+            <td>Codex Responses (WebSocket primary, SSE fallback)</td>
+            <td>OpenAI Codex</td>
+          </tr>
+          <tr>
+            <td><code>azure-openai-responses</code></td>
+            <td>Azure OpenAI Responses</td>
+            <td>Azure OpenAI</td>
+          </tr>
+          <tr>
+            <td><code>anthropic-messages</code></td>
+            <td>Anthropic Messages API</td>
+            <td>Anthropic</td>
+          </tr>
+          <tr>
+            <td><code>bedrock-converse-stream</code></td>
+            <td>AWS Bedrock ConverseStream</td>
+            <td>Amazon Bedrock</td>
+          </tr>
+          <tr>
+            <td><code>google-generative-ai</code></td>
+            <td>Google Generative AI</td>
+            <td>Google AI Studio</td>
+          </tr>
+          <tr>
+            <td><code>google-vertex</code></td>
+            <td>Vertex AI</td>
+            <td>Google Cloud Vertex</td>
+          </tr>
+          <tr>
+            <td><code>google-gemini-cli</code></td>
+            <td>Gemini CLI transport</td>
+            <td>Gemini CLI (Antigravity)</td>
+          </tr>
+          <tr>
+            <td><code>ollama-chat</code></td>
+            <td>Ollama native chat</td>
+            <td>Ollama (native mode)</td>
+          </tr>
+          <tr>
+            <td><code>cursor-agent</code></td>
+            <td>Cursor RPC (protobuf/gRPC)</td>
+            <td>Cursor IDE</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Built-in Provider Categories</h2>
+      <p>
+        Providers fall into three categories based on how models are registered
+        and discovered:
+      </p>
+
+      <h3>First-Class Providers</h3>
+      <p>
+        Built into the static catalog with full model metadata (context window,
+        cost, thinking levels, compatibility flags). No user configuration needed
+        beyond auth:
+      </p>
+      <ul>
+        <li><strong>Anthropic</strong> — Claude Opus, Sonnet, Haiku families</li>
+        <li><strong>OpenAI</strong> — GPT-5.x, o3, o4-mini families</li>
+        <li><strong>OpenAI Codex</strong> — Codex-optimized models with WebSocket transport</li>
+        <li><strong>Google</strong> — Gemini 2.x families (AI Studio, Vertex, Antigravity)</li>
+        <li><strong>xAI</strong> — Grok 3, Grok Composer families</li>
+        <li><strong>Amazon Bedrock</strong> — Cross-provider models via AWS</li>
+        <li><strong>Azure OpenAI</strong> — OpenAI models via Azure deployments</li>
+      </ul>
+
+      <h3>OpenAI-Compatible Providers</h3>
+      <p>
+        Providers that expose an OpenAI-compatible API. Built-in entries exist for
+        many, and you can add any compatible endpoint as a custom provider:
+      </p>
+      <ul>
+        <li>Groq, Together, Fireworks, Cerebras — fast inference platforms</li>
+        <li>DeepSeek, Mistral, Cohere, Minimax — specialized model providers</li>
+        <li>Perplexity, Kagi — search-augmented providers</li>
+        <li>OpenRouter, Vercel AI Gateway — multi-provider routing</li>
+        <li>Any proxy with <code>/v1/chat/completions</code> compatibility</li>
+      </ul>
+
+      <h3>Local/Discovery Providers</h3>
+      <p>
+        Automatically discovered on <code>localhost</code> without explicit
+        configuration. Jawcode probes the default port and registers models
+        it finds:
+      </p>
+      <ul>
+        <li><strong>Ollama</strong> — <code>http://127.0.0.1:11434</code></li>
+        <li><strong>llama.cpp</strong> — <code>http://127.0.0.1:8080</code></li>
+        <li><strong>LM Studio</strong> — <code>http://127.0.0.1:1234/v1</code></li>
+      </ul>
+
+      <h2>Model Behavior Patch Layers</h2>
+      <p>
+        When a model misbehaves in Jawcode, fixes are applied at one of four
+        layers. Lower layers have broader scope; higher layers are more precise:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Layer</th><th>What It Fixes</th><th>Location</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1. Catalog</td>
+            <td>Model specs, compat flags, context windows, cost</td>
+            <td><code>packages/ai/src/models.json</code></td>
+          </tr>
+          <tr>
+            <td>2. Request Transformer</td>
+            <td>Wire parameter shaping per provider</td>
+            <td>Provider-specific <code>*.ts</code> files</td>
+          </tr>
+          <tr>
+            <td>3. System Prompt Injection</td>
+            <td>Behavioral correction for specific models</td>
+            <td><code>composer-discipline.ts</code>, <code>cursor.ts</code></td>
+          </tr>
+          <tr>
+            <td>4. Host/Tool Defense</td>
+            <td>Model-agnostic structural guards</td>
+            <td><code>bash.ts</code>, <code>stream.ts</code>, etc.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        Principle: <strong>spec errors go to layers 1-2, behavioral habits go
+        to layer 3, universal pitfalls go to layer 4.</strong>
+      </p>
+
+      <h2>Tokenizer Routing</h2>
+      <p>
+        Jawcode maps each provider to a BPE tokenizer family for accurate context
+        counting and compaction. The mapping chain:
+      </p>
+      <ol>
+        <li><code>resolveTokenizerFamily(model)</code> — provider-to-family lookup</li>
+        <li><code>resolveModelEncoding</code> — family to native <code>@gajae-code/natives</code> encoding</li>
+        <li>Lazy download for uncommon families</li>
+      </ol>
+      <table>
+        <thead>
+          <tr><th>Provider</th><th>Tokenizer Family</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Anthropic</td><td><code>claude</code></td></tr>
+          <tr><td>OpenAI, Codex, Azure, xAI, Cursor, GitHub Copilot, Qwen</td><td><code>o200k_base</code></td></tr>
+          <tr><td>Google (all variants)</td><td><code>gemma</code></td></tr>
+          <tr><td>Groq, Fireworks, Together, Cerebras</td><td><code>llama3</code></td></tr>
+          <tr><td>DeepSeek</td><td><code>deepseek</code></td></tr>
+          <tr><td>Mistral</td><td><code>mistral</code></td></tr>
+          <tr><td>Unregistered / fallback</td><td><code>o200k_base</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2>Codex Transport</h2>
+      <p>
+        OpenAI Codex uses a dedicated transport layer distinct from standard
+        OpenAI-compatible providers:
+      </p>
+      <ul>
+        <li><strong>WebSocket primary, SSE fallback</strong> — automatic failover</li>
+        <li><strong>Watchdog</strong> — 300s idle floor matching native Codex client behavior</li>
+        <li><strong>Content prewarming</strong> — <code>generate:false</code> prefill to amortize cold starts (measured 2m15s in production)</li>
+        <li><strong>Rate-limit telemetry</strong> — captures <code>codex.rate_limits</code> push events, shows utilization in the status footer</li>
+        <li><strong>Transport visibility</strong> — <code>ws</code>/<code>sse</code>/<code>sse!</code> markers in the status line</li>
+      </ul>
+
+      <h2>Unlisted Model Policy</h2>
+      <p>
+        Discovery-based providers may expose models that exist only in the
+        static catalog (not returned by the provider's <code>/v1/models</code>
+        endpoint). Instead of dropping these, Jawcode tags them as
+        <code>unlisted</code>: hidden by default in selectors but available
+        on explicit request. This prevents selector pollution while preserving
+        access to catalog-only models like <code>xai/grok-composer-2.5-fast</code>.
+      </p>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

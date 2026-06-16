@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authentication — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Authentication</h1>
+      <p>Jawcode authenticates with LLM providers via API keys, OAuth tokens, or cloud IAM credentials. All credentials are stored in the local SQLite database at <code>~/.jwc/agent/agent.db</code>.</p>
+
+      <h2>Auth Priority</h2>
+      <p><code>AuthStorage.getApiKey()</code> resolves credentials in this order:</p>
+      <ol>
+        <li><strong>Runtime override</strong> &mdash; <code>setRuntimeApiKey()</code> (programmatic, for SDK embedders)</li>
+        <li><strong>Stored credentials</strong> &mdash; <code>agent.db</code> SQLite store (set via <code>/login</code> or <code>jwc login</code>)</li>
+        <li><strong>Environment variables</strong> &mdash; provider-specific env vars</li>
+        <li><strong>Custom provider resolver</strong> &mdash; fallback for custom provider configurations</li>
+      </ol>
+
+      <h2>API Key Authentication</h2>
+      <p>The simplest method. Set environment variables for each provider:</p>
+
+      <h3>Environment Variables</h3>
+      <table>
+        <thead>
+          <tr><th>Provider</th><th>Variable</th><th>Example</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Anthropic</td><td><code>ANTHROPIC_API_KEY</code></td><td><code>sk-ant-...</code></td></tr>
+          <tr><td>OpenAI</td><td><code>OPENAI_API_KEY</code></td><td><code>sk-...</code></td></tr>
+          <tr><td>Google</td><td><code>GOOGLE_API_KEY</code> or <code>GEMINI_API_KEY</code></td><td><code>AI...</code></td></tr>
+          <tr><td>xAI (Grok)</td><td><code>XAI_API_KEY</code></td><td><code>xai-...</code></td></tr>
+          <tr><td>Groq</td><td><code>GROQ_API_KEY</code></td><td><code>gsk_...</code></td></tr>
+          <tr><td>DeepSeek</td><td><code>DEEPSEEK_API_KEY</code></td><td></td></tr>
+          <tr><td>Mistral</td><td><code>MISTRAL_API_KEY</code></td><td></td></tr>
+          <tr><td>Together</td><td><code>TOGETHER_API_KEY</code></td><td></td></tr>
+          <tr><td>Fireworks</td><td><code>FIREWORKS_API_KEY</code></td><td></td></tr>
+          <tr><td>OpenRouter</td><td><code>OPENROUTER_API_KEY</code></td><td></td></tr>
+        </tbody>
+      </table>
+
+      <h3>Interactive Login</h3>
+      <p>Use the <code>/login</code> command within a session or <code>jwc login</code> from the terminal to store API keys persistently in the local database:</p>
+      <pre><code># From terminal
+jwc login
+
+# Within a session
+/login</code></pre>
+      <p>Stored keys persist across sessions and take precedence over environment variables.</p>
+
+      <h2>OAuth Authentication</h2>
+      <p>Jawcode supports OAuth for providers that offer it. The OAuth flow opens a browser for authorization and stores refresh tokens locally.</p>
+      <pre><code># Start OAuth flow for a provider
+jwc login --provider anthropic --oauth</code></pre>
+
+      <h2>AWS Bedrock</h2>
+      <p>For AWS Bedrock, Jawcode uses the standard AWS credential chain:</p>
+      <table>
+        <thead>
+          <tr><th>Variable</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>AWS_ACCESS_KEY_ID</code></td><td>AWS access key</td></tr>
+          <tr><td><code>AWS_SECRET_ACCESS_KEY</code></td><td>AWS secret key</td></tr>
+          <tr><td><code>AWS_SESSION_TOKEN</code></td><td>Session token (for temporary credentials)</td></tr>
+          <tr><td><code>AWS_REGION</code> or <code>AWS_DEFAULT_REGION</code></td><td>AWS region for Bedrock endpoint</td></tr>
+          <tr><td><code>AWS_PROFILE</code></td><td>Named profile from <code>~/.aws/credentials</code></td></tr>
+        </tbody>
+      </table>
+      <p>Bedrock models appear automatically when valid AWS credentials are present. No <code>/login</code> needed.</p>
+      <pre><code># Example: use a specific profile
+export AWS_PROFILE=my-bedrock-profile
+export AWS_REGION=us-east-1
+jwc</code></pre>
+
+      <h2>Google Cloud Vertex AI</h2>
+      <p>For Vertex AI, use Google Cloud application default credentials:</p>
+      <table>
+        <thead>
+          <tr><th>Variable</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>GOOGLE_APPLICATION_CREDENTIALS</code></td><td>Path to service account JSON key file</td></tr>
+          <tr><td><code>GOOGLE_CLOUD_PROJECT</code> or <code>GCP_PROJECT</code></td><td>GCP project ID</td></tr>
+          <tr><td><code>GOOGLE_CLOUD_REGION</code></td><td>Vertex AI region (default: <code>us-central1</code>)</td></tr>
+        </tbody>
+      </table>
+      <pre><code># Using gcloud ADC
+gcloud auth application-default login
+export GOOGLE_CLOUD_PROJECT=my-project
+jwc</code></pre>
+
+      <h2>Auth Broker</h2>
+      <p>For team deployments, Jawcode supports a remote auth broker that proxies credentials:</p>
+      <pre><code># config.yml
+auth.broker.url: https://auth.myteam.com
+auth.broker.token: my-team-token</code></pre>
+      <p>Or via environment variables:</p>
+      <pre><code>export GJC_AUTH_BROKER_URL=https://auth.myteam.com
+export GJC_AUTH_BROKER_TOKEN=my-team-token</code></pre>
+      <p>When an auth broker is configured, <code>RemoteAuthCredentialStore</code> is used instead of the local SQLite store. The broker handles credential rotation and team-level access control.</p>
+
+      <h2>Credential Storage</h2>
+      <p>Local credentials are stored in the <code>agent.db</code> SQLite database:</p>
+      <table>
+        <thead>
+          <tr><th>Aspect</th><th>Detail</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Location</td><td><code>~/.jwc/agent/agent.db</code></td></tr>
+          <tr><td>Engine</td><td><code>bun:sqlite</code> with WAL mode</td></tr>
+          <tr><td>Schema version</td><td>5</td></tr>
+          <tr><td>Tables</td><td><code>settings</code>, <code>model_usage</code>, <code>schema_version</code> (auth via <code>SqliteAuthCredentialStore</code>)</td></tr>
+          <tr><td>Pragmas</td><td>WAL, synchronous=NORMAL, busy_timeout=5000</td></tr>
+        </tbody>
+      </table>
+
+      <h2>SDK Auth Wiring</h2>
+      <p>SDK embedders can provide their own auth storage:</p>
+      <pre><code>import {
+  createAgentSession,
+  discoverAuthStorage,
+  ModelRegistry,
+} from "@gajae-code/coding-agent";
+
+// Auto-discover (local SQLite or broker)
+const authStorage = await discoverAuthStorage();
+const modelRegistry = new ModelRegistry(authStorage);
+await modelRegistry.refresh();
+
+const { session } = await createAgentSession({
+  authStorage,
+  modelRegistry,
+  model: modelRegistry.getAvailable()[0],
+});</code></pre>
+      <p>The <code>discoverAuthStorage()</code> function checks for broker configuration first, then falls back to local SQLite.</p>
+
+      <h2>Troubleshooting</h2>
+      <table>
+        <thead>
+          <tr><th>Issue</th><th>Solution</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>No models available</td>
+            <td>Run <code>/login</code> or set provider environment variables. Check <code>disabledProviders</code> in settings.</td>
+          </tr>
+          <tr>
+            <td>Bedrock models not showing</td>
+            <td>Verify <code>AWS_REGION</code> is set to a Bedrock-supported region. Check IAM permissions for <code>bedrock:InvokeModel</code>.</td>
+          </tr>
+          <tr>
+            <td>Vertex models not showing</td>
+            <td>Run <code>gcloud auth application-default login</code>. Ensure <code>GOOGLE_CLOUD_PROJECT</code> is set.</td>
+          </tr>
+          <tr>
+            <td>Auth broker connection failed</td>
+            <td>Verify broker URL is reachable. Check token validity. Environment variables override config.yml.</td>
+          </tr>
+        </tbody>
+      </table>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

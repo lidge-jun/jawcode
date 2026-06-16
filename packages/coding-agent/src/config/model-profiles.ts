@@ -1,0 +1,188 @@
+import type { JwcModelAssignmentTargetId } from "./model-registry";
+import type { ModelsConfig } from "./models-config-schema";
+
+export type ModelProfileRole = JwcModelAssignmentTargetId | "executor_ext";
+
+export interface ModelProfileDefinition {
+	name: string;
+	requiredProviders: string[];
+	modelMapping: Partial<Record<ModelProfileRole, string>>;
+	source: "builtin" | "user";
+}
+
+export interface ResolvedProfileBinding {
+	defaultSelector?: string;
+	agentModelOverrides: Partial<Record<Exclude<ModelProfileRole, "default">, string>>;
+}
+
+function parseModelSelectorProvider(selector: string): string | undefined {
+	const slashIdx = selector.indexOf("/");
+	if (slashIdx <= 0) return undefined;
+	return selector.slice(0, slashIdx);
+}
+
+export function deriveModelProfileMappedProviders(definition: Pick<ModelProfileDefinition, "modelMapping">): string[] {
+	const providers = new Set<string>();
+	for (const selector of Object.values(definition.modelMapping)) {
+		if (!selector) continue;
+		const provider = parseModelSelectorProvider(selector);
+		if (provider) providers.add(provider);
+	}
+	return [...providers].sort((a, b) => a.localeCompare(b));
+}
+
+export function aggregateModelProfileRequiredProviders(
+	requiredProviders: readonly string[],
+	definition: Pick<ModelProfileDefinition, "modelMapping">,
+): string[] {
+	const providers = new Set(requiredProviders);
+	for (const provider of deriveModelProfileMappedProviders(definition)) {
+		providers.add(provider);
+	}
+	return [...providers];
+}
+
+const profile = (
+	name: string,
+	requiredProviders: string[],
+	modelMapping: Record<JwcModelAssignmentTargetId, string>,
+): ModelProfileDefinition => ({
+	name,
+	requiredProviders: aggregateModelProfileRequiredProviders(requiredProviders, { modelMapping }),
+	modelMapping,
+	source: "builtin",
+});
+
+export const BUILTIN_MODEL_PROFILES: readonly ModelProfileDefinition[] = [
+	{ name: "custom-1", requiredProviders: [], modelMapping: {}, source: "builtin" },
+	{ name: "custom-2", requiredProviders: [], modelMapping: {}, source: "builtin" },
+	{ name: "custom-3", requiredProviders: [], modelMapping: {}, source: "builtin" },
+	{ name: "custom-4", requiredProviders: [], modelMapping: {}, source: "builtin" },
+	profile("opencode-go-eco", ["opencode-go"], {
+		default: "opencode-go/deepseek-v4-flash",
+		executor: "opencode-go/qwen3.5-plus",
+		architect: "opencode-go/glm-5",
+		planner: "opencode-go/minimax-m2.5",
+		critic: "opencode-go/kimi-k2.5",
+	}),
+	profile("opencode-go-standard", ["opencode-go"], {
+		default: "opencode-go/kimi-k2.6",
+		executor: "opencode-go/qwen3.6-plus",
+		architect: "opencode-go/glm-5.1",
+		planner: "opencode-go/minimax-m2.7",
+		critic: "opencode-go/deepseek-v4-pro",
+	}),
+	profile("opencode-go-pro", ["opencode-go"], {
+		default: "opencode-go/qwen3.7-max",
+		executor: "opencode-go/kimi-k2.6",
+		architect: "opencode-go/deepseek-v4-pro:high",
+		planner: "opencode-go/glm-5.1:high",
+		critic: "opencode-go/minimax-m2.7:high",
+	}),
+	profile("codex-eco", ["openai-codex"], {
+		default: "openai-codex/gpt-5.4-mini",
+		executor: "openai-codex/gpt-5.4-nano",
+		architect: "openai-codex/gpt-5.4-mini",
+		planner: "openai-codex/gpt-5.4-mini",
+		critic: "openai-codex/gpt-5.4-mini",
+	}),
+	profile("codex-standard", ["openai-codex"], {
+		default: "openai-codex/gpt-5.4:medium",
+		executor: "openai-codex/gpt-5.4:low",
+		architect: "openai-codex/gpt-5.4:xhigh",
+		planner: "openai-codex/gpt-5.4:medium",
+		critic: "openai-codex/gpt-5.4:high",
+	}),
+	profile("codex-pro", ["openai-codex"], {
+		default: "openai-codex/gpt-5.5",
+		executor: "openai-codex/gpt-5.2-codex",
+		architect: "openai-codex/gpt-5.1-codex-max:high",
+		planner: "openai-codex/gpt-5.5:high",
+		critic: "openai-codex/gpt-5.3-codex-spark:high",
+	}),
+	profile("minimax-standard", ["minimax-code"], {
+		default: "minimax-code/minimax-m3:medium",
+		executor: "minimax-code/minimax-m3:low",
+		architect: "minimax-code/minimax-m3:high",
+		planner: "minimax-code/minimax-m3:medium",
+		critic: "minimax-code/minimax-m3:high",
+	}),
+	profile("minimax-cn-standard", ["minimax-code-cn"], {
+		default: "minimax-code-cn/minimax-m3:medium",
+		executor: "minimax-code-cn/minimax-m3:low",
+		architect: "minimax-code-cn/minimax-m3:high",
+		planner: "minimax-code-cn/minimax-m3:medium",
+		critic: "minimax-code-cn/minimax-m3:high",
+	}),
+	profile("kimi-standard", ["kimi-code"], {
+		default: "kimi-code/kimi-k2.5:medium",
+		executor: "kimi-code/kimi-k2.5:low",
+		architect: "kimi-code/kimi-k2.5:high",
+		planner: "kimi-code/kimi-k2.5:medium",
+		critic: "kimi-code/kimi-k2.5:high",
+	}),
+	profile("glm-standard", ["zai"], {
+		default: "zai/glm-5.1:medium",
+		executor: "zai/glm-5.1:low",
+		architect: "zai/glm-5.1:high",
+		planner: "zai/glm-5.1:medium",
+		critic: "zai/glm-5.1:high",
+	}),
+	profile("opencode-go-codex-eco", ["opencode-go", "openai-codex"], {
+		default: "opencode-go/deepseek-v4-flash",
+		executor: "opencode-go/qwen3.5-plus",
+		architect: "openai-codex/gpt-5.4-mini",
+		planner: "openai-codex/gpt-5.4-mini",
+		critic: "openai-codex/gpt-5.4-mini",
+	}),
+	profile("opencode-go-codex-standard", ["opencode-go", "openai-codex"], {
+		default: "opencode-go/kimi-k2.6",
+		executor: "opencode-go/qwen3.6-plus",
+		architect: "openai-codex/gpt-5.4",
+		planner: "openai-codex/gpt-5.4",
+		critic: "openai-codex/gpt-5.4",
+	}),
+	profile("opencode-go-codex-pro", ["opencode-go", "openai-codex"], {
+		default: "opencode-go/qwen3.7-max",
+		executor: "opencode-go/kimi-k2.6",
+		architect: "openai-codex/gpt-5.1-codex-max:high",
+		planner: "openai-codex/gpt-5.5:high",
+		critic: "openai-codex/gpt-5.3-codex-spark:high",
+	}),
+];
+
+export function mergeModelProfiles(userProfiles?: ModelsConfig["profiles"]): Map<string, ModelProfileDefinition> {
+	const profiles = new Map<string, ModelProfileDefinition>();
+	for (const definition of BUILTIN_MODEL_PROFILES) {
+		profiles.set(definition.name, {
+			...definition,
+			requiredProviders: [...definition.requiredProviders],
+			modelMapping: { ...definition.modelMapping },
+		});
+	}
+	for (const [name, definition] of Object.entries(userProfiles ?? {})) {
+		const modelMapping = { ...definition.model_mapping };
+		profiles.set(name, {
+			name,
+			requiredProviders: aggregateModelProfileRequiredProviders(definition.required_providers, { modelMapping }),
+			modelMapping,
+			source: "user",
+		});
+	}
+	return profiles;
+}
+
+export function resolveProfileBindings(definition: ModelProfileDefinition): ResolvedProfileBinding {
+	const { default: defaultSelector, executor, executor_ext, architect, planner, critic } = definition.modelMapping;
+	const agentModelOverrides: ResolvedProfileBinding["agentModelOverrides"] = {};
+	const externalExecutor = executor_ext ?? executor;
+	if (externalExecutor !== undefined) agentModelOverrides.executor_ext = externalExecutor;
+	if (architect !== undefined) agentModelOverrides.architect = architect;
+	if (planner !== undefined) agentModelOverrides.planner = planner;
+	if (critic !== undefined) agentModelOverrides.critic = critic;
+	return { defaultSelector, agentModelOverrides };
+}
+
+export function formatAvailableProfileNames(profiles: ReadonlyMap<string, ModelProfileDefinition>): string {
+	return [...profiles.keys()].sort((a, b) => a.localeCompare(b)).join(", ");
+}

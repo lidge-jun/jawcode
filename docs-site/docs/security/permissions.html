@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Permissions & Tool Restrictions — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Permissions & Tool Restrictions</h1>
+      <p>Jawcode assigns different tool surfaces to different agent roles. The main session agent has full tool access, while read-only subagents (architect, planner, critic) operate under strict restrictions.</p>
+
+      <h2>Tool assignment by role</h2>
+      <table>
+        <thead>
+          <tr><th>Role</th><th>Tools</th><th>Bash access</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Main session</strong></td>
+            <td>All tools (read, edit, write, bash, browser, task, etc.)</td>
+            <td>Unrestricted</td>
+          </tr>
+          <tr>
+            <td><strong>executor</strong></td>
+            <td>All tools (same as main)</td>
+            <td>Unrestricted</td>
+          </tr>
+          <tr>
+            <td><strong>executor_ext</strong></td>
+            <td>All tools (same as main)</td>
+            <td>Unrestricted</td>
+          </tr>
+          <tr>
+            <td><strong>architect</strong></td>
+            <td>read, search, find, lsp, ast_grep, web_search, bash, report_finding</td>
+            <td>Restricted (allowlist only)</td>
+          </tr>
+          <tr>
+            <td><strong>planner</strong></td>
+            <td>read, search, find, lsp, ast_grep, web_search, bash, report_finding</td>
+            <td>Restricted (allowlist only)</td>
+          </tr>
+          <tr>
+            <td><strong>critic</strong></td>
+            <td>read, search, find, lsp, ast_grep, web_search, bash</td>
+            <td>Restricted (allowlist only)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Bash allowlists for read-only agents</h2>
+      <p>Read-only agents (architect, planner, critic) can only run bash commands that match specific allowed prefixes. All other bash commands are blocked at the tool level.</p>
+
+      <h3>Architect allowed prefixes</h3>
+      <pre><code>jwc planphase --write
+jwc state</code></pre>
+      <p>The architect may use <code>jwc planphase --write</code> to persist audit verdicts (passing the verdict markdown inline via <code>--artifact</code>, not as a file path) and <code>jwc state</code> for workflow state read/write/contract commands.</p>
+
+      <h3>Blocked operations for read-only agents</h3>
+      <ul>
+        <li>Product-source writes (edit, write tools, or bash writes)</li>
+        <li>Direct handoffs between workflow stages</li>
+        <li>State clears or resets</li>
+        <li>Artifact file-path ingestion</li>
+        <li>Environment variable overrides</li>
+        <li>General shell work (git, npm, file manipulation)</li>
+      </ul>
+
+      <h2>Read-only contract</h2>
+      <p>The read-only contract for architect, planner, and critic is enforced at the prompt level:</p>
+      <pre><code>Read-only: never write, edit, format, commit, push,
+or mutate files.
+
+Exception: you may use the restricted bash tool only for
+sanctioned jwc workflow CLI persistence and jwc workflow
+state read/write/contract commands.</code></pre>
+      <p>Read-only agents may receive a forked parent-conversation snapshot as background context. The read-only contract is unchanged regardless of what the snapshot contains — the agent never performs edits inferred from the snapshot.</p>
+
+      <h2>Tool discovery and load modes</h2>
+      <p>Not all tools are loaded into every session by default. Jawcode uses a discovery system with load modes:</p>
+      <table>
+        <thead>
+          <tr><th>Load mode</th><th>Behavior</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>always</code></td>
+            <td>Tool is always available in the tool list</td>
+          </tr>
+          <tr>
+            <td><code>discoverable</code></td>
+            <td>Tool is hidden until the agent searches for it via <code>search_tool_bm25</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Discoverable tools reduce prompt size and prevent tool overexposure. The agent uses BM25-style relevance search to activate hidden tools when needed. Once activated, they remain available for the rest of the session.</p>
+
+      <h2>MCP tool restrictions</h2>
+      <p>MCP (Model Context Protocol) servers provide external tools that are loaded at runtime. Jawcode applies several safety measures:</p>
+      <ul>
+        <li><strong>Startup timeout</strong> — MCP servers must respond within 250ms. Servers that exceed this timeout are aborted (unless cached).</li>
+        <li><strong>Schema normalization</strong> — Tool schemas are normalized via <code>normalizeSchemaForMCP</code>. Broken <code>$ref</code> references cause provider 400 errors rather than silent failures.</li>
+        <li><strong>Tool cache</strong> — Server tool definitions are cached in <code>agent.db</code> to avoid repeated startup costs.</li>
+        <li><strong>Conflict detection</strong> — MCP tools that conflict with built-in tool names are skipped with an error log.</li>
+      </ul>
+
+      <h2>Computer use safety tiers</h2>
+      <p>When computer use is enabled (via cu-mcp), a deterministic tier system restricts what the agent can do based on the frontmost application:</p>
+      <table>
+        <thead>
+          <tr><th>App category</th><th>Tier</th><th>Allowed actions</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Browser, trading</td><td>read</td><td>Screenshot, observe only</td></tr>
+          <tr><td>Terminal, IDE</td><td>click</td><td>Screenshot, observe, click</td></tr>
+          <tr><td>Media</td><td>blocked</td><td>None</td></tr>
+          <tr><td>Other</td><td>full</td><td>All actions</td></tr>
+        </tbody>
+      </table>
+      <p>System key combos (Cmd+Q, etc.) are blocked regardless of tier. The tier system is enforced server-side and is model-agnostic.</p>
+
+      <h2>Next steps</h2>
+      <ul>
+        <li><a href="overview.html">Security Overview</a> — OWASP, blast radius, prompt injection</li>
+        <li><a href="../extending/mcp.html">MCP Integration</a> — server registration and runtime discovery</li>
+      </ul>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

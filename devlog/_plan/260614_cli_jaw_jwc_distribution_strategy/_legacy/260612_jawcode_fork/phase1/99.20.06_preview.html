@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>99.20.06 — 컴포저 푸터 라인 (HTML 목업)</title>
+<style>
+	/* abyss-bite-light vars (theme/defaults/abyss-bite-light.json) */
+	:root {
+		--ink: #f5f8f9;
+		--mantle: #edf3f5;
+		--surface: #e7eef0;
+		--shell: #1c3038;
+		--dim: #6b7f89;
+		--muted: #51666f;
+		--border-accent: #c43d12;   /* brandRed — composer border */
+		--statusbg: #aac8d2;        /* deepRed(light) — status rail bg */
+		--accent: #00788a;          /* claw */
+		--warning: #8f6400;
+		--danger: #c1303f;
+		--green: #1c8a44;
+		--mono: "SF Mono", "Menlo", "Consolas", monospace;
+	}
+	[data-theme="dark"] {
+		--ink: #0a0d12;
+		--mantle: #0e131b;
+		--surface: #14202c;
+		--shell: #dfeef2;
+		--dim: #54707e;
+		--muted: #8fa6b2;
+		--border-accent: #ff5a2e;
+		--statusbg: #14405e;
+		--accent: #00d1da;
+		--warning: #ffd34d;
+		--danger: #ff4d5e;
+		--green: #7ed3a0;
+	}
+	* { box-sizing: border-box; }
+	body {
+		margin: 0; min-height: 100vh;
+		background: var(--mantle); color: var(--shell);
+		font-family: var(--mono); font-size: 14px; line-height: 1.5;
+		display: flex; flex-direction: column; align-items: center;
+		padding: 24px 16px 64px;
+		transition: background .2s, color .2s;
+	}
+	h1 { font-size: 13px; font-weight: 600; color: var(--muted); margin: 0 0 4px; }
+	.sub { font-size: 12px; color: var(--dim); margin-bottom: 16px; text-align: center; max-width: 760px; }
+	.sub kbd {
+		background: var(--surface); border: 1px solid var(--dim); border-bottom-width: 2px;
+		border-radius: 4px; padding: 0 5px; font-family: var(--mono); font-size: 11px;
+	}
+	.controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 18px; }
+	.controls button {
+		font-family: var(--mono); font-size: 12px; cursor: pointer;
+		background: var(--surface); color: var(--shell);
+		border: 1px solid var(--dim); border-radius: 6px; padding: 5px 10px;
+	}
+	.controls button:hover { border-color: var(--accent); color: var(--accent); }
+	.controls button.active { border-color: var(--accent); background: var(--accent); color: var(--ink); }
+
+	.terminal {
+		width: 100%; max-width: 860px;
+		background: var(--ink);
+		border: 1px solid var(--dim); border-radius: 10px;
+		box-shadow: 0 10px 36px rgba(0,0,0,.25);
+		overflow: hidden; margin-bottom: 28px;
+	}
+	.chrome {
+		display: flex; align-items: center; gap: 8px;
+		padding: 9px 14px; background: var(--surface);
+		border-bottom: 1px solid var(--dim); font-size: 12px; color: var(--muted);
+	}
+	.dots { display: flex; gap: 6px; }
+	.dots span { width: 10px; height: 10px; border-radius: 50%; }
+	.dots span:nth-child(1){background:#ff5f57}.dots span:nth-child(2){background:#febc2e}.dots span:nth-child(3){background:#28c840}
+	.body { padding: 14px 16px 14px; }
+
+	.chat { color: var(--dim); white-space: pre-wrap; margin-bottom: 10px; font-size: 13px; }
+	.chat .me { color: var(--shell); }
+	.chat .ai { color: var(--accent); }
+
+	/* status rail (composer 위 — 기존 그대로, 무수정 영역) */
+	.rail {
+		display: flex; align-items: center; gap: 0; font-size: 12.5px;
+		margin-bottom: 6px; white-space: nowrap; overflow: hidden;
+	}
+	.seg { background: var(--statusbg); color: var(--shell); padding: 1px 8px; }
+	.rail .gap { flex: 1; border-top: 1px solid var(--border-accent); margin: 0 2px; opacity: .55; }
+
+	/* composer */
+	.composer {
+		border: 1px solid var(--border-accent); border-radius: 6px;
+		padding: 6px 10px; display: flex; gap: 8px; align-items: center;
+		min-height: 34px;
+	}
+	.composer .prompt { color: var(--border-accent); font-weight: 700; }
+	.composer .input { flex: 1; outline: none; caret-color: var(--border-accent); }
+	.composer .input:empty::before { content: "Type your message..."; color: var(--dim); }
+
+	/* ★ NEW: footer line (상시 1행 예약) */
+	.footer {
+		height: 22px; line-height: 22px;
+		padding-left: 11px; font-size: 12.5px;
+		color: var(--dim);
+		white-space: nowrap; overflow: hidden; text-overflow: clip;
+		display: flex; align-items: center; gap: 0;
+	}
+	.footer .slot { white-space: nowrap; }
+	.footer .sep { margin: 0 6px; opacity: .6; }
+	.footer.transient { color: var(--warning); }
+	.footer.transient.danger { color: var(--danger); }
+	.footer.mode-plan .slot.mode { color: var(--green); }
+	.footer.mode-goal .slot.mode { color: var(--accent); }
+	.footer .flash { animation: flash .25s ease-out; }
+	@keyframes flash { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; } }
+
+	.label {
+		font-size: 11px; color: var(--muted); margin: 12px 0 0; padding-left: 2px;
+	}
+	.annot { color: var(--border-accent); }
+
+	/* static state gallery */
+	.gallery { width: 100%; max-width: 860px; display: grid; gap: 14px; }
+	.card {
+		background: var(--ink); border: 1px solid var(--dim); border-radius: 8px;
+		padding: 12px 14px;
+	}
+	.card h2 { font-size: 12px; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+	.card h2 .pri { color: var(--border-accent); }
+	.mini-composer {
+		border: 1px solid var(--border-accent); border-radius: 6px;
+		padding: 4px 10px; color: var(--dim); font-size: 13px;
+	}
+	.mini-composer b { color: var(--border-accent); font-weight: 700; }
+	.mini-footer { height: 20px; line-height: 20px; padding-left: 11px; font-size: 12.5px; color: var(--dim); overflow: hidden; white-space: nowrap; }
+	.mini-footer.warn { color: var(--warning); }
+	.mini-footer.danger { color: var(--danger); }
+	.mini-footer.plan { color: var(--green); }
+	.mini-footer.goal .m { color: var(--accent); }
+	.narrow { max-width: 380px; }
+	.note { font-size: 11.5px; color: var(--dim); margin-top: 6px; }
+</style>
+</head>
+<body data-theme="light">
+	<h1>99.20.06 — 컴포저 푸터 라인 목업 (CC 푸터 모델 → jwc 번역)</h1>
+	<div class="sub">
+		아래 입력창을 클릭하고 <kbd>Ctrl</kbd>+<kbd>C</kbd> (1차→안내, 800ms 내 2차→종료),
+		<kbd>Esc</kbd> <kbd>Esc</kbd>, 아무 글자나 타이핑해 보세요.
+		푸터는 <b>상시 1행 예약</b> — 행 자체는 절대 출렁이지 않고 내용만 교대합니다.
+	</div>
+	<div class="controls">
+		<button data-state="hint" class="active">평시 힌트</button>
+		<button data-state="ctrlc">ctrl+c 1차</button>
+		<button data-state="ctrld">ctrl+d 1차</button>
+		<button data-state="ime">한글 IME 힌트</button>
+		<button data-state="plan">plan 모드</button>
+		<button data-state="goal">goal 모드</button>
+		<button data-state="streaming">스트리밍 중</button>
+		<button id="themeToggle">☾ dark</button>
+	</div>
+
+	<div class="terminal">
+		<div class="chrome"><div class="dots"><span></span><span></span><span></span></div> jwc — interactive</div>
+		<div class="body">
+			<div class="chat"><span class="me">&gt; 푸터 라인 어떻게 생겼는지 보여줘</span>
+
+<span class="ai">●</span> 입력창 아래 1행이 새 푸터예요. 일시 알림(ctrl+c 안내) &gt; 모드 &gt; 평시 힌트
+  우선순위로 같은 행을 교대합니다.</div>
+
+			<div class="rail">
+				<span class="seg">⬢ GPT-5.5 ⚡ · ● high / ψ agent *7 ?11 / 📁 ~/Developer/new</span>
+				<span class="gap"></span>
+				<span class="seg">↗ 64.1/s / ▥ 14.1%/400K ↻ / $1.06 (sub)</span>
+			</div>
+
+			<div class="composer">
+				<span class="prompt">&gt;</span>
+				<span class="input" id="input" contenteditable="true" spellcheck="false"></span>
+			</div>
+
+			<div class="footer" id="footer"></div>
+
+			<div class="label">▲ <span class="annot">NEW 푸터 라인</span> — 에디터 아래 상시 1행, transient ▸ mode ▸ hint 우선순위 스택</div>
+		</div>
+	</div>
+
+	<div class="gallery">
+		<div class="card">
+			<h2><span class="pri">1순위 transient</span> — ctrl+c 1차 (800ms 후 자동 소거, CC `pI` 동형)</h2>
+			<div class="mini-composer"><b>&gt;</b> Type your message...</div>
+			<div class="mini-footer warn">press ctrl+c again to exit</div>
+		</div>
+		<div class="card">
+			<h2><span class="pri">1순위 transient</span> — 한글 IME 힌트 (082.1 이관: 현재 에디터 위 → 푸터로)</h2>
+			<div class="mini-composer"><b>&gt;</b> ㅊ</div>
+			<div class="mini-footer warn">ctrl+c needs the English layout — switch to English (한/A) or press esc esc to exit</div>
+		</div>
+		<div class="card">
+			<h2><span class="pri">2순위 mode</span> — plan/goal 등 지속 상태 (CC "bypass permissions on" 자리, F4 보류 — 구조만)</h2>
+			<div class="mini-composer"><b>&gt;</b> Type your message...</div>
+			<div class="mini-footer plan">⏸ plan mode on <span style="opacity:.65">· shift+tab to cycle</span></div>
+		</div>
+		<div class="card">
+			<h2><span class="pri">3순위 hint</span> — 평시 폴백 (CC "? for shortcuts" 동형, F5)</h2>
+			<div class="mini-composer"><b>&gt;</b> Type your message...</div>
+			<div class="mini-footer">? for shortcuts · /help for commands</div>
+		</div>
+		<div class="card narrow">
+			<h2>좁은 폭 — 보조 힌트 탈락 (CC 폭 티어, 1차는 truncate만)</h2>
+			<div class="mini-composer"><b>&gt;</b> Type...</div>
+			<div class="mini-footer plan">⏸ plan mode on</div>
+			<div class="note">폭이 좁으면 "(shift+tab to cycle)"부터 떨어집니다.</div>
+		</div>
+		<div class="card">
+			<h2>스트리밍 중 — 인터럽트 힌트 (CC ⑤ 세그먼트)</h2>
+			<div class="mini-composer"><b>&gt;</b> Type your message...</div>
+			<div class="mini-footer">esc to interrupt · ctrl+c to clear</div>
+		</div>
+	</div>
+
+<script>
+(() => {
+	const footer = document.getElementById("footer");
+	const input = document.getElementById("input");
+	const buttons = document.querySelectorAll(".controls button[data-state]");
+	const WINDOW_MS = 800; // CC zo7 동형 (W1)
+
+	const STATES = {
+		hint:      { cls: "",                  html: '? for shortcuts <span class="sep">·</span> /help for commands' },
+		ctrlc:     { cls: "transient",         html: 'press ctrl+c again to exit' },
+		ctrld:     { cls: "transient",         html: 'press ctrl+d again to exit' },
+		ime:       { cls: "transient",         html: 'ctrl+c needs the English layout — switch to English (한/A) or press esc esc to exit' },
+		esc:       { cls: "transient",         html: 'press esc again to exit' },
+		exiting:   { cls: "transient danger",  html: 'exiting…' },
+		plan:      { cls: "mode-plan",         html: '<span class="slot mode">⏸ plan mode on</span> <span class="sep">·</span> shift+tab to cycle' },
+		goal:      { cls: "mode-goal",         html: '<span class="slot mode">◎ goal mode on</span> <span class="sep">·</span> /goal to manage' },
+		streaming: { cls: "",                  html: 'esc to interrupt <span class="sep">·</span> ctrl+c to clear' },
+	};
+
+	// 우선순위 스택: transient > mode > hint
+	let base = "hint";        // mode 또는 hint (버튼으로 전환)
+	let transientTimer = null;
+
+	function render(stateKey) {
+		const s = STATES[stateKey];
+		footer.className = "footer " + s.cls;
+		footer.innerHTML = '<span class="slot flash">' + s.html + "</span>";
+	}
+
+	function setBase(key) {
+		base = key;
+		if (!transientTimer) render(base);
+		buttons.forEach(b => b.classList.toggle("active", b.dataset.state === key));
+	}
+
+	function setTransient(key, ms = WINDOW_MS) {
+		if (transientTimer) clearTimeout(transientTimer);
+		render(key);
+		transientTimer = setTimeout(() => { transientTimer = null; render(base); }, ms);
+	}
+
+	buttons.forEach(b => b.addEventListener("click", () => {
+		const k = b.dataset.state;
+		if (k === "ctrlc" || k === "ctrld" || k === "ime") {
+			setTransient(k, k === "ime" ? 3000 : WINDOW_MS);
+			buttons.forEach(x => x.classList.toggle("active", x === b));
+			setTimeout(() => buttons.forEach(x => x.classList.toggle("active", x.dataset.state === base)),
+				k === "ime" ? 3000 : WINDOW_MS);
+		} else {
+			setBase(k);
+		}
+	}));
+
+	// live 키 시뮬레이션 — handleCtrlC 동형 (1차 클리어+안내, 윈도우 내 2차 종료)
+	let lastSigint = 0, lastEsc = 0;
+	input.addEventListener("keydown", (e) => {
+		if (e.ctrlKey && (e.key === "c" || e.key === "C")) {
+			e.preventDefault();
+			const now = Date.now();
+			if (now - lastSigint < WINDOW_MS) {
+				setTransient("exiting", 1200);
+			} else {
+				input.textContent = "";          // 1차 = 에디터 클리어 (기존 거동 유지)
+				setTransient("ctrlc");
+			}
+			lastSigint = now;
+			return;
+		}
+		if (e.ctrlKey && (e.key === "d" || e.key === "D")) {
+			e.preventDefault();
+			const now = Date.now();
+			if (now - lastSigint < WINDOW_MS) setTransient("exiting", 1200);
+			else setTransient("ctrld");
+			lastSigint = now;
+			return;
+		}
+		if (e.key === "Escape") {
+			const now = Date.now();
+			if (now - lastEsc < WINDOW_MS) setTransient("exiting", 1200);
+			else setTransient("esc");
+			lastEsc = now;
+		}
+	});
+
+	document.getElementById("themeToggle").addEventListener("click", (e) => {
+		const b = document.body;
+		const dark = b.dataset.theme !== "dark";
+		b.dataset.theme = dark ? "dark" : "light";
+		e.target.textContent = dark ? "☀ light" : "☾ dark";
+	});
+
+	render(base);
+	input.focus();
+})();
+</script>
+</body>
+</html>

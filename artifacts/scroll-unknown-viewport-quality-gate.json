@@ -1,0 +1,109 @@
+{
+  "architectReview": {
+    "architectureStatus": "CLEAR",
+    "productStatus": "CLEAR",
+    "codeStatus": "CLEAR",
+    "recommendation": "APPROVE",
+    "commands": [
+      "A-stage Planner/Architect dual audit PASS for unknown-viewport-r2",
+      "B-stage verifier 97-ScrollBVerifier DONE"
+    ],
+    "evidence": "PABCD closed through D; implementation commit 5a7ccff8; root check and affected tests passed.",
+    "blockers": []
+  },
+  "executorQa": {
+    "status": "passed",
+    "e2eStatus": "passed",
+    "redTeamStatus": "passed",
+    "e2eCommands": [
+      "TERM=xterm-256color bun test packages/tui/test/above-viewport-repaint.test.ts packages/tui/test/viewport-fill.test.ts packages/tui/test/commit-lane.test.ts packages/tui/test/prepared-line-cache.test.ts",
+      "TERM=xterm-256color bun run check"
+    ],
+    "redTeamCommands": [
+      "B-stage verifier 97-ScrollBVerifier",
+      "C-stage adversarial review devlog/_plan/260615_scroll_anchor_duplication/20.8_c_check_pass.md"
+    ],
+    "evidence": "Focused scroll tests passed 31 tests / 162 assertions; workspace bun run check passed; C adversarial review found no unmet acceptance criteria.",
+    "blockers": [],
+    "artifactRefs": [
+      {
+        "id": "scroll-unknown-viewport-verification",
+        "kind": "test-report",
+        "description": "Unknown viewport scroll verification command summary",
+        "path": "artifacts/scroll-unknown-viewport-verification.md"
+      },
+      {
+        "id": "scroll-unknown-viewport-goal-snapshot",
+        "kind": "goal-snapshot",
+        "description": "Scroll unknown viewport goal completion snapshot",
+        "path": "artifacts/scroll-unknown-viewport-goal-snapshot.json"
+      }
+    ],
+    "surfaceEvidence": [
+      {
+        "id": "focused-scroll-tests",
+        "contractRef": "Unknown/off-bottom/bottom scroll append behavior",
+        "surface": "package test command",
+        "status": "passed",
+        "invocation": "TERM=xterm-256color bun test affected TUI scroll files",
+        "verdict": "passed",
+        "artifactRefs": ["scroll-unknown-viewport-verification"]
+      },
+      {
+        "id": "workspace-check",
+        "contractRef": "Repository mechanical gate",
+        "surface": "workspace check command",
+        "status": "passed",
+        "invocation": "TERM=xterm-256color bun run check",
+        "verdict": "passed",
+        "artifactRefs": ["scroll-unknown-viewport-verification"]
+      }
+    ],
+    "adversarialCases": [
+      {
+        "id": "b-verifier",
+        "contractRef": "Implementation conforms to audited plan",
+        "scenario": "Read-only B verifier inspected source/tests/docs/evidence",
+        "expectedBehavior": "DONE or itemized NEEDS_FIX",
+        "verdict": "passed",
+        "artifactRefs": ["scroll-unknown-viewport-verification"]
+      }
+    ],
+    "contractCoverage": [
+      {
+        "id": "unknown-viewport-no-append",
+        "contractRef": "Unknown real-terminal viewport state must not take append-growth",
+        "obligation": "Renderer routes undefined isViewportAtBottom to viewportRepaint-only and test asserts no \\x1b[20;1H append anchor.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["focused-scroll-tests"],
+        "adversarialCaseRefs": ["b-verifier"]
+      },
+      {
+        "id": "known-bottom-preserved",
+        "contractRef": "Known bottom retains append-growth optimization",
+        "obligation": "Known-bottom test positively asserts \\x1b[20;1H append anchor while avoiding full replay.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["focused-scroll-tests"],
+        "adversarialCaseRefs": ["b-verifier"]
+      },
+      {
+        "id": "scroll-spec-updated",
+        "contractRef": "Scroll SoT documents conservative unknown policy",
+        "obligation": "structure/31_scroll.md states append only for isViewportAtBottom() === true and undefined uses viewportRepaint-only.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["workspace-check"],
+        "adversarialCaseRefs": ["b-verifier"]
+      }
+    ]
+  },
+  "iteration": {
+    "status": "passed",
+    "fullRerun": true,
+    "rerunCommands": [
+      "TERM=xterm-256color bun run check",
+      "TERM=xterm-256color bun test packages/tui/test/above-viewport-repaint.test.ts packages/tui/test/viewport-fill.test.ts packages/tui/test/commit-lane.test.ts packages/tui/test/prepared-line-cache.test.ts"
+    ],
+    "evidence": "All objective-scoped verification rerun against current repo state: workspace check passed; focused affected tests 31/0.",
+    "blockers": []
+  }
+}

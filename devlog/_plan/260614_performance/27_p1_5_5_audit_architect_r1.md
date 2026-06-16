@@ -1,0 +1,17 @@
+FAIL
+
+[CRITICAL] ARCH-A1 devlog/_plan/260614_performance/24_p1_5_5_profiling_infra_execution_plan.md:33-44 — Upstream `perf-corpus-schema.ts` binds `PERF_CORPUS_SCHEMA` and `PerfCorpusReport.schema` to `"gjc.perf-corpus/1"`; the plan only calls out renaming the constant string, not the `PerfCorpusReport` literal type and any runner/docs that still emit upstream schema — require a single JWC rebrand pass on const, interface literal, `runPerfCorpusBenchmark()` output, tests, and `docs/perf-profiling-corpus.md` before merge.
+
+[HIGH] ARCH-A2 devlog/_plan/260614_performance/24_p1_5_5_profiling_infra_execution_plan.md:92-121 — `measureSessionMemory(..., { rootParent })` and perf-corpus test #10 are not present upstream. A straight upstream copy will fail acceptance #10 and leave `gjc-session-memory-*` dirs — implement `options.rootParent`, `jwc-session-memory-` prefix, and a test that lists the parent directory after the call.
+
+[HIGH] ARCH-A3 devlog/_plan/260614_performance/24_p1_5_5_profiling_infra_execution_plan.md:159-178 — Parent `23_p1_5_upstream_v3_merge_plan.md` still documents `packages/coding-agent/bench/perf-threshold.ledger` without `.ts` at lines 54, 68, 132, 136, 144; the MODIFY block is required for executor clarity but is easy to skip during port — apply the `.ts` path fix in the same PR as the new bench files so dependency discovery and devlog cross-links stay consistent.
+
+[MEDIUM] ARCH-A4 devlog/_plan/260614_performance/24_p1_5_5_profiling_infra_execution_plan.md:123-140 — Upstream `docs/native-ffi-optimization-policy.md` links missing `docs/hotspot-map-successor.md`; the plan says to avoid that link but does not require scrubbing upstream prose on port — port from `devlog/_upstream_gjc/docs/` and replace/remove `hotspot-map-successor.md` references and `gjc` public schema wording in both new docs.
+
+[MEDIUM] ARCH-A5 devlog/_plan/260614_performance/24_p1_5_5_profiling_infra_execution_plan.md:64-82 — Planned `perf-corpus.bench.ts` duplicates `mulberry32()` already owned by `packages/coding-agent/bench/context-optimization.bench.ts:41-48`; acceptable if benches stay isolated, but do not extract shared bench utilities in this slice without updating both owners and the context-optimization effectiveness test import path.
+
+[LOW] ARCH-A6 devlog/_plan/260614_performance/24_p1_5_5_profiling_infra_execution_plan.md:86-95 — `SessionManager.create(root, path.join(root, "sessions"))`, `appendMessage({ role: "user", content, timestamp })`, and `getEntries()` match jawcode; no API mismatch — keep `timestamp: Date.now()` or deterministic offsets so warm entry count assertions stay stable.
+
+[LOW] ARCH-A7 devlog/_plan/260614_performance/24_p1_5_5_profiling_infra_execution_plan.md:182-197 — New `perf-corpus.test.ts` joins default `bun --cwd=packages/coding-agent run test` / optional `check`; no schema-generator impact; `scripts/rebrand-inventory.ts --strict` / `verify-g002-gates.ts` are unlikely to break if public docs/commands stay JWC-first and stale `gjc.perf-corpus` strings are not left in new product-facing docs.
+
+The single point most likely to break first if the plan is implemented as written: copying upstream `perf-corpus-schema.ts` / tests without updating both the `PERF_CORPUS_SCHEMA` value and the `PerfCorpusReport.schema` literal from `gjc.perf-corpus/1` to `jwc.perf-corpus/1`, causing `perf-corpus.test.ts` test #1 to fail immediately on the first focused gate run.

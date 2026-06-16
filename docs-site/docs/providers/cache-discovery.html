@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Model Cache &amp; Discovery — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Model Cache &amp; Discovery</h1>
+      <p>
+        Jawcode maintains a local model cache and supports runtime discovery
+        from local inference servers. This page covers the cache database,
+        the static fingerprint system, discovery protocols, and the
+        <code>ModelRegistry</code> merge pipeline.
+      </p>
+
+      <h2>Model Cache Database</h2>
+      <p>
+        Discovered and fetched model lists are persisted in a SQLite database:
+      </p>
+      <pre><code>~/.jwc/agent/models.db</code></pre>
+      <p>
+        The cache uses schema v3 with per-provider rows. Each row stores the
+        full model list JSON, an authoritative flag, and a
+        <code>static_fingerprint</code> column.
+      </p>
+
+      <h3>Static Fingerprint</h3>
+      <p>
+        The fingerprint hashes the static catalog slice that was merged into
+        the cached row. On subsequent loads:
+      </p>
+      <ol>
+        <li>If the network fetch is skipped (cache hit), check the fingerprint</li>
+        <li>If the in-memory static catalog fingerprint matches the cached one, return cached rows verbatim — no static+dynamic merge needed</li>
+        <li>If fingerprints differ (catalog updated), re-merge and update the cache</li>
+      </ol>
+      <p>
+        The fingerprint is memoized per process via a <code>WeakMap</code>
+        keyed by the static-models array reference, so repeated cold-start
+        calls do not re-hash.
+      </p>
+
+      <h3>Cache Staleness</h3>
+      <p>
+        The cache can serve stale compatibility flags after a catalog update.
+        If a model returns persistent 400 errors after you change its
+        <code>compat</code> in the catalog, check the cache:
+      </p>
+      <pre><code># Inspect cached compat for a specific model
+sqlite3 ~/.jwc/agent/models.db \
+  "SELECT models FROM model_cache WHERE provider='xai'" \
+  | python3 -m json.tool | grep -A3 composer
+
+# Nuclear option: delete the provider cache row
+sqlite3 ~/.jwc/agent/models.db \
+  "DELETE FROM model_cache WHERE provider='xai'"</code></pre>
+
+      <h2>ModelRegistry Merge Pipeline</h2>
+      <p>
+        On every refresh, <code>ModelRegistry</code> builds the final model
+        list through this pipeline:
+      </p>
+      <ol>
+        <li><strong>Load built-in models</strong> — static catalog from <code>@gajae-code/ai</code></li>
+        <li><strong>Load <code>models.yml</code></strong> — custom provider config</li>
+        <li><strong>Apply provider overrides</strong> — <code>baseUrl</code>, <code>headers</code>, <code>requestTransform</code>, <code>disableStrictTools</code>, <code>cacheRetention</code> to built-in models</li>
+        <li><strong>Apply <code>modelOverrides</code></strong> — per provider+model ID metadata changes</li>
+        <li><strong>Merge custom <code>models</code></strong> — same provider+ID replaces existing; otherwise append</li>
+        <li><strong>Load cached/discovered models</strong> — Ollama, llama.cpp, LM Studio, plus built-in provider managers; then re-apply model overrides</li>
+      </ol>
+      <p>
+        Provider defaults vs per-model overrides:
+      </p>
+      <ul>
+        <li>Provider <code>headers</code> are baseline; model <code>headers</code> override by key</li>
+        <li><code>modelOverrides</code> can change: <code>name</code>, <code>reasoning</code>, <code>input</code>, <code>cost</code>, <code>contextWindow</code>, <code>maxTokens</code>, <code>headers</code>, <code>compat</code>, <code>contextPromotionTarget</code></li>
+        <li><code>compat</code> is deep-merged for nested routing blocks</li>
+      </ul>
+
+      <h2>Runtime Discovery</h2>
+      <p>
+        Jawcode discovers local inference servers automatically. If a provider
+        is not explicitly configured in <code>models.yml</code>, an implicit
+        discoverable entry is created with default settings.
+      </p>
+
+      <h3>Ollama</h3>
+      <table>
+        <tbody>
+          <tr><td>Provider</td><td><code>ollama</code></td></tr>
+          <tr><td>Default API</td><td><code>openai-responses</code></td></tr>
+          <tr><td>Default URL</td><td><code>http://127.0.0.1:11434</code></td></tr>
+          <tr><td>Env override</td><td><code>OLLAMA_BASE_URL</code></td></tr>
+          <tr><td>Auth</td><td>Keyless (<code>auth: none</code>)</td></tr>
+          <tr><td>Discovery</td><td>Calls Ollama endpoints, normalizes to <code>openai-responses</code> models</td></tr>
+        </tbody>
+      </table>
+
+      <h3>llama.cpp</h3>
+      <table>
+        <tbody>
+          <tr><td>Provider</td><td><code>llama.cpp</code></td></tr>
+          <tr><td>Default API</td><td><code>openai-responses</code></td></tr>
+          <tr><td>Default URL</td><td><code>http://127.0.0.1:8080</code></td></tr>
+          <tr><td>Env override</td><td><code>LLAMA_CPP_BASE_URL</code></td></tr>
+          <tr><td>Auth</td><td>Keyless</td></tr>
+          <tr><td>Discovery</td><td>Probes model endpoint, synthesizes entries with local defaults</td></tr>
+        </tbody>
+      </table>
+
+      <h3>LM Studio</h3>
+      <table>
+        <tbody>
+          <tr><td>Provider</td><td><code>lm-studio</code></td></tr>
+          <tr><td>Default API</td><td><code>openai-completions</code></td></tr>
+          <tr><td>Default URL</td><td><code>http://127.0.0.1:1234/v1</code></td></tr>
+          <tr><td>Env override</td><td><code>LM_STUDIO_BASE_URL</code></td></tr>
+          <tr><td>Auth</td><td>Keyless</td></tr>
+          <tr><td>Discovery</td><td>Fetches <code>GET /models</code>, synthesizes model entries</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Explicit Discovery Configuration</h3>
+      <p>
+        Override defaults or add discovery to any custom provider:
+      </p>
+      <pre><code>providers:
+  ollama:
+    baseUrl: http://192.168.1.100:11434
+    api: openai-responses
+    auth: none
+    discovery:
+      type: ollama
+
+  llama.cpp:
+    baseUrl: http://127.0.0.1:9090
+    api: openai-responses
+    auth: none
+    discovery:
+      type: llama.cpp</code></pre>
+      <p>
+        Supported <code>discovery.type</code> values: <code>ollama</code>,
+        <code>llama.cpp</code>, <code>lm-studio</code>. Discovery requires
+        a provider-level <code>api</code>.
+      </p>
+
+      <h2>Extension Provider Registration</h2>
+      <p>
+        Extensions and SDK embedders can register providers at runtime via
+        <code>pi.registerProvider(...)</code>:
+      </p>
+      <ul>
+        <li>Model replacement/append for a provider</li>
+        <li>Custom stream handler registration for new API IDs</li>
+        <li>Custom OAuth provider registration</li>
+      </ul>
+      <p>
+        This is used by the <code>jawcode/sdk</code> embedding surface for
+        host applications that need to inject custom providers.
+      </p>
+
+      <h2>Model Availability</h2>
+      <p>
+        There is a distinction between registered and available models:
+      </p>
+      <ul>
+        <li><code>getAll()</code> — returns the full loaded registry (built-in + custom + discovered)</li>
+        <li><code>getAvailable()</code> — filters to models that are keyless or have resolvable auth</li>
+      </ul>
+      <p>
+        A model can exist in the registry but not be selectable until
+        credentials are configured. The <code>/model</code> TUI command and
+        <code>--list-models</code> CLI both show only available models by
+        default.
+      </p>
+
+      <h2>Diagnostics</h2>
+      <p>
+        Quick commands for debugging model cache and discovery issues:
+      </p>
+      <pre><code># Check cached compat for a model
+sqlite3 ~/.jwc/agent/models.db \
+  "SELECT models FROM model_cache WHERE provider='xai'" \
+  | python3 -m json.tool | grep -A3 composer
+
+# Check session errors
+grep -c "anchors do not match" \
+  ~/.jwc/agent/sessions/&lt;slug&gt;/&lt;session&gt;.jsonl
+
+# Live model verification
+jwc -p --no-session --no-tools \
+  --model "xai/grok-composer-2.5-fast" \
+  --thinking high \
+  "Reply with exactly: OK"</code></pre>
+      <p>
+        Note: Jawcode uses <code>packages/jwc/dist/jwc.bundle.js</code> when
+        present. After catalog changes, re-bundle with
+        <code>cd packages/jwc &amp;&amp; bun run bundle</code> to avoid stale
+        bundle surprises.
+      </p>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

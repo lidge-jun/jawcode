@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tools Overview — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Tools Overview</h1>
+      <p>Jawcode ships 40+ built-in tools that the agent uses to read, search, edit, execute, and orchestrate work across a repository. Tools are divided into two tiers:</p>
+
+      <h2>Essential vs Discoverable</h2>
+      <p>Not every tool is loaded into every session. Jawcode splits its tool inventory into two tiers to keep the system prompt lean:</p>
+
+      <h3>Essential tools (14)</h3>
+      <p>Always loaded. These cover the core agent loop: read a file, search for content, edit code, run a command, spawn a subagent.</p>
+      <table>
+        <thead><tr><th>Tool</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>read</code></td><td>Read files, directories, archives, SQLite, images, documents, URLs</td></tr>
+          <tr><td><code>edit</code></td><td>Patch existing files with anchored diff hunks</td></tr>
+          <tr><td><code>write</code></td><td>Create or overwrite files</td></tr>
+          <tr><td><code>bash</code></td><td>Execute shell commands (git, bun, cargo, python)</td></tr>
+          <tr><td><code>search</code></td><td>Regex content search across files</td></tr>
+          <tr><td><code>find</code></td><td>Fast file-name pattern matching</td></tr>
+          <tr><td><code>ast_grep</code></td><td>Structural code search via AST patterns</td></tr>
+          <tr><td><code>ast_edit</code></td><td>Structural code rewrites via AST</td></tr>
+          <tr><td><code>browser</code></td><td>Control a real Chromium tab for JS, auth, interaction</td></tr>
+          <tr><td><code>task</code></td><td>Launch parallel subagents</td></tr>
+          <tr><td><code>subagent</code></td><td>List, inspect, await, pause, resume, steer, cancel subagents</td></tr>
+          <tr><td><code>web_search</code></td><td>Search the web for current information</td></tr>
+          <tr><td><code>generate_image</code></td><td>Generate or edit images</td></tr>
+          <tr><td><code>search_tool_bm25</code></td><td>Discover and activate hidden tools</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Discoverable tools (11+)</h3>
+      <p>Hidden by default but activatable at runtime via <code>search_tool_bm25</code>. The agent searches by keyword and the matching tools are loaded for the rest of the session:</p>
+      <table>
+        <thead><tr><th>Tool</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>background</code></td><td>Manage background work rows (list, detail, follow, cancel)</td></tr>
+          <tr><td><code>computer_use</code></td><td>Control desktop apps via the cua-driver backend</td></tr>
+          <tr><td><code>debug</code></td><td>DAP debugger: launch, attach, breakpoints, stepping, inspection</td></tr>
+          <tr><td><code>eval</code></td><td>Run Python or JavaScript in persistent in-process kernels</td></tr>
+          <tr><td><code>job</code></td><td>Legacy async job polling and cancellation</td></tr>
+          <tr><td><code>monitor</code></td><td>Stream stdout lines from long-running scripts as notifications</td></tr>
+          <tr><td><code>irc</code></td><td>Send/receive messages between agents over IRC-like channels</td></tr>
+          <tr><td><code>CronCreate</code></td><td>Schedule a prompt on a cron expression</td></tr>
+          <tr><td><code>CronList</code></td><td>List scheduled cron jobs</td></tr>
+          <tr><td><code>CronDelete</code></td><td>Cancel a scheduled cron job</td></tr>
+          <tr><td><code>recipe</code></td><td>Execute saved bash recipes (multi-step shell presets)</td></tr>
+        </tbody>
+      </table>
+      <p>MCP (Model Context Protocol) servers can add additional tools at runtime. These are also discovered via <code>search_tool_bm25</code>.</p>
+
+      <h2>Tool discovery flow</h2>
+      <p>When the agent needs a capability not in the essential set, it calls <code>search_tool_bm25</code> with a natural-language query:</p>
+      <pre><code>search_tool_bm25({ query: "debug breakpoint" })
+// Returns: activated debug tool for the rest of the session
+
+search_tool_bm25({ query: "background job status" })
+// Returns: activated background + job tools</code></pre>
+      <p>The search matches against tool name, description, server name (for MCP tools), and input schema keys. Repeated searches add to the active set without removing earlier activations.</p>
+
+      <h2>Tool priority rules</h2>
+      <p>Jawcode enforces strict tool-over-shell preferences to avoid common agent failure modes:</p>
+      <table>
+        <thead><tr><th>Operation</th><th>Use</th><th>Never</th></tr></thead>
+        <tbody>
+          <tr><td>File/dir reads</td><td><code>read</code></td><td><code>cat</code>, <code>ls</code>, <code>head</code>, <code>tail</code></td></tr>
+          <tr><td>Content search</td><td><code>search</code></td><td><code>grep</code>, <code>rg</code>, <code>ag</code>, <code>awk</code></td></tr>
+          <tr><td>File lookup</td><td><code>find</code></td><td><code>find</code> (shell), <code>fd</code>, <code>locate</code></td></tr>
+          <tr><td>File edits</td><td><code>edit</code></td><td><code>sed</code>, shell redirection</td></tr>
+          <tr><td>File creation</td><td><code>write</code></td><td><code>echo &gt; file</code></td></tr>
+          <tr><td>Structure search</td><td><code>ast_grep</code></td><td>regex for syntax-shaped queries</td></tr>
+        </tbody>
+      </table>
+      <p>The <code>bash</code> tool is reserved for terminal operations that no dedicated tool covers: git operations, package managers, build commands, and process management.</p>
+
+      <h2>Categories</h2>
+      <p>The remaining pages in this section cover each tool category in detail:</p>
+      <ul>
+        <li><a href="filesystem.html">Filesystem</a> &mdash; read, find, search, write</li>
+        <li><a href="editing.html">Editing</a> &mdash; edit (patch format), ast_grep, ast_edit</li>
+        <li><a href="execution.html">Execution</a> &mdash; bash, eval, browser, debug, computer_use</li>
+        <li><a href="orchestration.html">Orchestration</a> &mdash; task, subagent, background, monitor, job</li>
+      </ul>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

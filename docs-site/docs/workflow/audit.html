@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A: Plan Audit — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>A: Plan Audit Stage</h1>
+      <p>The Audit stage provides independent review of the approved plan by two specialist subagents: a Planner and an Architect. Both must pass before implementation begins.</p>
+
+      <h2>Dual audit model</h2>
+      <p>Two subagents audit the plan in parallel, each with a different lens:</p>
+      <table>
+        <thead>
+          <tr><th>Auditor</th><th>Focus</th><th>Output</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Planner</strong></td>
+            <td>Sequencing, acceptance criteria completeness, risk mapping, execution handoff quality</td>
+            <td><code>PASS</code> or <code>FAIL</code> with findings</td>
+          </tr>
+          <tr>
+            <td><strong>Architect</strong></td>
+            <td>Architectural risks, contract stability, dependency analysis, performance implications</td>
+            <td><code>PASS</code> / <code>FAIL</code> with <code>CLEAR</code> / <code>WATCH</code> / <code>BLOCK</code> status per finding</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Finding severity levels</h2>
+      <p>The Architect rates each finding with a status:</p>
+      <table>
+        <thead>
+          <tr><th>Status</th><th>Meaning</th><th>Blocks?</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>CLEAR</code></td>
+            <td>No concerns; approach is sound</td>
+            <td>No</td>
+          </tr>
+          <tr>
+            <td><code>WATCH</code></td>
+            <td>Minor concern; proceed with awareness</td>
+            <td>No</td>
+          </tr>
+          <tr>
+            <td><code>BLOCK</code></td>
+            <td>Architectural risk that must be resolved</td>
+            <td>Yes</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Audit process</h2>
+      <ol>
+        <li>Fetch audit prompts:
+          <pre><code>jwc orchestrate audit-prompt planner
+jwc orchestrate audit-prompt architect</code></pre>
+        </li>
+        <li>Spawn both auditors as subagents (parallel execution)</li>
+        <li>Each auditor reads the plan, inspects source code, and writes findings</li>
+        <li>Both auditors are <strong>read-only</strong>: they inspect but do not modify source files</li>
+        <li>Record verdicts in PABCD state</li>
+      </ol>
+
+      <h2>Solo vs dual mode</h2>
+      <p>For documentation or frontend-only changes where architectural risk is low, the audit may run in <strong>solo mode</strong> with only the Architect. The default is dual mode (both Planner and Architect).</p>
+
+      <h2>Gate</h2>
+      <p>The A stage gate requires:</p>
+      <pre><code>audit_status = pass</code></pre>
+      <p>This means:</p>
+      <ul>
+        <li>All auditors return <code>PASS</code></li>
+        <li>No <code>BLOCK</code>-level findings remain unresolved</li>
+        <li><code>WATCH</code>-level findings are noted but do not block</li>
+      </ul>
+
+      <h2>Failure path</h2>
+      <p>If an auditor returns <code>FAIL</code>:</p>
+      <ul>
+        <li>The agent reviews the blocking findings</li>
+        <li>Routes back to P (Planning) to address the issues</li>
+        <li>A new plan revision goes through the Critic loop again</li>
+        <li>Re-audit with fresh subagent instances</li>
+      </ul>
+
+      <h2>Auditor constraints</h2>
+      <p>Both the Planner and Architect are PABCD-lifecycle-centered read-only agents. They can:</p>
+      <ul>
+        <li>Read source files and plan artifacts</li>
+        <li>Run sanctioned workflow CLI commands (<code>jwc orchestrate</code>, <code>jwc state</code>)</li>
+        <li>Write audit verdicts to workflow state</li>
+      </ul>
+      <p>They cannot:</p>
+      <ul>
+        <li>Edit product source files</li>
+        <li>Override environment variables</li>
+        <li>Perform direct handoffs between stages</li>
+        <li>Run arbitrary shell commands</li>
+      </ul>
+
+      <h2>Next steps</h2>
+      <ul>
+        <li><a href="build.html">B: Build</a> — implementation begins after audit passes</li>
+        <li><a href="plan.html">P: Planning</a> — where to return if audit fails</li>
+        <li><a href="overview.html">IPABCD Overview</a> — full pipeline context</li>
+      </ul>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

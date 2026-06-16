@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P: Planning — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>P: Planning Stage</h1>
+      <p>The Planning stage produces an implementation plan through a consensus loop with a Critic subagent. The main session authors the plan; the Critic reviews it until it reaches <code>OKAY</code> or is rejected. Plans remain pending approval until the user explicitly approves execution.</p>
+
+      <h2>Entry conditions</h2>
+      <ul>
+        <li>Direct entry: requirements are clear enough (C3+ classification) that planning is needed but not a full interview</li>
+        <li>From I stage: an approved spec exists under <code>.jwc/specs/</code> and the interview handed off</li>
+      </ul>
+      <pre><code># Advance to planning
+jwc orchestrate p
+
+# With spec reference from interview
+jwc orchestrate p --spec-ref .jwc/specs/jaw-interview-my-feature.md</code></pre>
+
+      <h2>The Critic consensus loop</h2>
+      <p>The planning stage runs iterative rounds:</p>
+      <ol>
+        <li>Main session writes or revises the plan</li>
+        <li>Critic subagent reviews the plan and returns a verdict</li>
+        <li>If <code>ITERATE</code>: main session addresses findings and resubmits</li>
+        <li>If <code>REJECT</code>: fundamental issues require rethinking the approach</li>
+        <li>If <code>OKAY</code>: plan is approved with optional minor nits</li>
+      </ol>
+
+      <h3>Critic verdicts</h3>
+      <table>
+        <thead>
+          <tr><th>Verdict</th><th>Meaning</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>OKAY</code></td>
+            <td>Plan is actionable; execution can proceed without guessing</td>
+            <td>Write <code>pending-approval.md</code> under <code>.jwc/plans/planphase/</code></td>
+          </tr>
+          <tr>
+            <td><code>ITERATE</code></td>
+            <td>Specific gaps need addressing; the approach is sound</td>
+            <td>Main session patches the plan and resubmits to Critic</td>
+          </tr>
+          <tr>
+            <td><code>REJECT</code></td>
+            <td>Fundamental issues; the approach needs rethinking</td>
+            <td>Main session rewrites the plan or escalates to user</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>What the Critic checks</h3>
+      <p>The Critic approves only when execution can proceed without guessing and verification is concrete:</p>
+      <ul>
+        <li>Every acceptance criterion is testable and unambiguous</li>
+        <li>File paths and symbols are verified (not assumed from memory)</li>
+        <li>Verification plan covers each acceptance criterion</li>
+        <li>No orphan files or dangling references</li>
+        <li>Dependencies between plan steps are explicit</li>
+        <li>Edge cases and error paths are addressed</li>
+      </ul>
+
+      <h2>Plan format</h2>
+      <p>Plans are written as structured Markdown under <code>.jwc/plans/planphase/</code>:</p>
+      <pre><code>.jwc/plans/planphase/&lt;run-id&gt;/
+  020_plan.md          # The implementation plan
+  030_synthesis.md     # Critic findings + patches
+  040_final.md         # Final approved version
+  pending-approval.md  # Written after OKAY verdict</code></pre>
+      <p>A plan typically includes:</p>
+      <ul>
+        <li><strong>Scope</strong>: what changes and what does not</li>
+        <li><strong>Acceptance criteria</strong>: numbered, testable criteria (AC1, AC2, ...)</li>
+        <li><strong>File-level changes</strong>: exact files, symbols, and operations (add/modify/delete)</li>
+        <li><strong>Verification plan</strong>: commands and scenarios that prove each AC</li>
+        <li><strong>Stream/batch structure</strong>: parallelizable work groups for subagent dispatch</li>
+        <li><strong>Risk and rollback</strong>: what could go wrong and how to recover</li>
+      </ul>
+
+      <h2>Boundary rules</h2>
+      <p>The planning stage is <strong>read-only for product source</strong>. Before explicit execution approval:</p>
+      <ul>
+        <li>No editing product source files</li>
+        <li>No running mutation-oriented shell commands</li>
+        <li>No committing, pushing, or opening PRs</li>
+        <li>No delegating implementation tasks to subagents</li>
+      </ul>
+      <p>The only files written are plan artifacts under <code>.jwc/plans/</code>.</p>
+
+      <h2>Dev skill integration</h2>
+      <p>During planning, the agent reads relevant dev skills for quality:</p>
+      <ul>
+        <li><code>/skill:dev</code> for base development contract</li>
+        <li><code>/skill:dev-architecture</code> for architectural patterns</li>
+        <li>Domain-specific dev skills matching the files being planned</li>
+      </ul>
+
+      <h2>Gate</h2>
+      <p>The P stage gate is satisfied when:</p>
+      <ol>
+        <li>Critic returns <code>OKAY</code> verdict</li>
+        <li><code>pending-approval.md</code> is written</li>
+        <li>User explicitly approves execution (HITL) or pipeline auto-advances (HOTL)</li>
+      </ol>
+
+      <h2>Next steps</h2>
+      <ul>
+        <li><a href="audit.html">A: Plan Audit</a> — independent dual subagent review</li>
+        <li><a href="interview.html">I: Interview</a> — when you need to gather requirements first</li>
+        <li><a href="overview.html">IPABCD Overview</a> — full pipeline context</li>
+      </ul>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

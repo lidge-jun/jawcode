@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SDK Overview — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>SDK Overview</h1>
+      <p>The Jawcode SDK (<code>jawcode/sdk</code>) is the in-process integration surface for embedding the agent in your own Bun or Node process. It provides direct access to agent state, event streaming, tool wiring, and session control.</p>
+      <p>For cross-language or process-isolated scenarios, use RPC mode instead.</p>
+
+      <h2>Installation</h2>
+      <pre><code>bun add @gajae-code/coding-agent</code></pre>
+      <p>The SDK is exported from the package root and also via <code>@gajae-code/coding-agent/sdk</code>.</p>
+
+      <h2>Core Exports</h2>
+      <ul>
+        <li><code>createAgentSession</code> &mdash; main entry point for creating agent sessions</li>
+        <li><code>SessionManager</code> &mdash; file-backed or in-memory session management</li>
+        <li><code>Settings</code> &mdash; configuration management</li>
+        <li><code>AuthStorage</code> &mdash; credential storage abstraction</li>
+        <li><code>ModelRegistry</code> &mdash; model discovery and selection</li>
+        <li><code>discoverAuthStorage</code> &mdash; auto-discovery of auth configuration</li>
+        <li><code>discoverContextFiles</code>, <code>discoverPromptTemplates</code> &mdash; discovery helpers</li>
+        <li><code>createTools</code>, <code>BUILTIN_TOOLS</code> &mdash; tool factory surface</li>
+      </ul>
+
+      <h2>Quick Start</h2>
+      <pre><code>import { createAgentSession } from "@gajae-code/coding-agent";
+
+const { session, modelFallbackMessage } = await createAgentSession();
+
+if (modelFallbackMessage) {
+  process.stderr.write(`${modelFallbackMessage}\n`);
+}
+
+const unsubscribe = session.subscribe((event) =&gt; {
+  if (
+    event.type === "message_update" &amp;&amp;
+    event.assistantMessageEvent.type === "text_delta"
+  ) {
+    process.stdout.write(event.assistantMessageEvent.delta);
+  }
+});
+
+await session.prompt("Summarize this repository in 3 bullets.");
+unsubscribe();
+await session.dispose();</code></pre>
+
+      <h2>Auto-Discovery</h2>
+      <p><code>createAgentSession()</code> follows "provide to override, omit to discover". When omitted, it resolves:</p>
+      <table>
+        <thead>
+          <tr><th>Option</th><th>Default Discovery</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>cwd</code></td><td><code>getProjectDir()</code></td></tr>
+          <tr><td><code>agentDir</code></td><td><code>~/.jwc/agent</code></td></tr>
+          <tr><td><code>authStorage</code></td><td><code>discoverAuthStorage(agentDir)</code></td></tr>
+          <tr><td><code>modelRegistry</code></td><td><code>new ModelRegistry(authStorage)</code> + background refresh</td></tr>
+          <tr><td><code>settings</code></td><td><code>await Settings.init({ cwd, agentDir })</code></td></tr>
+          <tr><td><code>sessionManager</code></td><td><code>SessionManager.create(cwd)</code> (file-backed)</td></tr>
+          <tr><td>context/prompts</td><td>Auto-discovered context files and prompt templates</td></tr>
+          <tr><td>tools</td><td><code>createTools(...)</code> with built-in tool set</td></tr>
+          <tr><td>LSP</td><td>Enabled by default</td></tr>
+          <tr><td><code>eventBus</code></td><td><code>new EventBus()</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2>Session Management</h2>
+
+      <h3>File-Backed (Default)</h3>
+      <pre><code>import { createAgentSession, SessionManager } from "@gajae-code/coding-agent";
+
+const { session } = await createAgentSession({
+  sessionManager: SessionManager.create(process.cwd()),
+});
+
+console.log(session.sessionFile); // absolute .jsonl path</code></pre>
+      <p>Persists conversation, messages, and state deltas to session files. Supports resume, open, list, and fork workflows.</p>
+
+      <h3>In-Memory</h3>
+      <pre><code>const { session } = await createAgentSession({
+  sessionManager: SessionManager.inMemory(),
+});
+
+console.log(session.sessionFile); // undefined</code></pre>
+      <p>No filesystem persistence. Useful for tests, ephemeral workers, and request-scoped agents.</p>
+
+      <h3>Resume and List</h3>
+      <pre><code>import { SessionManager } from "@gajae-code/coding-agent";
+
+const recent = await SessionManager.continueRecent(process.cwd());
+const listed = await SessionManager.list(process.cwd());
+const opened = listed[0]
+  ? await SessionManager.open(listed[0].path)
+  : null;</code></pre>
+
+      <h2>Model and Auth Wiring</h2>
+      <pre><code>import {
+  createAgentSession,
+  discoverAuthStorage,
+  ModelRegistry,
+  SessionManager,
+} from "@gajae-code/coding-agent";
+
+const authStorage = await discoverAuthStorage();
+const modelRegistry = new ModelRegistry(authStorage);
+await modelRegistry.refresh();
+
+const available = modelRegistry.getAvailable();
+if (available.length === 0)
+  throw new Error("No authenticated models available");
+
+const { session } = await createAgentSession({
+  authStorage,
+  modelRegistry,
+  model: available[0],
+  thinkingLevel: "medium",
+  sessionManager: SessionManager.inMemory(),
+});</code></pre>
+
+      <h3>Model Selection Order</h3>
+      <p>When no explicit <code>model</code> or <code>modelPattern</code> is provided:</p>
+      <ol>
+        <li>Restore model from existing session (if restorable and key available)</li>
+        <li>Settings default model role (<code>default</code>)</li>
+        <li>First available model with valid auth</li>
+      </ol>
+      <p>If restore fails, <code>modelFallbackMessage</code> explains the fallback.</p>
+
+      <h2>Event Subscription</h2>
+      <pre><code>const unsubscribe = session.subscribe((event) =&gt; {
+  switch (event.type) {
+    case "agent_start":
+    case "turn_start":
+    case "tool_execution_start":
+      break;
+    case "message_update":
+      if (event.assistantMessageEvent.type === "text_delta") {
+        process.stdout.write(event.assistantMessageEvent.delta);
+      }
+      break;
+  }
+});</code></pre>
+
+      <h3>Event Types</h3>
+      <p>Core <code>AgentEvent</code> plus session-level events:</p>
+      <ul>
+        <li><code>auto_compaction_start</code> / <code>auto_compaction_end</code></li>
+        <li><code>auto_retry_start</code> / <code>auto_retry_end</code></li>
+        <li><code>retry_fallback_applied</code> / <code>retry_fallback_succeeded</code></li>
+        <li><code>ttsr_triggered</code></li>
+        <li><code>todo_reminder</code> / <code>todo_auto_clear</code></li>
+        <li><code>irc_message</code></li>
+      </ul>
+
+      <h2>Prompt Lifecycle</h2>
+      <p><code>session.prompt(text, options?)</code> is the primary entry point:</p>
+      <ol>
+        <li>Optional command/template expansion (<code>/</code> commands, file slash commands, prompt templates)</li>
+        <li>If currently streaming: requires <code>streamingBehavior: "steer" | "followUp"</code></li>
+        <li>If idle: validates model + API key, appends user message, starts agent turn</li>
+      </ol>
+
+      <h3>Related APIs</h3>
+      <table>
+        <thead>
+          <tr><th>Method</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>sendUserMessage(content, opts)</code></td><td>Raw user message without expansion</td></tr>
+          <tr><td><code>steer(text, images?)</code></td><td>Interrupt current turn with steering message</td></tr>
+          <tr><td><code>followUp(text, images?)</code></td><td>Queue follow-up after current turn</td></tr>
+          <tr><td><code>sendCustomMessage(msg, opts)</code></td><td>System/developer messages</td></tr>
+          <tr><td><code>abort()</code></td><td>Cancel current turn</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Tools</h2>
+
+      <h3>Filtering Built-ins</h3>
+      <pre><code>const { session } = await createAgentSession({
+  toolNames: ["read", "grep", "find", "write"],
+  requireYieldTool: true,
+});</code></pre>
+
+      <h3>Runtime Tool Changes</h3>
+      <ul>
+        <li><code>getActiveToolNames()</code> &mdash; current active tools</li>
+        <li><code>getAllToolNames()</code> &mdash; all registered tools</li>
+        <li><code>setActiveToolsByName(names)</code> &mdash; change active tool set (rebuilds system prompt)</li>
+      </ul>
+
+      <h2>Subagent Options</h2>
+      <p>For SDK consumers building orchestrators:</p>
+      <table>
+        <thead>
+          <tr><th>Option</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>outputSchema</code></td><td>Structured output expectation for tool context</td></tr>
+          <tr><td><code>requireYieldTool</code></td><td>Force <code>yield</code> tool inclusion</td></tr>
+          <tr><td><code>taskDepth</code></td><td>Recursion-depth context for nested task sessions</td></tr>
+          <tr><td><code>parentTaskPrefix</code></td><td>Artifact naming prefix for nested outputs</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Startup Performance</h2>
+      <p><code>createAgentSession()</code> runs two background optimizations:</p>
+
+      <h3>Model-Host Preconnect</h3>
+      <p>As soon as the model is resolved, a best-effort <code>fetch.preconnect(model.baseUrl)</code> fires so DNS + TCP + TLS + HTTP/2 happen in parallel with tool registry build and system-prompt assembly. Saves 100-300ms on transcontinental hops. Silently skipped on non-Bun runtimes.</p>
+
+      <h3>Conditional LSP Warmup</h3>
+      <p>Startup LSP servers are only warmed when all conditions hold:</p>
+      <ul>
+        <li><code>enableLsp !== false</code></li>
+        <li><code>hasUI === true</code> (interactive TUI)</li>
+        <li><code>lsp.diagnosticsOnWrite</code> is enabled</li>
+      </ul>
+      <p>Print, script, RPC, and ACP invocations skip warmup entirely. Tools that need LSP still spin one up on demand via <code>getOrCreateClient()</code>.</p>
+
+      <h2>Return Value</h2>
+      <pre><code>type CreateAgentSessionResult = {
+  session: AgentSession;
+  setToolUIContext: (uiContext, hasUI) =&gt; void;
+  modelFallbackMessage?: string;
+  lspServers?: Array&lt;{
+    name: string;
+    status: "ready" | "error";
+    fileTypes: string[];
+    error?: string;
+  }&gt;;
+  eventBus: EventBus;
+};</code></pre>
+
+      <h2>Minimal Controlled Example</h2>
+      <pre><code>import {
+  createAgentSession,
+  discoverAuthStorage,
+  ModelRegistry,
+  SessionManager,
+  Settings,
+} from "@gajae-code/coding-agent";
+
+const authStorage = await discoverAuthStorage();
+const modelRegistry = new ModelRegistry(authStorage);
+await modelRegistry.refresh();
+
+const settings = Settings.isolated({
+  "compaction.enabled": true,
+  "retry.enabled": true,
+});
+
+const { session } = await createAgentSession({
+  authStorage,
+  modelRegistry,
+  settings,
+  sessionManager: SessionManager.inMemory(),
+  toolNames: ["read", "grep", "find", "edit", "write"],
+  enableLsp: true,
+});
+
+session.subscribe((event) =&gt; {
+  if (
+    event.type === "message_update" &amp;&amp;
+    event.assistantMessageEvent.type === "text_delta"
+  ) {
+    process.stdout.write(event.assistantMessageEvent.delta);
+  }
+});
+
+await session.prompt("Find all TODO comments and propose fixes.");
+await session.dispose();</code></pre>
+
+      <h2>CLI-Jaw Embedding</h2>
+      <p>Jawcode's SDK embedding surface (<code>jawcode/sdk</code>) enables integration with the cli-jaw manager platform. The core IPABCD orchestration loop and HITL/HOTL workflow engine were designed for this embedding scenario.</p>
+      <table>
+        <thead>
+          <tr><th>Aspect</th><th>Detail</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Session isolation</td>
+            <td>TUI and Web sessions are not shared. jwc uses <code>~/.jwc/agent/sessions</code>; cli-jaw Web sessions use <code>jaw.db</code>. Search federation is a future addition.</td>
+          </tr>
+          <tr>
+            <td>OAuth sharing</td>
+            <td><code>AuthStorage</code> injection via SDK. Local token seeding through <code>discoverAuthStorage()</code>.</td>
+          </tr>
+          <tr>
+            <td>Memory integration</td>
+            <td>Current memory root is <code>~/.jwc/agent/memories/&lt;encoded-cwd&gt;</code>. Cross-platform memory federation is planned.</td>
+          </tr>
+        </tbody>
+      </table>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

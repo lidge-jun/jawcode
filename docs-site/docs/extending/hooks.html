@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hooks & Plugins — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Hooks & Plugins</h1>
+      <p>Hooks and plugins extend Jawcode's behavior through lifecycle events and modular packages. Hooks are single TypeScript modules that react to session events. Plugins are structured packages that can bundle tools, hooks, extensions, commands, and settings together.</p>
+
+      <h2>Hooks</h2>
+
+      <h3>What hooks can do</h3>
+      <p>A hook module exports a default function that receives a hook API object. The API provides event subscription, message injection, custom rendering, and command registration:</p>
+
+      <table>
+        <thead>
+          <tr><th>API method</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>on(event, handler)</code></td><td>Subscribe to lifecycle events</td></tr>
+          <tr><td><code>sendMessage(msg)</code></td><td>Inject a message into the conversation</td></tr>
+          <tr><td><code>appendEntry(entry)</code></td><td>Append an entry to the session log</td></tr>
+          <tr><td><code>registerMessageRenderer(renderer)</code></td><td>Add a custom message renderer for the TUI</td></tr>
+          <tr><td><code>registerCommand(cmd)</code></td><td>Register a slash command from the hook</td></tr>
+          <tr><td><code>exec(cmd)</code></td><td>Execute a shell command</td></tr>
+          <tr><td><code>logger</code></td><td>Structured logger instance</td></tr>
+          <tr><td><code>typebox</code></td><td>TypeBox schema builder (for validation)</td></tr>
+          <tr><td><code>zod</code></td><td>Zod schema builder (alternative validation)</td></tr>
+          <tr><td><code>pi</code></td><td>Internal runtime utilities</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Creating a hook</h3>
+      <p>A hook is a TypeScript file that exports a default function:</p>
+      <pre><code>// .jwc/hooks/my-hook.ts
+export default function(api) {
+  api.on("session:start", () => {
+    api.logger.info("Session started!");
+  });
+
+  api.on("message:sent", (msg) => {
+    // React to messages sent by the user
+  });
+
+  api.registerCommand({
+    name: "my-command",
+    description: "Does something useful",
+    handler: async (args) => {
+      api.sendMessage({
+        role: "user",
+        content: `Running my-command with: ${args}`
+      });
+    }
+  });
+}</code></pre>
+
+      <h3>Hook requirements</h3>
+      <ul>
+        <li>Must export a <code>default</code> function</li>
+        <li>Must be a TypeScript (<code>.ts</code>) file — <code>.md</code> and <code>.json</code> files are rejected</li>
+        <li>Must not throw during initialization (errors are caught and logged)</li>
+      </ul>
+
+      <h3>Hook discovery</h3>
+      <p>Hooks are discovered from two sources:</p>
+      <ol>
+        <li><strong>Capability API discovery</strong> — Standard capability scan of <code>.jwc/hooks/</code> (project) and <code>~/.jwc/agent/hooks/</code> (user)</li>
+        <li><strong>Explicit configured paths</strong> — Paths listed in settings under hook configuration</li>
+      </ol>
+      <p>Both sources are merged. Hooks from explicit paths supplement (not replace) discovered hooks.</p>
+
+      <h2>Custom tools</h2>
+      <p>Custom tools are TypeScript modules that add new tool definitions to the agent's tool surface:</p>
+      <pre><code>// .jwc/tools/my-tool.ts
+export default function(api) {
+  return {
+    name: "my_tool",
+    description: "Does something specific",
+    inputSchema: api.typebox.Object({
+      input: api.typebox.String()
+    }),
+    handler: async ({ input }) => {
+      return { result: `Processed: ${input}` };
+    }
+  };
+}</code></pre>
+
+      <h3>Custom tool API</h3>
+      <p>The factory function receives an API object with:</p>
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>cwd</code></td><td>Current working directory</td></tr>
+          <tr><td><code>exec</code></td><td>Shell command execution</td></tr>
+          <tr><td><code>ui</code></td><td>TUI rendering utilities</td></tr>
+          <tr><td><code>logger</code></td><td>Structured logger</td></tr>
+          <tr><td><code>typebox</code></td><td>TypeBox schema builder</td></tr>
+          <tr><td><code>zod</code></td><td>Zod schema builder</td></tr>
+          <tr><td><code>pi</code></td><td>Internal runtime utilities</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Conflict detection</h3>
+      <p>If a custom tool has the same name as a built-in tool, it is skipped and an error is logged. Built-in tools always take precedence over custom tools.</p>
+
+      <h2>Plugins</h2>
+      <p>Plugins are structured packages that bundle multiple extension types together. A plugin is a directory with a manifest that declares its components:</p>
+
+      <h3>Plugin manifest</h3>
+      <pre><code>{
+  "name": "my-plugin",
+  "version": "1.0.0",
+  "tools": ["./tools/analyzer.ts"],
+  "hooks": ["./hooks/logger.ts"],
+  "extensions": ["./ext/sidebar.ts"],
+  "commands": ["./commands/deploy.md"],
+  "features": {
+    "auto-format": true,
+    "notifications": false
+  },
+  "settings": {}
+}</code></pre>
+
+      <h3>Plugin locations</h3>
+      <table>
+        <thead>
+          <tr><th>Scope</th><th>Path</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>User-level</td><td><code>~/.jwc/agent/gjc-plugins/</code></td></tr>
+          <tr><td>Project-level</td><td><code>{cwd}/.jwc/gjc-plugins/</code></td></tr>
+        </tbody>
+      </table>
+      <p>A directory is recognized as a plugin root if it contains a plugin manifest at the root or in a child directory.</p>
+
+      <h3>Installed plugin record</h3>
+      <p>Each installed plugin tracks:</p>
+      <ul>
+        <li><code>name</code> — Plugin identifier</li>
+        <li><code>version</code> — Semantic version</li>
+        <li><code>path</code> — Filesystem path</li>
+        <li><code>manifest</code> — Parsed manifest object</li>
+        <li><code>enabledFeatures</code> — Map of feature flags</li>
+        <li><code>enabled</code> — Whether the plugin is active</li>
+      </ul>
+
+      <h2>Slash commands</h2>
+      <p>Custom slash commands are Markdown files discovered from <code>.jwc/commands/</code> directories:</p>
+      <pre><code># .jwc/commands/deploy.md
+Deploy the current branch to staging.
+
+Steps:
+1. Run the test suite
+2. Build the production bundle
+3. Deploy to the staging environment</code></pre>
+      <p>Invoke with <code>/deploy</code> in a session. The Markdown content is injected as context for the agent.</p>
+
+      <h3>Built-in slash commands</h3>
+      <p>Jawcode includes built-in slash commands registered in a declarative registry:</p>
+      <ul>
+        <li><code>/settings</code> — Open settings</li>
+        <li><code>/theme</code> — Switch TUI theme</li>
+        <li><code>/goal</code> — Goal management</li>
+        <li><code>/model</code> — Model selection (2-pane keyboard UI)</li>
+        <li><code>/memory</code> — Memory management</li>
+        <li><code>/provider</code> — Provider configuration</li>
+        <li><code>/login</code> — Authentication</li>
+        <li><code>/help</code> — Docked 2-pane command catalog</li>
+        <li><code>/fork</code>, <code>/branch</code>, <code>/resume</code>, <code>/sessions</code> — Session management</li>
+      </ul>
+
+      <h2>Extension loading</h2>
+      <p>Extensions are native capability modules and plugin extension paths merged by the extension loader. They follow the same capability API discovery pattern as skills and hooks, scanning project and user directories for loadable modules.</p>
+
+      <h2>Next steps</h2>
+      <ul>
+        <li><a href="skills.html">Skills</a> — workflow-level definitions</li>
+        <li><a href="mcp.html">MCP Integration</a> — external tool servers</li>
+        <li><a href="../security/permissions.html">Permissions</a> — tool restrictions and safety model</li>
+      </ul>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

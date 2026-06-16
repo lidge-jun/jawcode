@@ -1,0 +1,4 @@
+PASS
+[LOW] packages/coding-agent/test/input-controller-keybindings.test.ts — planned AC4 test only exercises chatContainer children; add an ineligible fake in liveToolContainer and assert ctrl+o does not call setExpanded on it after the input-controller live-loop guard lands.
+[LOW] devlog/_plan/260614_tui_codex_live_toggle/18_pabcd_ctrl_o_t_followup_p_plan.md:268 — pre-merge audit is narrative-only; in 19_b_followup_implementation.md list every live event-controller.ts setExpanded(this.ctx.toolOutputExpanded) site (streaming :491, tool_execution_start :622, read group :145, ttsr :926) with pass/fail for adjacent markLiveToggleEligible.
+Single point most likely to break first: merging markLiveToggleEligible at event-controller.ts:491 without the dedicated message_start/message_update streaming toolCall regression test using the plan’s full fixture.

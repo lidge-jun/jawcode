@@ -1,0 +1,1 @@
+Verdict: PASS — state/manifest tests aligned to canonical plan/goal filenames and handoff targets.

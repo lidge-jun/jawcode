@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Development Setup — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Development Setup</h1>
+      <p>Get a working local development environment for Jawcode. This guide covers cloning, dependencies, running from source, and the test/verification workflow.</p>
+
+      <h2>Prerequisites</h2>
+      <table>
+        <thead>
+          <tr><th>Tool</th><th>Version</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Bun</td><td>Latest</td><td>Required for builds, tests, and running from source</td></tr>
+          <tr><td>Node.js</td><td>&gt;= 18</td><td>Required for npm compatibility layer</td></tr>
+          <tr><td>Git</td><td>Any</td><td>Required for cloning and repo-aware features</td></tr>
+          <tr><td>Rust toolchain</td><td>Latest stable</td><td>Required only if modifying <code>crates/pi-natives</code></td></tr>
+          <tr><td>tmux</td><td>Any</td><td>Optional; needed for <code>--tmux</code> mode and <code>jwc session</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2>Clone and install</h2>
+      <pre><code>git clone https://github.com/lidge-jun/jawcode.git
+cd jawcode
+
+# Install all workspace dependencies
+bun install
+
+# Install bundled default skills and workflow definitions
+bun run install:defaults</code></pre>
+      <p><code>bun install</code> resolves the monorepo workspace. <code>bun run install:defaults</code> copies bundled skill definitions into the local <code>.jwc/</code> runtime directory for development testing.</p>
+
+      <h2>Run from source</h2>
+      <pre><code># Run the CLI directly
+bun packages/jwc/bin/jwc.js --help
+
+# Or with a specific command
+bun packages/jwc/bin/jwc.js --version
+bun packages/jwc/bin/jwc.js --smoke-test
+bun packages/jwc/bin/jwc.js --list-models</code></pre>
+      <p>You can also link the binary globally for convenience during development:</p>
+      <pre><code>bun link
+jwc --version</code></pre>
+
+      <h2>Repository structure</h2>
+      <p>Jawcode is a monorepo with multiple packages. The primary product surface is <code>packages/coding-agent/</code>:</p>
+      <table>
+        <thead>
+          <tr><th>Package</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>packages/coding-agent</code></td><td>Main JWC CLI application</td></tr>
+          <tr><td><code>packages/ai</code></td><td>Multi-provider LLM client with streaming</td></tr>
+          <tr><td><code>packages/agent</code></td><td>Agent runtime with tool calling and state management</td></tr>
+          <tr><td><code>packages/tui</code></td><td>Terminal UI library with differential rendering</td></tr>
+          <tr><td><code>packages/natives</code></td><td>Native text/image/grep bindings</td></tr>
+          <tr><td><code>packages/stats</code></td><td>Local observability dashboard (<code>jwc stats</code>)</td></tr>
+          <tr><td><code>packages/utils</code></td><td>Shared utilities</td></tr>
+          <tr><td><code>crates/pi-natives</code></td><td>Rust native helpers (NAPI-RS)</td></tr>
+        </tbody>
+      </table>
+      <p>Bundled workflow skills and role agents are source files, not committed <code>.jwc</code> copies:</p>
+      <pre><code>packages/coding-agent/src/defaults/jwc/skills/&lt;name&gt;/SKILL.md   # workflow skills
+packages/coding-agent/src/prompts/agents/&lt;role&gt;.md              # role agents</code></pre>
+
+      <h2>Testing</h2>
+      <p>Tests use Bun's built-in test runner with Vitest-compatible assertions.</p>
+
+      <h3>Running tests</h3>
+      <pre><code># Run all tests
+bun test
+
+# Run tests for a specific package
+bun test packages/coding-agent/
+
+# Run a single test file
+bun test packages/coding-agent/test/default-jwc-definitions.test.ts</code></pre>
+
+      <h3>Testing philosophy</h3>
+      <p>Test externally observable contracts: behavior, output shape, state transition, error mapping, or regression-prone parsing boundaries. Specifically:</p>
+      <ul>
+        <li><strong>Avoid</strong> placeholder tests and tautologies.</li>
+        <li><strong>Avoid</strong> broad <code>not.toThrow()</code> assertions — they prove nothing useful.</li>
+        <li><strong>Avoid</strong> duplicated coverage across test files.</li>
+        <li><strong>Avoid</strong> long-lived global mutations in test setup.</li>
+        <li><strong>Avoid</strong> <code>mock.module()</code> — prefer <code>vi.spyOn(...)</code> with explicit cleanup.</li>
+        <li><strong>Do not</strong> write runtime tests for compile-time guarantees — those belong in type checks.</li>
+      </ul>
+
+      <h3>Type checking</h3>
+      <pre><code># Type check all packages (never use tsc/npx tsc directly)
+bun check
+# or
+bun run check:ts</code></pre>
+
+      <h2>Verification gates</h2>
+      <p>After modifying workflow definitions, skill registrations, or public-facing names, run the full gate suite:</p>
+      <pre><code>bun scripts/check-visible-definitions.ts
+bun scripts/verify-g002-gates.ts
+bun scripts/rebrand-inventory.ts --strict
+bun test packages/coding-agent/test/default-jwc-definitions.test.ts</code></pre>
+      <p>All four must pass before committing. See the <a href="guide.html">Contributing Guide</a> for details on what each gate checks.</p>
+
+      <h2>Commit and release</h2>
+      <ul>
+        <li>Stage only intended files. Preserve unrelated work.</li>
+        <li>Add changelog entries under <code>## [Unreleased]</code> in <code>packages/*/CHANGELOG.md</code>. Never edit released sections.</li>
+        <li>Release flow: <code>bun run release</code> after all changelogs and verification are complete.</li>
+      </ul>
+
+      <h2>Environment variables</h2>
+      <p>At minimum, set one LLM provider key:</p>
+      <pre><code>export ANTHROPIC_API_KEY="sk-ant-..."   # or any of the 46 supported providers</code></pre>
+      <p>See <a href="../getting-started/environment-variables.html">Environment Variables</a> for the full reference.</p>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

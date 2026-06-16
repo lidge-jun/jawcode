@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search Providers — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Search Providers</h1>
+      <p>
+        Jawcode's <code>web_search</code> tool routes through a pluggable
+        search provider system. 16 search engines are supported, from
+        OAuth-unlocked native search to API-key-only services. The search
+        provider is independent of the active model — you can use Claude
+        with Codex search, or Grok with DuckDuckGo.
+      </p>
+
+      <h2>Three-Layer Architecture</h2>
+      <p>The search surface has three distinct layers:</p>
+      <ol>
+        <li><strong>Provider layer</strong> — engine-specific implementation + resolution chain</li>
+        <li><strong>Selection surface</strong> — <code>providers.webSearch</code> setting + <code>/searchengine</code> slash command</li>
+        <li><strong>Availability gating</strong> — OAuth/API key checks per engine</li>
+      </ol>
+
+      <h2>Provider Resolution Chain</h2>
+      <p>
+        When <code>web_search</code> is invoked, <code>resolveProviderChain</code>
+        determines which engine to use:
+      </p>
+      <ol>
+        <li>Explicitly selected provider (via <code>/searchengine</code>) if available</li>
+        <li>Active model's native search engine (if <code>auto</code> mode and engine is available)</li>
+        <li><strong>DuckDuckGo as terminal fallback</strong> — always appended, requires no credentials</li>
+      </ol>
+      <p>
+        Keyed-only providers are never auto-selected — they require explicit
+        <code>/searchengine</code> selection.
+      </p>
+
+      <h2>All 16 Search Providers</h2>
+
+      <h3>OAuth-Activated (6)</h3>
+      <p>
+        These providers are unlocked when you log in to the corresponding
+        model provider. No separate search API key needed:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Engine</th><th>Credential</th><th>Login</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>codex</code></td>
+            <td>OpenAI OAuth</td>
+            <td>OpenAI <code>/login</code></td>
+          </tr>
+          <tr>
+            <td><code>anthropic</code></td>
+            <td>Claude OAuth or <code>ANTHROPIC_SEARCH_API_KEY</code></td>
+            <td>Anthropic <code>/login</code></td>
+          </tr>
+          <tr>
+            <td><code>gemini</code></td>
+            <td>Google Gemini CLI / Antigravity OAuth</td>
+            <td>Google <code>/login</code></td>
+          </tr>
+          <tr>
+            <td><code>perplexity</code></td>
+            <td>Perplexity OAuth, <code>PERPLEXITY_COOKIES</code>, or <code>PERPLEXITY_API_KEY</code></td>
+            <td>Perplexity <code>/login</code></td>
+          </tr>
+          <tr>
+            <td><code>kimi</code></td>
+            <td>Kimi/Moonshot OAuth, <code>MOONSHOT_SEARCH_API_KEY</code>, or <code>KIMI_SEARCH_API_KEY</code></td>
+            <td>Moonshot <code>/login</code></td>
+          </tr>
+          <tr>
+            <td><code>xai</code></td>
+            <td>xAI OAuth, <code>XAI_API_KEY</code></td>
+            <td>xAI <code>/login</code> or <code>grok login</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>API Key Only (10)</h3>
+      <p>
+        These providers require an explicit API key or endpoint configuration:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Engine</th><th>Credential</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>duckduckgo</code></td>
+            <td>None (keyless)</td>
+            <td>Always available as terminal fallback</td>
+          </tr>
+          <tr>
+            <td><code>tavily</code></td>
+            <td><code>TAVILY_API_KEY</code></td>
+            <td>Structured search results with relevance scoring</td>
+          </tr>
+          <tr>
+            <td><code>brave</code></td>
+            <td><code>BRAVE_API_KEY</code></td>
+            <td>Brave Search API</td>
+          </tr>
+          <tr>
+            <td><code>exa</code></td>
+            <td><code>EXA_API_KEY</code> + <code>exa.enabled</code></td>
+            <td>Neural search with embeddings-based retrieval</td>
+          </tr>
+          <tr>
+            <td><code>jina</code></td>
+            <td><code>JINA_API_KEY</code></td>
+            <td>Jina AI reader-mode search</td>
+          </tr>
+          <tr>
+            <td><code>kagi</code></td>
+            <td>AuthStorage credential</td>
+            <td>Kagi Search via stored credential</td>
+          </tr>
+          <tr>
+            <td><code>zai</code></td>
+            <td><code>ZAI_API_KEY</code></td>
+            <td>GLM/z.ai search</td>
+          </tr>
+          <tr>
+            <td><code>searxng</code></td>
+            <td><code>SEARXNG_ENDPOINT</code></td>
+            <td>Self-hosted SearXNG instance</td>
+          </tr>
+          <tr>
+            <td><code>parallel</code></td>
+            <td>Key required</td>
+            <td>Multi-engine parallel search</td>
+          </tr>
+          <tr>
+            <td><code>synthetic</code></td>
+            <td>Key required</td>
+            <td>Synthetic search provider</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Auto Mode — Native Search Mapping</h2>
+      <p>
+        When <code>providers.webSearch</code> is set to <code>auto</code>
+        (the default), the active model's provider determines which search
+        engine is used:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Model Provider</th><th>Search Engine</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>OpenAI / Codex / OpenAI Responses</td><td><code>codex</code></td></tr>
+          <tr><td>Anthropic</td><td><code>anthropic</code></td></tr>
+          <tr><td>Google / Gemini CLI / Antigravity</td><td><code>gemini</code></td></tr>
+          <tr><td>Moonshot / Kimi</td><td><code>kimi</code></td></tr>
+          <tr><td>zAI</td><td><code>zai</code></td></tr>
+          <tr><td>Perplexity</td><td><code>perplexity</code></td></tr>
+          <tr><td>Synthetic</td><td><code>synthetic</code></td></tr>
+          <tr><td>xAI / Grok</td><td><code>xai</code></td></tr>
+        </tbody>
+      </table>
+      <p>
+        Providers not in this table (DeepSeek, Mistral, Cerebras, Ollama,
+        custom providers) have no native search — <code>auto</code> falls
+        back to <strong>DuckDuckGo</strong>.
+      </p>
+
+      <h2>The <code>/searchengine</code> Command</h2>
+      <p>
+        Switch search providers in the TUI without restarting:
+      </p>
+      <pre><code># Check status of all search engines
+/searchengine status
+
+# Switch to a specific engine
+/searchengine tavily
+/searchengine brave
+/searchengine codex
+
+# Reset to auto (model-native) mode
+/searchengine auto</code></pre>
+
+      <h3>Aliases</h3>
+      <p>
+        Common aliases are normalized automatically:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Input</th><th>Resolves To</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>chatgpt</code>, <code>openai</code></td><td><code>codex</code></td></tr>
+          <tr><td><code>claude</code></td><td><code>anthropic</code></td></tr>
+          <tr><td><code>google</code></td><td><code>gemini</code></td></tr>
+          <tr><td><code>grok</code>, <code>x</code></td><td><code>xai</code></td></tr>
+          <tr><td><code>ddg</code>, <code>duck</code></td><td><code>duckduckgo</code></td></tr>
+          <tr><td><code>active</code>, <code>native</code>, <code>default</code></td><td><code>auto</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2>xAI Grok — Integrated Web + X Search</h2>
+      <p>
+        The xAI search provider is unique: it sends both <code>web_search</code>
+        and <code>x_search</code> tools to the Grok Responses API in a single
+        round-trip. Grok decides which sources to use per query — it searches
+        both the general web and the X (Twitter) live index simultaneously.
+      </p>
+      <p>
+        Verified live tools on the xAI Responses API:
+      </p>
+      <ul>
+        <li><code>web_search</code> — general web search</li>
+        <li><code>x_search</code> — X/Twitter live index</li>
+        <li><code>collections_search</code> — collection search</li>
+        <li><code>file_search</code> — file content search</li>
+        <li><code>code_exec</code> — code execution</li>
+        <li><code>function</code> — function calling</li>
+      </ul>
+      <p>
+        Auth: xAI OAuth, <code>hasAuth("xai")</code>, or
+        <code>XAI_API_KEY</code>. Citations use <code>url_citation</code>
+        annotations normalized to <code>SearchSource[]</code>.
+      </p>
+
+      <h2>SearXNG Self-Hosted Setup</h2>
+      <p>
+        For privacy-focused or air-gapped environments, point Jawcode at
+        your own SearXNG instance:
+      </p>
+      <pre><code># Set the endpoint
+export SEARXNG_ENDPOINT=http://localhost:8888
+
+# Select it
+/searchengine searxng</code></pre>
+      <p>
+        SearXNG requires no API key — only the endpoint URL. It aggregates
+        results from multiple search engines on the server side.
+      </p>
+
+      <h2>Response Format</h2>
+      <p>
+        All 16 search providers normalize their responses to a common
+        <code>SearchResponse</code> shape:
+      </p>
+      <pre><code>interface SearchResponse {
+  answer?: string;           // Direct answer (if provider generates one)
+  sources: SearchSource[];   // Ranked source list
+  citations?: string[];      // Optional citation URLs
+}
+
+interface SearchSource {
+  title: string;
+  url: string;
+  snippet: string;
+}</code></pre>
+      <p>
+        This normalization means the agent sees a consistent format regardless
+        of which search engine is active.
+      </p>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

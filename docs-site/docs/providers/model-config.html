@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Model Configuration — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Model Configuration</h1>
+      <p>
+        Jawcode's model system handles selection, resolution, role assignment,
+        thinking levels, canonical equivalence, and context promotion. This
+        page covers the full configuration surface.
+      </p>
+
+      <h2>Model Selection Syntax</h2>
+      <p>
+        The <code>--model</code> flag and <code>/model</code> TUI command accept
+        several selector forms:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Selector</th><th>Example</th><th>Behavior</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Exact provider/model</td>
+            <td><code>anthropic/claude-sonnet-4-6</code></td>
+            <td>Bypasses coalescing, selects the exact provider variant</td>
+          </tr>
+          <tr>
+            <td>Canonical ID</td>
+            <td><code>anthropic-model-opus-4-6</code></td>
+            <td>Resolves through canonical index to the best available variant</td>
+          </tr>
+          <tr>
+            <td>Bare model ID</td>
+            <td><code>claude-sonnet-4-6</code></td>
+            <td>Provider inferred from available models</td>
+          </tr>
+          <tr>
+            <td>Fuzzy/substring</td>
+            <td><code>sonnet</code></td>
+            <td>Substring matching after exact paths fail</td>
+          </tr>
+          <tr>
+            <td>Glob pattern</td>
+            <td><code>openai/*</code>, <code>*sonnet*</code></td>
+            <td>Used in <code>--models</code> and <code>enabledModels</code></td>
+          </tr>
+          <tr>
+            <td>With thinking level</td>
+            <td><code>anthropic/claude-sonnet-4-6:high</code></td>
+            <td>Appended <code>:off|minimal|low|medium|high|xhigh</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Thinking Levels</h2>
+      <p>
+        Models that support extended thinking expose configurable reasoning
+        effort levels. Set per-model in <code>models.yml</code> or as a
+        selector suffix:
+      </p>
+      <pre><code># In models.yml
+models:
+  - id: claude-sonnet-4-6
+    thinking:
+      minLevel: low
+      maxLevel: xhigh
+      mode: effort        # "effort" or "budget"
+      defaultLevel: high
+      levels: [low, medium, high, xhigh]</code></pre>
+      <pre><code># As selector suffix
+jwc --model anthropic/claude-sonnet-4-6:high
+jwc --model openai/o3:medium</code></pre>
+      <p>
+        Available levels: <code>off</code>, <code>minimal</code>,
+        <code>low</code>, <code>medium</code>, <code>high</code>,
+        <code>xhigh</code>. Not all models support all levels — the
+        <code>minLevel</code>/<code>maxLevel</code> range in the catalog
+        constrains valid selections.
+      </p>
+
+      <h2>Model Roles</h2>
+      <p>
+        Jawcode assigns models to roles. Each role can be pinned to a specific
+        model in <code>config.yml</code> or <code>models.yml</code>:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Role</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>default</code></td><td>Main conversation model</td></tr>
+          <tr><td><code>executor</code></td><td>Default subagent for parallel implementation</td></tr>
+          <tr><td><code>executor_ext</code></td><td>External/fresh model lane for independent verification</td></tr>
+          <tr><td><code>architect</code></td><td>Read-only architecture review</td></tr>
+          <tr><td><code>planner</code></td><td>Read-only sequencing and planning</td></tr>
+          <tr><td><code>critic</code></td><td>Read-only plan critique</td></tr>
+        </tbody>
+      </table>
+      <pre><code># In models.yml
+modelBindings:
+  modelRoles:
+    default: anthropic/claude-sonnet-4-6:high
+  agentModelOverrides:
+    executor: openai/gpt-5.2
+    executor_ext: openai/o3:high
+    architect: openai/o3:high</code></pre>
+
+      <h2>Model Profiles (<code>--mpreset</code>)</h2>
+      <p>
+        Profiles are pre-configured role-to-model mappings. Activate with
+        <code>--mpreset</code> for a session or <code>--default</code> to
+        persist:
+      </p>
+      <pre><code>jwc --mpreset codex-standard
+jwc --mpreset opencode-go-pro --default</code></pre>
+
+      <h3>Built-in Profiles</h3>
+      <table>
+        <thead>
+          <tr><th>Profile Group</th><th>Tiers</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>opencode-go-*</code></td><td>eco, standard, pro</td></tr>
+          <tr><td><code>codex-*</code></td><td>eco, standard, pro</td></tr>
+          <tr><td><code>opencode-go-codex-*</code></td><td>eco, standard, pro</td></tr>
+          <tr><td><code>custom-1</code> through <code>custom-4</code></td><td>Empty slots for user override</td></tr>
+        </tbody>
+      </table>
+      <p>
+        <code>eco</code> favors cheaper/faster defaults, <code>standard</code>
+        matches production defaults, <code>pro</code> raises reasoning for
+        architect/critic/planner roles. Custom profiles defined in
+        <code>models.yml</code> override built-ins by exact name.
+      </p>
+
+      <h3>Custom Profile Definition</h3>
+      <pre><code># In models.yml
+profiles:
+  team-standard:
+    required_providers: [openai, anthropic]
+    model_mapping:
+      default: openai/gpt-5.2
+      executor: anthropic/claude-sonnet-4-6:medium
+      architect: openai/o3:high
+      planner: openai/o3:high
+      critic: openai/o3:high</code></pre>
+      <p>
+        <code>required_providers</code> lists providers that must have
+        credentials before the profile activates. Activation hard-blocks
+        when any listed provider lacks auth.
+      </p>
+
+      <h2>wireModelId</h2>
+      <p>
+        <code>wireModelId</code> changes only the model ID in the upstream
+        request body. Local selection still uses the configured
+        <code>provider/id</code>. This is useful for proxies that expect
+        a different model name than your local selector:
+      </p>
+      <pre><code>providers:
+  my-proxy:
+    baseUrl: https://proxy.example/v1
+    api: openai-completions
+    models:
+      - id: local-name
+        wireModelId: upstream-model-v2</code></pre>
+
+      <h2>Canonical Model Equivalence</h2>
+      <p>
+        Multiple concrete provider variants (e.g.,
+        <code>anthropic/claude-sonnet-4-6</code> and
+        <code>bedrock/anthropic.claude-sonnet-4-6</code>) can share a
+        canonical ID. When you select a canonical ID, Jawcode picks the
+        best available concrete variant based on:
+      </p>
+      <ol>
+        <li>Availability and auth</li>
+        <li><code>modelProviderOrder</code> in config</li>
+        <li>Registry insertion order (if no explicit order)</li>
+      </ol>
+
+      <h3>Equivalence Configuration</h3>
+      <pre><code># In models.yml
+equivalence:
+  overrides:
+    zenmux/openai-code: gpt-5.3-openai-code
+    p-openai-code/openai-code: gpt-5.3-openai-code
+  exclude:
+    - demo/openai-code-preview</code></pre>
+      <p>
+        Build order for canonical grouping: explicit user override, then
+        bundled official-ID matches, then conservative heuristic normalization,
+        then fallback to the concrete model's own ID.
+      </p>
+
+      <h2>Context Promotion</h2>
+      <p>
+        Context promotion is an overflow recovery mechanism for small-context
+        model variants (e.g., <code>*-spark</code>). When a turn fails with
+        a context length error, Jawcode can automatically promote to a
+        larger-context sibling before falling back to compaction.
+      </p>
+      <pre><code># In models.yml model entry
+models:
+  - id: spark-model
+    contextWindow: 32000
+    contextPromotionTarget: full-model</code></pre>
+      <p>
+        Context promotion is <strong>off by default</strong>
+        (<code>contextPromotion.enabled: false</code>). Opt in via settings
+        to enable automatic overflow recovery.
+      </p>
+
+      <h2>Per-Model Compatibility Flags</h2>
+      <p>
+        The <code>compat</code> block controls provider-specific request
+        behavior. Set at the provider level (baseline) or per-model
+        (override):
+      </p>
+      <pre><code>models:
+  - id: my-model
+    compat:
+      supportsStore: true
+      supportsDeveloperRole: true
+      supportsReasoningEffort: false
+      maxTokensField: max_completion_tokens
+      reasoningContentField: reasoning_content
+      openRouterRouting:
+        only: [anthropic]
+      extraBody:
+        gateway: m1-01</code></pre>
+      <p>
+        <code>compat</code> is deep-merged for nested blocks
+        (<code>openRouterRouting</code>, <code>vercelGatewayRouting</code>,
+        <code>extraBody</code>). Model-level <code>compat</code> overrides
+        provider-level keys.
+      </p>
+
+      <h2>Cache Retention</h2>
+      <p>
+        Control prompt caching behavior per provider, per model, or per
+        request:
+      </p>
+      <pre><code># Provider level
+providers:
+  openai:
+    cacheRetention: short    # none | short | long
+
+# Model override
+    modelOverrides:
+      gpt-5.2:
+        cacheRetention: long</code></pre>
+      <p>
+        Priority order: request-time options &gt; model/modelOverride &gt;
+        provider &gt; <code>JWC_CACHE_RETENTION</code> env &gt; runtime
+        default. For OpenAI Responses, this controls
+        <code>prompt_cache_retention</code> only.
+      </p>
+
+      <h2>Scoped Model Visibility</h2>
+      <p>
+        Restrict which models are available based on working directory:
+      </p>
+      <pre><code># In config.yml
+enabledModels:
+  - anthropic-model-sonnet-4-5          # available everywhere
+  - path: ~/work
+    models:
+      - anthropic/anthropic-model-opus-4-5
+
+disabledProviders:
+  - ollama                              # disabled everywhere
+  - path: ~/private
+    providers:
+      - anthropic</code></pre>
+      <p>
+        String entries apply globally. Scoped entries apply when the CWD
+        matches the configured path or any subdirectory.
+      </p>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

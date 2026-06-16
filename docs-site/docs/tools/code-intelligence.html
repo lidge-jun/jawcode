@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Intelligence — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Code Intelligence</h1>
+      <p>
+        Language Server Protocol integration and GitHub CLI operations.
+        These tools provide semantic code understanding and repository management
+        beyond what text-based search can offer.
+      </p>
+
+      <!-- ════════════════════════════════════════════ lsp ═══ -->
+      <h2 id="lsp">lsp</h2>
+      <p>Interacts with Language Server Protocol servers for code intelligence. Safer and more accurate than text-based alternatives for symbol-aware operations.</p>
+
+      <h3>Operations</h3>
+      <table>
+        <thead><tr><th>Action</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>diagnostics</code></td><td>Get errors/warnings for a file, glob, or workspace (<code>file: "*"</code>)</td></tr>
+          <tr><td><code>definition</code></td><td>Go to symbol definition with file path, position, and 3-line context</td></tr>
+          <tr><td><code>type_definition</code></td><td>Go to symbol type definition</td></tr>
+          <tr><td><code>implementation</code></td><td>Find concrete implementations</td></tr>
+          <tr><td><code>references</code></td><td>Find references (first 50 with context, remaining location-only)</td></tr>
+          <tr><td><code>hover</code></td><td>Get type info and documentation</td></tr>
+          <tr><td><code>symbols</code></td><td>List symbols in a file, or workspace search with <code>file: "*"</code></td></tr>
+          <tr><td><code>rename</code></td><td>Rename symbol across codebase (preview or apply)</td></tr>
+          <tr><td><code>rename_file</code></td><td>Rename/move file; sends <code>workspace/willRenameFiles</code> so import paths update</td></tr>
+          <tr><td><code>code_actions</code></td><td>List/apply quick-fixes, refactors, import actions</td></tr>
+          <tr><td><code>status</code></td><td>Show active language servers</td></tr>
+          <tr><td><code>capabilities</code></td><td>Dump per-server capabilities (standard + experimental + executeCommand)</td></tr>
+          <tr><td><code>request</code></td><td>Send a raw LSP request (e.g. <code>rust-analyzer/expandMacro</code>)</td></tr>
+          <tr><td><code>reload</code></td><td>Restart a specific server or all servers</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>file</code></td><td>string</td><td>File path, glob pattern (e.g. <code>src/**/*.ts</code>), or <code>"*"</code> for workspace scope</td></tr>
+          <tr><td><code>line</code></td><td>number</td><td>1-indexed line number for position-based actions</td></tr>
+          <tr><td><code>symbol</code></td><td>string</td><td>Substring on target line for column resolution. Append <code>#N</code> for Nth occurrence</td></tr>
+          <tr><td><code>query</code></td><td>string</td><td>Symbol search query or code-action filter</td></tr>
+          <tr><td><code>new_name</code></td><td>string</td><td>Required for <code>rename</code> and <code>rename_file</code></td></tr>
+          <tr><td><code>apply</code></td><td>boolean</td><td>Apply edits (default true for rename/rename_file)</td></tr>
+          <tr><td><code>payload</code></td><td>string</td><td>JSON-encoded params for raw <code>request</code> action</td></tr>
+          <tr><td><code>timeout</code></td><td>number</td><td>Request timeout in seconds (5-60, default 20)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Critical rules</h3>
+      <ul>
+        <li>Use <code>lsp</code> for symbol-aware operations (rename, find references, go to definition) whenever a language server is available.</li>
+        <li>Never perform cross-file renames with <code>ast_edit</code>, <code>sed</code>, or manual edits when <code>lsp rename</code> can do it. Text-based renames miss shadowing, re-exports, and usages in other files.</li>
+        <li>Prefer <code>lsp code_actions</code> for imports, quick-fixes, and refactors the language server knows how to apply.</li>
+      </ul>
+
+      <h3>Examples</h3>
+      <pre><code>// Get workspace diagnostics
+lsp({ action: "diagnostics", file: "*" })
+
+// Go to definition
+lsp({ action: "definition", file: "src/auth.ts", line: 42, symbol: "validateToken" })
+
+// Safe cross-file rename
+lsp({ action: "rename", file: "src/auth.ts", line: 10, symbol: "oldName", new_name: "newName" })
+
+// List available code actions
+lsp({ action: "code_actions", file: "src/server.ts", line: 5 })
+
+// Raw LSP request (rust-analyzer specific)
+lsp({ action: "request", file: "src/main.rs", query: "rust-analyzer/expandMacro", line: 15, symbol: "derive" })</code></pre>
+
+      <!-- ════════════════════════════════════════════ github ═══ -->
+      <h2 id="github">github</h2>
+      <p>GitHub CLI tool with op-based dispatch. Wraps <code>gh</code> for repositories, pull requests, search, checkout, push, and Actions watch workflows.</p>
+
+      <h3>Operations</h3>
+      <table>
+        <thead><tr><th>op</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>repo_view</code></td><td>Read repository metadata. Optional <code>repo</code> (owner/repo) and <code>branch</code>.</td></tr>
+          <tr><td><code>pr_create</code></td><td>Create a PR. Provide <code>title</code> + optional <code>body</code>, or <code>fill: true</code> to auto-fill from commits. Supports <code>base</code>, <code>head</code>, <code>draft</code>, <code>reviewer[]</code>, <code>assignee[]</code>, <code>label[]</code>.</td></tr>
+          <tr><td><code>pr_checkout</code></td><td>Check out PRs into dedicated git worktrees. <code>pr</code> accepts number, URL, branch, or array for batch checkout.</td></tr>
+          <tr><td><code>pr_push</code></td><td>Push checked-out PR branch back to its source. Optional <code>forceWithLease</code>.</td></tr>
+          <tr><td><code>search_issues</code></td><td>Search issues using GitHub search syntax. Optional <code>query</code>, <code>repo</code>, <code>limit</code>, <code>since</code>, <code>until</code>.</td></tr>
+          <tr><td><code>search_prs</code></td><td>Search PRs using GitHub search syntax. Same params as <code>search_issues</code>.</td></tr>
+          <tr><td><code>search_code</code></td><td>Search code with GitHub code search syntax. Required <code>query</code>. No date filtering.</td></tr>
+          <tr><td><code>search_commits</code></td><td>Search commits across GitHub. <code>dateField</code> always uses committer-date.</td></tr>
+          <tr><td><code>search_repos</code></td><td>Search repositories across GitHub.</td></tr>
+          <tr><td><code>run_watch</code></td><td>Watch a GitHub Actions run. Streams snapshots, fast-fails on job failure, tails failed job logs.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>URL schemes (read tool)</h3>
+      <p>For reading single issues or PRs, use the <code>read</code> tool with URL schemes instead of github ops:</p>
+      <pre><code>// Read an issue
+read({ path: "issue://42" })
+
+// Read a PR
+read({ path: "pr://42" })
+
+// Read PR diff (file listing)
+read({ path: "pr://42/diff" })
+
+// Read single file from PR diff (1-indexed)
+read({ path: "pr://42/diff/3" })
+
+// Full unified diff
+read({ path: "pr://42/diff/all" })</code></pre>
+
+      <h3>Date filters</h3>
+      <p>
+        <code>since</code> and <code>until</code> accept relative durations
+        (<code>3d</code>, <code>12h</code>, <code>2w</code>), ISO dates
+        (<code>2025-01-15</code>), or ISO datetimes. Translated to GitHub search
+        qualifiers internally.
+      </p>
+
+      <h3>Examples</h3>
+      <pre><code>// Create a draft PR
+github({ op: "pr_create", title: "feat: add auth", draft: true })
+
+// Search recent issues
+github({ op: "search_issues", query: "bug label:critical", since: "7d" })
+
+// Watch CI for current commit
+github({ op: "run_watch" })
+
+// Batch checkout multiple PRs
+github({ op: "pr_checkout", pr: [42, 43, 44] })</code></pre>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

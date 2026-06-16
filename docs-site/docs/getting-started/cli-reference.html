@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CLI Reference — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>CLI Reference</h1>
+      <p>Complete reference for the <code>jwc</code> command-line interface. All flags are parsed from <code>packages/coding-agent/src/cli/args.ts</code>.</p>
+
+      <h2>Usage</h2>
+      <pre><code>jwc [flags] [message...]
+jwc [flags] @file1 @file2 "do something with these"
+jwc [flags] /skill:jaw-interview</code></pre>
+
+      <h2>General</h2>
+      <table>
+        <thead>
+          <tr><th>Flag</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>--help</code>, <code>-h</code></td><td>Show help text and exit.</td></tr>
+          <tr><td><code>--version</code>, <code>-v</code></td><td>Print version and exit.</td></tr>
+          <tr><td><code>--print</code>, <code>-p</code></td><td>Print the response to stdout and exit (non-interactive).</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Model selection</h2>
+      <table>
+        <thead>
+          <tr><th>Flag</th><th>Argument</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>--provider</code></td><td><code>&lt;name&gt;</code></td><td>LLM provider to use (e.g. <code>anthropic</code>, <code>openai</code>, <code>gemini</code>).</td></tr>
+          <tr><td><code>--model</code></td><td><code>&lt;id&gt;</code></td><td>Model identifier. Supports fuzzy matching (e.g. <code>sonnet</code> resolves to latest Claude Sonnet).</td></tr>
+          <tr><td><code>--smol</code></td><td><code>&lt;id&gt;</code></td><td>Override the fast/cheap model used for lightweight tasks. Also settable via <code>JWC_SMOL_MODEL</code>.</td></tr>
+          <tr><td><code>--slow</code></td><td><code>&lt;id&gt;</code></td><td>Override the slow/deep-reasoning model. Also settable via <code>JWC_SLOW_MODEL</code>.</td></tr>
+          <tr><td><code>--plan</code></td><td><code>&lt;id&gt;</code></td><td>Override the planning model. Also settable via <code>JWC_PLAN_MODEL</code>.</td></tr>
+          <tr><td><code>--mpreset</code></td><td><code>&lt;name&gt;</code></td><td>Load a named model preset (multi-model configuration).</td></tr>
+          <tr><td><code>--default</code></td><td></td><td>Set <code>--mpreset</code> as the default for this repository. Requires <code>--mpreset</code>.</td></tr>
+          <tr><td><code>--models</code></td><td><code>&lt;a,b,...&gt;</code></td><td>Comma-separated list of models for multi-model sessions.</td></tr>
+          <tr><td><code>--list-models</code></td><td><code>[pattern]</code></td><td>List available models for configured providers. Optional pattern filters results.</td></tr>
+          <tr><td><code>--thinking</code></td><td><code>&lt;effort&gt;</code></td><td>Set thinking/reasoning effort level. Valid values: <code>none</code>, <code>low</code>, <code>medium</code>, <code>high</code>, <code>max</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Session management</h2>
+      <table>
+        <thead>
+          <tr><th>Flag</th><th>Argument</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>--continue</code>, <code>-c</code></td><td></td><td>Continue the most recent session with conversation context.</td></tr>
+          <tr><td><code>--resume</code>, <code>-r</code></td><td><code>[session-id]</code></td><td>Resume a previous session. Without an ID, resumes the most recent.</td></tr>
+          <tr><td><code>--fork</code></td><td><code>&lt;session-id&gt;</code></td><td>Fork an existing session into a new one (copies context, fresh history).</td></tr>
+          <tr><td><code>--no-session</code></td><td></td><td>Disable session persistence. No history saved.</td></tr>
+          <tr><td><code>--session-dir</code></td><td><code>&lt;path&gt;</code></td><td>Override the session storage directory.</td></tr>
+          <tr><td><code>--provider-session-id</code></td><td><code>&lt;id&gt;</code></td><td>Pass a provider-level session ID (for providers that support server-side sessions).</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Execution mode</h2>
+      <table>
+        <thead>
+          <tr><th>Flag</th><th>Argument</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>--mode</code></td><td><code>&lt;mode&gt;</code></td><td>Output mode. Values: <code>text</code> (default), <code>json</code>, <code>rpc</code>, <code>acp</code>, <code>rpc-ui</code>, <code>bridge</code>.</td></tr>
+          <tr><td><code>--tmux</code></td><td></td><td>Launch inside a new tmux session. Enables detach/reattach for long-running tasks.</td></tr>
+          <tr><td><code>--listen</code></td><td><code>&lt;socket-path&gt;</code></td><td>Run <code>--mode rpc</code> over a Unix-domain socket at the given path.</td></tr>
+          <tr><td><code>--export</code></td><td><code>&lt;path&gt;</code></td><td>Export the session transcript to a file.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Tool and capability control</h2>
+      <table>
+        <thead>
+          <tr><th>Flag</th><th>Argument</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>--tools</code></td><td><code>&lt;a,b,...&gt;</code></td><td>Comma-separated list of tools to enable. Only named tools are available; others are disabled.</td></tr>
+          <tr><td><code>--no-tools</code></td><td></td><td>Disable all tools. The agent can only respond with text.</td></tr>
+          <tr><td><code>--no-lsp</code></td><td></td><td>Disable the Language Server Protocol integration.</td></tr>
+          <tr><td><code>--no-pty</code></td><td></td><td>Disable PTY-based interactive bash execution. Also settable via <code>JWC_NO_PTY</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Prompt customization</h2>
+      <table>
+        <thead>
+          <tr><th>Flag</th><th>Argument</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>--system-prompt</code></td><td><code>&lt;text&gt;</code></td><td>Replace the entire system prompt with custom text.</td></tr>
+          <tr><td><code>--append-system-prompt</code></td><td><code>&lt;text&gt;</code></td><td>Append text to the default system prompt.</td></tr>
+          <tr><td><code>--api-key</code></td><td><code>&lt;key&gt;</code></td><td>Override the provider API key for this session.</td></tr>
+          <tr><td><code>--no-rules</code></td><td></td><td>Disable loading of repository rules (<code>AGENTS.md</code>, <code>.jwc/</code> configs).</td></tr>
+          <tr><td><code>--no-title</code></td><td></td><td>Disable automatic title generation for the session.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Input</h2>
+      <table>
+        <thead>
+          <tr><th>Syntax</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>jwc "message"</code></td><td>Pass an initial message as a positional argument.</td></tr>
+          <tr><td><code>jwc @file.ts</code></td><td>Attach a file as context. Multiple <code>@file</code> references supported.</td></tr>
+          <tr><td><code>jwc /skill:name</code></td><td>Activate a workflow skill on startup.</td></tr>
+          <tr><td><code>--flag=value</code></td><td>All flags support <code>=</code> syntax: <code>--model=gpt-4.1</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2>Subcommands</h2>
+      <table>
+        <thead>
+          <tr><th>Command</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>jwc session list</code></td><td>List all sessions (active and historical).</td></tr>
+          <tr><td><code>jwc session attach &lt;name&gt;</code></td><td>Attach to a running tmux session.</td></tr>
+          <tr><td><code>jwc orchestrate &lt;stage&gt;</code></td><td>Advance the IPABCD pipeline. Stages: <code>i</code>, <code>p</code>, <code>a</code>, <code>b</code>, <code>c</code>, <code>d</code>, <code>reset</code>.</td></tr>
+          <tr><td><code>jwc goal &lt;op&gt;</code></td><td>Manage the durable goal ledger.</td></tr>
+          <tr><td><code>jwc stats</code></td><td>Open the local observability dashboard.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Available tools</h2>
+      <p>Default-enabled tools that can be referenced with <code>--tools</code>:</p>
+      <table>
+        <thead>
+          <tr><th>Tool</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>read</code></td><td>Read file contents, directories, archives, URLs, databases</td></tr>
+          <tr><td><code>bash</code></td><td>Execute bash commands</td></tr>
+          <tr><td><code>edit</code></td><td>Surgical line-anchored file edits</td></tr>
+          <tr><td><code>write</code></td><td>Create or overwrite files</td></tr>
+          <tr><td><code>grep</code></td><td>Regex content search across files</td></tr>
+          <tr><td><code>find</code></td><td>Find files by glob pattern</td></tr>
+          <tr><td><code>lsp</code></td><td>Language Server Protocol code intelligence</td></tr>
+          <tr><td><code>python</code></td><td>Execute Python code</td></tr>
+          <tr><td><code>notebook</code></td><td>Edit Jupyter notebooks</td></tr>
+          <tr><td><code>inspect_image</code></td><td>Analyze images with vision models</td></tr>
+          <tr><td><code>browser</code></td><td>Browser automation via Puppeteer</td></tr>
+          <tr><td><code>task</code></td><td>Launch parallel subagents</td></tr>
+          <tr><td><code>todo_write</code></td><td>Manage todo/task lists</td></tr>
+          <tr><td><code>web_search</code></td><td>Search the web for current information</td></tr>
+          <tr><td><code>ask</code></td><td>Ask user questions (interactive mode only)</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Examples</h2>
+      <pre><code># Quick question
+jwc "what does the auth middleware do?"
+
+# Fix a bug with file context
+jwc "fix the null pointer in this handler" @src/api/users.ts
+
+# Start an interview for vague requirements
+jwc /skill:jaw-interview
+
+# Deep reasoning with a specific model
+jwc --thinking high --model o3 "design the caching layer"
+
+# Non-interactive: print and exit
+jwc -p "summarize the recent changes"
+
+# Export conversation
+jwc --export transcript.md
+
+# Isolated worktree experiment
+jwc --tmux --worktree ../refactor-auth "refactor the auth module"</code></pre>
+
+      <h2>See also</h2>
+      <ul>
+        <li><a href="installation.html">Installation</a></li>
+        <li><a href="environment-variables.html">Environment Variables</a></li>
+        <li><a href="quickstart.html">Quick Start</a></li>
+      </ul>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

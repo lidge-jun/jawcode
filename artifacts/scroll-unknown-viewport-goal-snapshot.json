@@ -1,0 +1,13 @@
+{
+  "goal": {
+    "objective": "Fix the TUI scroll/duplicate-render regression under PABCD: diagnose the performance-patch interaction where off-bottom or bottom-pinned sessions leave stale/duplicated rows during agent output, implement the minimal render-path fix without reverting curated scroll behavior, and verify with focused TUI regressions plus package checks.",
+    "status": "active",
+    "updatedAt": "2026-06-15T13:33:35.010Z"
+  },
+  "details": {
+    "source": "goal({op:\"get\"}) compatible final snapshot",
+    "dSummary": "devlog/_plan/260615_scroll_anchor_duplication/20.9_d_done_summary.md",
+    "implementationCommit": "5a7ccff8",
+    "verification": "TERM=xterm-256color bun run check PASS; affected scroll tests 31 pass / 162 assertions"
+  }
+}

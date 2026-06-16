@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Glossary — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Glossary</h1>
+      <p>Definitions for terms used throughout Jawcode documentation. Sorted alphabetically.</p>
+
+      <h2>A</h2>
+
+      <h3 id="abyss-bite">abyss-bite</h3>
+      <p>The default JWC dark TUI theme. Dark navy background with cyan accent colors (<code>#00d1da</code>) and an orange bite highlight (<code>#ff5a2e</code>). Named after the deep-sea + shark-jaw visual identity. Light terminals use <code>abyss-bite-light</code> instead.</p>
+
+      <h3 id="architect">architect</h3>
+      <p>A read-only role agent that performs architecture and code review. It produces structural assessments with severity ratings (<code>CLEAR</code>, <code>WATCH</code>, <code>BLOCK</code>) and is PABCD-lifecycle-centered but directly callable when requested. The architect cannot edit product files.</p>
+
+      <h3 id="authority-bias-prevention">authority-bias prevention</h3>
+      <p>A subagent guard that requires agents to verify factual claims from their parent assignment using their own tool calls, rather than trusting them blindly. Prevents errors from propagating through delegation chains.</p>
+
+      <h2>B</h2>
+
+      <h3 id="blast-radius">blast radius</h3>
+      <p>The scope of impact of a change or action. Jawcode requires agents to assess reversibility and blast radius before acting. Local, reversible actions (file edits, local tests) proceed freely. Hard-to-reverse or externally visible actions (force push, <code>rm -rf</code>, drop table, send external messages, delete branches) require explicit user confirmation each time.</p>
+
+      <h2>C</h2>
+
+      <h3 id="compaction">compaction</h3>
+      <p>The process of summarizing older conversation context to fit within the model's context window. When the conversation grows too long, compaction preserves key facts (file paths, decisions, errors) while discarding routine tool-call narration. Agents must extract and record important tool results before compaction clears them.</p>
+
+      <h3 id="confirmation-bias">confirmation bias</h3>
+      <p>A cognitive bias where an agent seeks only evidence that confirms its first hypothesis. Jawcode counters this by requiring agents to run at least one check that would falsify their hypothesis before declaring a root cause.</p>
+
+      <h3 id="correction-de-anchoring">correction de-anchoring</h3>
+      <p>See <a href="#de-anchoring">de-anchoring</a>.</p>
+
+      <h3 id="critic">critic</h3>
+      <p>A read-only role agent that performs plan critique. It evaluates plans for actionability and produces verdicts: <code>OKAY</code> (plan is executable), <code>ITERATE</code> (fixable gaps remain), or <code>REJECT</code> (fundamental issues require replanning). Approves only when execution can proceed without guessing and verification is concrete.</p>
+
+      <h2>D</h2>
+
+      <h3 id="de-anchoring">de-anchoring</h3>
+      <p>A protocol activated when a subagent is resumed or steered with a correction indicating its previous answer was wrong. Instead of patching the prior conclusion (which would be biased by anchoring), the agent must: (1) set aside the prior analysis entirely, (2) generate at least 3 materially different hypotheses from unexplored angles, (3) investigate each with fresh tool calls, (4) form a new conclusion from the evidence alone. Does not apply to simple additive requests.</p>
+
+      <h3 id="dev-work-classification">dev-work classification</h3>
+      <p>A risk-routing system that classifies implementation work before coding begins. Six levels from C0 (trivial config touch) through C5 (vague/ambiguous requirements). Higher classes require more ceremony: C0-C1 are direct edits, C2 uses a compact local plan, C3-C4 require orchestration and audit, C5 requires jaw-interview first. When signals match multiple classes, the higher class wins.</p>
+
+      <h2>E</h2>
+
+      <h3 id="executor">executor</h3>
+      <p>The default general-purpose subagent role. Used for parallel implementation, research, investigation, and bounded task slices. Executors run asynchronously — the main agent can continue working or responding to the user while executors process in the background. Uses the normal execution-model fork lane with prompt-cache-aware context sharing.</p>
+
+      <h3 id="executor-ext">executor_ext</h3>
+      <p>The external/fresh executor lane. Identical behavior to <code>executor</code> but selects a different model — either the configured <code>EXECUTOR_EXT</code> target or an explicit <code>provider/modelId[:effort]</code> override. Used when the user explicitly requests external, fresh, or model-diverse executor work. Provides independent verification through a different model's perspective.</p>
+
+      <h2>F</h2>
+
+      <h3 id="fork-context">fork context</h3>
+      <p>A sanitized snapshot of the parent conversation that can be copied into a subagent at spawn time. Modes include <code>none</code> (default), <code>receipt</code>, <code>last-turn</code>, <code>bounded</code>, and <code>full</code>. Fork context is prompt-cache-aware: the static prefix is shared across spawned agents to minimize redundant token processing.</p>
+
+      <h2>G</h2>
+
+      <h3 id="goal-mode">goal mode</h3>
+      <p>A durable execution ledger under <code>.jwc/goal/</code>. Goals persist across turns with evidence checkpoints and quality-gate completion contracts. The agent records milestones with <code>jwc goal update</code> (evidence mandatory) and can pause via agent-initiated 2-tap audit gates. Goal mode does not bypass PABCD — if the objective requires structured workflow, the agent runs <code>jwc orchestrate</code> stages within the goal.</p>
+
+      <h2>H</h2>
+
+      <h3 id="hitl">HITL (Human-in-the-Loop)</h3>
+      <p>Execution mode where the agent pauses at each PABCD stage boundary for explicit user approval before proceeding. The user reviews and approves each stage transition. Used for high-risk or unfamiliar work where human judgment is needed at every step.</p>
+
+      <h3 id="hotl">HOTL (Human-on-the-Loop)</h3>
+      <p>Execution mode where the agent advances through PABCD stages autonomously, notifying the user of progress but not waiting for approval at every boundary. The user monitors and can intervene but does not need to approve each step. Used for well-understood work where the plan is already approved.</p>
+
+      <h2>I</h2>
+
+      <h3 id="ipabcd">IPABCD</h3>
+      <p>The six-stage structured workflow pipeline: <strong>I</strong>nterview, <strong>P</strong>lan, <strong>A</strong>udit, <strong>B</strong>uild, <strong>C</strong>heck, <strong>D</strong>one. Each stage has specific gates and verdicts. The Check stage features 3-way reject routing: code issues route back to Build, plan issues to Plan, spec issues to Interview. The pipeline is operated via <code>jwc orchestrate &lt;stage&gt;</code>.</p>
+
+      <h2>J</h2>
+
+      <h3 id="jaw-interview">jaw-interview</h3>
+      <p>The IPABCD I-stage engine. A Socratic requirements-gathering workflow with mathematical ambiguity scoring and topology confirmation. Produces approved specs under <code>.jwc/specs/</code>. It is a requirements workflow and must not mutate product code. Normal handoff: spec to <code>jwc orchestrate p</code> for planning.</p>
+
+      <h2>K</h2>
+
+      <h3 id="k-writing">k-writing</h3>
+      <p>Korean UX writing rules for Jawcode documentation and UI strings. Direct translation with natural phrasing — technical terms keep their English form, explanations use natural Korean. Avoids bureaucratic Sino-Korean vocabulary. Example: use "저장했어요" not "요청 처리가 완료되었습니다".</p>
+
+      <h2>P</h2>
+
+      <h3 id="planner">planner</h3>
+      <p>A read-only role agent focused on sequencing, acceptance criteria, risk mapping, and execution handoff. PABCD-lifecycle-centered but directly callable when the user requests a planner lens. Cannot edit product files.</p>
+
+      <h3 id="prompt-cache">prompt cache</h3>
+      <p>LLM providers cache the static prefix of prompts across requests. Jawcode's subagent architecture exploits this: the system prompt, role definition, and shared context form a cacheable prefix. Fork/spawn/resume cycles reuse this cached prefix, reducing latency and redundant token costs with each interaction.</p>
+
+      <h2>R</h2>
+
+      <h3 id="role-agent">role agent</h3>
+      <p>A callable task agent with a specific role definition. Jawcode bundles five: <code>executor</code>, <code>executor_ext</code>, <code>architect</code>, <code>planner</code>, and <code>critic</code>. Role agents are not workflow skills and are not committed as repo-visible <code>.jwc</code> defaults. They are loaded from <code>packages/coding-agent/src/prompts/agents/</code>.</p>
+
+      <h2>S</h2>
+
+      <h3 id="sunk-cost-guard">sunk-cost guard</h3>
+      <p>A prompt rule that prevents agents from continuing a failing approach just because they have already invested effort. If significant effort yields no progress, agents must evaluate whether the approach itself is wrong rather than doubling down. Sunk effort is not a reason to continue.</p>
+
+      <h2>T</h2>
+
+      <h3 id="team-mode">team mode</h3>
+      <p>Tmux-backed coordinated execution with multiple workers. Uses shared state under <code>.jwc/state/team/</code>, mailbox/dispatch APIs, optional git worktrees, lifecycle control, and explicit verification lanes. Activated via the <code>team</code> workflow skill when approved work benefits from parallel persistent workers.</p>
+
+      <h3 id="tui">TUI</h3>
+      <p>Terminal User Interface. Jawcode's TUI is built on <code>packages/tui</code> with differential rendering. Features include the abyss-bite gradient welcome banner with sweep animation, shine effects, tool-call folding, composer styling, and B2-lite viewport scroll with sticky gap.</p>
+
+      <h2>W</h2>
+
+      <h3 id="workflow-skill">workflow skill</h3>
+      <p>A bundled workflow definition that provides a complete interaction pattern. Jawcode has four public workflow skills: <code>jaw-interview</code>, <code>plan</code>, <code>goal</code>, and <code>team</code>. Skills are loaded from <code>packages/coding-agent/src/defaults/jwc/skills/</code> and activated via <code>/skill:&lt;name&gt;</code>. Two additional tool-help skills (<code>browse</code>, <code>search</code>) are hidden utility references.</p>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

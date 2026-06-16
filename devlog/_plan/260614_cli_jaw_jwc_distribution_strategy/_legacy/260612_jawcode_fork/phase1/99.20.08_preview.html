@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>99.20.08 §5.3 — /help 후속 후보 (가)(나)(다) 워크플로우 목업</title>
+<style>
+	/* abyss-bite-light vars (theme/defaults/abyss-bite-light.json) */
+	:root {
+		--ink: #f5f8f9; --mantle: #edf3f5; --surface: #e7eef0;
+		--shell: #1c3038; --dim: #6b7f89; --muted: #51666f;
+		--border-accent: #c43d12; --statusbg: #aac8d2; --accent: #00788a;
+		--warning: #8f6400; --green: #1c8a44; --blue: #2563a8;
+		--mono: "SF Mono", "Menlo", "Consolas", monospace;
+	}
+	[data-theme="dark"] {
+		--ink: #0a0d12; --mantle: #0e131b; --surface: #14202c;
+		--shell: #dfeef2; --dim: #54707e; --muted: #8fa6b2;
+		--border-accent: #ff5a2e; --statusbg: #14405e; --accent: #00d1da;
+		--warning: #ffd34d; --green: #7ed3a0; --blue: #5f9dd8;
+	}
+	* { box-sizing: border-box; }
+	body {
+		margin: 0; min-height: 100vh; background: var(--mantle); color: var(--shell);
+		font-family: var(--mono); font-size: 13.5px; line-height: 1.5;
+		display: flex; flex-direction: column; align-items: center; padding: 24px 16px 64px;
+	}
+	h1 { font-size: 13px; font-weight: 600; color: var(--muted); margin: 0 0 4px; }
+	.sub { font-size: 12px; color: var(--dim); margin-bottom: 18px; text-align: center; max-width: 800px; }
+	.topbar { display: flex; gap: 8px; margin-bottom: 20px; }
+	button {
+		font-family: var(--mono); font-size: 12px; cursor: pointer;
+		background: var(--surface); color: var(--shell);
+		border: 1px solid var(--dim); border-radius: 6px; padding: 5px 10px;
+	}
+	button:hover { border-color: var(--accent); color: var(--accent); }
+	button.active { border-color: var(--accent); background: var(--accent); color: var(--ink); }
+
+	.card {
+		width: 100%; max-width: 880px; background: var(--ink);
+		border: 1px solid var(--dim); border-radius: 10px;
+		padding: 16px 18px; margin-bottom: 26px;
+	}
+	.card > h2 { font-size: 13px; margin: 0 0 4px; color: var(--shell); }
+	.card > h2 .tag { color: var(--border-accent); }
+	.card .desc { font-size: 12px; color: var(--dim); margin: 0 0 12px; }
+	.card .desc code { color: var(--accent); }
+	.row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+	.row .lbl { font-size: 11.5px; color: var(--muted); }
+
+	/* mini terminal */
+	.term {
+		background: var(--ink); border: 1px solid var(--dim); border-radius: 8px;
+		overflow: hidden; position: relative;
+	}
+	.term .body { padding: 12px 14px; font-size: 12.5px; }
+	.panel-border { color: var(--dim); opacity: .7; }
+	.panel-title { color: var(--accent); font-weight: 700; }
+	.dimtext { color: var(--dim); }
+	.cmd { color: var(--accent); }
+	table.tui { border-collapse: collapse; margin: 4px 0 4px 8px; font-size: 12.5px; }
+	table.tui td { padding: 0 14px 0 0; vertical-align: top; }
+	table.tui td:first-child { color: var(--accent); white-space: nowrap; }
+	table.tui td:last-child { color: var(--shell); }
+	.sect { color: var(--shell); font-weight: 700; margin: 8px 0 2px 4px; }
+	.sect .cnt { color: var(--dim); font-weight: 400; }
+	a.doclink { color: var(--blue); text-decoration: underline; }
+
+	/* (다) workflow terminal */
+	#flowTerm .screen { padding: 12px 14px; display: flex; flex-direction: column; height: 380px; transition: none; }
+	#flowTerm .fill { flex: 1; min-height: 0; }
+	#flowTerm .chat { color: var(--dim); white-space: pre-wrap; font-size: 12.5px; }
+	#flowTerm .chat .me { color: var(--shell); }
+	#flowTerm .chat .ai { color: var(--accent); }
+	#flowTerm .rail { display: flex; font-size: 12px; margin: 6px 0 6px; white-space: nowrap; overflow: hidden; }
+	#flowTerm .seg { background: var(--statusbg); color: var(--shell); padding: 1px 8px; }
+	#flowTerm .rail .gap { flex: 1; border-top: 1px solid var(--border-accent); margin: 0 2px; opacity: .55; }
+	#flowTerm .composer {
+		border: 1px solid var(--border-accent); border-radius: 6px;
+		padding: 5px 10px; display: flex; gap: 8px; min-height: 30px; align-items: center;
+		transition: transform .35s ease;
+	}
+	#flowTerm .composer .prompt { color: var(--border-accent); font-weight: 700; }
+	#flowTerm .composer .ph { color: var(--dim); }
+	#flowTerm .footer {
+		height: 20px; line-height: 20px; padding-left: 11px; font-size: 12px; color: var(--dim);
+		overflow: hidden; white-space: nowrap;
+	}
+	#flowTerm .footer-expand {
+		font-size: 12px; color: var(--dim); padding-left: 11px;
+		max-height: 0; overflow: hidden; transition: max-height .35s ease;
+	}
+	#flowTerm.modeA.open .footer-expand { max-height: 150px; }
+	#flowTerm .overlay {
+		position: absolute; left: 10px; right: 10px; bottom: 64px;
+		background: var(--surface); border: 1px solid var(--accent); border-radius: 6px;
+		padding: 8px 12px; font-size: 12px; color: var(--shell);
+		opacity: 0; pointer-events: none; transform: translateY(6px); transition: opacity .25s, transform .25s;
+		box-shadow: 0 -6px 24px rgba(0,0,0,.25);
+	}
+	#flowTerm.modeB.open .overlay { opacity: 1; transform: translateY(0); }
+	.kgrid { display: grid; grid-template-columns: auto auto auto auto; gap: 1px 18px; margin-top: 4px; }
+	.kgrid b { color: var(--accent); font-weight: 600; }
+	.kgrid span { color: var(--dim); }
+	.jump-indicator {
+		position: absolute; right: 14px; top: 10px; font-size: 11px; padding: 2px 8px; border-radius: 4px;
+		background: var(--surface); border: 1px solid var(--dim); color: var(--dim); transition: all .3s;
+	}
+	#flowTerm.modeA.open .jump-indicator { border-color: var(--warning); color: var(--warning); }
+	#flowTerm.modeB.open .jump-indicator { border-color: var(--green); color: var(--green); }
+	.verdict { font-size: 12px; margin-top: 10px; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--dim); }
+	.verdict b.ok { color: var(--green); } .verdict b.warn { color: var(--warning); }
+	.flow-steps { display: flex; gap: 6px; align-items: center; font-size: 11.5px; color: var(--muted); margin-bottom: 10px; flex-wrap: wrap; }
+	.flow-steps .step { background: var(--surface); border: 1px solid var(--dim); border-radius: 12px; padding: 2px 10px; }
+	.flow-steps .arr { color: var(--dim); }
+	.hidden { display: none; }
+</style>
+</head>
+<body data-theme="light">
+	<h1>99.20.08 §5.3 — /help 후속 후보 워크플로우 목업</h1>
+	<div class="sub">CC·Codex 실측에서 도출한 후속 후보 3건. (가)(나)는 토글로 before/after, (다)는 <b>? 키를 직접 눌러</b> 두 방식의 거동 차이를 체험하세요.</div>
+	<div class="topbar"><button id="themeToggle">☾ dark</button></div>
+
+	<!-- ════════ (가) ════════ -->
+	<div class="card">
+		<h2><span class="tag">(가)</span> /help 헤더에 버전 + docs 링크 — CC 동형, 1줄짜리</h2>
+		<p class="desc">CC는 다이얼로그 타이틀에 <code>Claude Code v2.1.83</code> + 푸터에 docs 링크. jwc는 <code>showMarkdownPanel</code> 타이틀 줄에 버전을 합류시키고 본문 끝에 링크 1줄.</p>
+		<div class="row"><span class="lbl">적용:</span>
+			<button class="active" data-ga="off">현재 (v1)</button>
+			<button data-ga="on">제안 (가)</button>
+		</div>
+		<div class="term"><div class="body">
+			<div class="panel-border">────────────────────────────────────────────────</div>
+			<div><span class="panel-title" id="gaTitle">Help</span></div>
+			<div style="height:6px"></div>
+			<div class="sect">Getting around</div>
+			<table class="tui">
+				<tr><td>Enter</td><td>Send your message to the agent</td></tr>
+				<tr><td>!command</td><td>Run a shell command directly (bash mode)</td></tr>
+				<tr><td>/command</td><td>Run a slash command — full catalog below</td></tr>
+			</table>
+			<div class="sect">Commands <span class="cnt">(43)</span></div>
+			<table class="tui">
+				<tr><td>/compact</td><td>Compact the conversation context</td></tr>
+				<tr><td>/help</td><td>Show usage help and all available commands</td></tr>
+				<tr><td>/model</td><td>Select default model</td></tr>
+				<tr><td class="dimtext">⋮</td><td></td></tr>
+			</table>
+			<div id="gaDocs" class="hidden" style="margin:6px 0 0 4px;">
+				<span class="dimtext">For more help: </span><a class="doclink">https://github.com/…/jawcode#readme</a>
+			</div>
+			<div class="panel-border">────────────────────────────────────────────────</div>
+		</div></div>
+	</div>
+
+	<!-- ════════ (나) ════════ -->
+	<div class="card">
+		<h2><span class="tag">(나)</span> builtin / skill / custom 섹션 분리 — CC 탭 구조의 표 버전</h2>
+		<p class="desc">CC는 default/custom을 <b>탭 2장</b>으로 분리. jwc는 마크다운 패널이므로 탭 대신 <b>섹션 3개</b>로 번역 — 결합 리스트에 출처 메타를 실어 그룹핑. 스킬·프로젝트 커맨드가 늘수록 단일 표는 스캔이 어려워짐.</p>
+		<div class="row"><span class="lbl">적용:</span>
+			<button class="active" data-na="off">현재 (v1 단일 표)</button>
+			<button data-na="on">제안 (나)</button>
+		</div>
+		<div class="term"><div class="body">
+			<div class="panel-border">────────────────────────────────────────────────</div>
+			<div><span class="panel-title">Help</span></div>
+			<div id="naFlat">
+				<div class="sect">Commands <span class="cnt">(43)</span></div>
+				<table class="tui">
+					<tr><td>/btw</td><td>Open a side conversation</td></tr>
+					<tr><td>/compact</td><td>Compact the conversation context</td></tr>
+					<tr><td>/deploy-check</td><td>Run deploy checklist (project)</td></tr>
+					<tr><td>/help</td><td>Show usage help and all available commands</td></tr>
+					<tr><td>/k-writing</td><td>한국어 글쓰기 톤 보정 (skill)</td></tr>
+					<tr><td>/model</td><td>Select default model</td></tr>
+					<tr><td class="dimtext">⋮</td><td class="dimtext">builtin·skill·custom이 한 줄씩 섞임</td></tr>
+				</table>
+			</div>
+			<div id="naGrouped" class="hidden">
+				<div class="sect">Built-in <span class="cnt">(38)</span></div>
+				<table class="tui">
+					<tr><td>/btw</td><td>Open a side conversation</td></tr>
+					<tr><td>/compact</td><td>Compact the conversation context</td></tr>
+					<tr><td>/help</td><td>Show usage help and all available commands</td></tr>
+					<tr><td class="dimtext">⋮</td><td></td></tr>
+				</table>
+				<div class="sect">Skills <span class="cnt">(3)</span></div>
+				<table class="tui">
+					<tr><td>/k-writing</td><td>한국어 글쓰기 톤 보정</td></tr>
+					<tr><td class="dimtext">⋮</td><td></td></tr>
+				</table>
+				<div class="sect">Project &amp; custom <span class="cnt">(2)</span></div>
+				<table class="tui">
+					<tr><td>/deploy-check</td><td>Run deploy checklist</td></tr>
+					<tr><td class="dimtext">⋮</td><td class="dimtext">없으면 "No custom commands found" (CC 동형)</td></tr>
+				</table>
+			</div>
+			<div class="panel-border">────────────────────────────────────────────────</div>
+		</div></div>
+	</div>
+
+	<!-- ════════ (다) ════════ -->
+	<div class="card">
+		<h2><span class="tag">(다)</span> <code>?</code> → 푸터 다중행 오버레이 승격 — Codex <code>ShortcutOverlay</code> 모델</h2>
+		<p class="desc">현재 <code>?</code>는 <b>채팅에 패널을 영구 삽입</b> (transcript 오염, 99.20.07 분류 b). Codex는 푸터가 잠시 다중행으로 확장됐다가 사라짐. jwc 번역의 쟁점 = <b>083.7 상시 1행 불변식</b>: 푸터가 N행으로 자라면 컴포저가 위로 밀린다.</p>
+		<div class="flow-steps">
+			<span class="step">1. 빈 에디터에서 <b>?</b></span><span class="arr">→</span>
+			<span class="step">2. 단축키 표면 표시</span><span class="arr">→</span>
+			<span class="step">3. <b>?</b>/esc 또는 아무 키 → 소거</span><span class="arr">→</span>
+			<span class="step">4. transcript 무흔적</span>
+		</div>
+		<div class="row"><span class="lbl">방식:</span>
+			<button class="active" data-mode="A">A — 푸터 인라인 확장 (Codex 직역)</button>
+			<button data-mode="B">B — 컴포저 위 오버레이 합성 (alt+t 전례)</button>
+			<span class="lbl" style="margin-left:auto">↓ 터미널 클릭 후 <b>?</b> 키 (또는 버튼)</span>
+			<button id="flowToggle">? 누르기</button>
+		</div>
+		<div class="term" id="flowTerm" tabindex="0">
+			<div class="jump-indicator" id="jumpBadge">컴포저: 안정</div>
+			<div class="screen">
+				<div class="chat"><span class="me">&gt; 단축키 뭐 있었지</span>
+
+<span class="ai">●</span> ? 를 눌러보세요 — 입력창 아래에서 잠깐 펼쳐졌다 사라져요.</div>
+				<div class="fill"></div>
+				<div class="rail">
+					<span class="seg">⬢ GPT-5.5 ⚡ · ψ agent</span><span class="gap"></span><span class="seg">▥ 14.1%/400K</span>
+				</div>
+				<div class="composer" id="flowComposer"><span class="prompt">&gt;</span><span class="ph">Type your message...</span></div>
+				<div class="footer" id="flowFooter">? for shortcuts · /help for commands</div>
+				<div class="footer-expand" id="flowExpand">
+					<div style="color:var(--shell);font-weight:700;margin-top:2px;">Shortcuts</div>
+					<div class="kgrid">
+						<b>enter</b><span>send</span><b>ctrl+c ×2</b><span>exit</span>
+						<b>shift+tab</b><span>thinking</span><b>ctrl+o</b><span>expand tools</span>
+						<b>ctrl+r</b><span>history</span><b>ctrl+g</b><span>$EDITOR</span>
+						<b>alt+t</b><span>transcript</span><b>?</b><span>close</span>
+					</div>
+				</div>
+				<div class="overlay" id="flowOverlay">
+					<div style="font-weight:700;margin-bottom:2px;">Shortcuts <span class="dimtext" style="font-weight:400">(? 또는 esc로 닫기)</span></div>
+					<div class="kgrid">
+						<b>enter</b><span>send</span><b>ctrl+c ×2</b><span>exit</span>
+						<b>shift+tab</b><span>thinking</span><b>ctrl+o</b><span>expand tools</span>
+						<b>ctrl+r</b><span>history</span><b>ctrl+g</b><span>$EDITOR</span>
+						<b>alt+t</b><span>transcript</span><b>?</b><span>close</span>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="verdict" id="verdictA">
+			<b class="warn">방식 A 판정</b> — 푸터가 프레임 끝에서 자라면 fill(상단)이 흡수 → <b>컴포저·채팅 전체가 위로 점프</b>.
+			Codex는 alt-screen이라 공짜지만 jwc 차등 렌더러에서는 083.7 불변식("컴포저 행은 상수") 위반.
+			일시 위반 허용 + 닫힐 때 복귀로 타협 가능하나 스크롤백/diff 비용 검토 필요.
+		</div>
+		<div class="verdict hidden" id="verdictB">
+			<b class="ok">방식 B 판정 (권장)</b> — TUI 오버레이 스택(alt+t transcript 전례, 083.7 §3 "치환 후 합성이라 뷰포트 좌표 안정")으로
+			<b>컴포저·푸터 행 불변</b>. 채팅 하단을 잠시 덮을 뿐 프레임 길이가 안 변해 차등 렌더러 무수정.
+			transcript 무흔적 + 불변식 보존 — 신규 슬라이스 승격 시 이 방식.
+		</div>
+	</div>
+
+<script>
+(() => {
+	// theme
+	document.getElementById("themeToggle").addEventListener("click", (e) => {
+		const dark = document.body.dataset.theme !== "dark";
+		document.body.dataset.theme = dark ? "dark" : "light";
+		e.target.textContent = dark ? "☀ light" : "☾ dark";
+	});
+
+	// (가)
+	document.querySelectorAll("[data-ga]").forEach(b => b.addEventListener("click", () => {
+		document.querySelectorAll("[data-ga]").forEach(x => x.classList.toggle("active", x === b));
+		const on = b.dataset.ga === "on";
+		document.getElementById("gaTitle").textContent = on ? "Help — jawcode v0.9.3" : "Help";
+		document.getElementById("gaDocs").classList.toggle("hidden", !on);
+	}));
+
+	// (나)
+	document.querySelectorAll("[data-na]").forEach(b => b.addEventListener("click", () => {
+		document.querySelectorAll("[data-na]").forEach(x => x.classList.toggle("active", x === b));
+		const on = b.dataset.na === "on";
+		document.getElementById("naFlat").classList.toggle("hidden", on);
+		document.getElementById("naGrouped").classList.toggle("hidden", !on);
+	}));
+
+	// (다)
+	const term = document.getElementById("flowTerm");
+	const badge = document.getElementById("jumpBadge");
+	let mode = "A", open = false;
+	function applyFlow() {
+		term.classList.toggle("modeA", mode === "A");
+		term.classList.toggle("modeB", mode === "B");
+		term.classList.toggle("open", open);
+		document.getElementById("verdictA").classList.toggle("hidden", mode !== "A");
+		document.getElementById("verdictB").classList.toggle("hidden", mode !== "B");
+		badge.textContent = !open ? "컴포저: 안정"
+			: mode === "A" ? "⚠ 컴포저 위로 이동 (불변식 위반)" : "✓ 컴포저 부동 (불변식 보존)";
+		document.getElementById("flowToggle").textContent = open ? "닫기 (?)" : "? 누르기";
+	}
+	document.querySelectorAll("[data-mode]").forEach(b => b.addEventListener("click", () => {
+		document.querySelectorAll("[data-mode]").forEach(x => x.classList.toggle("active", x === b));
+		mode = b.dataset.mode; applyFlow();
+	}));
+	document.getElementById("flowToggle").addEventListener("click", () => { open = !open; applyFlow(); });
+	term.addEventListener("keydown", (e) => {
+		if (e.key === "?" || (open && e.key === "Escape")) { e.preventDefault(); open = e.key === "?" ? !open : false; applyFlow(); }
+	});
+	applyFlow();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editing Tools — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Editing Tools</h1>
+      <p>Three tools handle code modification: <code>edit</code> for surgical text patches, <code>ast_grep</code> for structural code search, and <code>ast_edit</code> for structural rewrites. Use syntax-aware tools before falling back to text hacks.</p>
+
+      <h2>edit (patch format)</h2>
+      <p>The primary tool for modifying existing files. It uses an anchored diff format where context lines locate the edit site and <code>+</code>/<code>-</code> prefixes mark additions and deletions.</p>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Parameter</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>path</code></td><td>Yes</td><td>Target file path (applies to all entries)</td></tr>
+          <tr><td><code>edits</code></td><td>Yes</td><td>Array of edit entries</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Edit entry types</h3>
+      <pre><code>type Entry =
+  | { op: "update", diff: string }        // Patch with diff hunks
+  | { op: "create", diff: string }         // Create new file (full content)
+  | { op: "delete" }                       // Delete the file
+  | { op: "update", rename: string, diff: string }  // Rename + patch</code></pre>
+
+      <h3>Diff format</h3>
+      <p>Each diff contains one or more hunks. A hunk begins with <code>@@</code> (optionally followed by an anchor string) and contains lines prefixed with:</p>
+      <ul>
+        <li><code>&nbsp;</code> (space) &mdash; context line, must match the file exactly</li>
+        <li><code>+</code> &mdash; line to add</li>
+        <li><code>-</code> &mdash; line to remove</li>
+      </ul>
+
+      <h3>Anchor selection</h3>
+      <p>Anchors help the tool locate exactly where to apply the edit. Good anchors are:</p>
+      <ul>
+        <li>Full function signatures</li>
+        <li>Class declarations</li>
+        <li>Unique string literals or error messages</li>
+        <li>Config keys with uncommon names</li>
+      </ul>
+      <p>Avoid generic anchors like <code>import</code>, <code>export</code>, <code>describe</code>, <code>function</code>, <code>const</code> that match multiple locations.</p>
+
+      <h3>Example</h3>
+      <pre><code>// Update a function
+edit({
+  path: "src/app.py",
+  edits: [{
+    op: "update",
+    diff: `@@ def greet():
+ def greet():
+-    print('Hi')
++    print('Hello')`
+  }]
+})
+
+// Create a new file
+edit({
+  path: "src/config.ts",
+  edits: [{ op: "create", diff: "export const PORT = 3000;\n" }]
+})</code></pre>
+
+      <h3>Error recovery</h3>
+      <table>
+        <thead><tr><th>Error</th><th>Cause</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr><td>"Found multiple matches"</td><td>Anchor/context not unique</td><td>Add more context lines or use a longer anchor</td></tr>
+          <tr><td>"No match found"</td><td>Context lines do not exist in file</td><td>Re-read the file and generate a fresh patch</td></tr>
+          <tr><td>Syntax error</td><td>Malformed diff format</td><td>Check <code>+</code>/<code>-</code>/<code>&nbsp;</code> prefixes and <code>@@</code> headers</td></tr>
+        </tbody>
+      </table>
+
+      <h2>ast_grep</h2>
+      <p>Structural code search using AST pattern matching via native ast-grep. Use when syntax shape matters more than raw text: finding function calls, import declarations, JSX props, or control-flow patterns.</p>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Parameter</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>pat</code></td><td>Yes</td><td>AST pattern string</td></tr>
+          <tr><td><code>paths</code></td><td>Yes</td><td>Array of files, directories, or globs to search</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Pattern syntax</h3>
+      <p>Patterns match AST structure, not text. Whitespace and formatting are ignored.</p>
+      <table>
+        <thead><tr><th>Metavariable</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><code>$NAME</code></td><td>Captures one AST node (bound by name)</td></tr>
+          <tr><td><code>$_</code></td><td>Matches one node without binding</td></tr>
+          <tr><td><code>$$$NAME</code></td><td>Captures zero-or-more nodes (lazy)</td></tr>
+          <tr><td><code>$$$</code></td><td>Matches zero-or-more without binding</td></tr>
+        </tbody>
+      </table>
+      <p>When the same metavariable appears twice, both occurrences must match identical code. <code>$A == $A</code> matches <code>x == x</code> but not <code>x == y</code>.</p>
+
+      <h3>Examples</h3>
+      <pre><code>// Find all console.log calls in TypeScript
+ast_grep({ pat: "console.log($$$)", paths: ["src/**/*.ts"] })
+
+// Find named imports from react
+ast_grep({ pat: 'import { $$$IMPORTS } from "react"', paths: ["src/**/*.ts"] })
+
+// Find arrow functions assigned to const
+ast_grep({ pat: "const $NAME = ($$$ARGS) => $BODY", paths: ["src/utils/**/*.ts"] })
+
+// Loosest existence check for a symbol
+ast_grep({ pat: "processItems", paths: ["src/worker.ts"] })</code></pre>
+
+      <h3>Important rules</h3>
+      <ul>
+        <li>Metavariable names must be UPPERCASE</li>
+        <li>Use <code>$$$NAME</code>, never <code>$$NAME</code> (two-dollar form causes parse errors)</li>
+        <li>Partial-text patterns like <code>prefix$VAR</code> or <code>"hello $NAME"</code> do not work</li>
+        <li>Patterns must parse as a single valid AST node</li>
+        <li>Narrow <code>paths</code> to one language to avoid cross-language parse noise</li>
+        <li>Parse issues indicate a query failure, not absence of matches</li>
+      </ul>
+
+      <h2>ast_edit</h2>
+      <p>Structural AST-aware rewrites. Use for codemods and repeated structural transformations where plain text replacement is unsafe.</p>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Parameter</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>ops</code></td><td>Yes</td><td>Array of <code>{ pat, out }</code> rewrite operations</td></tr>
+          <tr><td><code>paths</code></td><td>Yes</td><td>Array of files, directories, or globs to rewrite</td></tr>
+        </tbody>
+      </table>
+      <p>Metavariables captured in <code>pat</code> are substituted into <code>out</code>. An empty <code>out</code> deletes the matched code.</p>
+
+      <h3>Examples</h3>
+      <pre><code>// Rename a function across a codebase
+ast_edit({
+  ops: [{ pat: "oldApi($$$ARGS)", out: "newApi($$$ARGS)" }],
+  paths: ["src/**/*.ts"]
+})
+
+// Delete all console.log calls
+ast_edit({
+  ops: [{ pat: "console.log($$$ARGS)", out: "" }],
+  paths: ["src/**/*.ts"]
+})
+
+// Modernize to optional chaining (same metavar enforces identity)
+ast_edit({
+  ops: [{ pat: "$A && $A()", out: "$A?.()" }],
+  paths: ["src/**/*.ts"]
+})
+
+// Rewrite import paths
+ast_edit({
+  ops: [{ pat: 'import { $$$IMPORTS } from "old-package"',
+          out: 'import { $$$IMPORTS } from "new-package"' }],
+  paths: ["src/**/*.ts"]
+})</code></pre>
+
+      <h3>When to use which</h3>
+      <table>
+        <thead><tr><th>Scenario</th><th>Tool</th></tr></thead>
+        <tbody>
+          <tr><td>One-off local text edit</td><td><code>edit</code></td></tr>
+          <tr><td>Find all usages of an API</td><td><code>ast_grep</code></td></tr>
+          <tr><td>Rename/replace a pattern across files</td><td><code>ast_edit</code></td></tr>
+          <tr><td>Search for plain text or regex</td><td><code>search</code></td></tr>
+        </tbody>
+      </table>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

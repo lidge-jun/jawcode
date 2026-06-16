@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>I: Interview — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>I: Interview Stage</h1>
+      <p>The Interview stage transforms vague ideas into crystal-clear specifications through Socratic questioning with mathematical ambiguity scoring. It is implemented by the <code>jaw-interview</code> skill.</p>
+
+      <h2>When to use</h2>
+      <ul>
+        <li>User has a vague idea and wants thorough requirements gathering</li>
+        <li>Task is complex enough that jumping to code would waste cycles on scope discovery</li>
+        <li>User wants mathematically-validated clarity before committing to execution</li>
+        <li>User explicitly requests interview mode (<code>/skill:jaw-interview</code>)</li>
+      </ul>
+      <p>Skip the Interview stage when the user provides detailed, specific requirements with file paths, function names, and acceptance criteria. Enter at P (Planning) instead.</p>
+
+      <h2>How it works</h2>
+      <h3>Phase 0: Resolve ambiguity threshold</h3>
+      <p>Before any questions, the interview resolves the ambiguity threshold from settings. This determines when the interview is "done enough" to proceed. Three depth modes:</p>
+      <table>
+        <thead>
+          <tr><th>Mode</th><th>Threshold</th><th>Use case</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>--quick</code></td><td>0.3</td><td>Rough outline sufficient</td></tr>
+          <tr><td><code>--standard</code></td><td>0.2 (default)</td><td>Most features</td></tr>
+          <tr><td><code>--deep</code></td><td>0.1</td><td>Mission-critical specifications</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Round 0: Topology enumeration</h3>
+      <p>Before scoring begins, a one-time topology enumeration gate confirms the top-level component list and locks it into state. For brownfield projects, the interview explores the existing codebase first to ask informed questions rather than making the user rediscover their own architecture.</p>
+
+      <h3>Rounds 1-N: Socratic questioning</h3>
+      <p>Each round follows this loop:</p>
+      <ol>
+        <li>Identify the <strong>weakest clarity dimension</strong> across all locked topology components</li>
+        <li>Ask 1-3 targeted questions aimed at that dimension (only independent questions are batched)</li>
+        <li>Score the user's answer against four dimensions</li>
+        <li>Apply <strong>negativity bias</strong>: vague, hedging, or undetailed answers downgrade the dimension score</li>
+        <li>Display the ambiguity HUD with current scores</li>
+      </ol>
+
+      <h3>Four clarity dimensions</h3>
+      <table>
+        <thead>
+          <tr><th>Dimension</th><th>What it measures</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Goal</strong></td><td>What the user wants to achieve; success criteria</td></tr>
+          <tr><td><strong>Constraints</strong></td><td>Boundaries, limitations, non-functional requirements</td></tr>
+          <tr><td><strong>Criteria</strong></td><td>Acceptance criteria, edge cases, verification approach</td></tr>
+          <tr><td><strong>Ontology</strong></td><td>Domain terms, entity relationships, data model stability</td></tr>
+        </tbody>
+      </table>
+
+      <h3>External audit checkpoints</h3>
+      <p>Mathematical scoring runs at specific checkpoints rather than every round:</p>
+      <ul>
+        <li>When internal tracker estimates every dimension at 0.8+</li>
+        <li>Before honoring an explicit user skip (mandatory)</li>
+        <li>Before Phase 4 crystallization (mandatory)</li>
+      </ul>
+
+      <h2>Challenge agents</h2>
+      <p>At specific round thresholds, challenge agents activate to shift perspective and pressure-test the emerging specification from different angles.</p>
+
+      <h2>Output</h2>
+      <p>When ambiguity drops below the threshold, the interview crystallizes a specification file:</p>
+      <pre><code>.jwc/specs/jaw-interview-{slug}.md</code></pre>
+      <p>The spec contains all gathered requirements, topology, decisions, and the final ambiguity score. It is marked <code>pending approval</code> until the user explicitly approves it.</p>
+
+      <h2>Handoff</h2>
+      <p>The normal handoff chain is:</p>
+      <pre><code>jaw-interview spec
+  → jwc orchestrate p (planning with spec reference)
+  → pending approval
+  → explicitly approved execution</code></pre>
+      <p>The interview skill is <strong>read-only</strong>: it must not mutate product code, commit, or delegate execution. It writes only to <code>.jwc/specs/</code> and interview state.</p>
+
+      <h2>Invocation</h2>
+      <pre><code># Inside a jwc session
+/skill:jaw-interview
+
+# With depth flag
+/skill:jaw-interview --deep "I want to build a notification system"
+
+# Via CLI
+jwc jaw-interview</code></pre>
+
+      <h2>Next steps</h2>
+      <ul>
+        <li><a href="plan.html">P: Planning</a> — what happens after the interview produces a spec</li>
+        <li><a href="overview.html">IPABCD Overview</a> — full pipeline context</li>
+      </ul>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

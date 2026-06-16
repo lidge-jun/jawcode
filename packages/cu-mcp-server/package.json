@@ -1,0 +1,23 @@
+{
+  "name": "jawcode-cu-mcp-server",
+  "version": "0.4.4",
+  "type": "module",
+  "bin": { "cu-mcp-server": "./dist/index.js" },
+  "files": ["dist", "bin"],
+  "scripts": {
+    "build": "bun build src/index.ts --target=node --outfile=dist/index.js",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "os": ["darwin"],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "tsx": "^4.21.0",
+    "@types/node": "^24.10.0"
+  },
+  "engines": { "node": ">=24" }
+}

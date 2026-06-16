@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Utility Tools — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Utility Tools</h1>
+      <p>
+        Miscellaneous tools for user interaction, task tracking, inter-agent communication,
+        remote access, arithmetic, saved recipes, and scheduled jobs.
+      </p>
+
+      <!-- ════════════════════════════════════════════ ask ═══ -->
+      <h2 id="ask">ask</h2>
+      <p>Ask the user when you need clarification or input during task execution. Defaults to action; only ask when options have materially different tradeoffs the user must decide.</p>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>questions</code></td><td>array</td><td>Array of question objects. Each has <code>id</code>, <code>question</code>, <code>options</code> (array of <code>{label}</code>), optional <code>recommended</code> (0-indexed), optional <code>multi: true</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Rules</h3>
+      <ul>
+        <li>Provide 2-5 concise, distinct options per question.</li>
+        <li>Do not include "Other" option; the UI automatically adds "Other (type your own)".</li>
+        <li>Default to action. Exhaust existing sources (code, configs, docs) before asking.</li>
+        <li>If multiple choices are acceptable, pick the most conservative option and proceed.</li>
+      </ul>
+
+      <h3>Examples</h3>
+      <pre><code>// Single question with recommendation
+ask({
+  questions: [{
+    id: "auth_method",
+    question: "Which authentication method should this API use?",
+    options: [
+      { label: "JWT" },
+      { label: "OAuth2" },
+      { label: "Session cookies" }
+    ],
+    recommended: 0
+  }]
+})
+
+// Multiple questions
+ask({
+  questions: [
+    { id: "storage", question: "Which storage backend?",
+      options: [{ label: "SQLite" }, { label: "PostgreSQL" }] },
+    { id: "auth", question: "Which auth method?",
+      options: [{ label: "JWT" }, { label: "Session cookies" }] }
+  ]
+})</code></pre>
+
+      <!-- ════════════════════════════════════════════ todo_write ═══ -->
+      <h2 id="todo_write">todo_write</h2>
+      <p>Manages a phased task list. Tasks are referenced by their verbatim content string, not by auto-generated IDs.</p>
+
+      <h3>Operations</h3>
+      <table>
+        <thead><tr><th>op</th><th>Required</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td><code>init</code></td><td><code>list</code></td><td>Initialize the full list (replaces existing). Each phase: <code>{ phase, items: string[] }</code></td></tr>
+          <tr><td><code>start</code></td><td><code>task</code></td><td>Mark task in progress</td></tr>
+          <tr><td><code>done</code></td><td><code>task</code> or <code>phase</code></td><td>Mark completed</td></tr>
+          <tr><td><code>drop</code></td><td><code>task</code> or <code>phase</code></td><td>Mark abandoned</td></tr>
+          <tr><td><code>rm</code></td><td><code>task</code> or <code>phase</code></td><td>Remove</td></tr>
+          <tr><td><code>append</code></td><td><code>phase</code>, <code>items</code></td><td>Append tasks to phase (lazily creates phase)</td></tr>
+          <tr><td><code>note</code></td><td><code>task</code>, <code>text</code></td><td>Append a note to a task</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Anatomy</h3>
+      <ul>
+        <li><strong>Task content</strong>: 5-10 words describing what is being done. Used as the identifier (must be unique).</li>
+        <li><strong>Phase name</strong>: short noun phrase (e.g. "Foundation", "Auth"). No prefixes like "1." or "Phase 1:".</li>
+      </ul>
+
+      <h3>When to create a list</h3>
+      <ul>
+        <li>Task requires 3+ distinct steps</li>
+        <li>User explicitly requests one</li>
+        <li>User provides a set of tasks to complete</li>
+        <li>New instructions arrive mid-task</li>
+      </ul>
+
+      <!-- ════════════════════════════════════════════ irc ═══ -->
+      <h2 id="irc">irc</h2>
+      <p>Send short text messages to other live agents and receive prose replies. The primary coordination mechanism between the main agent and subagents.</p>
+
+      <h3>Operations</h3>
+      <table>
+        <thead><tr><th>op</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>list</code></td><td>Return current set of visible peers</td></tr>
+          <tr><td><code>send</code></td><td>Deliver <code>message</code> to <code>to</code> (specific id or <code>"all"</code>). Recipient generates reply via ephemeral side-channel turn.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>When to use</h3>
+      <ul>
+        <li><strong>Unexpected state</strong>: missing file, contradictory config, broken spec. DM the spawning agent.</li>
+        <li><strong>Blocked by a peer</strong>: another agent holds the file/branch you need. DM them before duplicating.</li>
+        <li><strong>Decision outside scope</strong>: a fork the assignment did not pre-decide. Ask the requester.</li>
+        <li><strong>Coordination</strong>: peer's in-flight work would benefit from yours.</li>
+      </ul>
+
+      <h3>Etiquette</h3>
+      <ul>
+        <li>Plain prose only. No JSON payloads.</li>
+        <li>Do not quote the message you are replying to.</li>
+        <li>One round-trip is enough. Do not retry "did you get my message?"</li>
+        <li>Stay terse. Share paths via <code>local://</code> or <code>artifact://</code> URLs.</li>
+        <li>Address peers by exact id from <code>op: "list"</code>.</li>
+      </ul>
+
+      <!-- ════════════════════════════════════════════ ssh ═══ -->
+      <h2 id="ssh">ssh</h2>
+      <p>Run commands on remote hosts. Commands are restricted to a reference set per shell type.</p>
+
+      <h3>Shell types and available commands</h3>
+      <table>
+        <thead><tr><th>Shell</th><th>Files</th><th>System</th><th>Navigation</th></tr></thead>
+        <tbody>
+          <tr><td>linux/bash, linux/zsh, macos/bash, macos/zsh</td><td><code>ls</code>, <code>cat</code>, <code>head</code>, <code>tail</code>, <code>grep</code>, <code>find</code></td><td><code>ps</code>, <code>top</code>, <code>df</code>, <code>uname</code>, <code>free</code> (Linux)</td><td><code>cd</code>, <code>pwd</code></td></tr>
+          <tr><td>windows/powershell</td><td><code>Get-ChildItem</code>, <code>Get-Content</code>, <code>Select-String</code></td><td><code>Get-Process</code>, <code>Get-ComputerInfo</code></td><td><code>Set-Location</code>, <code>Get-Location</code></td></tr>
+          <tr><td>windows/cmd</td><td><code>dir</code>, <code>type</code>, <code>findstr</code>, <code>where</code></td><td><code>tasklist</code>, <code>systeminfo</code></td><td><code>cd</code>, <code>echo %CD%</code></td></tr>
+        </tbody>
+      </table>
+
+      <p>Verify the shell type from "Available hosts" and use matching commands.</p>
+
+      <!-- ════════════════════════════════════════════ calc ═══ -->
+      <h2 id="calc">calc</h2>
+      <p>Perform basic calculations.</p>
+
+      <h3>Supported syntax</h3>
+      <ul>
+        <li>Operators: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code>, <code>**</code>, parentheses</li>
+        <li>Literals: decimal, hex (<code>0x</code>), binary (<code>0b</code>), octal (<code>0o</code>)</li>
+      </ul>
+
+      <p>Returns each calculation result with its prefix and suffix applied.</p>
+
+      <!-- ════════════════════════════════════════════ recipe ═══ -->
+      <h2 id="recipe">recipe</h2>
+      <p>Run a recipe/script/target from the project's task runners.</p>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>op</code></td><td>string</td><td>Task name plus any args, e.g. <code>"test"</code> or <code>"build --release"</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>Monorepo namespacing</h3>
+      <p>Package and Cargo target tasks use <code>/</code> as namespace separator:</p>
+      <pre><code>recipe({ op: "pkg-a/test" })
+recipe({ op: "crate/bin/server" })</code></pre>
+      <p>
+        When the same task name exists in multiple runners, prefix with the runner id
+        (e.g. <code>"bun:test"</code>). Runs in the session's cwd.
+      </p>
+
+      <!-- ════════════════════════════════════════════ cron ═══ -->
+      <h2 id="cron">Cron (CronCreate / CronList / CronDelete)</h2>
+      <p>Schedule prompts to fire on recurring cron schedules or as one-shots. Poll deployments, babysit PRs, watch builds, or set reminders.</p>
+
+      <h3>CronCreate</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>expression</code></td><td>string</td><td>5-field cron: <code>minute hour day-of-month month day-of-week</code></td></tr>
+          <tr><td><code>prompt</code></td><td>string</td><td>The prompt to execute on each fire</td></tr>
+          <tr><td><code>recurring</code></td><td>boolean</td><td>Whether the job recurs or fires once</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Cron expression syntax</h3>
+      <table>
+        <thead><tr><th>Expression</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><code>*/5 * * * *</code></td><td>Every 5 minutes</td></tr>
+          <tr><td><code>0 * * * *</code></td><td>Every hour on the hour</td></tr>
+          <tr><td><code>0 9 * * *</code></td><td>Every day at 9am local</td></tr>
+          <tr><td><code>0 9 * * 1-5</code></td><td>Weekdays at 9am local</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Lifecycle</h3>
+      <ul>
+        <li>Tasks fire between turns, never mid-response.</li>
+        <li>All times are in local timezone.</li>
+        <li>Recurring tasks auto-expire 7 days after creation; one-shots self-delete after firing.</li>
+        <li>Up to 50 scheduled tasks per session.</li>
+        <li>Closing or replacing the session clears all scheduled tasks.</li>
+        <li>Disable with <code>CLAUDE_CODE_DISABLE_CRON=1</code>.</li>
+      </ul>
+
+      <h3>CronList / CronDelete</h3>
+      <p><code>CronList</code> enumerates all scheduled tasks. <code>CronDelete</code> cancels by the 8-character job id returned from <code>CronCreate</code>.</p>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

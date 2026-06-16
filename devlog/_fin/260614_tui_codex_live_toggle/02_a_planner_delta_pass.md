@@ -1,0 +1,8 @@
+PASS
+[info] devlog/_plan/260614_tui_codex_live_toggle/01_pabcd_p_plan.md:214 — replay/history collapse and ineligibility blocker is fixed: ui-helpers replay paths must render collapsed and set liveToggleEligible=false.
+[info] devlog/_plan/260614_tui_codex_live_toggle/01_pabcd_p_plan.md:218 — EventController live eligibility blocker is fixed: current-turn stream-created components must opt into liveToggleEligible=true and clear it on finalize/move.
+[info] devlog/_plan/260614_tui_codex_live_toggle/01_pabcd_p_plan.md:304 — compaction marker order blocker is fixed: visible rendering must preserve branch order and remove/gate bottom deferral, with UI render-order test coverage.
+[info] devlog/_plan/260614_tui_codex_live_toggle/01_pabcd_p_plan.md:598 — alt+t regression blocker is fixed: manual smoke keeps existing tool transcript overlay; lines 609 and 618 also preserve app.tools.transcript/ToolTranscriptOverlayComponent/alt+t as non-goals.
+[info] devlog/_plan/260614_tui_codex_live_toggle/01_pabcd_p_plan.md:203 — acceptance semantics blocker is fixed: !committed is explicitly rejected; liveToggleEligible===true is required and reiterated at line 622.
+[info] devlog/_plan/260614_tui_codex_live_toggle/01_pabcd_p_plan.md:482 — agent.replaceMessages/returned context ownership blocker is fixed: compact/history/switch/navigate/sdk ownership is enumerated with model compacted context vs UI visible context split.
+Most likely misread: treating the retained custom-binding-only app.thinking.toggle action as a remaining ctrl+t default regression; the plan removes the default binding while keeping the action for compatibility.

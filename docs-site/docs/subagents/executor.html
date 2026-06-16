@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Executor & Executor Ext — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Executor & Executor Ext</h1>
+      <p class="page-lead">
+        The two read-write subagent roles. <code>executor</code> is the default
+        self-fork lane; <code>executor_ext</code> is the external/fresh model lane
+        for independent verification or model-diverse work.
+      </p>
+
+      <h2>Executor (Default Fork)</h2>
+      <p>
+        The <code>executor</code> is the workhorse subagent. It converts a scoped
+        assignment into a working, verified outcome. Key characteristics:
+      </p>
+      <ul>
+        <li><strong>Model</strong>: inherits the parent session model (self-fork).
+          This is prompt-cache-friendly — the same model means the static system
+          prompt prefix is already cached.</li>
+        <li><strong>Thinking level</strong>: <code>medium</code></li>
+        <li><strong>Fork context</strong>: can receive a sanitized snapshot of the
+          parent conversation as read-only background</li>
+        <li><strong>Scope</strong>: read-write. Can edit files, run commands, commit.</li>
+      </ul>
+
+      <h3>Execution Loop</h3>
+      <pre><code>1. Inspect relevant files, tests, and conventions
+2. Make a compact file-level plan for non-trivial changes
+3. Implement the minimal correct change
+4. Run focused checks if the parent assigns verification
+5. Remove debug leftovers and report changed files + evidence</code></pre>
+
+      <h3>Constraints</h3>
+      <ul>
+        <li>Keep diffs small, reversible, and aligned to existing patterns</li>
+        <li>Do not broaden scope or invent abstractions</li>
+        <li>Explore first, ask last — ask only when progress is impossible or the
+          next decision is destructive, credentialed, or materially scope-changing</li>
+        <li>Respect repository instructions (AGENTS.md); deepest/nearest wins</li>
+        <li>No new dependencies unless explicitly requested</li>
+      </ul>
+
+      <h3>Failure Recovery</h3>
+      <p>
+        When an approach fails, the executor diagnoses <em>why</em> before switching
+        tactics. It reads the full error, checks assumptions, and tries a focused fix.
+        It does not retry the identical action blindly. After materially different
+        failed approaches, it stops adding risk and reports the blocker. If significant
+        effort yields no progress, it evaluates whether the approach itself is wrong
+        — sunk effort is not a reason to continue.
+      </p>
+      <p>
+        For corrections received via <code>resume</code> or <code>steer</code>,
+        the executor follows the
+        <a href="de-anchoring.html">CORRECTION_DEANCHORING</a> protocol instead.
+      </p>
+
+      <h3>Goal Red-Team Mode</h3>
+      <p>
+        When explicitly labeled as a QA/red-team executor, the agent shifts from
+        implementation to adversarial verification:
+      </p>
+      <ul>
+        <li>Starts from the approved plan and acceptance criteria</li>
+        <li>Exercises the real user-facing invocation (browser automation for web,
+          terminal for CLI, black-box tests for API)</li>
+        <li>Tries to <em>break</em> the work with adversarial cases</li>
+        <li>Reports a structured QA matrix: <code>contractCoverage</code>,
+          <code>surfaceEvidence</code>, <code>adversarialCases</code>,
+          <code>artifactRefs</code></li>
+      </ul>
+
+      <h2>Executor Ext (External Model Lane)</h2>
+      <p>
+        <code>executor_ext</code> reuses the same executor behavior but selects a
+        different model. It exists for three use cases:
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Use Case</th>
+            <th>How to Invoke</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>User wants an external/fresh perspective</td>
+            <td><code>executor_ext</code> with <code>.model</code> omitted — uses the
+              configured <code>EXECUTOR_EXT</code> target</td>
+          </tr>
+          <tr>
+            <td>User names a specific model</td>
+            <td><code>executor_ext</code> with <code>.model: "provider/modelId[:effort]"</code></td>
+          </tr>
+          <tr>
+            <td>Independent verification of executor work</td>
+            <td><code>executor_ext</code> — a different model is less likely to share
+              the same blind spots</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Model Routing</h3>
+      <pre><code># Configured external executor (uses EXECUTOR_EXT env/config)
+{ agent: "executor_ext", tasks: [{ id: "Review", assignment: "..." }] }
+
+# One-off named model
+{ agent: "executor_ext", tasks: [{
+  id: "Review",
+  assignment: "...",
+  model: "openai/gpt-4.1:high"
+}] }</code></pre>
+      <p>
+        The <code>executor_ext</code> lane is a callable task role and model target,
+        not a workflow skill. It does not appear in the <code>.jwc</code> defaults.
+      </p>
+
+      <h2>Executor vs Executor Ext</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th><code>executor</code></th>
+            <th><code>executor_ext</code></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Model</td>
+            <td>Parent model (self-fork)</td>
+            <td>Configured <code>EXECUTOR_EXT</code> or explicit <code>provider/modelId</code></td>
+          </tr>
+          <tr>
+            <td>Cache affinity</td>
+            <td>Shares parent prefix cache</td>
+            <td>Separate cache (different model)</td>
+          </tr>
+          <tr>
+            <td>Default routing</td>
+            <td>All generic parallel work</td>
+            <td>Only on explicit user request</td>
+          </tr>
+          <tr>
+            <td>Read-write</td>
+            <td>Yes</td>
+            <td>Yes</td>
+          </tr>
+          <tr>
+            <td>Fork context</td>
+            <td>Allowed</td>
+            <td>Allowed</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Delegation Rules</h2>
+      <p>
+        Executors default to direct execution inside their assigned scope. They do
+        not recursively delegate unless the assignment explicitly permits it and the
+        subtask is independent. The main session controls fan-out — executors are
+        leaves, not orchestrators.
+      </p>
+
+    </main>
+  </div>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

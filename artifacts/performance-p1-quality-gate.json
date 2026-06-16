@@ -1,0 +1,87 @@
+{
+  "architectReview": {
+    "architectureStatus": "CLEAR",
+    "productStatus": "CLEAR",
+    "codeStatus": "CLEAR",
+    "recommendation": "APPROVE",
+    "commands": [
+      "B-stage verifier 29-BVerifierP1Perf",
+      "C-stage adversarial review 30-CAdversarialP1Perf"
+    ],
+    "evidence": "B verifier returned DONE and C adversarial review returned CLEAR for P1.1/P1.2 scope. Workspace bun run check failure is unrelated dirty-tree formatting/import work outside the P1 touch set.",
+    "blockers": []
+  },
+  "executorQa": {
+    "status": "passed",
+    "e2eStatus": "passed",
+    "redTeamStatus": "passed",
+    "e2eCommands": [
+      "bun test packages/coding-agent/test/modes/components/tool-execution-minimize.test.ts packages/coding-agent/test/visual-truncate.test.ts packages/coding-agent/test/execution-shared-preview.test.ts",
+      "bun test packages/coding-agent/test/bash-execution-clamp.test.ts packages/coding-agent/test/modes/components/tool-execution-spacing.test.ts"
+    ],
+    "redTeamCommands": [
+      "bun biome check packages/coding-agent/src/modes/components/tool-execution.ts packages/coding-agent/src/modes/components/execution-shared.ts packages/coding-agent/test/modes/components/tool-execution-minimize.test.ts packages/coding-agent/test/visual-truncate.test.ts packages/coding-agent/test/execution-shared-preview.test.ts",
+      "C-stage adversarial review 30-CAdversarialP1Perf"
+    ],
+    "evidence": "Focused tests passed 20/0, boundary tests passed 28/0, changed-file biome check OK, C adversarial review CLEAR.",
+    "blockers": [],
+    "artifactRefs": [
+      {
+        "id": "p1-verification",
+        "kind": "test-report",
+        "description": "P1.1/P1.2 verification summary artifact",
+        "path": "artifacts/performance-p1-verification.md"
+      }
+    ],
+    "surfaceEvidence": [
+      {
+        "id": "focused-tests",
+        "contractRef": "P1.1/P1.2 CPU hot-path behavior",
+        "surface": "package test command",
+        "status": "passed",
+        "invocation": "bun test focused P1 files and boundary execution tests",
+        "verdict": "passed",
+        "artifactRefs": ["p1-verification"]
+      }
+    ],
+    "adversarialCases": [
+      {
+        "id": "c-adversarial-review",
+        "contractRef": "No scope drift or unverified P1.1/P1.2 claim",
+        "scenario": "Adversarial review against plan acceptance and workspace check attribution",
+        "expectedBehavior": "Review approves P1.1/P1.2 scope or identifies in-scope blockers",
+        "verdict": "passed",
+        "artifactRefs": ["p1-verification"]
+      }
+    ],
+    "contractCoverage": [
+      {
+        "id": "p1-1-minimized-no-hidden-render",
+        "contractRef": "P1.1 minimized tool summary avoids hidden full child rendering",
+        "obligation": "Minimized render must not call full child render, while expanded render still renders children and ctrl+o remains reversible before commit.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["focused-tests"],
+        "adversarialCaseRefs": ["c-adversarial-review"]
+      },
+      {
+        "id": "p1-2-preview-cache",
+        "contractRef": "P1.2 collapsed preview cache is exact and resize-safe",
+        "obligation": "Collapsed preview cache must be width-aware, return defensive copies, clear on invalidate, and avoid stale output across resize/content changes.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["focused-tests"],
+        "adversarialCaseRefs": ["c-adversarial-review"]
+      }
+    ]
+  },
+  "iteration": {
+    "status": "passed",
+    "fullRerun": true,
+    "rerunCommands": [
+      "bun test packages/coding-agent/test/modes/components/tool-execution-minimize.test.ts packages/coding-agent/test/visual-truncate.test.ts packages/coding-agent/test/execution-shared-preview.test.ts",
+      "bun test packages/coding-agent/test/bash-execution-clamp.test.ts packages/coding-agent/test/modes/components/tool-execution-spacing.test.ts",
+      "bun biome check packages/coding-agent/src/modes/components/tool-execution.ts packages/coding-agent/src/modes/components/execution-shared.ts packages/coding-agent/test/modes/components/tool-execution-minimize.test.ts packages/coding-agent/test/visual-truncate.test.ts packages/coding-agent/test/execution-shared-preview.test.ts"
+    ],
+    "evidence": "All objective-scoped verification rerun against current repo state: focused tests 20 pass, boundary tests 28 pass, changed-file biome OK.",
+    "blockers": []
+  }
+}

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architect, Planner & Critic — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Architect, Planner & Critic</h1>
+      <p class="page-lead">
+        Three read-only reviewer agents. They inspect, analyze, and judge — but
+        never edit product source. Each has a restricted <code>bash</code> tool
+        that only allows <code>jwc planphase --write</code> and
+        <code>jwc state</code> commands.
+      </p>
+
+      <h2>Architect</h2>
+      <p>
+        The architect combines system architecture review with code-review
+        discipline. It diagnoses, analyzes, and recommends with file-backed evidence.
+      </p>
+
+      <h3>Goals</h3>
+      <ul>
+        <li>Assess architecture, boundaries, interfaces, tradeoffs, and long-horizon maintainability</li>
+        <li>Verify spec compliance <em>before</em> style concerns</li>
+        <li>Review security, correctness, performance, and code quality with severity-rated feedback</li>
+        <li>Surface an <strong>architectural status</strong> and a <strong>code-review recommendation</strong></li>
+      </ul>
+
+      <h3>Review Stages</h3>
+      <pre><code>1. Understand the request, spec, plan, or diff
+2. Gather file-backed evidence
+3. Stage 1 — Spec compliance: does it solve the problem?
+4. Stage 2 — Architecture: boundaries, coupling, data flow, failure modes
+5. Stage 3 — Code quality / security / performance
+6. Rate each issue: CRITICAL | HIGH | MEDIUM | LOW
+7. Return verdicts</code></pre>
+
+      <h3>Output Verdicts</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Verdict</th>
+            <th>Values</th>
+            <th>Meaning</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Architectural Status</td>
+            <td><code>CLEAR</code> / <code>WATCH</code> / <code>BLOCK</code></td>
+            <td>Whether the architecture is sound, has concerns to monitor, or has blocking issues</td>
+          </tr>
+          <tr>
+            <td>Code Review</td>
+            <td><code>APPROVE</code> / <code>COMMENT</code> / <code>REQUEST CHANGES</code></td>
+            <td>Standard code-review recommendation</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Root-Cause Fallback Policy</h3>
+      <p>
+        The architect treats fallback/workaround additions as blockers when they hide
+        the real defect: swallowed errors, downgraded diagnostics, silent defaults,
+        broad compatibility shims, duplicate execution paths, or bypass feature gates.
+        A narrow compatibility fallback is acceptable only when it is scoped to a known
+        external/version boundary, tested on both paths, and preserves failure evidence.
+      </p>
+
+      <h3>Severity Levels</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Severity</th>
+            <th>Policy</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>CRITICAL</code></td>
+            <td>Never approved. Blocks execution.</td>
+          </tr>
+          <tr>
+            <td><code>HIGH</code></td>
+            <td>Never approved. Must be fixed before proceeding.</td>
+          </tr>
+          <tr>
+            <td><code>MEDIUM</code></td>
+            <td>Flagged with fix suggestion. May proceed with acknowledgment.</td>
+          </tr>
+          <tr>
+            <td><code>LOW</code></td>
+            <td>Noted for improvement. Does not block.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Planner</h2>
+      <p>
+        The planner turns requests into actionable work plans. It plans; it does not
+        implement. Its output is a right-sized, evidence-grounded plan with scope,
+        steps, acceptance criteria, risks, verification, and handoff guidance.
+      </p>
+
+      <h3>Execution Loop</h3>
+      <pre><code>1. Inspect relevant files and existing conventions
+2. Classify task: simple | refactor | feature | broad initiative
+3. Identify affected resources, constraints, and dependencies
+4. Ask one preference/priority question only when a real branch remains
+5. Draft adaptive plan with acceptance criteria, verification, risks, handoff</code></pre>
+
+      <h3>Plan Output Contract</h3>
+      <p>
+        The planner builds a single markdown document containing:
+      </p>
+      <ul>
+        <li>Summary</li>
+        <li>In scope / out of scope</li>
+        <li>File-level changes</li>
+        <li>Sequencing and dependencies</li>
+        <li>Acceptance criteria (specific and testable)</li>
+        <li>Verification commands</li>
+        <li>Risks and mitigations</li>
+      </ul>
+      <p>
+        The plan is persisted as a durable artifact via
+        <code>jwc planphase --write --stage planner</code>. The caller receives
+        only the write receipt and a compact summary; the full text is read from
+        the persisted artifact.
+      </p>
+
+      <h3>Handoff Guidance</h3>
+      <p>
+        The planner's success criteria include identifying <em>who</em> should
+        execute: <code>executor</code> for implementation slices,
+        <code>architect</code> for code review, <code>critic</code> for plan
+        validation, <code>team</code> for parallel workers, or
+        <code>goal</code> for durable ledger tracking.
+      </p>
+
+      <h2>Critic</h2>
+      <p>
+        The critic decides whether a work plan is actionable before execution begins.
+        It approves only when executors can proceed without guessing and verification
+        is concrete.
+      </p>
+
+      <h3>Verdicts</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Verdict</th>
+            <th>Meaning</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>OKAY</code></td>
+            <td>Plan is actionable. Executors can proceed.</td>
+            <td>Advance to next IPABCD stage</td>
+          </tr>
+          <tr>
+            <td><code>ITERATE</code></td>
+            <td>Plan has fixable gaps.</td>
+            <td>Main session patches the plan and re-submits</td>
+          </tr>
+          <tr>
+            <td><code>REJECT</code></td>
+            <td>Plan is fundamentally flawed.</td>
+            <td>Rethink from requirements or architecture</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Evaluation Criteria</h3>
+      <ul>
+        <li><strong>Clarity</strong> — can an executor read the plan and know what to do?</li>
+        <li><strong>Verifiability</strong> — are acceptance criteria specific and testable?</li>
+        <li><strong>Completeness</strong> — are all affected files and edge cases covered?</li>
+        <li><strong>Big picture</strong> — does the plan fit the project's architecture?</li>
+        <li><strong>Principle/option consistency</strong> — do stated principles match chosen options?</li>
+        <li><strong>Alternatives depth</strong> — are rejected alternatives substantive, not shallow?</li>
+        <li><strong>Risk/verification rigor</strong> — are risks concrete and mitigations actionable?</li>
+      </ul>
+
+      <h3>Simulation</h3>
+      <p>
+        Before issuing a verdict, the critic mentally simulates two or three
+        representative implementation tasks against actual files. If simulation
+        reveals ambiguity or missing information, the plan gets <code>ITERATE</code>
+        or <code>REJECT</code>.
+      </p>
+
+      <h2>Comparison</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Architect</th>
+            <th>Planner</th>
+            <th>Critic</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Thinking level</td>
+            <td><code>high</code></td>
+            <td><code>medium</code></td>
+            <td><code>high</code></td>
+          </tr>
+          <tr>
+            <td>Blocking</td>
+            <td>Yes</td>
+            <td>No</td>
+            <td>No</td>
+          </tr>
+          <tr>
+            <td>Output</td>
+            <td>CLEAR/WATCH/BLOCK + APPROVE/COMMENT/REQUEST CHANGES</td>
+            <td>Plan markdown + receipt</td>
+            <td>OKAY/ITERATE/REJECT</td>
+          </tr>
+          <tr>
+            <td>IPABCD stage</td>
+            <td>A (Audit)</td>
+            <td>A (Audit), P (Planning)</td>
+            <td>P (Planning)</td>
+          </tr>
+          <tr>
+            <td>Can edit files</td>
+            <td>No</td>
+            <td>No</td>
+            <td>No</td>
+          </tr>
+          <tr>
+            <td>Bash allowed</td>
+            <td><code>jwc planphase --write</code>, <code>jwc state</code></td>
+            <td><code>jwc planphase --write</code>, <code>jwc state</code></td>
+            <td><code>jwc planphase --write</code>, <code>jwc state</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+    </main>
+  </div>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

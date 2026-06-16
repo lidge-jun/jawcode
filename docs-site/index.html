@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jawcode — Encode intention. Decode software.</title>
+  <meta name="description" content="Jawcode — 46 providers, 3600+ models, IPABCD workflow, 40+ tools, 5 role agents. The coding-agent runner that plans before it builds.">
+  <meta property="og:title" content="Jawcode">
+  <meta property="og:description" content="46 providers. 3600+ models. One structured workflow. The coding-agent runner that plans before it builds.">
+  <meta property="og:image" content="assets/og-image.png">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/favicon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="assets/favicon-512.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <!-- Nav -->
+  <nav class="nav">
+    <div class="container">
+      <img src="assets/jawcode-logo.png" alt="Jawcode" class="nav-logo">
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#pipeline">Pipeline</a></li>
+        <li><a href="#agents">Agents</a></li>
+        <li><a href="#install-section">Install</a></li>
+        <li><a href="docs/getting-started/installation.html">Docs</a></li>
+      </ul>
+      <div class="nav-right">
+        <button class="lang-toggle" onclick="toggleLang()" id="langBtn">EN</button>
+        <a href="https://github.com/lidge-jun/jawcode" class="btn-ghost btn-sm">GitHub</a>
+      </div>
+      <button class="hamburger" onclick="toggleMenu()">&#9776;</button>
+    </div>
+  </nav>
+
+  <!-- Hero — split layout, NOT centered -->
+  <section class="hero" id="hero">
+    <div class="container">
+      <div class="hero-content">
+        <p class="hero-eyebrow">Coding Agent Runner</p>
+        <h1 style="text-wrap: balance; max-width: 50ch;">Encode intention.<br><span class="gradient-text">Decode software.</span></h1>
+        <p class="hero-sub" style="max-width: 44ch;">46 providers. 3,600+ models. One structured workflow that plans before it builds, audits before it ships, and verifies before it reports done.</p>
+        <div class="hero-cta">
+          <div class="install-snippet">
+            <code>npm install -g jawcode</code>
+            <button class="copy-btn" onclick="copyText('npm install -g jawcode')" title="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>
+
+          </div>
+          <a href="#features" class="btn-primary">See how it works</a>
+        </div>
+      </div>
+      <div class="hero-mockup">
+        <div class="tui-mockup">
+          <div class="tui-dots"><span class="tui-dot tui-dot-r"></span><span class="tui-dot tui-dot-y"></span><span class="tui-dot tui-dot-g"></span></div>
+          <div class="tui-line">&nbsp;</div>
+          <div class="tui-welcome" id="welcomeBanner">
+            <pre class="tui-logo" id="tuiLogo"></pre>
+            <div class="tui-wordmark"><span class="tui-cyan" style="font-weight:700">Jawcode</span></div>
+            <div class="tui-tagline tui-dim">bite &middot; build &middot; ship</div>
+            <div class="tui-tagline tui-dim">v0.1.0</div>
+          </div>
+          <div class="tui-line">&nbsp;</div>
+          <div class="tui-line tui-dim">  <span class="tui-cyan">model</span> claude-opus-4-6 &middot; <span class="tui-dim">provider</span> anthropic</div>
+          <div class="tui-line">&nbsp;</div>
+          <div class="tui-line"><span class="tui-prompt">&#10095;</span> <span class="tui-typing" id="heroTyping"></span></div>
+          <div class="tui-line">&nbsp;</div>
+          <div class="tui-line"><span class="tui-prompt">&#9475;</span> <span class="tui-cyan">jaw-interview</span> <span class="tui-dim">&rarr;</span> requirements gathered</div>
+          <div class="tui-line"><span class="tui-prompt">&#9475;</span> <span class="tui-cyan">orchestrate p</span> <span class="tui-dim">&rarr;</span> plan approved</div>
+          <div class="tui-line"><span class="tui-prompt">&#9475;</span> <span class="tui-green">orchestrate a</span> <span class="tui-dim">&rarr;</span> audit PASS</div>
+          <div class="tui-line"><span class="tui-prompt">&#9475;</span> <span class="tui-green">orchestrate b</span> <span class="tui-dim">&rarr;</span> 12 files, verifier DONE</div>
+          <div class="tui-line"><span class="tui-prompt">&#9475;</span> <span class="tui-green">orchestrate c</span> <span class="tui-dim">&rarr;</span> all gates pass</div>
+          <div class="tui-line"><span class="tui-prompt">&#9475;</span> <span class="tui-orange">orchestrate d</span> <span class="tui-dim">&rarr;</span> cycle complete &#10003;</div>
+          <div class="tui-line">&nbsp;</div>
+          <div class="tui-line tui-dim">  bg 2sub &middot; ctrl+j</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key Numbers — NOT cards, asymmetric strip -->
+  <section class="stats-strip fade-in-section" id="features">
+
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat">
+          <span class="stat-number">46</span>
+          <span class="stat-label">providers</span>
+          <span class="stat-detail">Anthropic, OpenAI, Google, xAI, Groq, DeepSeek, Mistral, Ollama, Bedrock, Vertex, and 36 more</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number">3,600+</span>
+          <span class="stat-label">models</span>
+          <span class="stat-detail">From Claude Opus to local Ollama. Switch mid-conversation. 1M context supported.</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number">40+</span>
+          <span class="stat-label">built-in tools</span>
+          <span class="stat-detail">AST search, browser automation, live debugging, background jobs, image generation</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number">5</span>
+          <span class="stat-label">role agents</span>
+          <span class="stat-detail">executor, executor_ext, architect, planner, critic &mdash; parallel, de-anchored, adversarial</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Subagent System — terminal mockup explanation -->
+  <section id="agents" class="fade-in-section">
+
+    <div class="container">
+      <div class="split-section">
+        <div class="split-text">
+          <p class="section-label">Subagent System</p>
+          <h2 class="section-title" style="text-wrap: balance;">Five role agents.<br>Parallel. Adversarial. De-anchored.</h2>
+          <p class="section-desc">Spawn executors for implementation, architects for review, critics for plan quality. They run in parallel, don't duplicate each other's work, and when corrected, generate 3+ fresh hypotheses instead of patching their prior answer.</p>
+          <ul class="feature-list">
+            <li><strong>executor</strong> &mdash; bounded implementation, fixes, refactors</li>
+            <li><strong>executor_ext</strong> &mdash; external/fresh model lane for diverse perspectives</li>
+            <li><strong>architect</strong> &mdash; read-only architecture and code review with CLEAR/WATCH/BLOCK</li>
+            <li><strong>planner</strong> &mdash; sequencing, acceptance criteria, risk mapping</li>
+            <li><strong>critic</strong> &mdash; plan critique: OKAY, ITERATE, or REJECT</li>
+          </ul>
+        </div>
+        <div class="split-visual">
+          <div class="tui-mockup tui-compact">
+            <div class="tui-dots"><span class="tui-dot tui-dot-r"></span><span class="tui-dot tui-dot-y"></span><span class="tui-dot tui-dot-g"></span></div>
+            <div class="tui-line tui-dim">  Spawning 3 parallel executors...</div>
+            <div class="tui-line">&nbsp;</div>
+            <div class="tui-line"><span class="tui-cyan">42-AuthModule</span>  <span class="tui-green">completed</span>  <span class="tui-dim">1m12s</span></div>
+            <div class="tui-line"><span class="tui-cyan">43-ApiRoutes</span>   <span class="tui-green">completed</span>  <span class="tui-dim">2m04s</span></div>
+            <div class="tui-line"><span class="tui-cyan">44-TestSuite</span>   <span class="tui-orange">running</span>    <span class="tui-dim">0m48s</span></div>
+            <div class="tui-line">&nbsp;</div>
+            <div class="tui-line tui-dim">  bg 3 &middot; ctrl+j to expand</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- IPABCD Pipeline -->
+  <section id="pipeline" class="fade-in-section">
+
+    <div class="container">
+      <p class="section-label">Workflow</p>
+      <h2 class="section-title" style="text-wrap: balance;">IPABCD &mdash; six gates from idea to verified delivery</h2>
+      <p class="section-desc">No guessing. No skipping. Each stage has explicit gates. The agent cannot report "done" without passing adversarial review.</p>
+      <div class="pipeline">
+        <div class="pipeline-step step-i"><span class="letter">I</span><span class="name">Interview</span><span class="desc">Socratic requirements with ambiguity scoring</span></div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-step step-p"><span class="letter">P</span><span class="name">Plan</span><span class="desc">Critic consensus loop until OKAY</span></div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-step step-a"><span class="letter">A</span><span class="name">Audit</span><span class="desc">Planner + Architect must both PASS</span></div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-step step-b"><span class="letter">B</span><span class="name">Build</span><span class="desc">Implement + adversarial verifier</span></div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-step step-c"><span class="letter">C</span><span class="name">Check</span><span class="desc">Gates + review + 3-way reject routing</span></div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-step step-d"><span class="letter">D</span><span class="name">Done</span><span class="desc">Summary, reflections, cycle close</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Provider showcase — terminal mockup showing model switching -->
+  <section id="providers" class="fade-in-section">
+
+    <div class="container">
+      <div class="split-section split-reverse">
+        <div class="split-text">
+          <p class="section-label">All Providers</p>
+          <h2 class="section-title" style="text-wrap: balance;">46 providers. Switch models mid-conversation.</h2>
+          <p class="section-desc">Anthropic, OpenAI, Google, xAI, Groq, DeepSeek, Mistral, Amazon Bedrock, Google Vertex, OpenRouter, Ollama, and 35 more. API keys, OAuth, or local inference. 1M context window supported for Claude models.</p>
+          <div class="provider-tags">
+            <span class="provider-tag tag-primary">Anthropic</span>
+            <span class="provider-tag">OpenAI</span>
+            <span class="provider-tag">Google</span>
+            <span class="provider-tag">xAI</span>
+            <span class="provider-tag">Groq</span>
+            <span class="provider-tag">DeepSeek</span>
+            <span class="provider-tag">Mistral</span>
+            <span class="provider-tag">Bedrock</span>
+            <span class="provider-tag">Vertex</span>
+            <span class="provider-tag">OpenRouter</span>
+            <span class="provider-tag">Ollama</span>
+            <span class="provider-tag tag-count">+35 more</span>
+          </div>
+        </div>
+        <div class="split-visual">
+          <div class="tui-mockup tui-compact">
+            <div class="tui-dots"><span class="tui-dot tui-dot-r"></span><span class="tui-dot tui-dot-y"></span><span class="tui-dot tui-dot-g"></span></div>
+            <div class="tui-line"><span class="tui-prompt">&#10095;</span> /model claude-opus-4-6</div>
+            <div class="tui-line tui-green">  Switched to claude-opus-4-6 (200K)</div>
+            <div class="tui-line">&nbsp;</div>
+            <div class="tui-line"><span class="tui-prompt">&#10095;</span> /model claude-opus-4-6[1m]</div>
+            <div class="tui-line tui-green">  Switched to claude-opus-4-6[1m] (1M)</div>
+            <div class="tui-line">&nbsp;</div>
+            <div class="tui-line"><span class="tui-prompt">&#10095;</span> /model grok-composer-2.5-fast</div>
+            <div class="tui-line tui-green">  Switched to xai/grok-composer-2.5-fast</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Speed — Bun-native -->
+  <section id="speed" class="fade-in-section">
+
+    <div class="container">
+      <div class="split-section">
+        <div class="split-text">
+          <p class="section-label">Performance</p>
+          <h2 class="section-title" style="text-wrap: balance;">Bun-native. Fast startup. Streaming-first.</h2>
+          <p class="section-desc">Built on Bun from the ground up. Prompt caching, streaming tool output, background job management, and compaction keep long sessions fast. No webpack, no transpile step, no cold-start lag.</p>
+          <ul class="feature-list">
+            <li><strong>Prompt caching</strong> &mdash; static/dynamic boundary for cache-efficient API calls</li>
+            <li><strong>Background jobs</strong> &mdash; subagents run async while you keep chatting</li>
+            <li><strong>Auto-compaction</strong> &mdash; context window managed transparently across long sessions</li>
+            <li><strong>Native bindings</strong> &mdash; Rust-backed grep, text processing, image handling</li>
+          </ul>
+        </div>
+        <div class="split-visual">
+          <div class="tui-mockup tui-compact">
+            <div class="tui-dots"><span class="tui-dot tui-dot-r"></span><span class="tui-dot tui-dot-y"></span><span class="tui-dot tui-dot-g"></span></div>
+            <div class="tui-line"><span class="tui-prompt">$</span> time jwc --smoke-test</div>
+            <div class="tui-line tui-green">  smoke test passed</div>
+            <div class="tui-line tui-dim">  real  0m0.847s</div>
+            <div class="tui-line">&nbsp;</div>
+            <div class="tui-line tui-dim">  session: 2h 14m &middot; 847 turns</div>
+            <div class="tui-line tui-dim">  compactions: 3 &middot; context: 94%</div>
+            <div class="tui-line tui-dim">  cache hit: 78% &middot; tokens saved: 1.2M</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Install -->
+  <section id="install-section" class="fade-in-section">
+
+    <div class="container">
+      <p class="section-label">Get Started</p>
+      <h2 class="section-title">Install</h2>
+      <div class="install-tabs">
+        <button class="tab-btn active" onclick="switchTab('npm')">npm</button>
+        <button class="tab-btn" onclick="switchTab('source')">source</button>
+      </div>
+      <div class="tab-panel active" id="tab-npm">
+        <div class="code-block"><button class="copy-btn" onclick="copyText('npm install -g jawcode')">copy</button><code>npm install -g jawcode</code></div>
+      </div>
+      <div class="tab-panel" id="tab-source">
+        <div class="code-block"><button class="copy-btn" onclick="copyText('git clone https://github.com/lidge-jun/jawcode.git\ncd jawcode\nbun run setup')">copy</button><code>git clone https://github.com/lidge-jun/jawcode.git
+cd jawcode
+bun run setup</code></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Lineage -->
+  <section id="lineage" class="fade-in-section">
+
+    <div class="container">
+      <p class="section-label">Heritage</p>
+      <h2 class="section-title">Lineage</h2>
+      <p class="section-desc">Fork of <a href="https://github.com/Yeachan-Heo/gajae-code">gajae-code</a>. Built on MIT-licensed agent harnesses.</p>
+      <div class="lineage-tree">
+        <div class="lineage-item upstream"><div><span class="tag">direct upstream</span><br><span class="name"><a href="https://github.com/Yeachan-Heo/gajae-code">gajae-code</a></span><br><span class="role">Fork source. @gajae-code/* namespace origin.</span></div></div>
+        <div class="lineage-item dna"><div><span class="tag">DNA</span><br><span class="name"><a href="https://github.com/can1357/oh-my-pi">oh-my-pi</a></span><br><span class="role">Upstream implementation DNA.</span></div></div>
+        <div class="lineage-item experiment"><div><span class="tag">experiment</span><br><span class="name"><a href="https://github.com/Yeachan-Heo/oh-my-codex">oh-my-codex</a></span><br><span class="role">Codex orchestration experiments.</span></div></div>
+        <div class="lineage-item experiment"><div><span class="tag">experiment</span><br><span class="name"><a href="https://github.com/Yeachan-Heo/oh-my-claudecode">oh-my-claudecode</a></span><br><span class="role">Claude Code workflow exploration.</span></div></div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p>MIT License &middot; <a href="https://github.com/lidge-jun/jawcode">GitHub</a> &middot; Built by <a href="https://github.com/lidge-jun">lidge-jun</a></p>
+    </div>
+  </footer>
+
+  <script src="assets/i18n.js"></script>
+  <script>
+    function copyText(t){navigator.clipboard.writeText(t)}
+    function switchTab(id){document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));event.target.classList.add('active');document.getElementById('tab-'+id).classList.add('active')}
+    function toggleMenu(){const l=document.querySelector('.nav-links');l.style.display=l.style.display==='flex'?'none':'flex'}
+
+    // JAW_FIN_LOGO — exact reproduction from welcome.ts
+    (function(){
+      const logo = document.getElementById('tuiLogo');
+      if(!logo) return;
+
+      // Exact JAW_FIN_LOGO from welcome.ts
+      const lines = [
+        '               \u256D\u257C\u2513                 ',
+        '             \u256D\u2500\u256F \u2517\u2513                ',
+        '           \u256D\u2500\u256F    \u2517\u2513               ',
+        '         \u256D\u2500\u256F  \u2571 \u2571  \u2517\u2501\u2513             ',
+        '      \u256D\u2500\u2500\u256F   \u2571 \u2571     \u2517\u2501\u2501\u2513          ',
+        '\u007E\u007E\u007E\u007E\u007E\u007E\u256F\u007E\u007E\u007E\u007E\u007E\u007E\u007E\u007E\u007E\u007E\u007E\u007E\u007E\u007E\u007E\u007E\u007E\u2516\u007E\u007E\u007E\u007E\u007E\u007E\u007E\u007E\u007E\u007E',
+      ];
+
+      // JAW_GRADIENT_STOPS from welcome.ts
+      const stops = [[15,42,67],[19,100,127],[0,182,190],[0,209,218],[255,106,61]];
+      const SHINE_HALF = 0.18;
+      const INTRO_MS = 3000;
+      const SWEEPS = 2.5;
+      const SHINE_TRAVERSALS = 3;
+
+      function lerp(a,b,t){ return a+(b-a)*t; }
+
+      function colorAt(t, shineStr, shinePos){
+        const seg = t*(stops.length-1);
+        const i = Math.min(Math.floor(seg), stops.length-2);
+        const f = seg - i;
+        let r = lerp(stops[i][0], stops[i+1][0], f);
+        let g = lerp(stops[i][1], stops[i+1][1], f);
+        let b2 = lerp(stops[i][2], stops[i+1][2], f);
+        if(shineStr > 0){
+          const dist = Math.abs(t - shinePos);
+          const intensity = Math.max(0, 1 - dist/SHINE_HALF) * shineStr;
+          if(intensity > 0){ r+=(255-r)*intensity; g+=(255-g)*intensity; b2+=(255-b2)*intensity; }
+        }
+        return `rgb(${r|0},${g|0},${b2|0})`;
+      }
+
+      function renderLogo(phase, shineStr, shinePos){
+        const rows = lines.length;
+        const cols = Math.max(...lines.map(l=>l.length));
+        const span = Math.max(1, cols+rows-1);
+        let html = '';
+        for(let y=0; y<rows; y++){
+          for(let x=0; x<lines[y].length; x++){
+            const ch = lines[y][x];
+            if(ch===' '){ html += ' '; continue; }
+            const base = (x + (rows-1-y)) / span;
+            const t = (((base+phase)%1)+1)%1;
+            html += `<span style="color:${colorAt(t,shineStr||0,shinePos||0)}">${ch}</span>`;
+          }
+          if(y < rows-1) html += '\n';
+        }
+        logo.innerHTML = html;
+      }
+
+      // Intro sweep animation (2.5 rotations + 3 shine passes over 3s)
+      const startTime = performance.now();
+      function animate(){
+        const elapsed = performance.now() - startTime;
+        if(elapsed >= INTRO_MS){
+          renderLogo(0); // resting frame
+          return;
+        }
+        const progress = elapsed / INTRO_MS;
+        const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+        const phase = eased * SWEEPS;
+        const shinePos = (progress * SHINE_TRAVERSALS) % 1;
+        const shineStr = Math.pow(1 - eased, 1.5);
+        renderLogo(phase % 1, shineStr, shinePos);
+        requestAnimationFrame(animate);
+      }
+      animate();
+    })();
+
+    // Typing animation
+    (function(){
+      const el=document.getElementById('heroTyping');
+      if(!el)return;
+      const text='Build a REST API with auth, tests, and docs';
+      let i=0;
+      function type(){if(i<=text.length){el.textContent=text.slice(0,i)+'\u2588';i++;setTimeout(type,45)}else{el.textContent=text}}
+      setTimeout(type,1500);
+    })();
+
+    // Scroll-triggered fade-in
+    (function(){
+      const observer = new IntersectionObserver(function(entries){
+        entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('visible'); observer.unobserve(e.target); }});
+      }, { threshold: 0.1 });
+      document.querySelectorAll('.fade-in-section').forEach(function(el){ observer.observe(el); });
+    })();
+  </script>
+</body>
+</html>

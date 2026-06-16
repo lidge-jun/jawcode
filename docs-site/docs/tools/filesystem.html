@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Filesystem Tools — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Filesystem Tools</h1>
+      <p>Four tools handle all filesystem inspection: reading files and directories, finding files by name, searching file content, and creating new files. These replace shell commands like <code>cat</code>, <code>ls</code>, <code>grep</code>, and <code>find</code> with structured, gitignore-aware alternatives.</p>
+
+      <h2>read</h2>
+      <p>A single tool for reading files, directories, archives, SQLite databases, images, documents (PDF/DOCX/PPTX/XLSX/RTF/EPUB/ipynb), internal URIs, and web URLs.</p>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Parameter</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>path</code></td><td>Yes</td><td>Local path, internal URI (<code>agent://</code>, <code>artifact://</code>, <code>rule://</code>, <code>local://</code>), or URL. Append <code>:&lt;sel&gt;</code> for line ranges or special modes.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Selectors</h3>
+      <p>Append a selector to <code>path</code> to control what is returned:</p>
+      <table>
+        <thead><tr><th>Selector</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td><code>:50</code> / <code>:50-</code></td><td>Read from line 50 onward</td></tr>
+          <tr><td><code>:50-200</code></td><td>Lines 50 through 200 inclusive</td></tr>
+          <tr><td><code>:50+150</code></td><td>150 lines starting at line 50</td></tr>
+          <tr><td><code>:5-16,960-973</code></td><td>Multiple ranges in one call</td></tr>
+          <tr><td><code>:raw</code></td><td>Verbatim text, no anchors or summary</td></tr>
+          <tr><td><code>:conflicts</code></td><td>Index of unresolved git merge conflicts</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Behavior by path type</h3>
+      <ul>
+        <li><strong>Directory</strong> &mdash; returns a depth-limited listing</li>
+        <li><strong>Parseable code (no selector)</strong> &mdash; returns a structural summary with declarations kept and bodies collapsed to <code>..</code></li>
+        <li><strong>Code with selector</strong> &mdash; returns lines with <code>line+hash</code> anchors for the edit tool</li>
+        <li><strong>Documents</strong> &mdash; extracts text from PDF, Word, PowerPoint, Excel, RTF, EPUB</li>
+        <li><strong>Notebooks (.ipynb)</strong> &mdash; shows editable <code># %% [type] cell:N</code> text</li>
+        <li><strong>Images</strong> &mdash; returns metadata (mime, bytes, dimensions, channels)</li>
+        <li><strong>Archives</strong> &mdash; <code>archive.zip:path/inside</code> reads members directly</li>
+        <li><strong>SQLite</strong> &mdash; <code>file.db</code> lists tables; <code>file.db:table</code> shows schema + samples; supports <code>?where=</code>, <code>?order=</code>, <code>?q=SELECT</code></li>
+        <li><strong>URLs</strong> &mdash; reader-mode by default; <code>:raw</code> for untouched HTML</li>
+      </ul>
+
+      <h3>Example</h3>
+      <pre><code>// Read lines 50-200 of a TypeScript file
+read({ path: "src/agent.ts:50-200" })
+
+// Read a SQLite table with filtering
+read({ path: "data.db:users?where=status='active'&amp;order=created:desc" })
+
+// Read a URL in reader mode
+read({ path: "https://docs.example.com/api" })</code></pre>
+
+      <h2>find</h2>
+      <p>Fast file-name pattern matching that works with any codebase size. Respects <code>.gitignore</code> by default.</p>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Parameter</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>paths</code></td><td>Yes</td><td>&mdash;</td><td>Array of globs, files, or directories</td></tr>
+          <tr><td><code>gitignore</code></td><td>No</td><td><code>true</code></td><td>Respect <code>.gitignore</code>. Set <code>false</code> for <code>.env*</code>, <code>*.log</code>, build outputs</td></tr>
+          <tr><td><code>hidden</code></td><td>No</td><td><code>true</code></td><td>Include hidden (dot) files</td></tr>
+          <tr><td><code>limit</code></td><td>No</td><td>1000</td><td>Max results</td></tr>
+          <tr><td><code>timeout</code></td><td>No</td><td>5</td><td>Seconds (0.5 to 60)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Example</h3>
+      <pre><code>// Find all TypeScript files under src/
+find({ paths: ["src/**/*.ts"] })
+
+// Find gitignored files
+find({ paths: [".env*"], gitignore: false })
+
+// Multiple targets as separate array elements
+find({ paths: ["src/**/*.ts", "test/**/*.ts"] })</code></pre>
+
+      <h2>search</h2>
+      <p>Regex content search using Rust regex syntax (RE2-style). No lookaround or backreferences; use line anchors or post-filters instead.</p>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Parameter</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>pattern</code></td><td>Yes</td><td>Regex pattern (Rust syntax)</td></tr>
+          <tr><td><code>paths</code></td><td>Yes</td><td>Array of files, directories, globs, or internal URLs</td></tr>
+          <tr><td><code>i</code></td><td>No</td><td>Case-insensitive search</td></tr>
+          <tr><td><code>skip</code></td><td>No</td><td>Files to skip for pagination</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Output format</h3>
+      <p>Results are anchor-prefixed: <code>*5th|content</code> for matches, <code>&nbsp;9x}|content</code> (leading space) for context lines. The 2-char suffix is a content fingerprint used by the edit tool.</p>
+
+      <h3>Example</h3>
+      <pre><code>// Search for a function definition
+search({ pattern: "function buildPrompt", paths: ["src/"] })
+
+// Case-insensitive search across test files
+search({ pattern: "describe\\(", paths: ["test/"], i: true })</code></pre>
+
+      <h2>write</h2>
+      <p>Creates or overwrites a file at the specified path. For modifying existing files, prefer the <a href="editing.html">edit tool</a> which is more precise and preserves formatting.</p>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Parameter</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>path</code></td><td>Yes</td><td>Target file path</td></tr>
+          <tr><td><code>content</code></td><td>Yes</td><td>File content to write</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Special targets</h3>
+      <ul>
+        <li><strong>Archives</strong> &mdash; <code>archive.zip:path/inside/archive</code> writes to archive entries</li>
+        <li><strong>SQLite</strong> &mdash; <code>db.sqlite:table</code> inserts a row; <code>db.sqlite:table:key</code> updates (JSON content) or deletes (empty content)</li>
+      </ul>
+
+      <h3>Example</h3>
+      <pre><code>// Create a new file
+write({ path: "src/config.ts", content: "export const PORT = 3000;\n" })
+
+// Insert a SQLite row
+write({ path: "data.db:users", content: '{"name":"Alice","role":"admin"}' })</code></pre>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

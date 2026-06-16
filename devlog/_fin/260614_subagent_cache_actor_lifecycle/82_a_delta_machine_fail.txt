@@ -1,0 +1,7 @@
+FAIL
+[CRITICAL] devlog/_plan/260614_subagent_cache_actor_lifecycle/80_pabcd_phase_execution_plan.md:§3.3 — Phase 1 hidden routing has no concrete lane/key derivation module or file target — add Phase 1 `buildWorkflowActorLane`/actor-key helper and unit tests.
+[HIGH] packages/coding-agent/src/jwc-runtime/orchestrate-runtime.ts:426 — reset must retire namespace actors before unlinking pabcd state.
+[HIGH] packages/coding-agent/src/jwc-runtime/orchestrate-runtime.ts:211 — stage transition must retire previous-stage actors via persist/fromPhase hook.
+[HIGH] packages/coding-agent/src/jwc-runtime/orchestrate-state.ts:40 — `actor_namespace_id` must be included in strict write schema path, not lenient read only.
+[HIGH] packages/coding-agent/src/task/index.ts:642 — self-fork/executor-cache path must not consume batch `frozenForkSeeds`; add explicit test.
+Most likely break first: packages/coding-agent/src/task/index.ts actor routing without namespace/lane/busy rules.

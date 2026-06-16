@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Themes — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Themes</h1>
+      <p>Jawcode's TUI appearance is fully driven by theme JSON files. Each theme defines color variables, semantic color mappings, exported page colors, and symbol overrides.</p>
+
+      <h2>Default Theme: abyss-bite</h2>
+      <p>The default dark theme for Jawcode is <code>abyss-bite</code> &mdash; a deep ocean palette with cyan accents and an orange bite highlight. The light counterpart is <code>abyss-bite-light</code>.</p>
+
+      <h3>Color Variables</h3>
+      <table>
+        <thead>
+          <tr><th>Variable</th><th>Hex</th><th>Role</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>ink</code></td><td><code>#0a0d12</code></td><td>Deepest background</td></tr>
+          <tr><td><code>mantle</code></td><td><code>#0e131b</code></td><td>Card/panel background</td></tr>
+          <tr><td><code>surface</code></td><td><code>#14202c</code></td><td>User message background, info panels</td></tr>
+          <tr><td><code>surfaceBright</code></td><td><code>#1b2c3c</code></td><td>Selected/highlighted background</td></tr>
+          <tr><td><code>accent / claw</code></td><td><code>#00d1da</code></td><td>Primary accent (cyan)</td></tr>
+          <tr><td><code>glow</code></td><td><code>#00e5f2</code></td><td>Bright accent for high-intensity thinking</td></tr>
+          <tr><td><code>crabShell / brandRed</code></td><td><code>#ff5a2e</code></td><td>Brand orange &mdash; headings, borders, bite highlight</td></tr>
+          <tr><td><code>coral</code></td><td><code>#2fc4ce</code></td><td>Links, strings</td></tr>
+          <tr><td><code>sand</code></td><td><code>#ffd7a8</code></td><td>Functions, cost display</td></tr>
+          <tr><td><code>seafoam</code></td><td><code>#7de0d3</code></td><td>Code blocks, numbers, context</td></tr>
+          <tr><td><code>kelp</code></td><td><code>#6ee7b7</code></td><td>Success, diff additions, git clean</td></tr>
+          <tr><td><code>foam</code></td><td><code>#dfeef2</code></td><td>Primary text, variables</td></tr>
+          <tr><td><code>dangerRed</code></td><td><code>#ff4d5e</code></td><td>Errors</td></tr>
+          <tr><td><code>warningAmber</code></td><td><code>#ffd34d</code></td><td>Warnings</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Thinking Intensity Gradient</h3>
+      <p>The theme maps thinking effort levels to progressively brighter colors:</p>
+      <pre><code>off       &rarr; dimShell   (#54707e)
+minimal   &rarr; mutedShell (#8fa6b2)
+low       &rarr; coral      (#2fc4ce)
+medium    &rarr; claw       (#00d1da)
+high      &rarr; glow       (#00e5f2)
+xhigh     &rarr; crabShell  (#ff5a2e)</code></pre>
+
+      <h2>Bundled Themes</h2>
+      <table>
+        <thead>
+          <tr><th>Theme</th><th>Type</th><th>Default For</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>abyss-bite</code></td><td>Dark</td><td>Jawcode (jwc) dark</td></tr>
+          <tr><td><code>abyss-bite-light</code></td><td>Light</td><td>Jawcode (jwc) light</td></tr>
+          <tr><td><code>red-claw</code></td><td>Dark</td><td>Engine brand (gjc) dark</td></tr>
+          <tr><td><code>blue-crab</code></td><td>Light</td><td>Engine brand (gjc) light</td></tr>
+        </tbody>
+      </table>
+      <p>Theme selection is automatic based on brand: <code>APP_NAME !== ENGINE_NAME ? "abyss-bite" : "red-claw"</code>. Override with settings:</p>
+      <pre><code># config.yml
+theme.dark: abyss-bite
+theme.light: abyss-bite-light</code></pre>
+
+      <h2>Theme JSON Schema</h2>
+      <p>Every theme file follows this structure:</p>
+      <pre><code>{
+  "$schema": "https://raw.githubusercontent.com/.../theme-schema.json",
+  "name": "my-theme",
+  "vars": {
+    "cyan": "#5fd6e0",
+    "accent": "#00d1da",
+    ...
+  },
+  "colors": {
+    "accent": "cyan",          // reference a var name
+    "border": "#14405e",       // or a direct hex value
+    "toolTitle": "shell",
+    ...
+  },
+  "export": {
+    "pageBg": "#0a0d12",       // exported for external consumers (stats dashboard, etc.)
+    "cardBg": "#0e131b",
+    "infoBg": "#14202c"
+  },
+  "symbols": {
+    "preset": "unicode",       // "unicode" | "nerd" | "ascii"
+    "overrides": {
+      "icon.pi": "&#x1F988;",
+      "md.bullet": "&#x25b8;"
+    }
+  }
+}</code></pre>
+
+      <h3>Section Reference</h3>
+      <table>
+        <thead>
+          <tr><th>Section</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>vars</code></td><td>Raw color definitions. Referenced by name in the <code>colors</code> section. Theme consumers resolve var references recursively.</td></tr>
+          <tr><td><code>colors</code></td><td>Semantic color mappings. Keys like <code>accent</code>, <code>border</code>, <code>toolTitle</code>, <code>syntaxKeyword</code> map to either a var name or a hex literal. This is what the renderer reads at runtime.</td></tr>
+          <tr><td><code>export</code></td><td>Page-level colors for external consumers (stats dashboard, web embeds). Not used by the TUI renderer directly.</td></tr>
+          <tr><td><code>symbols</code></td><td>Symbol preset selection and per-symbol overrides. <code>preset</code> chooses the base symbol set; <code>overrides</code> replaces individual symbols by key.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Semantic Color Keys</h2>
+      <p>The full list of semantic color keys used by the renderer:</p>
+
+      <h3>General</h3>
+      <p><code>accent</code>, <code>border</code>, <code>borderAccent</code>, <code>borderMuted</code>, <code>success</code>, <code>error</code>, <code>warning</code>, <code>muted</code>, <code>dim</code>, <code>text</code>, <code>link</code></p>
+
+      <h3>Messages</h3>
+      <p><code>userMessageBg</code>, <code>userMessageText</code>, <code>customMessageBg</code>, <code>customMessageText</code>, <code>customMessageLabel</code>, <code>selectedBg</code>, <code>thinkingText</code></p>
+
+      <h3>Tools</h3>
+      <p><code>toolPendingBg</code>, <code>toolSuccessBg</code>, <code>toolErrorBg</code>, <code>toolTitle</code>, <code>toolOutput</code>, <code>toolDiffAdded</code>, <code>toolDiffRemoved</code>, <code>toolDiffContext</code></p>
+
+      <h3>Markdown</h3>
+      <p><code>mdHeading</code>, <code>mdLink</code>, <code>mdLinkUrl</code>, <code>mdCode</code>, <code>mdCodeBlock</code>, <code>mdCodeBlockBorder</code>, <code>mdQuote</code>, <code>mdQuoteBorder</code>, <code>mdHr</code>, <code>mdListBullet</code></p>
+
+      <h3>Syntax Highlighting</h3>
+      <p><code>syntaxComment</code>, <code>syntaxKeyword</code>, <code>syntaxFunction</code>, <code>syntaxVariable</code>, <code>syntaxString</code>, <code>syntaxNumber</code>, <code>syntaxType</code>, <code>syntaxOperator</code>, <code>syntaxPunctuation</code></p>
+
+      <h3>Status Line</h3>
+      <p><code>statusLineBg</code>, <code>statusLineSep</code>, <code>statusLineModel</code>, <code>statusLinePath</code>, <code>statusLineGitClean</code>, <code>statusLineGitDirty</code>, <code>statusLineContext</code>, <code>statusLineSpend</code>, <code>statusLineStaged</code>, <code>statusLineDirty</code>, <code>statusLineUntracked</code>, <code>statusLineOutput</code>, <code>statusLineCost</code>, <code>statusLineSubagents</code></p>
+
+      <h3>Thinking Levels</h3>
+      <p><code>thinkingOff</code>, <code>thinkingMinimal</code>, <code>thinkingLow</code>, <code>thinkingMedium</code>, <code>thinkingHigh</code>, <code>thinkingXhigh</code></p>
+
+      <h3>Modes</h3>
+      <p><code>bashMode</code>, <code>pythonMode</code></p>
+
+      <h2>Welcome Banner</h2>
+      <p>The welcome banner is a hand-tuned visual feature, not incidental decoration. It displays the JAW_FIN_LOGO ASCII art with a multi-stop gradient sweep animation:</p>
+      <ul>
+        <li>Gradient stops from <code>JAW_GRADIENT_STOPS</code>: abyss navy &rarr; deep teal &rarr; cyan glow &rarr; bright cyan &rarr; bite orange tip</li>
+        <li>INTRO_SWEEPS animation applies the gradient as a moving band across the ASCII art</li>
+        <li>The "Jawcode" wordmark and "bite &middot; build &middot; ship" tagline render below</li>
+        <li>Model/provider pills display the active model and authenticated providers</li>
+      </ul>
+      <p>The banner, sweep animation, and shine effects in <code>welcome.ts</code> must not be simplified, flattened, or removed. They are a protected product feature.</p>
+
+      <h2>Custom Themes</h2>
+      <p>To create a custom theme:</p>
+      <ol>
+        <li>Create a JSON file following the schema above</li>
+        <li>Place it in a location accessible to jwc</li>
+        <li>Set <code>theme.dark</code> or <code>theme.light</code> in your config to the theme name</li>
+      </ol>
+      <p>Custom themes can reference any var names in their <code>colors</code> section, define new vars, and override any symbol key.</p>
+
+      <h2>Symbol Presets</h2>
+      <table>
+        <thead>
+          <tr><th>Preset</th><th>Description</th><th>Example Bullet</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>unicode</code></td><td>Standard Unicode symbols (default)</td><td>&#x25b8;</td></tr>
+          <tr><td><code>nerd</code></td><td>Nerd Font icons (requires Nerd Font installed)</td><td>Nerd Font glyph</td></tr>
+          <tr><td><code>ascii</code></td><td>Pure ASCII for maximum terminal compatibility</td><td>&gt;</td></tr>
+        </tbody>
+      </table>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

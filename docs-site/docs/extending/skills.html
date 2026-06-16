@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skills — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Skills</h1>
+      <p>Skills are self-contained workflow definitions that the agent loads on demand. Each skill is a Markdown file (<code>SKILL.md</code>) that defines phases, gates, artifacts, and behavioral rules for a specific workflow pattern.</p>
+
+      <h2>Bundled workflow skills</h2>
+      <p>Jawcode ships with exactly four default workflow skills. This is an intentional design constraint — JWC improves by making this small surface better, not by adding more defaults.</p>
+
+      <table>
+        <thead>
+          <tr><th>Skill</th><th>Invocation</th><th>Purpose</th><th>Artifacts</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>jaw-interview</strong></td>
+            <td><code>/skill:jaw-interview</code></td>
+            <td>IPABCD I-stage. Socratic requirements gathering with ambiguity scoring and topology confirmation.</td>
+            <td><code>.jwc/specs/jaw-interview-{slug}.md</code></td>
+          </tr>
+          <tr>
+            <td><strong>plan</strong></td>
+            <td><code>/skill:plan</code> or <code>jwc orchestrate p</code></td>
+            <td>IPABCD P-stage. Consensus planning with Critic review loop. The <code>/skill:plan</code> entrypoint is a compatibility alias; the native <code>jwc orchestrate</code> surface is the primary interface.</td>
+            <td><code>.jwc/plans/planphase/</code></td>
+          </tr>
+          <tr>
+            <td><strong>goal</strong></td>
+            <td><code>/skill:goal</code> or <code>jwc goal</code></td>
+            <td>Durable goal ledger with evidence checkpoints. Tracks multi-goal execution across sessions.</td>
+            <td><code>.jwc/goal/</code> (goals.json, ledger.jsonl, brief.md)</td>
+          </tr>
+          <tr>
+            <td><strong>team</strong></td>
+            <td><code>/skill:team</code></td>
+            <td>IPABCD B-stage coordinated execution. Tmux-backed parallel workers with shared state.</td>
+            <td><code>.jwc/state/team/</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Skill structure</h2>
+      <p>Each skill is defined by a <code>SKILL.md</code> file in a named directory. The skill shape includes:</p>
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>name</code></td><td>Unique identifier (e.g. <code>jaw-interview</code>)</td></tr>
+          <tr><td><code>description</code></td><td>One-line summary displayed in skill listings</td></tr>
+          <tr><td><code>filePath</code></td><td>Absolute path to the SKILL.md file</td></tr>
+          <tr><td><code>baseDir</code></td><td>Directory containing the skill (for relative imports)</td></tr>
+          <tr><td><code>source</code></td><td>Provider that discovered this skill</td></tr>
+          <tr><td><code>hide</code></td><td>Whether to hide from user-facing listings</td></tr>
+          <tr><td><code>content</code></td><td>Embedded Markdown content (for bundled skills)</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Skill discovery</h2>
+      <p>Jawcode discovers skills from multiple sources, evaluated in priority order:</p>
+      <ol>
+        <li><strong>Bundled defaults</strong> — The four workflow skills are compiled into the binary via TypeScript imports. They are always present.</li>
+        <li><strong>cli-jaw global root</strong> — When running under the jaw brand with <code>~/.cli-jaw/skills</code> present, this directory replaces the native user root. Skills here take precedence over user-level native skills.</li>
+        <li><strong>Project-level</strong> — <code>{cwd}/.jwc/skills/</code> and ancestor directories. Project skills override user-level skills of the same name.</li>
+        <li><strong>User-level</strong> — <code>~/.jwc/agent/skills/</code>. The native user skills directory.</li>
+        <li><strong>Custom directories</strong> — Paths configured in settings under <code>customDirectories</code>, scanned as provider <code>custom:user</code>.</li>
+      </ol>
+
+      <h3>Collision handling</h3>
+      <p>When two skills share the same name, the first one discovered wins (based on the priority order above). The duplicate is skipped and a warning is recorded. This means project-level skills can shadow user-level or global skills of the same name.</p>
+
+      <h3>Deterministic ordering</h3>
+      <p>The final skill list is sorted by <code>compareSkillOrder</code> to ensure consistent ordering regardless of filesystem enumeration order.</p>
+
+      <h2>Creating custom skills</h2>
+      <p>To create a custom skill, add a directory with a <code>SKILL.md</code> file to any discovered skill path:</p>
+      <pre><code># Project-level custom skill
+mkdir -p .jwc/skills/my-workflow
+cat > .jwc/skills/my-workflow/SKILL.md << 'EOF'
+# My Workflow
+
+## Phase 1: Gather context
+Read the relevant files and understand the problem.
+
+## Phase 2: Implement
+Make the minimal correct change.
+
+## Phase 3: Verify
+Run the affected tests.
+EOF</code></pre>
+      <p>The skill is now available via <code>/skill:my-workflow</code> in any Jawcode session within that project.</p>
+
+      <h3>User-level custom skills</h3>
+      <pre><code># Available in all projects
+mkdir -p ~/.jwc/agent/skills/code-review
+# Add SKILL.md with your review workflow</code></pre>
+
+      <h2>Skill invocation</h2>
+      <p>Skills are invoked via the <code>/skill:name</code> slash command during a session:</p>
+      <pre><code>/skill:jaw-interview
+/skill:goal
+/skill:my-workflow</code></pre>
+      <p>When a skill is active, the agent reads its full content and follows its instructions exactly. Skills define phases, gates, and artifacts that constrain the agent's behavior until the skill workflow completes.</p>
+
+      <h3>Skill discipline rules</h3>
+      <ul>
+        <li>Never ignore a skill invocation or any skill text.</li>
+        <li>Read-only skills (jaw-interview, planner, architect, critic) must not edit product source, commit, or run mutating commands.</li>
+        <li>When a task fits a bundled skill, recommend invoking it; on user approval, invoke it.</li>
+        <li>When no skill is active and the action is non-destructive and clearly correct, perform it directly.</li>
+      </ul>
+
+      <h2>Skill vs. slash command vs. hook</h2>
+      <table>
+        <thead>
+          <tr><th>Extension</th><th>Trigger</th><th>Scope</th><th>Use case</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Skill</td>
+            <td><code>/skill:name</code></td>
+            <td>Multi-phase workflow with gates and artifacts</td>
+            <td>Interview, planning, goal tracking, team coordination</td>
+          </tr>
+          <tr>
+            <td>Slash command</td>
+            <td><code>/name</code></td>
+            <td>Single-shot content injection</td>
+            <td>Settings, model selection, quick actions</td>
+          </tr>
+          <tr>
+            <td>Hook</td>
+            <td>Lifecycle event</td>
+            <td>Background processing on events</td>
+            <td>Custom logging, notifications, auto-formatting</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Next steps</h2>
+      <ul>
+        <li><a href="mcp.html">MCP Integration</a> — adding external tool servers</li>
+        <li><a href="hooks.html">Hooks & Plugins</a> — lifecycle event handling</li>
+        <li><a href="../workflow/overview.html">IPABCD Workflow</a> — how skills fit into the structured pipeline</li>
+      </ul>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

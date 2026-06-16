@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lineage — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Lineage</h1>
+      <p>Jawcode does not exist in isolation. It is built on a family of MIT-licensed agent harnesses, each contributing a distinct piece of DNA to the final product.</p>
+
+      <h2>Fork tree</h2>
+      <p>The lineage flows through four upstream projects, plus the cli-jaw harness that contributed the orchestration engine:</p>
+
+      <pre><code>oh-my-pi (can1357)
+  |
+  +-- oh-my-codex (Yeachan-Heo)     Codex-focused orchestration experiments
+  +-- oh-my-claudecode (Yeachan-Heo) Claude Code workflow exploration
+  |
+  +-- gajae-code (Yeachan-Heo)       Direct upstream fork source
+        |
+        +-- jawcode (lidge-jun)      This project
+              |
+              +-- cli-jaw            IPABCD engine, HITL/HOTL workflow,
+                                     jawcode/sdk embedding surface</code></pre>
+
+      <h2>gajae-code</h2>
+      <p><a href="https://github.com/Yeachan-Heo/gajae-code">gajae-code</a> is the direct upstream fork source. Jawcode inherits its core architecture from this repo:</p>
+      <ul>
+        <li>Multi-provider LLM client (<code>packages/ai</code>) with streaming support</li>
+        <li>Agent runtime with tool calling and state management (<code>packages/agent</code>)</li>
+        <li>Terminal UI library with differential rendering (<code>packages/tui</code>)</li>
+        <li>Native text/image/grep bindings via NAPI-RS (<code>packages/natives</code>, <code>crates/pi-natives</code>)</li>
+      </ul>
+      <p>The internal <code>@gajae-code/*</code> package namespace originates from this upstream repo and is preserved for compatibility.</p>
+
+      <h2>oh-my-pi</h2>
+      <p><a href="https://github.com/can1357/oh-my-pi">oh-my-pi</a> is the upstream implementation DNA — the original agent harness that established the architectural patterns gajae-code built upon. Key contributions:</p>
+      <ul>
+        <li>Tool-calling agent loop with streaming model responses</li>
+        <li>Theme system and TUI rendering architecture</li>
+        <li>Provider abstraction layer and model routing</li>
+      </ul>
+
+      <h2>oh-my-codex and oh-my-claudecode</h2>
+      <p>Two experimental branches by <a href="https://github.com/Yeachan-Heo">Yeachan-Heo</a>:</p>
+      <ul>
+        <li><a href="https://github.com/Yeachan-Heo/oh-my-codex">oh-my-codex</a> — Codex-focused orchestration experiments, exploring structured multi-step workflows with OpenAI models.</li>
+        <li><a href="https://github.com/Yeachan-Heo/oh-my-claudecode">oh-my-claudecode</a> — Claude Code workflow exploration, investigating Anthropic-specific agent patterns and tool conventions.</li>
+      </ul>
+
+      <h2>cli-jaw</h2>
+      <p>The <strong>cli-jaw</strong> harness contributed the core IPABCD orchestration loop that defines Jawcode's workflow identity. Key contributions from cli-jaw:</p>
+      <ul>
+        <li><strong>IPABCD pipeline</strong> — the six-stage structured workflow engine (Interview, Plan, Audit, Build, Check, Done) with 3-way reject routing at the Check stage.</li>
+        <li><strong>HITL/HOTL modes</strong> — Human-in-the-Loop and Human-on-the-Loop execution modes with configurable approval gates between stages.</li>
+        <li><strong>Workflow skills</strong> — the skill system architecture including jaw-interview, plan, goal, and team as composable workflow definitions.</li>
+        <li><strong>jawcode/sdk embedding surface</strong> — the SDK interface that allows cli-jaw and other harnesses to embed Jawcode as a managed dependency.</li>
+        <li><strong>Role agent design</strong> — the executor/architect/planner/critic subagent roles with prompt-cache-aware fork/spawn/resume lifecycle.</li>
+        <li><strong>De-anchoring protocol</strong> — correction-resistant subagent behavior that generates fresh hypotheses instead of patching prior conclusions.</li>
+      </ul>
+
+      <h2>What Jawcode adds</h2>
+      <p>Beyond its upstream lineage, Jawcode contributes:</p>
+      <ul>
+        <li><strong>46-provider model routing</strong> — support for 3,600+ models across Anthropic, OpenAI, Google, xAI, Groq, DeepSeek, Ollama, and 39 more providers.</li>
+        <li><strong>Abyss-bite design language</strong> — dark blue/cyan TUI theme with gradient sweep welcome banner and animated shine effects.</li>
+        <li><strong>Goal mode</strong> — durable execution ledger with evidence checkpoints and quality-gate completion contracts.</li>
+        <li><strong>Team mode</strong> — tmux-backed coordinated execution with worker lifecycle management and shared state.</li>
+        <li><strong>Prompt hardening</strong> — de-anchoring, authority-bias prevention, blast-radius assessment, sunk-cost guards, and confirmation-bias countermeasures across all subagent prompts.</li>
+        <li><strong>40+ tools</strong> — read, edit, search, AST grep/edit, browser, task delegation, debug, eval, and more.</li>
+      </ul>
+
+      <h2>License</h2>
+      <p>Jawcode and all upstream projects are MIT-licensed. Full attribution is in <a href="https://github.com/lidge-jun/jawcode/blob/main/NOTICE.md">NOTICE.md</a>.</p>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

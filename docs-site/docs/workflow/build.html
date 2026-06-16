@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>B: Build — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>B: Build Stage</h1>
+      <p>The Build stage is where implementation happens. The main session executes the approved plan, optionally dispatching work to parallel executor subagents. A read-only verifier subagent confirms each deliverable before the stage gate is satisfied.</p>
+
+      <h2>Execution model</h2>
+      <p>The main session implements the plan directly. For multi-file changes, work is organized into <strong>streams</strong> (parallelizable groups) defined in the plan:</p>
+      <pre><code># Example stream structure from a plan
+Stream 1: CSS foundation + landing page    (main session)
+Stream 2: Subpages A, B, C                (executor subagents)
+Stream 3: README improvements              (executor subagent)
+Stream 4: Deploy infrastructure            (executor subagent)</code></pre>
+
+      <h2>Subagent dispatch</h2>
+      <p>The main session dispatches independent work slices to executor subagents. Each subagent receives:</p>
+      <ul>
+        <li>Specific file scope (3-5 files maximum per subagent)</li>
+        <li>Exact instructions from the plan</li>
+        <li>Shared context about conventions and constraints</li>
+        <li>Instructions to skip formatters and verification (parent runs those once at the end)</li>
+      </ul>
+
+      <h3>Fork-based executor</h3>
+      <p>The default <code>executor</code> subagent uses the fork lane: it inherits the parent's model and cached prompt context. This is prompt-cache-aware by design:</p>
+      <ul>
+        <li>Static prompt prefix (system prompt, skills, repo context) is shared and cacheable</li>
+        <li>Only the dynamic assignment payload is unique per subagent</li>
+        <li>Each spawn reuses the cached prefix, reducing latency and redundant tokens</li>
+      </ul>
+
+      <h3>External executor</h3>
+      <p>The <code>executor_ext</code> subagent uses a different model or provider for independent verification or model-diverse implementation:</p>
+      <pre><code># Different model's perspective
+executor_ext with model: "openai/gpt-4.1"
+
+# Configured external target (from settings)
+executor_ext  # uses EXECUTOR_EXT target</code></pre>
+
+      <h2>Subagent coordination</h2>
+      <p>Subagents run asynchronously. While they work, the main session can:</p>
+      <ul>
+        <li>Continue implementing its own stream</li>
+        <li>Answer user questions</li>
+        <li>Inspect subagent progress</li>
+        <li>Steer or correct subagents via IRC messaging</li>
+      </ul>
+      <p>The main session must not duplicate work that subagents are already doing.</p>
+
+      <h3>Correction de-anchoring</h3>
+      <p>When a subagent is resumed with a correction ("your previous answer was wrong"), it activates the de-anchoring protocol:</p>
+      <ol>
+        <li>Set aside the prior analysis entirely</li>
+        <li>Generate at least 3 materially different hypotheses</li>
+        <li>Investigate each with fresh tool calls</li>
+        <li>Form a new conclusion from evidence, not from editing the old one</li>
+      </ol>
+      <p>This prevents anchoring bias where subagents merely patch their previous wrong answer instead of genuinely reconsidering.</p>
+
+      <h2>Verifier</h2>
+      <p>After implementation, a read-only verifier subagent checks each acceptance criterion from the plan:</p>
+      <table>
+        <thead>
+          <tr><th>Verdict</th><th>Meaning</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>DONE</code></td>
+            <td>All acceptance criteria verified</td>
+            <td>Proceed to C stage</td>
+          </tr>
+          <tr>
+            <td><code>NEEDS_FIX</code></td>
+            <td>Specific criteria not met</td>
+            <td>Main session fixes issues, then re-verifies</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Commit discipline</h2>
+      <p>During the Build stage:</p>
+      <ul>
+        <li>Commit completed work proactively when authorized</li>
+        <li>Inspect status and stage only intended files</li>
+        <li>Preserve unrelated user work</li>
+        <li>Resolve or stop on conflicts instead of overwriting</li>
+        <li>Never revert, stash, or delete user work unless explicitly asked</li>
+      </ul>
+
+      <h2>Gate</h2>
+      <p>The B stage gate requires:</p>
+      <pre><code>verification_status = done</code></pre>
+      <p>All acceptance criteria from the plan must be confirmed by the verifier subagent.</p>
+
+      <h2>Next steps</h2>
+      <ul>
+        <li><a href="check.html">C: Check</a> — mechanical verification + adversarial review</li>
+        <li><a href="audit.html">A: Plan Audit</a> — the stage before build</li>
+        <li><a href="overview.html">IPABCD Overview</a> — full pipeline context</li>
+      </ul>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

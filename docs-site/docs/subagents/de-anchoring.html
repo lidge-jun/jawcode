@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Correction De-Anchoring — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Correction De-Anchoring</h1>
+      <p class="page-lead">
+        When a subagent is resumed or steered with feedback that its previous answer
+        was wrong, the <strong>CORRECTION_DEANCHORING</strong> protocol forces it to
+        abandon its prior framing and investigate from scratch.
+      </p>
+
+      <h2>The Problem: Anchoring Bias</h2>
+      <p>
+        When an LLM produces an answer and is then told "that's wrong, try again,"
+        it tends to <em>patch</em> its prior conclusion — making small adjustments
+        within the same frame rather than genuinely reconsidering. This is
+        <strong>anchoring bias</strong>: the original answer acts as a cognitive
+        anchor that constrains the revised response.
+      </p>
+      <p>
+        In the subagent context, this is especially dangerous because:
+      </p>
+      <ul>
+        <li>The subagent has its entire prior analysis in context</li>
+        <li>The prior analysis may have been confidently presented with evidence</li>
+        <li>Minor edits to a wrong conclusion rarely reach the right one</li>
+        <li>The parent agent already judged the prior answer insufficient</li>
+      </ul>
+
+      <h2>The Protocol</h2>
+      <p>
+        When a subagent is resumed or steered with feedback that its previous answer
+        was wrong, incomplete, or missed the root cause:
+      </p>
+      <pre><code>[CORRECTION_DEANCHORING]
+
+1. Set aside your prior analysis entirely.
+
+2. Generate at least 3 materially different hypotheses
+   or debugging angles you have not yet explored.
+
+3. Investigate each with fresh tool calls and evidence.
+
+4. Only then form a new conclusion from the evidence
+   — not from editing your old one.</code></pre>
+
+      <h3>Step-by-Step</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Step</th>
+            <th>What Happens</th>
+            <th>Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1. Discard</td>
+            <td>Prior analysis is treated as a failed hypothesis, not a starting point</td>
+            <td>Breaks the anchor. The old frame is poisoned.</td>
+          </tr>
+          <tr>
+            <td>2. Diverge</td>
+            <td>Generate 3+ <em>materially different</em> hypotheses or angles</td>
+            <td>Forces exploration of the solution space, not local search around the old answer</td>
+          </tr>
+          <tr>
+            <td>3. Investigate</td>
+            <td>Each hypothesis gets fresh tool calls — <code>read</code>, <code>search</code>, <code>ast_grep</code></td>
+            <td>Evidence-based, not reasoning-based. The tools are the source of truth.</td>
+          </tr>
+          <tr>
+            <td>4. Conclude</td>
+            <td>New conclusion is formed from the new evidence only</td>
+            <td>The conclusion follows the evidence, not the other way around</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>When It Activates</h2>
+      <p>
+        The protocol activates <strong>only when the resume/steer message corrects
+        the prior answer</strong>. It does not activate for:
+      </p>
+      <ul>
+        <li>Simple additive requests: "also check X", "add Y to the list"</li>
+        <li>Scope expansions: "now do the same for file B"</li>
+        <li>Clarifications: "I meant the other module"</li>
+      </ul>
+      <p>
+        The subagent determines activation by reading the intent of the correction
+        message. If the message says the previous analysis was wrong, incomplete, or
+        missed the root cause, the protocol activates.
+      </p>
+
+      <h2>Example</h2>
+      <pre><code># Main session spawns executor to find a bug
+spawn(executor, "Find why user sessions expire after 5 minutes")
+
+# Executor concludes: "The session TTL is hardcoded to 300s in config.ts"
+yield({ data: { cause: "hardcoded TTL", file: "config.ts", line: 42 } })
+
+# Main session: "That's wrong — I checked config.ts, TTL is 3600s"
+steer(executor, "Your config.ts analysis is wrong. TTL is 3600s there.")
+
+# CORRECTION_DEANCHORING activates:
+# 1. Discard: config.ts TTL is no longer the hypothesis
+# 2. Generate 3+ new angles:
+#    - Redis session store expiry settings
+#    - Load balancer sticky session timeout
+#    - Cookie maxAge mismatch
+#    - Token refresh race condition
+# 3. Investigate each with fresh tool calls
+# 4. Conclude from new evidence</code></pre>
+
+      <h2>Interaction with Failure Recovery</h2>
+      <p>
+        The executor's normal <code>&lt;failure_recovery&gt;</code> handles
+        <em>approach failures</em> — when a tool call fails or an implementation
+        doesn't work. CORRECTION_DEANCHORING handles <em>external corrections</em>
+        — when the parent tells you your conclusion was wrong.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Scenario</th>
+            <th>Protocol</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Tool call returns an error</td>
+            <td><code>failure_recovery</code> — diagnose why, try focused fix</td>
+          </tr>
+          <tr>
+            <td>Implementation doesn't compile</td>
+            <td><code>failure_recovery</code> — read error, check assumptions</td>
+          </tr>
+          <tr>
+            <td>Parent says "your answer is wrong"</td>
+            <td><code>CORRECTION_DEANCHORING</code> — 3+ fresh hypotheses</td>
+          </tr>
+          <tr>
+            <td>Parent says "also check X"</td>
+            <td>Neither — simple additive request</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Design Rationale</h2>
+      <p>
+        This protocol was developed after observing that resumed subagents consistently
+        produced minor variations of their original (wrong) answer. The 3-hypothesis
+        minimum forces genuine divergent exploration. The "fresh tool calls" requirement
+        prevents the subagent from reusing cached mental models built on the wrong premise.
+      </p>
+      <p>
+        The conditional activation ("only on corrections, not additive requests") prevents
+        wasted effort — a simple "also check X" message doesn't need the full de-anchoring
+        ceremony.
+      </p>
+
+    </main>
+  </div>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

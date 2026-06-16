@@ -1,0 +1,13 @@
+FAIL
+
+[HIGH] packages/coding-agent/src/jwc-runtime/goal-engine.ts:7 — Phase B3 renames `DEFAULT_ULTRAGOAL_OBJECTIVE` in `goal-mode-request.ts` but does not explicitly update this existing consumer/import in `goal-engine.ts`; implementing the rename as written can produce an immediate TS build break — Add `goal-engine.ts` import/callsite updates to B3 acceptance and cover with the goal-mode-request/goal-runtime focused tests.
+
+[HIGH] packages/coding-agent/src/cli.ts:37 — `ultragoal` is still a first-class registered base command while canonical `goal` is registered separately in the Jaw-only surface; the plan discusses command help/deprecation but does not require resolving the owner/registration split, so `jwc --help` can still expose the legacy owner and duplicate goal surfaces — Make `cli.ts` explicitly route canonical `goal` to the intended owner and either hide/remove `ultragoal` or keep it as a deprecated alias with root-help coverage.
+
+[MEDIUM] packages/coding-agent/src/skill-state/active-state.ts:181 — The plan normalizes active-state entry `skill`, but the existing receipt normalization path still reads `record.skill` directly before validation; legacy `ralplan`/`ultragoal` receipts can remain non-canonical or be dropped even when entries normalize — Normalize receipt skill with `normalizeWorkflowSkillSlug(...)` and add active-state tests for legacy receipt payloads.
+
+[MEDIUM] packages/coding-agent/src/commands/ralplan.ts:6 — The plan allows retaining `ralplan` as compatibility, but the current command description/examples advertise it as the normal P-stage workflow; unless B-stage makes this a hidden/deprecated diagnostic, acceptance that public help not recommend `ralplan` will fail — Require deprecation text/no normal examples in `ralplan.ts` and root/help smoke tests.
+
+[MEDIUM] packages/coding-agent/src/jwc-runtime/goal-engine.ts:124 — The plan says canonical goal storage becomes `.jwc/goal`, but this engine currently owns durable paths under `.jwc/ultragoal` and reconciliation later writes `skill: "ultragoal"`/mode `"ultragoal"`; this is correctly targeted but high-risk because all adapters share this owner — Treat `getGoalPaths`, reconcile payload/mode, and `goal-cli.ts` activation paths as one atomic patch, with old-path read compatibility tested only if retained.
+
+Single point most likely to break first: the goal rename around `goal-mode-request.ts`/`goal-engine.ts` import and storage owner split, because the plan changes exported names and canonical paths while existing `goal-engine.ts` is still the central consumer and still writes `.jwc/ultragoal`/`ultragoal` state.

@@ -1,0 +1,8 @@
+DONE: architect verifier 20-CompactionProgressDoneCheck found no blocking findings.
+
+Evidence:
+- Backend boundary events: packages/agent/src/compaction/compaction.ts.
+- AgentSession progress sink/manual compact/auto maintenance and auto handoff wiring: packages/coding-agent/src/session/agent-session.ts.
+- UI heuristic presenter and controller wiring: packages/coding-agent/src/modes/utils/compaction-progress.ts, packages/coding-agent/src/modes/controllers/command-controller.ts, packages/coding-agent/src/modes/controllers/event-controller.ts, packages/coding-agent/src/modes/controllers/input-controller.ts.
+- Wire bounded evidence and ACP suppression: packages/coding-agent/src/modes/shared/agent-wire/event-observation.ts, packages/coding-agent/src/modes/acp/acp-event-mapper.ts.
+- Tests: packages/coding-agent/test/modes/utils/compaction-progress.test.ts and packages/coding-agent/test/agent-wire-conformance.test.ts.

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture Overview — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Architecture Overview</h1>
+      <p>
+        Jawcode (<code>jwc</code>) is a full coding-agent harness forked from
+        <a href="https://github.com/Yeachan-Heo/gajae-code">gajae-code</a>.
+        The internal <code>@gajae-code/*</code> package namespace originates from
+        that upstream repository. Everything from provider streaming to TUI rendering
+        is implemented in-house — no wrapper around another agent.
+      </p>
+
+      <h2>Identity</h2>
+      <p>
+        The public CLI is <code>jwc</code>. The npm package is
+        <code>jawcode</code>, exposing both the CLI binary and a programmatic SDK
+        surface at <code>jawcode/sdk</code>. The runtime is built on
+        <strong>Bun 1.3.14</strong> (workspaces + catalog), with Biome for
+        lint/format and Rust N-API crates for native performance-critical paths.
+      </p>
+
+      <h2>Monorepo Structure</h2>
+      <p>
+        The repository is a Bun monorepo containing 8 TypeScript packages, 1 Rust
+        workspace with 6 crates, and 2 Python packages. The primary product surface
+        is <code>packages/coding-agent/</code>.
+      </p>
+      <pre><code>jawcode/
+  packages/
+    jwc/              jawcode npm package, jwc bin, jawcode/sdk
+    coding-agent/     CLI runtime: tools, session, skills, prompts, modes
+    agent/            Provider-agnostic agent loop and state
+    ai/               46+ provider streaming, auth broker/gateway
+    tui/              Differential-rendering terminal UI
+    natives/          Rust N-API bindings (grep, AST, PTY, shell)
+    utils/            Shared utilities, logging, config
+    stats/            Local observability dashboard
+  crates/
+    pi-natives/       N-API root (AST, grep, clipboard, PTY, shell, ...)
+    pi-ast/           tree-sitter / ast-grep parsing
+    pi-iso/           OS isolation helpers
+    pi-shell/         brush-based shell execution
+    brush-*-vendored/ Vendored POSIX/bash shell primitives
+  python/
+    jwc-rpc/          Typed Python client for jwc --mode rpc
+    robogjc/          Self-hosted GitHub triage/fix bot</code></pre>
+
+      <h2>Entry Point Flow</h2>
+      <p>
+        A normal CLI session follows this path from terminal to agent loop:
+      </p>
+      <pre><code>CLI bootstrap         packages/coding-agent/src/cli.ts
+    |
+    v
+main.ts               Converts CLI options to CreateAgentSessionOptions
+    |
+    v
+sdk.ts                createAgentSession() — assembles everything:
+    |                  model registry, auth, settings, workspace tree,
+    |                  context files, skills, tools, system prompt
+    v
+agent-loop.ts         @gajae-code/agent-core turn loop:
+    |                  user message -> model stream -> tool dispatch -> yield
+    v
+Mode dispatch         interactive (TUI), print, RPC, RPC-UI, or ACP</code></pre>
+
+      <h2>Execution Modes</h2>
+      <table>
+        <thead>
+          <tr><th>Mode</th><th>File</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Interactive</td>
+            <td><code>modes/interactive-mode.ts</code></td>
+            <td>Default TUI session with composer, live tool preview, chat history, and viewport scroll</td>
+          </tr>
+          <tr>
+            <td>Print</td>
+            <td><code>modes/print-mode.ts</code></td>
+            <td>Single-shot execution, outputs to stdout, exits</td>
+          </tr>
+          <tr>
+            <td>RPC</td>
+            <td><code>modes/rpc/</code></td>
+            <td>JSONL RPC over stdio — used by <code>jwc-rpc</code> Python client and <code>robogjc</code> bot</td>
+          </tr>
+          <tr>
+            <td>RPC-UI</td>
+            <td><code>modes/rpc/</code></td>
+            <td>RPC with attached TUI for debugging</td>
+          </tr>
+          <tr>
+            <td>ACP</td>
+            <td><code>modes/acp/</code></td>
+            <td>Agent Client Protocol for structured external integration</td>
+          </tr>
+          <tr>
+            <td>Bridge</td>
+            <td><code>modes/bridge/</code></td>
+            <td>Remote bridge connection to a backend server</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Key Design Decisions</h2>
+
+      <h3>Bun-native runtime</h3>
+      <p>
+        The entire stack runs on Bun — file I/O via <code>Bun.file()</code> /
+        <code>Bun.write()</code>, subprocess spawning via Bun Shell, SQLite via
+        <code>bun:sqlite</code>. A Node.js compatibility shim layer exists at
+        <code>packages/jwc/dist-node/</code> for the SDK embedding surface, but the
+        CLI itself requires Bun.
+      </p>
+
+      <h3>Rust N-API for hot paths</h3>
+      <p>
+        Performance-critical operations — grep, AST search/edit, syntax highlighting,
+        clipboard, PTY management, shell execution, token counting, and text
+        measurement — are implemented in Rust and exposed through N-API bindings.
+        The native layer is compiled per-platform and loaded at runtime with version
+        validation.
+      </p>
+
+      <h3>Fixed workflow surface</h3>
+      <p>
+        Exactly four workflow skills are bundled: <code>jaw-interview</code>,
+        <code>plan</code> (<code>jwc orchestrate</code>), <code>goal</code>
+        (<code>jwc goal</code>), and <code>team</code>. Five callable task role
+        agents complement them: <code>executor</code>, <code>executor_ext</code>,
+        <code>architect</code>, <code>planner</code>, and <code>critic</code>.
+        This surface is intentionally fixed — improvement comes from making this
+        small set better, not from adding more.
+      </p>
+
+      <h3>Prompt-cache-aware subagent design</h3>
+      <p>
+        Subagent spawn/resume cycles are designed around LLM prompt caching. Static
+        prompt segments (system prompt, role definitions) form a cacheable prefix
+        shared across fork/resume cycles. Dynamic content (assignment, conversation
+        snapshot) is appended after the static boundary. This means each
+        spawn/resume reuses cached tokens, reducing latency and cost.
+      </p>
+
+      <h3>Append-only context with compaction</h3>
+      <p>
+        The agent context is append-only during a session. When the context window
+        fills, a compaction pass summarizes older turns while preserving tool results
+        and key decisions. This avoids lossy sliding-window truncation while keeping
+        token usage bounded.
+      </p>
+
+      <h3>Source-bundled defaults</h3>
+      <p>
+        Default skills, prompts, and role agent definitions are embedded from source
+        files at build time using Bun's <code>import with { type: "text" }</code>.
+        The runtime can still discover project/user overrides from <code>.jwc/</code>
+        directories, but a missing project <code>.jwc</code> directory never removes
+        the default workflow surface.
+      </p>
+
+      <h2>Dependency Direction</h2>
+      <pre><code>jwc CLI/package (packages/jwc)
+  -> @gajae-code/coding-agent
+       -> @gajae-code/agent-core
+       -> @gajae-code/ai
+       -> @gajae-code/tui
+       -> @gajae-code/natives
+       -> @gajae-code/utils
+       -> @gajae-code/stats
+@gajae-code/natives
+  -> crates/pi-natives
+       -> crates/pi-ast
+       -> crates/pi-iso
+       -> crates/pi-shell
+            -> crates/brush-*-vendored</code></pre>
+
+      <h2>Verification Gates</h2>
+      <p>
+        The repository uses focused verification rather than monolithic CI:
+      </p>
+      <pre><code># TypeScript type checking
+bun run check:ts
+
+# Workflow definition integrity
+bun scripts/check-visible-definitions.ts
+bun scripts/verify-g002-gates.ts
+
+# Rebrand/naming consistency
+bun scripts/rebrand-inventory.ts --strict
+
+# Default surface tests
+bun test packages/coding-agent/test/default-jwc-definitions.test.ts</code></pre>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

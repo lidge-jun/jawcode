@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>086 — jaw 비주얼 정체성 시안 (TUI 미리보기)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #16181d; color: #d8dce3;
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', system-ui, sans-serif;
+    padding: 40px 28px 80px; max-width: 1280px; margin: 0 auto;
+  }
+  h1 { font-size: 22px; margin-bottom: 6px; }
+  .sub { color: #8b93a1; font-size: 13px; margin-bottom: 36px; }
+  h2 { font-size: 16px; margin: 44px 0 4px; }
+  h2 .badge {
+    font-size: 11px; font-weight: 600; vertical-align: 2px; margin-left: 8px;
+    padding: 2px 8px; border-radius: 10px; background: #2b4a52; color: #7ee8f0;
+  }
+  .desc { color: #8b93a1; font-size: 13px; margin-bottom: 14px; line-height: 1.6; }
+  .pair { display: flex; gap: 16px; flex-wrap: wrap; }
+  .col { flex: 1; min-width: 560px; }
+  .mode-label { font-size: 11px; color: #6f7785; margin-bottom: 6px; letter-spacing: 1px; }
+  pre.term {
+    font-family: 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+    font-size: 12.5px; line-height: 1.45;
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; overflow-x: auto;
+  }
+  .term .accent  { color: var(--accent); }
+  .term .accent2 { color: var(--accent2); }
+  .term .dim     { color: var(--dim); }
+  .term .ok      { color: var(--ok); }
+  .term .err     { color: var(--err); }
+  .term .warn    { color: var(--warn); }
+  .term .bold    { font-weight: 700; }
+  .term .pill    { background: var(--surface); border-radius: 4px; }
+  .term .usermsg { background: var(--surface); }
+  .term .mark {
+    background: linear-gradient(135deg, var(--g1), var(--g2), var(--g3), var(--g4), var(--g5));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    font-weight: 600;
+  }
+  .swatches { display: flex; gap: 8px; margin: 10px 0 0; flex-wrap: wrap; }
+  .sw { font-size: 10.5px; font-family: Menlo, monospace; color: #8b93a1; }
+  .sw i {
+    display: inline-block; width: 30px; height: 14px; border-radius: 3px;
+    vertical-align: -2px; margin-right: 4px; border: 1px solid #00000044;
+  }
+
+  /* ── 시안 1: jaw-deep ─────────────────────────── */
+  .jaw-deep-dark {
+    --bg:#0a0d12; --surface:#14202c; --border:#1b2c3c; --text:#dfeef2; --dim:#6b7c88;
+    --accent:#00d1da; --accent2:#00b6be; --ok:#5fd37f; --err:#ff4d5e; --warn:#f5b84b;
+    --g1:#0f2a43; --g2:#13647f; --g3:#00b6be; --g4:#00d1da; --g5:#d9f6f8;
+  }
+  .jaw-deep-light {
+    --bg:#f2f9fa; --surface:#e0eef1; --border:#c2dce2; --text:#14323c; --dim:#5d7682;
+    --accent:#00879a; --accent2:#006e7d; --ok:#1c8a44; --err:#d6394b; --warn:#a06a08;
+    --g1:#13455e; --g2:#13647f; --g3:#00879a; --g4:#00b6be; --g5:#43cdd9;
+  }
+  /* ── 시안 2: shark-gray ───────────────────────── */
+  .shark-gray-dark {
+    --bg:#0c0e10; --surface:#1a1f24; --border:#2a3138; --text:#e8ecef; --dim:#76828c;
+    --accent:#7da7c4; --accent2:#5d88a8; --ok:#5fd37f; --err:#ff5d6c; --warn:#e8b04b;
+    --g1:#2a3540; --g2:#4a6276; --g3:#7da7c4; --g4:#aac6da; --g5:#eef4f8;
+  }
+  .shark-gray-light {
+    --bg:#f6f8fa; --surface:#e9edf1; --border:#d0d7de; --text:#24292f; --dim:#6e7781;
+    --accent:#38678a; --accent2:#2c5573; --ok:#1a7f37; --err:#cf222e; --warn:#9a6700;
+    --g1:#23303a; --g2:#3a5468; --g3:#38678a; --g4:#5d88a8; --g5:#8fb4cd;
+  }
+  /* ── 시안 3: abyss-bite ───────────────────────── */
+  .abyss-bite-dark {
+    --bg:#0a0d12; --surface:#14202c; --border:#1b2c3c; --text:#dfeef2; --dim:#6b7c88;
+    --accent:#ff6a3d; --accent2:#00b6be; --ok:#5fd37f; --err:#ff4d5e; --warn:#ffd34d;
+    --g1:#0f2a43; --g2:#13647f; --g3:#00b6be; --g4:#ff6a3d; --g5:#ffd7a8;
+  }
+  .abyss-bite-light {
+    --bg:#f5f8f9; --surface:#e7eef0; --border:#cbdce0; --text:#1c3038; --dim:#5d7682;
+    --accent:#d94e22; --accent2:#00879a; --ok:#1c8a44; --err:#c1303f; --warn:#8f6400;
+    --g1:#13455e; --g2:#00879a; --g3:#00b6be; --g4:#e2532a; --g5:#f0a268;
+  }
+  .ref { color:#6f7785; font-size:11.5px; margin-top:6px; }
+  .markcmp pre.term { font-size: 13px; }
+</style>
+</head>
+<body>
+
+<h1>086 — jaw 비주얼 정체성 시안</h1>
+<p class="sub">
+  TUI welcome 화면 + 채팅 출력 목업 · 팔레트 3종 × 다크/라이트 ·
+  근거: cli-jaw 웹 <code>variables.css</code> (accent oklch 78% 0.14 200 = #00d1da, hue 200 시안 축)
+</p>
+
+<template id="tmpl">
+<pre class="term">╭─ <span class="bold">jwc v0.1.0 · Jawcode</span> ─────────────────────────────────────────────────╮
+│                                      │                                  │
+│         <span class="accent bold">Jawcode</span>                      │  <span class="accent">/help</span>    <span class="dim">commands</span>                │
+│    <span class="dim">bite · build · ship</span>               │  <span class="accent">/model</span>   <span class="dim">pick model</span>              │
+│                                      │  <span class="accent">/effort</span>  <span class="dim">reasoning level</span>         │
+│ <span class="mark">╭─────────────────╮      ╭───────╮</span>   │  <span class="accent">/theme</span>   <span class="dim">switch theme</span>            │
+│ <span class="mark">│╲╱╲╱╲╱╲╱╲╱╲╱╲╱╲╱ ╰────╮ ╭╯ ╭────╯</span>   │                                  │
+│ <span class="mark">╰──────────────╮       ╰─╯ ╭╯</span>       │  <span class="dim">recent sessions</span>                 │
+│ <span class="mark">╭──────────────╯       ╭─╮ ╰╮</span>       │  <span class="dim">· tool autocollapse  2h ago</span>     │
+│ <span class="mark">│╱╲╱╲╱╲╱╲╱╲╱╲╱╲╱╲ ╭────╯ ╰╮ ╰────╮</span>   │  <span class="dim">· effort selector    5h ago</span>     │
+│ <span class="mark">╰─────────────────╯      ╰───────╯</span>   │                                  │
+│                                      │                                  │
+│      <span class="pill"> ◆ fable-5 </span> <span class="pill"> ⬡ kiro </span>          │                                  │
+╰──────────────────────────────────────┴──────────────────────────────────╯
+
+ <span class="dim">❯</span> <span class="usermsg"> 접기 기능 테스트하고 빌드 돌려줘 </span>
+
+ <span class="accent2">✻ Thinking…</span> <span class="dim">도구 출력 접힘 상태를 확인하고 bun test를 실행한다</span>
+
+ <span class="accent">●</span> <span class="bold">bash</span> <span class="dim">bun test · … +12 lines</span>
+ <span class="accent">❯</span><span class="accent">●</span> <span class="bold">read</span> <span class="dim">tool-execution.ts · … +40 lines</span>   <span class="dim">← ctrl+↑ 포커스</span>
+
+ <span class="ok">✓ 218 pass</span>  <span class="warn">⚠ 2 skip</span>  <span class="err">✗ cursor provider: usage under-report</span>
+
+ <span class="dim">────────────────────────────────────────────────────────────────────────</span>
+ <span class="accent bold"> JWC </span><span class="dim"> ~/jawcode · agent · </span><span class="accent2">⛁ 42k/200k</span><span class="dim"> · effort:high</span></pre>
+</template>
+
+<!-- ════════ 시안 1 ════════ -->
+<h2>시안 1 — <code>jaw-deep</code> 심해 시안 <span class="badge">⭐ 추천 · cli-jaw 웹 직계</span></h2>
+<p class="desc">
+  cli-jaw 웹 UI와 동일한 hue 200 축 — 웹↔TUI 단일 브랜드 언어. accent 시안(#00d1da)이
+  error 빨강·warning 호박과 멀어서 시맨틱 컬러 충돌 제로. 배너 그라디언트: 심해 → 발광 → 물거품.
+</p>
+<div class="pair">
+  <div class="col"><div class="mode-label">DARK (기본)</div><div data-slot="jaw-deep-dark"></div>
+    <div class="swatches">
+      <span class="sw"><i style="background:#0a0d12"></i>ink</span>
+      <span class="sw"><i style="background:#14202c"></i>surface</span>
+      <span class="sw"><i style="background:#00d1da"></i>accent</span>
+      <span class="sw"><i style="background:#00b6be"></i>accent2</span>
+      <span class="sw"><i style="background:#dfeef2"></i>foam</span>
+      <span class="sw"><i style="background:#7ee8f0"></i>highlight</span>
+    </div></div>
+  <div class="col"><div class="mode-label">LIGHT</div><div data-slot="jaw-deep-light"></div>
+    <div class="swatches">
+      <span class="sw"><i style="background:#f2f9fa"></i>bg</span>
+      <span class="sw"><i style="background:#00879a"></i>accent</span>
+      <span class="sw"><i style="background:#14323c"></i>text</span>
+    </div></div>
+</div>
+
+<!-- ════════ 시안 2 ════════ -->
+<h2>시안 2 — <code>shark-gray</code> 상어 그레이</h2>
+<p class="desc">
+  상어 등가죽 스틸 그레이 + 흰 배 하이라이트. accent #7da7c4 (차분한 스틸 블루).
+  GitHub 결의 무광 절제 — 점잖지만 브랜드색 존재감은 시안 1보다 약함.
+</p>
+<div class="pair">
+  <div class="col"><div class="mode-label">DARK (기본)</div><div data-slot="shark-gray-dark"></div>
+    <div class="swatches">
+      <span class="sw"><i style="background:#0c0e10"></i>ink</span>
+      <span class="sw"><i style="background:#1a1f24"></i>surface</span>
+      <span class="sw"><i style="background:#7da7c4"></i>accent</span>
+      <span class="sw"><i style="background:#e8ecef"></i>belly</span>
+    </div></div>
+  <div class="col"><div class="mode-label">LIGHT</div><div data-slot="shark-gray-light"></div>
+    <div class="swatches">
+      <span class="sw"><i style="background:#f6f8fa"></i>bg</span>
+      <span class="sw"><i style="background:#38678a"></i>accent</span>
+      <span class="sw"><i style="background:#24292f"></i>text</span>
+    </div></div>
+</div>
+
+<!-- ════════ 시안 3 ════════ -->
+<h2>시안 3 — <code>abyss-bite</code> 심해 + 바이트 포인트</h2>
+<p class="desc">
+  베이스는 jaw-deep과 동일한 심해 블루, accent 한 슬롯만 red-claw의 주황(#ff6a3d) 계승 —
+  "물어뜯는 포인트". gjc 혈통 연속성 최고. ⚠️ 단 warm accent가 warning 호박과 근접해서
+  warning을 #ffd34d로 밀어내는 재조정 동반 (REBRANDING_PLAN 원칙 3 — 브랜드색 ≠ 경고색).
+</p>
+<div class="pair">
+  <div class="col"><div class="mode-label">DARK (기본)</div><div data-slot="abyss-bite-dark"></div>
+    <div class="swatches">
+      <span class="sw"><i style="background:#0a0d12"></i>ink</span>
+      <span class="sw"><i style="background:#ff6a3d"></i>accent(bite)</span>
+      <span class="sw"><i style="background:#00b6be"></i>accent2</span>
+      <span class="sw"><i style="background:#ffd34d"></i>warning(이동)</span>
+    </div></div>
+  <div class="col"><div class="mode-label">LIGHT</div><div data-slot="abyss-bite-light"></div>
+    <div class="swatches">
+      <span class="sw"><i style="background:#f5f8f9"></i>bg</span>
+      <span class="sw"><i style="background:#d94e22"></i>accent</span>
+      <span class="sw"><i style="background:#00879a"></i>accent2</span>
+    </div></div>
+</div>
+
+<!-- ════════ 마크 비교 ════════ -->
+<h2>마크 방향 비교 <span class="badge">jaw-deep 그라디언트 적용</span></h2>
+<p class="desc">
+  claw 마크와 동일 규격(6행 × ~36열 박스드로잉). 초안 — 구현 시 정련.
+  A는 claw의 "두 짝 대칭" 구도를 턱으로 계승, B는 미니멀한 한 덩어리 실루엣.
+</p>
+<div class="pair markcmp">
+  <div class="col jaw-deep-dark">
+    <div class="mode-label">방향 A — 턱 (jaws) · claw 구도 계승</div>
+<pre class="term">
+   <span class="mark">╭─────────────────╮      ╭───────╮</span>
+   <span class="mark">│╲╱╲╱╲╱╲╱╲╱╲╱╲╱╲╱ ╰────╮ ╭╯ ╭────╯</span>
+   <span class="mark">╰──────────────╮       ╰─╯ ╭╯</span>
+   <span class="mark">╭──────────────╯       ╭─╮ ╰╮</span>
+   <span class="mark">│╱╲╱╲╱╲╱╲╱╲╱╲╱╲╱╲ ╭────╯ ╰╮ ╰────╮</span>
+   <span class="mark">╰─────────────────╯      ╰───────╯</span>
+</pre>
+    <p class="ref">위·아래 이빨 지그재그가 마주 보는 열린 턱 — 기존 claw(집게 두 짝)와 같은 대칭 리듬</p>
+  </div>
+  <div class="col jaw-deep-dark">
+    <div class="mode-label">방향 B — 지느러미 (fin) · 미니멀</div>
+<pre class="term">
+   <span class="mark">              ╭╮</span>
+   <span class="mark">             ╱ ╰─╮</span>
+   <span class="mark">            ╱    ╰──╮</span>
+   <span class="mark">          ╭╯        ╰───╮</span>
+   <span class="mark">     ╭────╯             ╰─────╮</span>
+   <span class="mark">~~~~~╯~~~~~~~~~~~~~~~~~~~~~~~~╰~~~~</span>
+</pre>
+    <p class="ref">수면선을 가르는 등지느러미 — 좁은 터미널 폴백에 유리, 단 claw 구도와는 단절</p>
+  </div>
+</div>
+
+<!-- ════════ 그라디언트 비교 ════════ -->
+<h2>배너 그라디언트 (256색 폴백 전 truecolor 기준)</h2>
+<div class="pair">
+  <div class="col"><div class="mode-label">jaw-deep</div>
+    <div style="height:28px;border-radius:6px;background:linear-gradient(90deg,#0f2a43,#13647f,#00b6be,#00d1da,#d9f6f8)"></div>
+    <p class="ref">심해 → 발광 플랑크톤 → 물거품 (red-claw의 적갈→빨강→산호→모래를 한색 축으로 대칭 반전)</p></div>
+  <div class="col"><div class="mode-label">shark-gray</div>
+    <div style="height:28px;border-radius:6px;background:linear-gradient(90deg,#2a3540,#4a6276,#7da7c4,#aac6da,#eef4f8)"></div>
+    <p class="ref">등가죽 → 옆구리 → 흰 배</p></div>
+  <div class="col"><div class="mode-label">abyss-bite</div>
+    <div style="height:28px;border-radius:6px;background:linear-gradient(90deg,#0f2a43,#13647f,#00b6be,#ff6a3d,#ffd7a8)"></div>
+    <p class="ref">심해 → 시안 → 바이트! (red-claw 끝색 계승)</p></div>
+</div>
+
+<script>
+  const tmpl = document.getElementById("tmpl");
+  document.querySelectorAll("[data-slot]").forEach(slot => {
+    const clone = tmpl.content.cloneNode(true);
+    clone.querySelector("pre").classList.add(slot.dataset.slot);
+    slot.appendChild(clone);
+  });
+</script>
+</body>
+</html>

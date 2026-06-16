@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>D-stage: Done — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>D-stage: Done</h1>
+      <p>The final IPABCD stage. After C-stage mechanical gates and adversarial review pass, D-stage summarizes the full cycle and closes the orchestration.</p>
+
+      <h2>What happens in D-stage</h2>
+      <p>The agent reports four things in one line each:</p>
+      <ol>
+        <li><strong>P (Plan)</strong> — what was planned, how many files, which acceptance criteria.</li>
+        <li><strong>A (Audit)</strong> — audit verdicts from Planner and Architect subagents.</li>
+        <li><strong>B (Build)</strong> — what was implemented, how many commits, verifier outcome.</li>
+        <li><strong>C (Check)</strong> — mechanical gate results (typecheck, tests, lint) and adversarial review outcome.</li>
+      </ol>
+      <p>Then two structured reflections follow.</p>
+
+      <h2>WONDER</h2>
+      <p>WONDER asks: <em>"What's still missing?"</em></p>
+      <ul>
+        <li>What edge cases were NOT covered by acceptance criteria?</li>
+        <li>What assumptions turned out wrong during build?</li>
+        <li>Are there integration risks the plan didn't anticipate?</li>
+      </ul>
+      <p>WONDER items are not failures — they are honest admissions of scope gaps. A clean WONDER section means the spec was tight. A long one means the next cycle should start with <code>orchestrate i</code> to sharpen the spec.</p>
+
+      <h2>REFLECT</h2>
+      <p>REFLECT asks: <em>"How would we improve the spec?"</em></p>
+      <ul>
+        <li>Which acceptance criteria need sharpening?</li>
+        <li>Which constraints were missing?</li>
+        <li>What would change if we revised the ontology?</li>
+      </ul>
+      <p>REFLECT feeds forward into the next IPABCD cycle. If the same project continues, REFLECT items become interview questions for the next I-stage.</p>
+
+      <h2>Closing the orchestration</h2>
+      <p>After the summary and reflections are written, the agent runs:</p>
+      <pre><code>jwc orchestrate d</code></pre>
+      <p>This writes a closing receipt to <code>.jwc/state/sessions/&lt;session-id&gt;/pabcd-state.json</code> and returns the orchestration to idle. The summary + reflections text is the user-facing artifact; the state file records the machine-readable receipt.</p>
+
+      <h3>When issues surface</h3>
+      <p>If WONDER or REFLECT reveal significant gaps:</p>
+      <ul>
+        <li><strong>Spec-level issue</strong> — suggest <code>orchestrate i</code> to re-interview.</li>
+        <li><strong>Plan-level issue</strong> — suggest <code>orchestrate p</code> to re-plan.</li>
+        <li><strong>No significant issues</strong> — state completion plainly. No ceremony.</li>
+      </ul>
+
+      <h2>Goal-mode continuation</h2>
+      <p>When D-stage closes inside an active <code>jwc goal</code>, the orchestration returns to idle but the goal may not be complete. The agent checks whether the goal objective is fully achieved:</p>
+      <ul>
+        <li><strong>Work remains</strong> — re-enter planning with <code>orchestrate p</code> for the next piece. PABCD cycles repeat until the goal is done.</li>
+        <li><strong>Goal complete</strong> — run <code>jwc goal done</code> to close the ledger.</li>
+        <li><strong>Direction change needed</strong> — pause and ask the user.</li>
+      </ul>
+      <p>This is how HOTL (Human-on-the-Loop) works in practice: PABCD cycles loop inside a goal until every deliverable has evidence.</p>
+
+      <h2>State artifacts</h2>
+      <table>
+        <thead>
+          <tr><th>Artifact</th><th>Location</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>PABCD state</td>
+            <td><code>.jwc/state/sessions/&lt;id&gt;/pabcd-state.json</code></td>
+            <td>Machine-readable cycle receipt with phase, verdicts, timestamps</td>
+          </tr>
+          <tr>
+            <td>Plan files</td>
+            <td><code>.jwc/plans/planphase/&lt;run-id&gt;/</code></td>
+            <td>Plan, critic verdicts, synthesis, audit verdicts, final</td>
+          </tr>
+          <tr>
+            <td>Goal ledger</td>
+            <td><code>.jwc/goal/ledger.jsonl</code></td>
+            <td>Append-only log of goal updates, evidence, checkpoints</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Example D-stage output</h2>
+      <pre><code>## PABCD Cycle Complete
+
+P (Plan): 4-stream implementation — landing page, 5 subpages, deploy infra.
+   Critic R1 ITERATE -> R2 ITERATE -> R3 OKAY.
+A (Audit): Planner PASS + Architect PASS at a-r1.
+B (Build): 8 subagents across 4 streams. Verifier DONE.
+C (Check): YAML valid, locale 83/83 match, typecheck clean, 15 files verified.
+
+### WONDER
+- Mobile hamburger menu JS is minimal — no animation/transition
+- No 404.html for GitHub Pages custom domains
+
+### REFLECT
+- AC should have included favicon file size constraint
+- k-writing rules should have been testable</code></pre>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

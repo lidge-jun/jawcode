@@ -1,0 +1,1 @@
+Verdict: OKAY — bounded verification cycle; disk precedence explicitly out of scope.

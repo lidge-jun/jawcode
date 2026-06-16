@@ -1,0 +1,1 @@
+Verdict: DONE — G002 + public-legacy-zero + workflow-surface tests green

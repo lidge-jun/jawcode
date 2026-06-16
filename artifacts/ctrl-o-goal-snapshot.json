@@ -1,0 +1,13 @@
+{
+  "goal": {
+    "objective": "Fix Ctrl+O tool/thinking expansion under PABCD: within the current assistant turn since the immediately previous user message, expand eligible tool/thinking output and collapse it back completely, preserving Ctrl+T work and adding focused regressions for the user/jawjawjaw/user boundary.",
+    "status": "active",
+    "updatedAt": "2026-06-15T12:46:51.390Z"
+  },
+  "details": {
+    "source": "goal({op:\"get\"}) compatible final snapshot",
+    "dSummary": "devlog/_plan/260615_ctrl_o_turn_scope/10.14_d_done_summary.md",
+    "implementationCommit": "91ff4860",
+    "verification": "bun run check PASS; focused tests 34 pass / 139 assertions"
+  }
+}

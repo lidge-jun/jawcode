@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>C: Check — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>C: Check Stage</h1>
+      <p>The Check stage runs mechanical verification gates, then performs adversarial review with 3-way reject routing. It ensures that implemented code actually works, passes tests, and meets the plan's acceptance criteria at the integration level.</p>
+
+      <h2>Two-phase check</h2>
+      <h3>Phase 1: Mechanical gates</h3>
+      <p>Automated checks run against the codebase:</p>
+      <pre><code># Type checking
+bun run check:ts
+
+# Affected test suites
+bun test &lt;affected-files&gt;
+
+# Lint and format verification
+bun run check</code></pre>
+      <p>All mechanical gates must pass before Phase 2 begins. If any fail, the agent fixes the issues and re-runs.</p>
+
+      <h3>Phase 2: Adversarial review</h3>
+      <p>After mechanical gates pass, the agent conducts an adversarial review:</p>
+      <ul>
+        <li>Re-read every changed file against the plan's acceptance criteria</li>
+        <li>Look for edge cases, error handling gaps, and missing test coverage</li>
+        <li>Check for security issues (OWASP top 10: injection, XSS, SSRF, path traversal)</li>
+        <li>Verify no debug leftovers, TODO stubs, or placeholder implementations remain</li>
+        <li>Confirm observable behavior matches what was specified</li>
+      </ul>
+
+      <h2>3-way reject routing</h2>
+      <p>If the Check stage finds issues, it routes the rejection back to the appropriate stage based on the issue type:</p>
+      <table>
+        <thead>
+          <tr><th>Issue type</th><th>Route to</th><th>Rationale</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Code bug, missing edge case, test failure</td>
+            <td><strong>B (Build)</strong></td>
+            <td>Implementation error; fix the code</td>
+          </tr>
+          <tr>
+            <td>Acceptance criteria unclear, plan gap, sequencing error</td>
+            <td><strong>P (Planning)</strong></td>
+            <td>Plan was flawed; revise and re-audit</td>
+          </tr>
+          <tr>
+            <td>Requirements ambiguity, missing domain context, scope mismatch</td>
+            <td><strong>I (Interview)</strong></td>
+            <td>Spec was incomplete; gather more requirements</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>This routing ensures problems are fixed at their source. A spec ambiguity is not patched at the code level; it goes back to requirements gathering.</p>
+
+      <h2>Verification scope matching</h2>
+      <p>The Check stage enforces a strict rule: <strong>verification scope must match claim scope</strong>.</p>
+      <ul>
+        <li>If the plan claims 10 acceptance criteria, all 10 must have direct evidence</li>
+        <li>If a deliverable lacks current-state evidence, the work is not complete</li>
+        <li>Verification claims must match what was actually run (no fabricated outputs)</li>
+        <li>If verification was not run, it must be declared explicitly</li>
+      </ul>
+
+      <h2>What counts as evidence</h2>
+      <table>
+        <thead>
+          <tr><th>Evidence type</th><th>Example</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Test output</td><td><code>bun test src/auth.test.ts</code> — 12 pass, 0 fail</td></tr>
+          <tr><td>Type check</td><td><code>bun run check:ts</code> — clean</td></tr>
+          <tr><td>File existence</td><td><code>docs/workflow/overview.html</code> — 6.7KB</td></tr>
+          <tr><td>Browser verification</td><td>Screenshot showing rendered output</td></tr>
+          <tr><td>Command output</td><td>CLI transcript showing expected behavior</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Completion contract</h2>
+      <p>The Check stage enforces the completion contract:</p>
+      <ul>
+        <li>No partial work presented as complete</li>
+        <li>No suppressed tests or warnings</li>
+        <li>No fabricated outputs or tool results</li>
+        <li>No stubs, placeholders, or TODO-only code shipped as delivered features</li>
+        <li>Faithful bidirectional reporting: failures reported honestly, successes stated without unnecessary hedging</li>
+      </ul>
+
+      <h2>Gate</h2>
+      <p>The C stage gate requires:</p>
+      <ul>
+        <li>All mechanical checks pass (types, tests, lint)</li>
+        <li>Adversarial review finds no blockers</li>
+        <li>Every acceptance criterion has direct evidence</li>
+        <li>No 3-way reject routing triggered (or all routed issues resolved)</li>
+      </ul>
+
+      <h2>Next steps</h2>
+      <ul>
+        <li><a href="overview.html">IPABCD Overview</a> — the D (Done) stage closes the cycle</li>
+        <li><a href="build.html">B: Build</a> — where to return for code issues</li>
+        <li><a href="plan.html">P: Planning</a> — where to return for plan issues</li>
+      </ul>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

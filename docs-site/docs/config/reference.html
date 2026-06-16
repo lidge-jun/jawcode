@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuration Reference — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Configuration Reference</h1>
+      <p>All settings are defined in <code>config.yml</code> (located at <code>~/.jwc/agent/config.yml</code>) or set via the in-TUI settings panel (<code>/settings</code>). Settings are organized into tabs.</p>
+
+      <h2>Identity</h2>
+      <p>Agent persona rendered into the system prompt identity block. When all fields are unset, no identity block is rendered.</p>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>identity.name</code></td><td>string</td><td>&mdash;</td><td>Agent display name</td></tr>
+          <tr><td><code>identity.emoji</code></td><td>string</td><td>&mdash;</td><td>Signature emoji</td></tr>
+          <tr><td><code>identity.vibe</code></td><td>string</td><td>&mdash;</td><td>Tone and personality (separate with <code>;</code> or newlines)</td></tr>
+          <tr><td><code>identity.language</code></td><td>string</td><td>&mdash;</td><td>Preferred response language (e.g. Korean, English)</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Appearance</h2>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>theme.dark</code></td><td>string</td><td><code>abyss-bite</code></td><td>Dark theme name</td></tr>
+          <tr><td><code>theme.light</code></td><td>string</td><td><code>abyss-bite-light</code></td><td>Light theme name</td></tr>
+          <tr><td><code>symbolPreset</code></td><td>enum</td><td><code>unicode</code></td><td>Icon style: <code>unicode</code>, <code>nerd</code>, <code>ascii</code></td></tr>
+          <tr><td><code>colorBlindMode</code></td><td>boolean</td><td><code>false</code></td><td>Blue instead of green for diff additions</td></tr>
+          <tr><td><code>statusLine.preset</code></td><td>enum</td><td><code>default</code></td><td>Status line layout: <code>default</code>, <code>minimal</code>, <code>compact</code>, <code>full</code>, <code>nerd</code>, <code>ascii</code>, <code>custom</code></td></tr>
+          <tr><td><code>statusLine.separator</code></td><td>enum</td><td><code>slash</code></td><td>Separator style: <code>powerline</code>, <code>powerline-thin</code>, <code>slash</code>, <code>pipe</code>, <code>block</code>, <code>none</code>, <code>ascii</code></td></tr>
+          <tr><td><code>statusLine.sessionAccent</code></td><td>boolean</td><td><code>true</code></td><td>Use session name color for editor border and status line gap</td></tr>
+          <tr><td><code>terminal.showImages</code></td><td>boolean</td><td><code>true</code></td><td>Render images inline (requires image protocol)</td></tr>
+          <tr><td><code>images.autoResize</code></td><td>boolean</td><td><code>true</code></td><td>Resize large images to 2000x2000 max</td></tr>
+          <tr><td><code>images.blockImages</code></td><td>boolean</td><td><code>false</code></td><td>Block images from being sent to providers</td></tr>
+          <tr><td><code>tui.hyperlinks</code></td><td>enum</td><td><code>auto</code></td><td>OSC 8 hyperlinks: <code>off</code>, <code>auto</code>, <code>always</code></td></tr>
+          <tr><td><code>tui.composerPin</code></td><td>boolean</td><td><code>true</code> (jwc)</td><td>Pin composer to terminal bottom</td></tr>
+          <tr><td><code>tui.composerFooter</code></td><td>boolean</td><td><code>true</code> (jwc)</td><td>Persistent footer line below composer</td></tr>
+          <tr><td><code>tool.renderMode</code></td><td>enum</td><td><code>commit</code> (jwc)</td><td><code>commit</code>: live zone + collapsed history. <code>verbose</code>: inline streaming (legacy)</td></tr>
+          <tr><td><code>display.tabWidth</code></td><td>number</td><td><code>3</code></td><td>Tab-to-spaces width</td></tr>
+          <tr><td><code>display.shimmer</code></td><td>enum</td><td><code>classic</code></td><td>Loading animation: <code>classic</code>, <code>kitt</code>, <code>disabled</code></td></tr>
+          <tr><td><code>display.showTokenUsage</code></td><td>boolean</td><td><code>false</code></td><td>Per-turn token usage on assistant messages</td></tr>
+          <tr><td><code>showHardwareCursor</code></td><td>boolean</td><td><code>true</code></td><td>Terminal cursor for IME support</td></tr>
+          <tr><td><code>clearOnShrink</code></td><td>boolean</td><td><code>false</code></td><td>Clear empty rows on content shrink (may flicker)</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Model</h2>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>modelProfile.default</code></td><td>string</td><td>&mdash;</td><td>Default model profile applied at startup</td></tr>
+          <tr><td><code>defaultThinkingLevel</code></td><td>enum</td><td><code>high</code></td><td>Reasoning depth for thinking-capable models</td></tr>
+          <tr><td><code>hideThinkingBlock</code></td><td>boolean</td><td><code>false</code></td><td>Hide thinking blocks in responses</td></tr>
+          <tr><td><code>temperature</code></td><td>number</td><td><code>-1</code></td><td>Sampling temperature (-1 = provider default)</td></tr>
+          <tr><td><code>topP</code></td><td>number</td><td><code>-1</code></td><td>Nucleus sampling cutoff (-1 = provider default)</td></tr>
+          <tr><td><code>topK</code></td><td>number</td><td><code>-1</code></td><td>Top-K token sampling (-1 = provider default)</td></tr>
+          <tr><td><code>minP</code></td><td>number</td><td><code>-1</code></td><td>Minimum probability threshold (-1 = provider default)</td></tr>
+          <tr><td><code>presencePenalty</code></td><td>number</td><td><code>-1</code></td><td>Penalty for already-present tokens</td></tr>
+          <tr><td><code>repetitionPenalty</code></td><td>number</td><td><code>-1</code></td><td>Penalty for repeated tokens</td></tr>
+          <tr><td><code>serviceTier</code></td><td>enum</td><td><code>none</code></td><td>Processing priority: <code>none</code>, <code>auto</code>, <code>default</code>, <code>flex</code>, <code>scale</code>, <code>priority</code>, <code>openai-only</code>, <code>claude-only</code></td></tr>
+          <tr><td><code>repeatToolDescriptions</code></td><td>boolean</td><td><code>false</code></td><td>Full tool descriptions in system prompt instead of name list</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Retry &amp; Fallback</h2>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>retry.enabled</code></td><td>boolean</td><td><code>true</code></td><td>Enable automatic retries</td></tr>
+          <tr><td><code>retry.maxRetries</code></td><td>number</td><td><code>3</code></td><td>Maximum retry attempts on API errors</td></tr>
+          <tr><td><code>retry.baseDelayMs</code></td><td>number</td><td><code>2000</code></td><td>Base delay between retries (ms)</td></tr>
+          <tr><td><code>retry.maxDelayMs</code></td><td>number</td><td><code>300000</code></td><td>Maximum delay between retries. Fails fast if provider asks for longer</td></tr>
+          <tr><td><code>retry.requestMaxRetries</code></td><td>number</td><td><code>5</code></td><td>Provider request retries before stream establishment</td></tr>
+          <tr><td><code>retry.streamMaxRetries</code></td><td>number</td><td><code>5</code></td><td>Stream replay retries for transient stream failures</td></tr>
+          <tr><td><code>retry.fallbackChains</code></td><td>record</td><td><code>{}</code></td><td>Model fallback chains (e.g. <code>{"claude-sonnet": ["gpt-4o"]}</code>)</td></tr>
+          <tr><td><code>retry.fallbackRevertPolicy</code></td><td>enum</td><td><code>cooldown-expiry</code></td><td>When to return to primary model: <code>cooldown-expiry</code> or <code>never</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2>Interaction</h2>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>autoResume</code></td><td>boolean</td><td><code>false</code></td><td>Auto-resume most recent session in current directory</td></tr>
+          <tr><td><code>steeringMode</code></td><td>enum</td><td><code>one-at-a-time</code></td><td>How queued messages are processed while agent works</td></tr>
+          <tr><td><code>followUpMode</code></td><td>enum</td><td><code>one-at-a-time</code></td><td>How follow-up messages drain after turn completion</td></tr>
+          <tr><td><code>interruptMode</code></td><td>enum</td><td><code>immediate</code></td><td>When steering messages interrupt tool execution</td></tr>
+          <tr><td><code>busyPromptMode</code></td><td>enum</td><td><code>steer</code></td><td>Prompt behavior while agent is busy: <code>steer</code> or <code>queue</code></td></tr>
+          <tr><td><code>doubleEscapeAction</code></td><td>enum</td><td><code>tree</code></td><td>Action on double-Escape: <code>branch</code>, <code>tree</code>, <code>none</code></td></tr>
+          <tr><td><code>autocompleteMaxVisible</code></td><td>number</td><td><code>5</code></td><td>Max visible items in autocomplete dropdown (3-20)</td></tr>
+          <tr><td><code>emojiAutocomplete</code></td><td>boolean</td><td><code>true</code></td><td>Suggest emojis from <code>:name:</code> shortcodes</td></tr>
+          <tr><td><code>startup.quiet</code></td><td>boolean</td><td><code>false</code></td><td>Skip welcome screen and startup messages</td></tr>
+          <tr><td><code>startup.checkUpdate</code></td><td>boolean</td><td><code>true</code></td><td>Check for updates on startup</td></tr>
+          <tr><td><code>completion.notify</code></td><td>enum</td><td><code>on</code></td><td>Notification when agent completes</td></tr>
+          <tr><td><code>ask.timeout</code></td><td>number</td><td><code>0</code></td><td>Auto-select recommended option after timeout (0 = disabled)</td></tr>
+          <tr><td><code>ask.notify</code></td><td>enum</td><td><code>on</code></td><td>Notification when ask tool waits for input</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Speech-to-Text</h3>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>stt.enabled</code></td><td>boolean</td><td><code>false</code></td><td>Enable speech-to-text input</td></tr>
+          <tr><td><code>stt.language</code></td><td>string</td><td><code>en</code></td><td>Speech recognition language</td></tr>
+          <tr><td><code>stt.modelName</code></td><td>enum</td><td><code>base.en</code></td><td>Whisper model size</td></tr>
+        </tbody>
+      </table>
+
+      <h3>macOS Power</h3>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>power.preventIdleSleep</code></td><td>boolean</td><td><code>true</code></td><td>caffeinate -i: keep system awake</td></tr>
+          <tr><td><code>power.preventSystemSleep</code></td><td>boolean</td><td><code>false</code></td><td>caffeinate -s: block all sleep on AC</td></tr>
+          <tr><td><code>power.declareUserActive</code></td><td>boolean</td><td><code>false</code></td><td>caffeinate -u: keep display lit</td></tr>
+          <tr><td><code>power.preventDisplaySleep</code></td><td>boolean</td><td><code>false</code></td><td>caffeinate -d: prevent display idle-sleep</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Context</h2>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>contextPromotion.enabled</code></td><td>boolean</td><td><code>false</code></td><td>Auto-promote to larger-context model on overflow</td></tr>
+          <tr><td><code>compaction.enabled</code></td><td>boolean</td><td><code>true</code></td><td>Auto-compact when context gets large</td></tr>
+          <tr><td><code>compaction.strategy</code></td><td>enum</td><td><code>context-full</code></td><td><code>context-full</code>: in-place summarize. <code>handoff</code>: new session. <code>off</code>: disabled</td></tr>
+          <tr><td><code>compaction.thresholdPercent</code></td><td>number</td><td><code>73</code></td><td>Context usage percent that triggers compaction</td></tr>
+          <tr><td><code>compaction.thresholdTokens</code></td><td>number</td><td><code>-1</code></td><td>Fixed token limit (overrides percentage if set)</td></tr>
+          <tr><td><code>compaction.reserveTokens</code></td><td>number</td><td><code>16384</code></td><td>Reserved tokens for new content after compaction</td></tr>
+          <tr><td><code>compaction.keepRecentTokens</code></td><td>number</td><td><code>20000</code></td><td>Recent tokens preserved during compaction</td></tr>
+          <tr><td><code>compaction.autoContinue</code></td><td>boolean</td><td><code>true</code></td><td>Auto-continue after compaction</td></tr>
+          <tr><td><code>compaction.remoteEnabled</code></td><td>boolean</td><td><code>true</code></td><td>Use remote compaction endpoints when available</td></tr>
+          <tr><td><code>compaction.idleEnabled</code></td><td>boolean</td><td><code>false</code></td><td>Compact while idle above threshold</td></tr>
+          <tr><td><code>compaction.idleThresholdTokens</code></td><td>number</td><td><code>200000</code></td><td>Token count for idle compaction trigger</td></tr>
+          <tr><td><code>compaction.idleTimeoutSeconds</code></td><td>number</td><td><code>300</code></td><td>Seconds idle before compacting</td></tr>
+          <tr><td><code>branchSummary.enabled</code></td><td>boolean</td><td><code>false</code></td><td>Summarize when leaving a branch</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Tools</h2>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>tools.artifactSpillThreshold</code></td><td>number</td><td><code>50</code></td><td>KB threshold for spilling tool output to artifact</td></tr>
+          <tr><td><code>tools.artifactTailBytes</code></td><td>number</td><td><code>20</code></td><td>KB of tail content kept inline on spill</td></tr>
+          <tr><td><code>tools.artifactHeadBytes</code></td><td>number</td><td><code>20</code></td><td>KB of head content kept inline (0 = tail-only)</td></tr>
+          <tr><td><code>tools.artifactTailLines</code></td><td>number</td><td><code>500</code></td><td>Max lines of tail content kept inline on spill</td></tr>
+          <tr><td><code>tools.outputMaxColumns</code></td><td>number</td><td><code>768</code></td><td>Per-line byte cap for streaming tool outputs</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Tasks &amp; Subagents</h2>
+      <p>Task and subagent settings control the parallel execution system. See the <a href="../subagents/overview.html">Subagent System</a> documentation for architectural details.</p>
+
+      <h2>Providers</h2>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>disabledProviders</code></td><td>array</td><td>(platform defaults)</td><td>Providers to exclude from model discovery</td></tr>
+          <tr><td><code>enabledModels</code></td><td>array</td><td><code>[]</code></td><td>Explicit model allowlist (empty = all available)</td></tr>
+          <tr><td><code>modelRoles</code></td><td>record</td><td><code>{}</code></td><td>Named model roles (e.g. <code>{"default": "claude-sonnet"}</code>)</td></tr>
+          <tr><td><code>modelTags</code></td><td>record</td><td><code>{}</code></td><td>Custom model tag definitions</td></tr>
+          <tr><td><code>modelProviderOrder</code></td><td>array</td><td><code>[]</code></td><td>Provider preference order for model selection</td></tr>
+          <tr><td><code>cycleOrder</code></td><td>array</td><td><code>["default"]</code></td><td>Model cycle order for <code>/model cycle</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2>Auth Broker</h2>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>auth.broker.url</code></td><td>string</td><td>&mdash;</td><td>Remote auth broker URL (<code>GJC_AUTH_BROKER_URL</code> env takes precedence)</td></tr>
+          <tr><td><code>auth.broker.token</code></td><td>string</td><td>&mdash;</td><td>Auth broker token (<code>GJC_AUTH_BROKER_TOKEN</code> env takes precedence)</td></tr>
+        </tbody>
+      </table>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

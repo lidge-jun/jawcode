@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Start — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Quick Start</h1>
+      <p>Get from zero to a working Jawcode session in under two minutes.</p>
+
+      <h2>1. Launch in any repository</h2>
+      <p>Navigate to any Git repository and run <code>jwc</code>:</p>
+      <pre><code>cd ~/my-project
+jwc</code></pre>
+      <p>Jawcode starts an interactive TUI session. You will see the gradient welcome banner with the shark-fin logo, then a composer input at the bottom.</p>
+
+      <h2>2. Send your first message</h2>
+      <p>Type a request in the composer and press Enter. Jawcode reads your repository context (files, git history, <code>AGENTS.md</code>) and responds with tool calls and explanations.</p>
+      <pre><code># Or pass a message directly from the command line
+jwc "explain the architecture of this project"</code></pre>
+      <p>For file-specific context, use <code>@</code> references:</p>
+      <pre><code>jwc "review this file for bugs" @src/auth.ts</code></pre>
+
+      <h2>3. Use the IPABCD workflow</h2>
+      <p>Jawcode's structured workflow takes ideas from interview to verified delivery. For a vague requirement, start with the interview stage:</p>
+      <pre><code># Inside a jwc session, type:
+/skill:jaw-interview</code></pre>
+      <p>The interview asks clarifying questions, scores ambiguity, and produces a spec under <code>.jwc/specs/</code>.</p>
+
+      <p>When requirements are clear enough to plan:</p>
+      <pre><code># Advance to planning
+jwc orchestrate p</code></pre>
+      <p>This generates a plan under <code>.jwc/plans/planphase/</code> and runs it through a Critic review loop until approved.</p>
+
+      <h2>4. Choose your model</h2>
+      <p>Jawcode supports 46 providers and 3,600+ models. Override the default model per session:</p>
+      <pre><code># Use a specific model
+jwc --model claude-sonnet-4-20250514
+
+# Use a specific provider
+jwc --provider openai --model gpt-4.1
+
+# Use the fast/cheap model for quick tasks
+jwc --smol claude-haiku
+
+# Use the slow/deep-reasoning model
+jwc --slow o3</code></pre>
+      <p>See available models for your configured providers:</p>
+      <pre><code>jwc --list-models
+jwc --list-models gemini    # Filter by keyword</code></pre>
+
+      <h2>5. tmux mode</h2>
+      <p>For long-running tasks, launch in a tmux session. This lets you detach and reattach without losing context:</p>
+      <pre><code># Launch inside a new tmux session
+jwc --tmux
+
+# Detach: press Ctrl+b then d
+# Reattach later
+tmux attach</code></pre>
+
+      <h2>6. Worktree isolation</h2>
+      <p>For risky or experimental work, use Git worktrees to isolate changes from your main branch:</p>
+      <pre><code># Create an isolated worktree and launch jwc inside it
+jwc --tmux --worktree ../my-experiment
+
+# The agent works in the worktree; your main branch stays clean
+# Merge when satisfied, discard if not</code></pre>
+
+      <h2>7. Resume a session</h2>
+      <p>Sessions are persisted automatically. Resume the most recent one:</p>
+      <pre><code># Resume last session
+jwc --resume
+
+# Resume a specific session by ID
+jwc --resume abc123
+
+# Continue with conversation context
+jwc --continue</code></pre>
+
+      <h2>8. Session management</h2>
+      <p>Use <code>jwc session</code> to list, inspect, and manage sessions:</p>
+      <pre><code># List all sessions
+jwc session list
+
+# Attach to a running tmux session
+jwc session attach &lt;name&gt;</code></pre>
+
+      <h2>Key concepts</h2>
+      <table>
+        <thead>
+          <tr><th>Concept</th><th>What it means</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>IPABCD</strong></td>
+            <td>Interview, Plan, Audit, Build, Check, Done. Six gates from idea to verified delivery.</td>
+          </tr>
+          <tr>
+            <td><strong>Subagents</strong></td>
+            <td>Parallel workers (executor, architect, planner, critic) that fork from the main session with shared prompt-cache context.</td>
+          </tr>
+          <tr>
+            <td><strong>Skills</strong></td>
+            <td>Workflow definitions loaded with <code>/skill:name</code>. Four defaults: jaw-interview, plan, goal, team.</td>
+          </tr>
+          <tr>
+            <td><strong>Tools</strong></td>
+            <td>40+ built-in tools: read, bash, edit, browser, task, web_search, debug, and more.</td>
+          </tr>
+          <tr>
+            <td><strong>.jwc/</strong></td>
+            <td>Project-local state directory for specs, plans, goals, sessions, and workflow ledgers.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Next steps</h2>
+      <ul>
+        <li><a href="cli-reference.html">CLI Reference</a> — every flag documented</li>
+        <li><a href="environment-variables.html">Environment Variables</a> — provider keys and configuration</li>
+        <li><a href="../architecture/overview.html">Architecture Overview</a> — how the pieces fit together</li>
+      </ul>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "session_id": "x",
+  "state": "ready_for_input",
+  "ready_for_input": true,
+  "current_turn_id": null,
+  "last_turn_id": null,
+  "updated_at": "2026-06-12T09:01:54.866Z",
+  "source": "coordinator",
+  "live": null,
+  "reason": null
+}

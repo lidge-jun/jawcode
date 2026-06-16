@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Loop — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Agent Loop</h1>
+      <p>
+        The agent loop is the core execution engine in
+        <code>packages/agent/src/agent-loop.ts</code>. It drives the turn cycle:
+        accept a user message, call the LLM, dispatch tool calls, append results,
+        and decide whether to continue or yield back to the user.
+      </p>
+
+      <h2>Turn Cycle</h2>
+      <p>
+        Each turn follows this sequence:
+      </p>
+      <pre><code>  User message (or steering/follow-up)
+          |
+          v
+  [1] syncContextBeforeModelCall()
+      Refresh prompt/tool context from live state
+          |
+          v
+  [2] streamAssistantResponse()
+      Transform AgentMessage[] -> Message[] at the LLM boundary
+      Stream tokens via @gajae-code/ai streamSimple()
+      Emit message_start / streaming / message_end events
+          |
+          v
+  [3] Parse assistant response
+      Extract tool calls from message content
+          |
+          +--- No tool calls ---> Yield (turn complete)
+          |
+          v
+  [4] executeToolCalls()
+      Parallel dispatch of tool calls
+      Each tool: validate args -> execute -> coerce result
+      Emit tool_start / tool_result events
+          |
+          v
+  [5] Append tool results to context
+          |
+          v
+  [6] Check for steering messages
+      (User may have typed while tools were running)
+          |
+          +--- Steering messages ---> Back to [1]
+          |
+          v
+  [7] Check shouldPause()
+          |
+          +--- Pause requested ---> Yield with "paused" status
+          |
+          v
+  [8] Back to [1] (auto-continue with tool results)</code></pre>
+
+      <h2>Double Loop Structure</h2>
+      <p>
+        The implementation uses a double loop in <code>runLoopBody()</code>:
+      </p>
+      <ul>
+        <li>
+          <strong>Inner loop</strong> — Runs while there are tool calls to process
+          or pending steering messages. This is the tool-call-and-continue cycle
+          that keeps the agent working without user intervention.
+        </li>
+        <li>
+          <strong>Outer loop</strong> — After the inner loop completes (agent would
+          yield), checks for follow-up messages via
+          <code>config.getFollowUpMessages()</code>. If follow-ups exist (e.g., goal
+          continuation prompts, HOTL steering), the inner loop restarts. Otherwise
+          the agent yields.
+        </li>
+      </ul>
+      <pre><code>while (true) {                          // Outer loop
+    while (hasToolCalls || pending) {    // Inner loop
+        // Process pending messages
+        // Stream assistant response
+        // Execute tool calls
+        // Check for steering messages
+    }
+    // Agent would stop here
+    onBeforeYield()
+    followUps = getFollowUpMessages()
+    if (followUps) continue              // Restart inner loop
+    break                                // Exit — yield to user
+}</code></pre>
+
+      <h2>Tool Choice Queue</h2>
+      <p>
+        When the assistant response contains multiple tool calls, they are dispatched
+        through <code>executeToolCalls()</code>. The function:
+      </p>
+      <ol>
+        <li>Filters tool calls from the assistant message content</li>
+        <li>For each tool call, finds the matching <code>AgentTool</code> by name</li>
+        <li>Validates arguments against the tool's schema using <code>validateToolArguments()</code></li>
+        <li>Executes tools — potentially in parallel depending on tool configuration</li>
+        <li>Coerces results via <code>coerceToolResult()</code> to normalize the output shape</li>
+        <li>Returns tool result messages that maintain the <code>tool_use</code>/<code>tool_result</code> pairing required by the API</li>
+      </ol>
+      <p>
+        If the agent is aborted during tool execution, placeholder tool results are
+        created via <code>createAbortedToolResult()</code> to maintain the API's
+        pairing contract.
+      </p>
+
+      <h2>Auto-Continue Logic</h2>
+      <p>
+        The agent continues automatically when:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Condition</th><th>Mechanism</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Tool calls present in response</td>
+            <td><code>hasMoreToolCalls = true</code> keeps the inner loop running</td>
+          </tr>
+          <tr>
+            <td>Steering messages from tool execution</td>
+            <td><code>steeringMessagesFromExecution</code> set by tools that inject follow-up messages (e.g., subagent steer/resume)</td>
+          </tr>
+          <tr>
+            <td>User typed while agent was working</td>
+            <td><code>config.getSteeringMessages()</code> polled after each turn</td>
+          </tr>
+          <tr>
+            <td>Follow-up messages after yield</td>
+            <td><code>config.getFollowUpMessages()</code> checked in outer loop — goal mode continuation, HOTL prompts</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        The agent stops when:
+      </p>
+      <ul>
+        <li>No tool calls and no pending/follow-up messages</li>
+        <li><code>config.shouldPause()</code> returns <code>true</code> (cooperative pause)</li>
+        <li>The response has <code>stopReason</code> of <code>"error"</code> or <code>"aborted"</code></li>
+        <li>The abort signal fires</li>
+      </ul>
+
+      <h2>Event Stream</h2>
+      <p>
+        The loop emits structured events through an <code>EventStream&lt;AgentEvent&gt;</code>:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Event</th><th>When</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>turn_start</code></td><td>Beginning of each turn (except the first)</td></tr>
+          <tr><td><code>message_start</code></td><td>User/steering message injected</td></tr>
+          <tr><td><code>message_end</code></td><td>Message injection complete</td></tr>
+          <tr><td><code>tool_start</code></td><td>Tool execution begins</td></tr>
+          <tr><td><code>tool_result</code></td><td>Tool execution completes</td></tr>
+          <tr><td><code>turn_end</code></td><td>Turn complete (with assistant message + tool results)</td></tr>
+          <tr><td><code>agent_end</code></td><td>Loop exits — includes telemetry, step count, stop reason</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Subagent Fork / Spawn</h2>
+      <p>
+        Subagents are spawned through the <code>task</code> tool in
+        <code>packages/coding-agent/src/task/</code>. The spawn mechanism:
+      </p>
+
+      <h3>Fork architecture</h3>
+      <pre><code>Main session (agent-loop running)
+    |
+    |--- task tool call (spawn subagent)
+    |       |
+    |       +---> New agent-loop instance
+    |             - Own AgentContext (append-only)
+    |             - Shared system prompt prefix (cacheable)
+    |             - Assignment + forked context snapshot (dynamic)
+    |             - Own tool set
+    |             - Runs async — main loop continues
+    |
+    |--- (main agent keeps working / chatting)
+    |
+    |--- subagent yield event
+    |       |
+    |       v
+    |    Result delivered as tool result to main session</code></pre>
+
+      <h3>Prompt cache design</h3>
+      <p>
+        Subagent prompts are structured with a static/dynamic boundary for LLM
+        prompt caching:
+      </p>
+      <ul>
+        <li>
+          <strong>Static prefix</strong> — Role definition, system prompt, tool
+          descriptions. Identical across all subagents of the same role. This is
+          the cacheable portion.
+        </li>
+        <li>
+          <strong>Dynamic suffix</strong> — Assignment text, shared context,
+          forked conversation snapshot. Appended after the cacheable prefix.
+        </li>
+      </ul>
+      <p>
+        On <strong>resume/steer</strong>, the existing session context (including the
+        cached prefix) is reused. Only the new steering message is appended. This
+        makes resume significantly cheaper than a fresh spawn.
+      </p>
+
+      <h3>Role agents</h3>
+      <p>
+        Five bundled role agents are defined in
+        <code>packages/coding-agent/src/task/agents.ts</code>:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Role</th><th>Mode</th><th>Cache behavior</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>executor</code></td>
+            <td>Read/write — full tool access</td>
+            <td>Self-fork lane: inherits parent model, forked context snapshot is cache-affine</td>
+          </tr>
+          <tr>
+            <td><code>executor_ext</code></td>
+            <td>Read/write — full tool access</td>
+            <td>External model lane: uses configured <code>EXECUTOR_EXT</code> model target or explicit per-task selector</td>
+          </tr>
+          <tr>
+            <td><code>architect</code></td>
+            <td>Read-only for product files</td>
+            <td>Shared static prefix with other read-only roles</td>
+          </tr>
+          <tr>
+            <td><code>planner</code></td>
+            <td>Read-only for product files</td>
+            <td>Shared static prefix with other read-only roles</td>
+          </tr>
+          <tr>
+            <td><code>critic</code></td>
+            <td>Read-only for product files</td>
+            <td>Shared static prefix with other read-only roles</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Correction de-anchoring</h3>
+      <p>
+        When a subagent is resumed with a correction (the parent says "your previous
+        answer was wrong"), a de-anchoring protocol activates to prevent anchoring
+        bias. The subagent:
+      </p>
+      <ol>
+        <li>Sets aside the prior analysis entirely</li>
+        <li>Generates at least 3 materially different hypotheses from different angles</li>
+        <li>Investigates each with fresh tool calls</li>
+        <li>Forms a new conclusion from evidence — not from editing the old one</li>
+      </ol>
+      <p>
+        This protocol does not activate for simple additive requests ("also check X")
+        where the prior work is not being corrected.
+      </p>
+
+      <h2>Telemetry</h2>
+      <p>
+        The loop tracks per-run telemetry through <code>AgentTelemetry</code>:
+      </p>
+      <ul>
+        <li>Step count per run</li>
+        <li>Tool invocation counts (including skipped/aborted tools)</li>
+        <li>Token usage per model call</li>
+        <li>Coverage data: which tools were invoked, which were skipped</li>
+        <li>Run-level rollup via <code>agentLoopDetailed()</code> /
+            <code>agentLoopContinueDetailed()</code></li>
+      </ul>
+
+      <h2>Entry Points</h2>
+      <table>
+        <thead>
+          <tr><th>Function</th><th>Use</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>agentLoop(prompts, context, config)</code></td>
+            <td>Start a new loop with prompt messages</td>
+          </tr>
+          <tr>
+            <td><code>agentLoopContinue(context, config)</code></td>
+            <td>Continue from current context without adding a message</td>
+          </tr>
+          <tr>
+            <td><code>agentLoopDetailed(...)</code></td>
+            <td>Like <code>agentLoop</code> but captures run-level telemetry</td>
+          </tr>
+          <tr>
+            <td><code>agentLoopContinueDetailed(...)</code></td>
+            <td>Like <code>agentLoopContinue</code> with telemetry capture</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        All variants accept an optional <code>AbortSignal</code> for cooperative
+        cancellation and an optional <code>StreamFn</code> for custom streaming
+        behavior.
+      </p>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

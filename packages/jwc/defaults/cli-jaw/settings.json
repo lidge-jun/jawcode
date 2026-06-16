@@ -1,0 +1,128 @@
+{
+	"port": "",
+	"cli": "codex",
+	"fallbackOrder": [],
+	"showReasoning": false,
+	"permissions": "auto",
+	"workingDir": "__CLI_JAW_HOME__",
+	"perCli": {
+		"agy": { "model": "Gemini 3.5 Flash (Medium)", "effort": "" },
+		"pi": { "model": "grok-composer-2.5-fast", "effort": "medium", "provider": "progrok" },
+		"ai-e": { "model": "claude-opus-4-8", "effort": "medium", "provider": "claude" },
+		"claude": { "model": "claude-opus-4-8", "effort": "medium" },
+		"claude-e": { "model": "claude-opus-4-8", "effort": "medium" },
+		"codex": { "model": "gpt-5.5", "effort": "medium" },
+		"codex-app": { "model": "gpt-5.5", "effort": "medium" },
+		"cursor": { "model": "composer-2.5", "effort": "medium" },
+		"gemini": { "model": "gemini-3-flash-preview", "effort": "" },
+		"grok": { "model": "grok-build", "effort": "" },
+		"jwc": { "model": "claude-fable-5", "effort": "high" },
+		"kiro-code": { "model": "auto", "effort": "" },
+		"opencode": { "model": "opencode-go/kimi-k2.6", "effort": "" },
+		"copilot": { "model": "claude-sonnet-4.6", "effort": "high" }
+	},
+	"pi": {
+		"defaultProfileId": "progrok",
+		"profiles": [
+			{
+				"id": "progrok",
+				"label": "Progrok",
+				"mode": "basic",
+				"endpoint": "http://127.0.0.1:18645/v1",
+				"apiKind": "openai-completions",
+				"apiKey": "dummy",
+				"model": "grok-composer-2.5-fast",
+				"reasoning": true,
+				"supportsDeveloperRole": true,
+				"supportsReasoningEffort": true
+			}
+		],
+		"discoveredModels": {
+			"progrok": ["grok-composer-2.5-fast", "grok-4.3"]
+		}
+	},
+	"heartbeat": {
+		"enabled": false,
+		"every": "30m",
+		"activeHours": { "start": "08:00", "end": "22:00" },
+		"target": "all"
+	},
+	"channel": "telegram",
+	"telegram": {
+		"enabled": false,
+		"token": "",
+		"allowedChatIds": [],
+		"forwardAll": true,
+		"mentionOnly": true
+	},
+	"discord": {
+		"enabled": false,
+		"token": "",
+		"guildId": "",
+		"channelIds": [],
+		"forwardAll": true,
+		"allowBots": false,
+		"mentionOnly": false
+	},
+	"messaging": {
+		"latestSeen": { "telegram": null, "discord": null },
+		"lastActive": { "telegram": null, "discord": null }
+	},
+	"memory": {
+		"enabled": true,
+		"flushEvery": 10,
+		"cli": "",
+		"model": "",
+		"retentionDays": 30,
+		"flushLanguage": "en",
+		"autoReflectAfterFlush": false,
+		"flushMessageWindow": 0
+	},
+	"trace": {
+		"retentionDays": 7,
+		"maxRows": 50000
+	},
+	"code": {
+		"maxConcurrentSessions": 4,
+		"idleReapMs": 30000
+	},
+	"tui": {
+		"pasteCollapseLines": 2,
+		"pasteCollapseChars": 160,
+		"keymapPreset": "default",
+		"diffStyle": "summary",
+		"themeSeed": "jaw-default"
+	},
+	"employees": [],
+	"projectDirs": null,
+	"locale": "ko",
+	"avatar": {
+		"agent": { "imagePath": "", "updatedAt": null },
+		"user": { "imagePath": "", "updatedAt": null }
+	},
+	"stt": {
+		"engine": "auto",
+		"geminiApiKey": "",
+		"geminiModel": "gemini-2.5-flash-lite",
+		"promptPath": "prompts/stt-system.md",
+		"whisperModel": "mlx-community/whisper-large-v3-turbo",
+		"openaiBaseUrl": "",
+		"openaiApiKey": "",
+		"openaiModel": "",
+		"vertexConfig": ""
+	},
+	"jawCeo": {
+		"openaiApiKey": ""
+	},
+	"network": {
+		"bindHost": "127.0.0.1",
+		"lanBypass": false,
+		"remoteAccess": {
+			"mode": "off",
+			"trustProxies": false,
+			"trustForwardedFor": false,
+			"publicOriginHint": "",
+			"requireAuth": true
+		}
+	}
+}

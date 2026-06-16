@@ -1,0 +1,682 @@
+import { beforeAll, describe, expect, test, vi } from "bun:test";
+import { ThinkingLevel } from "@gajae-code/agent-core";
+import { Effort, getBundledModel, type Model } from "@gajae-code/ai";
+import type { JwcModelSelectorTargetId, ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
+import { Settings } from "@gajae-code/coding-agent/config/settings";
+import { ModelSelectorComponent } from "@gajae-code/coding-agent/modes/components/model-selector";
+import { getThemeByName, setThemeInstance } from "@gajae-code/coding-agent/modes/theme/theme";
+import type { TUI } from "@gajae-code/tui";
+
+function normalizeRenderedText(text: string): string {
+	return (
+		text
+			// strip ANSI escapes
+			.replace(/\x1b\[[0-9;]*m/g, "")
+			// collapse whitespace
+			.replace(/\s+/g, " ")
+			.trim()
+	);
+}
+
+interface SelectionCapture {
+	model: Model;
+	role: JwcModelSelectorTargetId | null;
+	thinkingLevel?: ThinkingLevel;
+	selector?: string;
+}
+
+interface PresetCapture {
+	kind: "preset";
+	model: Model;
+	selector: string;
+	assignments: Partial<Record<JwcModelSelectorTargetId, ThinkingLevel>>;
+}
+
+type TestModelSelectorSelection =
+	| {
+			kind: "assignment";
+			model: Model;
+			role: JwcModelSelectorTargetId | null;
+			thinkingLevel?: ThinkingLevel;
+			selector?: string;
+	  }
+	| PresetCapture;
+
+interface CreateSelectorOptions {
+	modelRegistry?: ModelRegistry;
+	temporaryOnly?: boolean;
+	thinkingLevel?: ThinkingLevel | null;
+	explicitThinkingLevel?: boolean;
+}
+function createCanonicalRecord(model: Model) {
+	return {
+		id: model.id,
+		name: model.name,
+		variants: [
+			{
+				canonicalId: model.id,
+				selector: `${model.provider}/${model.id}`,
+				model,
+				source: "fallback" as const,
+			},
+		],
+	};
+}
+
+function createSelector(
+	model: Model,
+	settings: Settings,
+	onSelect: (selection: TestModelSelectorSelection) => void = () => {},
+	options: CreateSelectorOptions = {},
+): ModelSelectorComponent {
+	const modelRegistry =
+		options.modelRegistry ??
+		({
+			getAll: () => [model],
+			getDiscoverableProviders: () => [],
+			getCanonicalModels: () => [createCanonicalRecord(model)],
+			resolveCanonicalModel: () => model,
+		} as unknown as ModelRegistry);
+	const ui = {
+		requestRender: vi.fn(),
+	} as unknown as TUI;
+	const scopedModel =
+		options.thinkingLevel === null
+			? { model, explicitThinkingLevel: options.explicitThinkingLevel }
+			: {
+					model,
+					thinkingLevel: options.thinkingLevel ?? ThinkingLevel.Off,
+					explicitThinkingLevel: options.explicitThinkingLevel,
+				};
+
+	return new ModelSelectorComponent(
+		ui,
+		model,
+		settings,
+		modelRegistry,
+		[scopedModel],
+		selection => onSelect(selection as TestModelSelectorSelection),
+		() => {},
+		{
+			temporaryOnly: options.temporaryOnly,
+		},
+	);
+}
+
+function createOpenAIModel(provider: "openai" | "openai-codex", id: string, reasoning = true): Model {
+	return {
+		id,
+		name: id,
+		api: provider === "openai-codex" ? "openai-codex-responses" : "openai-responses",
+		provider,
+		baseUrl: provider === "openai-codex" ? "https://chatgpt.com/backend-api" : "https://api.openai.com/v1",
+		reasoning,
+		thinking: reasoning
+			? {
+					minLevel: Effort.Low,
+					maxLevel: Effort.High,
+					defaultLevel: Effort.Medium,
+					mode: "effort",
+				}
+			: undefined,
+		input: ["text"],
+		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+		contextWindow: 1_000_000,
+		maxTokens: 8192,
+	};
+}
+
+function createOllamaCloudModel(id: string): Model {
+	return {
+		id,
+		name: "DeepSeek V4 Pro",
+		api: "ollama-chat",
+		provider: "ollama-cloud",
+		baseUrl: "https://ollama.com",
+		reasoning: true,
+		input: ["text"],
+		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+		contextWindow: 1_000_000,
+		maxTokens: 8192,
+	};
+}
+let testTheme = await getThemeByName("red-claw");
+
+function installTestTheme(): void {
+	if (!testTheme) {
+		throw new Error("Failed to load dark theme for ModelSelector tests");
+	}
+	setThemeInstance(testTheme);
+}
+
+describe("ModelSelector canonical model selection", () => {
+	beforeAll(async () => {
+		testTheme = await getThemeByName("red-claw");
+		if (!testTheme) {
+			throw new Error("Failed to load dark theme for ModelSelector tests");
+		}
+	});
+
+	test("uses canonical GJC assignment actions while hiding legacy roles", async () => {
+		installTestTheme();
+		const model = getBundledModel("anthropic", "claude-sonnet-4-5");
+		if (!model) throw new Error("Expected bundled model anthropic/claude-sonnet-4-5");
+
+		const settings = Settings.isolated({
+			cycleOrder: ["smol", "custom-fast", "default"],
+			modelRoles: {
+				default: `${model.provider}/${model.id}:low`,
+				"custom-fast": `${model.provider}/${model.id}:high`,
+				smol: `${model.provider}/${model.id}`,
+			},
+			"task.agentModelOverrides": {
+				executor_ext: `${model.provider}/${model.id}:high`,
+			},
+			modelTags: {
+				smol: { name: "Quick", color: "error" },
+			},
+		});
+
+		let selected: SelectionCapture | undefined;
+		const selector = createSelector(model, settings, selection => {
+			if (selection.kind === "assignment") selected = selection;
+		});
+		await Bun.sleep(0);
+		installTestTheme();
+
+		const rendered = normalizeRenderedText(selector.render(220).join("\n"));
+		expect(rendered).toContain("DEFAULT (low)");
+		expect(rendered).toContain("EXECUTOR_EXT (high)");
+		expect(rendered).not.toContain("custom-fast");
+		expect(rendered).not.toContain("SMOL");
+
+		selector.handleInput("\n");
+		installTestTheme();
+		const actionRendered = normalizeRenderedText(selector.render(220).join("\n"));
+		expect(actionRendered).toContain("Action for:");
+		expect(actionRendered).toContain("Set as DEFAULT (Default)");
+		expect(actionRendered).toContain("Set as EXECUTOR_EXT (External Executor)");
+		expect(actionRendered).toContain("Set as ARCHITECT (Architect)");
+		expect(actionRendered).toContain("Set as PLANNER (Planner)");
+		expect(actionRendered).toContain("Set as CRITIC (Critic)");
+		expect(actionRendered).not.toContain("Set as custom-fast");
+		expect(actionRendered).not.toContain("Set as SMOL");
+		expect(actionRendered).not.toContain("Set as TASK");
+
+		selector.handleInput("\n");
+		installTestTheme();
+		const selectedAfterEnter = selected;
+		if (!selectedAfterEnter) throw new Error("Expected Enter to select a model");
+		expect(selectedAfterEnter.model).toBe(model);
+		expect(selectedAfterEnter.role).toBe("default");
+		expect(selectedAfterEnter.thinkingLevel).toBe(ThinkingLevel.Off);
+		expect(selectedAfterEnter.selector).toBe(`${model.provider}/${model.id}`);
+	});
+
+	test("selects role-agent assignment without using stale task role", async () => {
+		installTestTheme();
+		const model = getBundledModel("anthropic", "claude-sonnet-4-5");
+		if (!model) throw new Error("Expected bundled model anthropic/claude-sonnet-4-5");
+
+		const settings = Settings.isolated({
+			modelRoles: {
+				default: `${model.provider}/${model.id}:medium`,
+			},
+			"task.agentModelOverrides": {
+				executor: `${model.provider}/${model.id}:high`,
+			},
+		});
+
+		let selected: SelectionCapture | undefined;
+		const selector = createSelector(model, settings, selection => {
+			if (selection.kind === "assignment") selected = selection;
+		});
+		await Bun.sleep(0);
+		installTestTheme();
+		const rendered = normalizeRenderedText(selector.render(220).join("\n"));
+		expect(rendered).toContain("EXECUTOR_EXT (high)");
+		expect(rendered).not.toContain("EXECUTOR (high)");
+
+		selector.handleInput("\n");
+		selector.handleInput("\x1b[B");
+		selector.handleInput("\n");
+
+		const selectedAfterEnter = selected;
+		if (!selectedAfterEnter) throw new Error("Expected role-agent selection");
+		expect(selectedAfterEnter.role).toBe("executor_ext");
+		expect(selectedAfterEnter.thinkingLevel).toBe(ThinkingLevel.Off);
+		expect(selectedAfterEnter.selector).toBe(`${model.provider}/${model.id}:off`);
+	});
+
+	test("temporary scoped model selection carries selected reasoning", async () => {
+		installTestTheme();
+		const model = getBundledModel("anthropic", "claude-sonnet-4-5");
+		if (!model) throw new Error("Expected bundled model anthropic/claude-sonnet-4-5");
+
+		const settings = Settings.isolated({
+			modelRoles: {
+				default: `${model.provider}/${model.id}:high`,
+			},
+		});
+
+		let selected: SelectionCapture | undefined;
+		const selector = createSelector(
+			model,
+			settings,
+			selection => {
+				if (selection.kind === "assignment") selected = selection;
+			},
+			{ temporaryOnly: true, thinkingLevel: ThinkingLevel.Low },
+		);
+		await Bun.sleep(0);
+		installTestTheme();
+
+		selector.handleInput("\n");
+
+		const selectedAfterEnter = selected;
+		if (!selectedAfterEnter) throw new Error("Expected temporary selection");
+		expect(selectedAfterEnter.role).toBeNull();
+		expect(selectedAfterEnter.thinkingLevel).toBe(ThinkingLevel.Low);
+		expect(selectedAfterEnter.selector).toBe(`${model.provider}/${model.id}`);
+	});
+
+	test("canonical scoped model assignment preserves selected reasoning", async () => {
+		installTestTheme();
+		const model = getBundledModel("anthropic", "claude-sonnet-4-5");
+		if (!model) throw new Error("Expected bundled model anthropic/claude-sonnet-4-5");
+
+		const settings = Settings.isolated({
+			modelRoles: {
+				default: `${model.provider}/${model.id}:high`,
+			},
+		});
+		const selectorValue = `${model.provider}/${model.id}`;
+		const modelRegistry = {
+			getAll: () => [model],
+			getDiscoverableProviders: () => [],
+			getCanonicalModels: () => [
+				{
+					id: "claude-sonnet",
+					name: "Claude Sonnet",
+					variants: [{ canonicalId: "claude-sonnet", selector: selectorValue, model, source: "bundled" }],
+				},
+			],
+			resolveCanonicalModel: () => model,
+		} as unknown as ModelRegistry;
+
+		let selected: SelectionCapture | undefined;
+		const selector = createSelector(
+			model,
+			settings,
+			selection => {
+				if (selection.kind === "assignment") selected = selection;
+			},
+			{ modelRegistry, thinkingLevel: ThinkingLevel.Medium },
+		);
+		await Bun.sleep(0);
+		installTestTheme();
+
+		selector.handleInput("\t");
+		selector.handleInput("\n");
+		selector.handleInput("\x1b[B");
+		selector.handleInput("\n");
+
+		const selectedAfterEnter = selected;
+		if (!selectedAfterEnter) throw new Error("Expected canonical role-agent selection");
+		expect(selectedAfterEnter.role).toBe("executor_ext");
+		expect(selectedAfterEnter.thinkingLevel).toBe(ThinkingLevel.Medium);
+		expect(selectedAfterEnter.selector).toBe("claude-sonnet:medium");
+	});
+
+	test("refreshes Ollama Cloud using provider id instead of tab label", async () => {
+		installTestTheme();
+		const settings = Settings.isolated({});
+		const discoveredModel = createOllamaCloudModel("deepseek-v4-pro");
+		let availableModels: Model[] = [];
+		const refreshProvider = vi.fn(async (providerId: string) => {
+			if (providerId === "ollama-cloud") {
+				availableModels = [discoveredModel];
+			}
+		});
+		const modelRegistry = {
+			getAll: () => availableModels,
+			refresh: vi.fn(async () => {}),
+			refreshProvider,
+			getError: () => undefined,
+			getAvailable: () => availableModels,
+			getDiscoverableProviders: () => ["ollama-cloud"],
+			getCanonicalModels: () => [],
+			resolveCanonicalModel: () => undefined,
+			getProviderDiscoveryState: () => ({
+				provider: "ollama-cloud",
+				status: "idle",
+				optional: false,
+				stale: false,
+				models: [],
+			}),
+		} as unknown as ModelRegistry;
+		const ui = {
+			requestRender: vi.fn(),
+		} as unknown as TUI;
+
+		const selector = new ModelSelectorComponent(
+			ui,
+			undefined,
+			settings,
+			modelRegistry,
+			[],
+			() => {},
+			() => {},
+		);
+		await Bun.sleep(0);
+		installTestTheme();
+
+		const initialRendered = normalizeRenderedText(selector.render(220).join("\n"));
+		expect(initialRendered).toContain("OLLAMA CLOUD");
+
+		selector.handleInput("\t");
+		selector.handleInput("\t");
+		await Bun.sleep(0);
+		installTestTheme();
+
+		expect(refreshProvider).toHaveBeenCalledWith("ollama-cloud");
+		const rendered = normalizeRenderedText(selector.render(220).join("\n"));
+		expect(rendered).toContain("deepseek-v4-pro");
+		expect(rendered).not.toContain("Provider has not been refreshed yet");
+	});
+
+	test("prompts for reasoning before assigning OpenAI reasoning default models", async () => {
+		installTestTheme();
+		const model = createOpenAIModel("openai", "gpt-reasoning-test");
+		const settings = Settings.isolated({});
+
+		let selected: SelectionCapture | undefined;
+		const selector = createSelector(
+			model,
+			settings,
+			selection => {
+				if (selection.kind === "assignment") selected = selection;
+			},
+			{ thinkingLevel: null },
+		);
+		await Bun.sleep(0);
+		installTestTheme();
+
+		selector.handleInput("\n");
+		selector.handleInput("\n");
+
+		expect(selected).toBeUndefined();
+		const thinkingRendered = normalizeRenderedText(selector.render(220).join("\n"));
+		expect(thinkingRendered).toContain("Reasoning for Default");
+		expect(thinkingRendered).toContain("off");
+		expect(thinkingRendered).toContain("high");
+
+		selector.handleInput("\x1b[B");
+		selector.handleInput("\x1b[B");
+		selector.handleInput("\x1b[B");
+		selector.handleInput("\n");
+
+		const selectedAfterThinking = selected;
+		if (!selectedAfterThinking) throw new Error("Expected OpenAI selection after reasoning choice");
+		expect(selectedAfterThinking.model).toBe(model);
+		expect(selectedAfterThinking.role).toBe("default");
+		expect(selectedAfterThinking.thinkingLevel).toBe(ThinkingLevel.High);
+		expect(selectedAfterThinking.selector).toBe(`${model.provider}/${model.id}`);
+	});
+
+	test("can explicitly choose off for OpenAI reasoning default models", async () => {
+		installTestTheme();
+		const model = createOpenAIModel("openai", "gpt-reasoning-off-test");
+		const settings = Settings.isolated({});
+
+		let selected: SelectionCapture | undefined;
+		const selector = createSelector(
+			model,
+			settings,
+			selection => {
+				if (selection.kind === "assignment") selected = selection;
+			},
+			{ thinkingLevel: null },
+		);
+		await Bun.sleep(0);
+		installTestTheme();
+
+		selector.handleInput("\n");
+		selector.handleInput("\n");
+		selector.handleInput("\n");
+
+		const selectedAfterThinking = selected;
+		if (!selectedAfterThinking) throw new Error("Expected OpenAI selection after off choice");
+		expect(selectedAfterThinking.role).toBe("default");
+		expect(selectedAfterThinking.thinkingLevel).toBe(ThinkingLevel.Off);
+		expect(selectedAfterThinking.selector).toBe(`${model.provider}/${model.id}`);
+	});
+
+	test("prompts for reasoning before assigning OpenAI Codex role-agent models", async () => {
+		installTestTheme();
+		const model = createOpenAIModel("openai-codex", "gpt-codex-reasoning-test");
+		const settings = Settings.isolated({});
+
+		let selected: SelectionCapture | undefined;
+		const selector = createSelector(
+			model,
+			settings,
+			selection => {
+				if (selection.kind === "assignment") selected = selection;
+			},
+			{ thinkingLevel: null },
+		);
+		await Bun.sleep(0);
+		installTestTheme();
+
+		selector.handleInput("\n");
+		selector.handleInput("\x1b[B");
+		selector.handleInput("\n");
+
+		expect(selected).toBeUndefined();
+		const thinkingRendered = normalizeRenderedText(selector.render(220).join("\n"));
+		expect(thinkingRendered).toContain("Reasoning for External Executor");
+
+		selector.handleInput("\x1b[B");
+		selector.handleInput("\x1b[B");
+		selector.handleInput("\x1b[B");
+		selector.handleInput("\n");
+
+		const selectedAfterThinking = selected;
+		if (!selectedAfterThinking) throw new Error("Expected OpenAI Codex selection after reasoning choice");
+		expect(selectedAfterThinking.role).toBe("executor_ext");
+		expect(selectedAfterThinking.thinkingLevel).toBe(ThinkingLevel.High);
+		expect(selectedAfterThinking.selector).toBe(`${model.provider}/${model.id}:high`);
+	});
+
+	test("shows OpenAI Codex role preset action with requested reasoning map", async () => {
+		installTestTheme();
+		const model = createOpenAIModel("openai-codex", "gpt-codex-preset-test");
+		model.thinking = {
+			minLevel: Effort.Low,
+			maxLevel: Effort.XHigh,
+			defaultLevel: Effort.Medium,
+			mode: "effort",
+		};
+		const settings = Settings.isolated({});
+
+		let selected: PresetCapture | undefined;
+		const selector = createSelector(
+			model,
+			settings,
+			selection => {
+				if (selection.kind === "preset") selected = selection;
+			},
+			{ thinkingLevel: null },
+		);
+		await Bun.sleep(0);
+		installTestTheme();
+
+		selector.handleInput("\n");
+		const actionRendered = normalizeRenderedText(selector.render(260).join("\n"));
+		expect(actionRendered).toContain("Apply OpenAI Codex role preset");
+		expect(actionRendered).toContain(
+			"Default medium, External Executor low, Architect xhigh, Planner medium, Critic high",
+		);
+
+		for (let i = 0; i < 6; i++) selector.handleInput("\x1b[B");
+		selector.handleInput("\n");
+
+		const selectedAfterPreset = selected;
+		if (!selectedAfterPreset) throw new Error("Expected OpenAI Codex preset selection");
+		expect(selectedAfterPreset.kind).toBe("preset");
+		expect(selectedAfterPreset.selector).toBe(`${model.provider}/${model.id}`);
+		expect(selectedAfterPreset.assignments).toEqual({
+			default: ThinkingLevel.Medium,
+			executor_ext: ThinkingLevel.Low,
+			architect: ThinkingLevel.XHigh,
+			planner: ThinkingLevel.Medium,
+			critic: ThinkingLevel.High,
+		});
+	});
+
+	test("clamps OpenAI Codex role preset to selected model supported reasoning", async () => {
+		installTestTheme();
+		const model = createOpenAIModel("openai-codex", "gpt-codex-clamped-preset-test");
+		model.thinking = {
+			minLevel: Effort.Medium,
+			maxLevel: Effort.High,
+			defaultLevel: Effort.Medium,
+			mode: "effort",
+		};
+		const settings = Settings.isolated({});
+
+		let selected: PresetCapture | undefined;
+		const selector = createSelector(
+			model,
+			settings,
+			selection => {
+				if (selection.kind === "preset") selected = selection;
+			},
+			{ thinkingLevel: null },
+		);
+		await Bun.sleep(0);
+		installTestTheme();
+
+		selector.handleInput("\n");
+		for (let i = 0; i < 6; i++) selector.handleInput("\x1b[B");
+		selector.handleInput("\n");
+
+		const selectedAfterPreset = selected;
+		if (!selectedAfterPreset) throw new Error("Expected OpenAI Codex preset selection");
+		expect(selectedAfterPreset.assignments).toEqual({
+			default: ThinkingLevel.Medium,
+			executor_ext: ThinkingLevel.Medium,
+			architect: ThinkingLevel.High,
+			planner: ThinkingLevel.Medium,
+			critic: ThinkingLevel.High,
+		});
+	});
+
+	test("prompts for reasoning when scoped OpenAI thinking came from defaults", async () => {
+		installTestTheme();
+		const model = createOpenAIModel("openai", "gpt-defaulted-scope-test");
+		const settings = Settings.isolated({});
+
+		let selected: SelectionCapture | undefined;
+		const selector = createSelector(
+			model,
+			settings,
+			selection => {
+				if (selection.kind === "assignment") selected = selection;
+			},
+			{ thinkingLevel: ThinkingLevel.High, explicitThinkingLevel: false },
+		);
+		await Bun.sleep(0);
+		installTestTheme();
+
+		selector.handleInput("\n");
+		selector.handleInput("\n");
+
+		expect(selected).toBeUndefined();
+		const thinkingRendered = normalizeRenderedText(selector.render(220).join("\n"));
+		expect(thinkingRendered).toContain("Reasoning for Default");
+
+		selector.handleInput("\n");
+
+		const selectedAfterThinking = selected;
+		if (!selectedAfterThinking) throw new Error("Expected OpenAI selection after explicit off choice");
+		expect(selectedAfterThinking.role).toBe("default");
+		expect(selectedAfterThinking.thinkingLevel).toBe(ThinkingLevel.Off);
+		expect(selectedAfterThinking.selector).toBe(`${model.provider}/${model.id}`);
+	});
+
+	test("does not prompt when scoped OpenAI thinking was explicit", async () => {
+		installTestTheme();
+		const model = createOpenAIModel("openai", "gpt-explicit-scope-test");
+		const settings = Settings.isolated({});
+
+		let selected: SelectionCapture | undefined;
+		const selector = createSelector(
+			model,
+			settings,
+			selection => {
+				if (selection.kind === "assignment") selected = selection;
+			},
+			{ thinkingLevel: ThinkingLevel.High, explicitThinkingLevel: true },
+		);
+		await Bun.sleep(0);
+		installTestTheme();
+
+		selector.handleInput("\n");
+		selector.handleInput("\n");
+
+		const selectedAfterEnter = selected;
+		if (!selectedAfterEnter) throw new Error("Expected direct explicit scoped selection");
+		expect(selectedAfterEnter.role).toBe("default");
+		expect(selectedAfterEnter.thinkingLevel).toBe(ThinkingLevel.High);
+		expect(selectedAfterEnter.selector).toBe(`${model.provider}/${model.id}`);
+	});
+
+	test("limits missing OpenAI thinking metadata to off choice", async () => {
+		installTestTheme();
+		const model = createOpenAIModel("openai", "gpt-missing-thinking-metadata");
+		model.thinking = undefined;
+		const settings = Settings.isolated({});
+
+		const selector = createSelector(model, settings, () => {}, { thinkingLevel: null });
+		await Bun.sleep(0);
+		installTestTheme();
+
+		selector.handleInput("\n");
+		selector.handleInput("\n");
+
+		const thinkingRendered = normalizeRenderedText(selector.render(220).join("\n"));
+		expect(thinkingRendered).toContain("Reasoning for Default");
+		expect(thinkingRendered).toContain("off");
+		expect(thinkingRendered).not.toContain("high");
+		expect(thinkingRendered).not.toContain("xhigh");
+	});
+
+	test("does not prompt for non-reasoning OpenAI models", async () => {
+		installTestTheme();
+		const model = createOpenAIModel("openai", "gpt-non-reasoning-test", false);
+		const settings = Settings.isolated({});
+
+		let selected: SelectionCapture | undefined;
+		const selector = createSelector(
+			model,
+			settings,
+			selection => {
+				if (selection.kind === "assignment") selected = selection;
+			},
+			{ thinkingLevel: null },
+		);
+		await Bun.sleep(0);
+		installTestTheme();
+
+		selector.handleInput("\n");
+		selector.handleInput("\n");
+
+		const selectedAfterEnter = selected;
+		if (!selectedAfterEnter) throw new Error("Expected direct non-reasoning selection");
+		expect(selectedAfterEnter.role).toBe("default");
+		expect(selectedAfterEnter.thinkingLevel).toBe(ThinkingLevel.Inherit);
+		expect(selectedAfterEnter.selector).toBe(`${model.provider}/${model.id}`);
+	});
+});

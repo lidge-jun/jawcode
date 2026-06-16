@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cache Architecture — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Cache Architecture</h1>
+      <p class="page-lead">
+        Jawcode's subagent spawning is <strong>prompt-cache-aware by design</strong>.
+        The system prompt is split at a static/dynamic boundary so the cacheable
+        prefix is shared across spawns, and resumed agents reuse cached session
+        context instead of rebuilding from scratch.
+      </p>
+
+      <h2>The Prefix Cache Problem</h2>
+      <p>
+        LLM providers (Anthropic, DeepSeek, and others) cache the
+        <em>prefix</em> of a conversation — the leading bytes of the system prompt
+        and message history. If the prefix stays identical across API calls, the
+        provider serves it from cache at reduced cost and latency. If even one byte
+        changes in the prefix, the entire cache misses.
+      </p>
+      <p>
+        For coding agents that spawn subagents, this creates a challenge: each
+        subagent has a different assignment, different context, and different tools.
+        Naively, every spawn is a cold start with zero cache hits.
+      </p>
+
+      <h2>Static / Dynamic Boundary</h2>
+      <p>
+        Jawcode solves this by splitting the subagent system prompt into two zones:
+      </p>
+      <pre><code>+------------------------------------------+
+|  STATIC PREFIX (cacheable)               |
+|  - Role definition                       |
+|  - Constraints                           |
+|  - Execution loop                        |
+|  - Success criteria                      |
+|  - Failure recovery                      |
+|  - Completion contract                   |
+|  - Correction de-anchoring               |
+|  - Tool specifications                   |
++------------------------------------------+  &lt;-- cache boundary
+|  DYNAMIC SUFFIX                          |
+|  - Assignment text                       |
+|  - Shared context                        |
+|  - Fork context snapshot                 |
+|  - IRC peer list                         |
+|  - Worktree path                         |
+|  - Output schema                         |
++------------------------------------------+</code></pre>
+      <p>
+        The static prefix is identical across all subagents of the same role.
+        Every <code>executor</code> spawn shares the same prefix; every
+        <code>architect</code> spawn shares a different but internally consistent
+        prefix. Only the dynamic suffix varies per task.
+      </p>
+
+      <h2>Append-Only Context</h2>
+      <p>
+        The main session uses an <strong>append-only context manager</strong>
+        (<code>AppendOnlyContextManager</code>) that stabilizes the byte prefix
+        sent to the LLM across turns:
+      </p>
+      <ul>
+        <li><strong>StablePrefix</strong> — snapshots the system prompt and tool
+          specifications on first build. Subsequent calls reuse the cached copy
+          unless the live state's fingerprint changes.</li>
+        <li><strong>Append-only message log</strong> — messages are only appended,
+          never reordered or mutated. This means prior-turn bytes are stable and
+          only the new user message is a cache miss each turn.</li>
+      </ul>
+      <p>
+        The tool spec is sanitized to exclude per-turn <code>_i</code> intent
+        fields, keeping the tool definition bytes identical across turns.
+      </p>
+
+      <h2>Spawn Cache Flow</h2>
+      <pre><code># Turn 1: First executor spawn
+Main --spawn(executor, task_A)--> Provider
+  Cache: MISS (prefix written to cache)
+  Tokens: full system prompt + tools + assignment
+
+# Turn 2: Second executor spawn (different task)
+Main --spawn(executor, task_B)--> Provider
+  Cache: HIT on static prefix
+  Tokens: only assignment delta is new
+
+# Turn 3: Resume executor A with correction
+Main --resume(A, correction)--> Provider
+  Cache: HIT on prefix + prior conversation
+  Tokens: only the correction message is new
+
+# Turn 4: Architect spawn (different role)
+Main --spawn(architect, review)--> Provider
+  Cache: MISS (different prefix for architect role)
+  Tokens: full architect system prompt + tools + assignment</code></pre>
+
+      <h2>Token Accounting</h2>
+      <p>
+        Jawcode tracks cache performance at the per-call and aggregate level:
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>inputTokens</code></td>
+            <td>Total cost-bearing input: base + cacheRead + cacheWrite</td>
+          </tr>
+          <tr>
+            <td><code>cachedInputTokens</code></td>
+            <td>Tokens served from provider cache (reduced cost)</td>
+          </tr>
+          <tr>
+            <td><code>cacheWriteTokens</code></td>
+            <td>Tokens written to provider cache on this call</td>
+          </tr>
+          <tr>
+            <td><code>outputTokens</code></td>
+            <td>Generated tokens</td>
+          </tr>
+          <tr>
+            <td><code>reasoningOutputTokens</code></td>
+            <td>Tokens consumed by chain-of-thought reasoning</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        These metrics are visible in the TUI footer, session receipts, and the
+        <code>jwc stats</code> observability dashboard. The telemetry system
+        emits OpenTelemetry-compatible attributes for cache hit ratios:
+      </p>
+      <pre><code>gen_ai.usage.cache_read.input_tokens
+gen_ai.usage.cache_creation.input_tokens</code></pre>
+
+      <h2>Handoff Cache Preservation</h2>
+      <p>
+        When the compaction system hands off to a fresh context (e.g., after hitting
+        the context window limit), it passes the live agent's system prompt and tool
+        list <strong>verbatim</strong> so the provider hits the cached prefix on
+        the first turn of the new context. This is explicitly documented in the
+        handoff interface:
+      </p>
+      <pre><code>interface HandoffOptions {
+  /** Live agent system prompt — passed verbatim
+      so providers hit the cached prefix. */
+  systemPrompt: string[];
+  /** Live agent tool list — same purpose.
+      Forced to toolChoice: "none". */
+  tools?: AgentTool[];
+}</code></pre>
+
+      <h2>Self-Fork Cache Affinity</h2>
+      <p>
+        The <code>executor</code> role uses <code>model: self</code>, which means
+        it inherits the parent session's model. This is a deliberate cache
+        optimization: the same model means the same tokenizer, which means the
+        same byte representation of the static prefix. If the parent uses
+        <code>claude-sonnet-4-20250514</code>, all executor spawns use the
+        same model and share the provider's prefix cache.
+      </p>
+      <p>
+        <code>executor_ext</code> breaks this affinity by design — it uses a
+        different model (the configured <code>EXECUTOR_EXT</code> target or an
+        explicit <code>provider/modelId</code>). This means a separate prefix
+        cache, which is the cost of getting an independent model's perspective.
+      </p>
+
+      <h2>Provider Session Affinity</h2>
+      <p>
+        Some providers support session-level cache affinity through a
+        <code>providerSessionId</code>. Jawcode forwards this identifier so
+        that multiple API calls within the same agent session share a provider-side
+        cache slot. This is separate from the prefix cache — it allows providers
+        to maintain session-scoped transport and computation caches.
+      </p>
+      <pre><code>interface AgentOptions {
+  /** Provider-facing cache/session affinity identifier. */
+  providerSessionId?: string;
+  /** Shared provider state map for session-scoped
+      transport/session caches. */
+  providerSessionState?: Map&lt;string, ProviderSessionState&gt;;
+}</code></pre>
+
+    </main>
+  </div>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

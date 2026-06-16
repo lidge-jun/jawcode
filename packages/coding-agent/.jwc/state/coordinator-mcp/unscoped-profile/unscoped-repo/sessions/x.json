@@ -1,0 +1,10 @@
+{
+  "session_id": "x",
+  "created_at": "now",
+  "name": "x",
+  "attached": false,
+  "windows": 1,
+  "panes": 1,
+  "bindings": "root",
+  "createdAt": "now"
+}

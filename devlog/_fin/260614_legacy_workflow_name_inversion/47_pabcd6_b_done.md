@@ -1,0 +1,1 @@
+Verdict: DONE — legacy-storage-dual-read + state-migration-gate tests pass

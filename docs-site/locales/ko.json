@@ -1,0 +1,78 @@
+{
+  "nav": {
+    "features": "특징",
+    "pipeline": "파이프라인",
+    "agents": "에이전트",
+    "install": "설치",
+    "docs": "문서"
+  },
+  "sidebar": {
+    "install": "설치",
+    "workflow": "워크플로우",
+    "tools": "도구",
+    "settings": "설정",
+    "lineage": "계보"
+  },
+  "hero": {
+    "eyebrow": "코딩 에이전트 러너",
+    "title": "의도를 코드로. 소프트웨어를 현실로.",
+    "subtitle": "46개 프로바이더. 3,600개 이상의 모델. 구현 전에 계획하고, 배포 전에 감사하고, 완료 전에 검증하는 구조화된 워크플로우."
+  },
+  "agents": {
+    "label": "서브에이전트 시스템",
+    "title": "5개 역할 에이전트. 병렬. 적대적 검증. 탈앵커링.",
+    "desc": "구현용 executor, 리뷰용 architect, 계획 검증용 critic을 동시에 띄울 수 있어요. 서로의 작업을 중복하지 않고, 교정받으면 이전 결론을 수정하는 대신 완전히 다른 방향에서 3개 이상의 가설을 세워 조사해요."
+  },
+  "pipeline": {
+    "label": "워크플로우",
+    "title": "IPABCD — 아이디어에서 검증된 결과까지 6개 게이트",
+    "desc": "추측 없이, 건너뛰기 없이. 각 단계에 명확한 게이트가 있고, 적대적 리뷰를 통과하지 않으면 완료를 보고할 수 없어요.",
+    "i": { "name": "인터뷰", "desc": "소크라테스식 요구사항 수집 + 모호성 점수화" },
+    "p": { "name": "계획", "desc": "critic 합의 루프 — OKAY까지 반복" },
+    "a": { "name": "감사", "desc": "플래너 + 아키텍트 둘 다 PASS 필요" },
+    "b": { "name": "구현", "desc": "직접 구현 + 적대적 검증자 확인" },
+    "c": { "name": "검증", "desc": "기계적 게이트 + 리뷰 + 3방향 반려" },
+    "d": { "name": "완료", "desc": "요약, 회고, 사이클 종료" }
+  },
+  "providers": {
+    "label": "전체 프로바이더",
+    "title": "46개 프로바이더. 대화 중 모델 전환.",
+    "desc": "Anthropic, OpenAI, Google, xAI, Groq, DeepSeek, Mistral, Amazon Bedrock, Google Vertex, OpenRouter, Ollama 외 35개. API 키, OAuth, 로컬 추론 모두 지원. Claude 모델은 1M 컨텍스트 윈도우 지원."
+  },
+  "speed": {
+    "label": "성능",
+    "title": "Bun 네이티브. 빠른 기동. 스트리밍 우선.",
+    "desc": "Bun 위에서 처음부터 구축했어요. 프롬프트 캐싱, 스트리밍 도구 출력, 백그라운드 작업 관리, 컴팩션으로 긴 세션도 빠르게. webpack 없이, 트랜스파일 없이, 콜드스타트 없이."
+  },
+  "tools": {
+    "label": "내장 도구",
+    "title": "40개 이상의 도구",
+    "desc": "AST 기반 코드 검색부터 브라우저 자동화까지. 필수 도구는 기본 로드, 나머지는 필요 시 활성화."
+  },
+  "install": {
+    "label": "시작하기",
+    "title": "설치"
+  },
+  "lineage": {
+    "label": "계보",
+    "title": "업스트림 히스토리"
+  },
+  "workflow": {
+    "title": "IPABCD 워크플로우",
+    "lead": "모호한 아이디어에서 검증된 결과까지 6단계. 각 단계에 명확한 게이트.",
+    "meta": { "purpose": "목적", "input": "입력", "output": "출력", "gate": "게이트", "command": "명령어" },
+    "i": { "title": "인터뷰", "purpose": "소크라테스식 인터뷰로 모호한 요구사항을 구체화해요.", "input": "모호한 요청이나 기능 아이디어.", "output": ".jwc/specs/ 아래 승인된 스펙.", "gate": "모호성 점수가 임계값 이하 — 이중 감사 확인.", "detail": "소크라테스식 질문 루프로 숨겨진 가정을 드러내고, 모호함을 해소하고, 구체적 스펙을 만들어요." },
+    "p": { "title": "계획", "purpose": "critic 합의 기반 계획 수립.", "input": "인터뷰 스펙 또는 명확한 요구사항.", "output": ".jwc/plans/planphase/ 아래 pending-approval.md.", "gate": "critic 판정: OKAY.", "detail": "구체적 구현 계획을 작성해요. critic이 여러 라운드 검토하고 OKAY일 때만 진행." },
+    "a": { "title": "감사", "purpose": "플래너와 아키텍트의 독립적 실현 가능성 검토.", "input": "승인된 계획.", "output": "플래너 PASS + 아키텍트 PASS.", "gate": "둘 다 pass해야 A에서 B로 전환.", "detail": "두 독립 서브에이전트가 서로의 결과를 보지 않고 계획을 감사해요. 둘 다 PASS해야 진행." },
+    "b": { "title": "구현", "purpose": "감사된 계획의 직접 구현.", "input": "PASS 판정이 있는 감사된 계획.", "output": "코드 변경 + 검증자 DONE.", "gate": "verification_status = done이어야 B에서 C로.", "detail": "메인 세션이 직접 구현해요. executor 서브에이전트에 병렬 위임 가능. 읽기 전용 적대적 검증자가 확인." },
+    "c": { "title": "검증", "purpose": "기계적 게이트 + 적대적 리뷰.", "input": "검증자 DONE인 구현 코드.", "output": "모든 게이트 통과 + 적대적 리뷰 완료.", "gate": "3방향 반려: 코드→B, 계획→P, 스펙→I.", "detail": "bun run check + 관련 테스트 실행 후, 적대적 리뷰어가 계약 위반과 회귀를 검사해요." },
+    "d": { "title": "완료", "purpose": "사이클 요약과 회고.", "input": "C단계 게이트 모두 통과.", "output": "사이클 요약 + WONDER/REFLECT 회고.", "detail": "변경 사항, 핵심 결정, 검증 증거를 구조화된 요약으로 정리해요." },
+    "control": {
+      "title": "사람 개입 모델",
+      "intro": "에이전트 자율성에 따라 두 가지 제어 모드를 지원해요.",
+      "hitl": { "label": "HITL (사람이 루프 안에)", "desc": "사용자가 각 단계를 직접 진행하고 승인해요. 최대 감독." },
+      "hotl": { "label": "HOTL (사람이 루프 위에)", "desc": "goal이 PABCD를 감싸요. 에이전트가 자율 진행하고, 승인 게이트에서만 멈춰요." },
+      "note": "두 모드 모두 같은 게이트를 적용해요. HOTL은 전환만 자동화하고 검증 체크포인트는 그대로 유지해요."
+    }
+  }
+}

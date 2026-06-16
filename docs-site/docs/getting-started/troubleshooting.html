@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Troubleshooting — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Troubleshooting</h1>
+      <p>
+        Common issues and solutions when running Jawcode. If your problem is not
+        listed here, check the logs at <code>~/.jwc/logs/</code> or open an
+        issue on GitHub.
+      </p>
+
+      <!-- ── Bun Version ── -->
+      <h2>Bun Version Compatibility</h2>
+
+      <h3>Symptom</h3>
+      <pre><code>Error: Jawcode requires Bun >= 1.2.x but found 1.1.x</code></pre>
+
+      <h3>Cause</h3>
+      <p>
+        Jawcode is built on Bun and requires a minimum version (currently
+        <code>>=1.2</code>, as declared in <code>package.json</code>
+        <code>engines.bun</code>). Older Bun versions lack APIs that Jawcode
+        depends on, such as <code>Bun.file()</code> enhancements,
+        <code>Bun.stringWidth()</code>, and stable shell execution.
+      </p>
+
+      <h3>Fix</h3>
+      <pre><code># Update Bun to the latest version
+curl -fsSL https://bun.sh/install | bash
+
+# Verify
+bun --version</code></pre>
+      <p>
+        If you manage Bun via a version manager (e.g. <code>proto</code>,
+        <code>mise</code>), update through that tool instead.
+      </p>
+
+      <!-- ── API Key Auth ── -->
+      <h2>API Key Authentication Failures</h2>
+
+      <h3>Symptom</h3>
+      <pre><code>Error: 401 Unauthorized — invalid api key
+Error: No provider keys found. Set at least one API key.</code></pre>
+
+      <h3>Cause</h3>
+      <p>
+        The API key is missing, expired, malformed, or set for the wrong
+        provider. Jawcode auto-discovers providers by checking environment
+        variables at startup.
+      </p>
+
+      <h3>Fix</h3>
+      <ol>
+        <li>
+          Verify the key is exported in your shell:
+          <pre><code>echo $ANTHROPIC_API_KEY   # should print sk-ant-...
+echo $OPENAI_API_KEY      # should print sk-...</code></pre>
+        </li>
+        <li>
+          Ensure the key is in the correct variable. Anthropic keys start with
+          <code>sk-ant-</code>; OpenAI keys start with <code>sk-</code>.
+          Putting an Anthropic key in <code>OPENAI_API_KEY</code> will fail.
+        </li>
+        <li>
+          Check that the key has not expired or been revoked in your provider
+          dashboard.
+        </li>
+        <li>
+          If using OAuth (<code>ANTHROPIC_OAUTH_TOKEN</code>), note that it
+          takes precedence over <code>ANTHROPIC_API_KEY</code>.
+        </li>
+        <li>
+          Run <code>jwc --list-models</code> to see which providers are active.
+          If your provider is missing, its key is not being read.
+        </li>
+      </ol>
+
+      <!-- ── Context Overflow ── -->
+      <h2>Context Overflow Errors</h2>
+
+      <h3>Symptom</h3>
+      <pre><code>Error: context window exceeded (N tokens > limit)
+Warning: conversation compacted — context was approaching the limit</code></pre>
+
+      <h3>Cause</h3>
+      <p>
+        The conversation has grown beyond the model's context window. Jawcode
+        uses auto-compaction to summarize older messages, but extremely long
+        sessions or large file reads can still overflow.
+      </p>
+
+      <h3>Fix</h3>
+      <ol>
+        <li>
+          <strong>Let compaction work.</strong> Jawcode automatically compacts
+          when approaching the limit. If you see the warning, the system is
+          handling it.
+        </li>
+        <li>
+          <strong>Start a new session</strong> for unrelated tasks instead of
+          continuing the same conversation indefinitely.
+        </li>
+        <li>
+          <strong>Read file sections</strong> instead of entire files. Use
+          <code>read file.ts:50-100</code> instead of <code>read file.ts</code>
+          for large files.
+        </li>
+        <li>
+          <strong>Use a model with a larger context window.</strong> Check
+          <code>jwc --list-models</code> for available context sizes.
+        </li>
+        <li>
+          <strong>Resume from a previous session</strong> with
+          <code>jwc --resume</code> — the compacted state carries forward.
+        </li>
+      </ol>
+
+      <!-- ── Theme Loading ── -->
+      <h2>Theme Loading Issues</h2>
+
+      <h3>Symptom</h3>
+      <pre><code>Warning: theme "my-theme" not found, falling back to default
+Error: failed to parse theme file</code></pre>
+
+      <h3>Cause</h3>
+      <p>
+        Custom theme JSON is malformed, or the theme name does not match any
+        file in <code>~/.jwc/agent/themes/</code>. The built-in themes are
+        <code>abyss-bite</code> (default for Jawcode) and <code>red-claw</code>
+        (upstream default).
+      </p>
+
+      <h3>Fix</h3>
+      <ol>
+        <li>
+          Check theme file location:
+          <pre><code>ls ~/.jwc/agent/themes/</code></pre>
+        </li>
+        <li>
+          Validate JSON syntax:
+          <pre><code>cat ~/.jwc/agent/themes/my-theme.json | jq .</code></pre>
+        </li>
+        <li>
+          Set the theme in your config:
+          <pre><code># ~/.jwc/agent/config.yml
+theme: abyss-bite</code></pre>
+        </li>
+        <li>
+          If using a custom theme, ensure it follows the same key structure as
+          the built-in themes. Missing keys fall back to the default palette.
+        </li>
+      </ol>
+
+      <!-- ── Model Not Found ── -->
+      <h2>Model Not Found</h2>
+
+      <h3>Symptom</h3>
+      <pre><code>Error: model "gpt-5-turbo" not found
+Error: no models available for provider "openai"</code></pre>
+
+      <h3>Cause</h3>
+      <p>
+        The requested model ID does not match any entry in the model registry,
+        or the provider for that model has no valid API key. Jawcode maintains
+        a registry of 3,600+ models across 46 providers, but model IDs must
+        be exact or match a recognized alias.
+      </p>
+
+      <h3>Fix</h3>
+      <ol>
+        <li>
+          List available models:
+          <pre><code># List all models
+jwc --list-models
+
+# Search for a specific model
+jwc --list-models gpt-4</code></pre>
+        </li>
+        <li>
+          Use the canonical model ID shown in the list output. Fuzzy matching
+          works for well-known aliases, but if discovery fails, use the full
+          <code>provider/model-id</code> format:
+          <pre><code>jwc --model anthropic/claude-sonnet-4-20250514</code></pre>
+        </li>
+        <li>
+          Ensure the provider's API key is set. A model will not appear in the
+          list if its provider has no credentials.
+        </li>
+      </ol>
+
+      <!-- ── Permission Denied ── -->
+      <h2>Permission Denied (Bash Tool)</h2>
+
+      <h3>Symptom</h3>
+      <pre><code>ToolError: Command blocked by restricted role-agent bash allowlist.
+ToolError: Command blocked</code></pre>
+
+      <h3>Cause</h3>
+      <p>
+        Role agents (architect, planner, critic) run with a restricted bash
+        allowlist. They can only execute sanctioned workflow CLI commands like
+        <code>jwc orchestrate</code> and <code>jwc state</code>. General
+        shell commands are blocked to enforce their read-only contract.
+      </p>
+      <p>
+        The main agent and executor subagents have broader bash access but may
+        still be blocked by the command interceptor if a command matches a
+        known-dangerous pattern (e.g., <code>rm -rf /</code>).
+      </p>
+
+      <h3>Fix</h3>
+      <ol>
+        <li>
+          <strong>Role agents:</strong> These agents are intentionally restricted.
+          If you need shell access, delegate to an <code>executor</code>
+          subagent instead.
+        </li>
+        <li>
+          <strong>Main agent:</strong> If a legitimate command is being blocked,
+          check the interceptor rules. The agent will ask for confirmation before
+          running destructive commands.
+        </li>
+        <li>
+          <strong>Custom interceptors:</strong> Project-level
+          <code>.jwc/config.yml</code> can define command interception rules.
+          Review your project config if commands are unexpectedly blocked.
+        </li>
+      </ol>
+
+      <!-- ── Common Error Messages ── -->
+      <h2>Common Error Messages</h2>
+
+      <table>
+        <thead><tr><th>Error</th><th>Cause</th><th>Solution</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>ECONNREFUSED</code></td>
+            <td>Provider API is unreachable (network, firewall, VPN).</td>
+            <td>Check network connectivity. Try <code>curl https://api.anthropic.com</code>.</td>
+          </tr>
+          <tr>
+            <td><code>Rate limit exceeded</code></td>
+            <td>Too many API requests in a short period.</td>
+            <td>Wait and retry. Consider switching to a provider with higher limits.</td>
+          </tr>
+          <tr>
+            <td><code>ENOMEM</code> / out of memory</td>
+            <td>Large file operations or too many concurrent subagents.</td>
+            <td>Reduce parallelism. Close other applications. Increase swap.</td>
+          </tr>
+          <tr>
+            <td><code>Session file corrupted</code></td>
+            <td>Incomplete write during crash or power loss.</td>
+            <td>Start a new session with <code>jwc</code>. Old sessions are in
+                <code>~/.jwc/agent/sessions/</code>.</td>
+          </tr>
+          <tr>
+            <td><code>TUI rendering corrupted</code></td>
+            <td>Terminal does not support required capabilities, or
+                <code>console.log</code> was used in a tool.</td>
+            <td>Resize the terminal (<code>Ctrl+L</code> to repaint). Ensure
+                your terminal supports 256 colors and Unicode.</td>
+          </tr>
+          <tr>
+            <td><code>Puppeteer: browser closed</code></td>
+            <td>Chrome process crashed or was killed externally.</td>
+            <td>The browser tool will auto-relaunch. If persistent, set
+                <code>PUPPETEER_EXECUTABLE_PATH</code> to a known-good Chrome.</td>
+          </tr>
+          <tr>
+            <td><code>natives: binary not found</code></td>
+            <td>Pre-built native binaries not available for your platform.</td>
+            <td>Run <code>cd crates/pi-natives && cargo build --release</code>
+                to build from source, or check
+                <code>~/.jwc/natives/</code> for cached binaries.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- ── Logs ── -->
+      <h2>Collecting Debug Information</h2>
+      <p>When reporting issues, include:</p>
+      <ol>
+        <li>
+          <strong>Bun version:</strong>
+          <pre><code>bun --version</code></pre>
+        </li>
+        <li>
+          <strong>Jawcode version:</strong>
+          <pre><code>jwc --version</code></pre>
+        </li>
+        <li>
+          <strong>Log files:</strong> Located at
+          <code>~/.jwc/logs/gjc.YYYY-MM-DD.log</code>. Include the log from
+          the day the issue occurred.
+        </li>
+        <li>
+          <strong>Crash log:</strong> If the process crashed, check
+          <code>~/.jwc/agent/gjc-crash.log</code>.
+        </li>
+        <li>
+          <strong>Debug log:</strong> For verbose output, check
+          <code>~/.jwc/agent/gjc-debug.log</code>.
+        </li>
+        <li>
+          <strong>Environment:</strong> OS, terminal emulator, and shell.
+          Redact API keys before sharing.
+        </li>
+      </ol>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Human Control Model — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Human Control Model</h1>
+      <p>Jawcode offers two control modes for the same IPABCD pipeline. The difference is who decides when to advance to the next stage.</p>
+
+      <h2>HITL: Human-in-the-Loop</h2>
+      <p>Plain <code>jwc orchestrate</code> is <strong>HITL by default</strong>. The agent plans, audits, and builds in PABCD stages, but the important handoffs expect a human to look and approve.</p>
+
+      <h3>How it works</h3>
+      <ol>
+        <li>Agent completes a stage (e.g. P-stage plan with Critic OKAY).</li>
+        <li>Agent stops and presents the result to the user.</li>
+        <li>User reviews, asks questions, requests changes, or approves.</li>
+        <li>On approval, user tells the agent to advance: <code>"go to A-stage"</code> or <code>"orchestrate a"</code>.</li>
+        <li>Repeat for each stage transition.</li>
+      </ol>
+
+      <h3>When to use HITL</h3>
+      <ul>
+        <li>Learning the workflow for the first time.</li>
+        <li>High-risk changes (security, auth, data migration, public API).</li>
+        <li>When you want to review the plan before any code is written.</li>
+        <li>When you want to inspect audit verdicts before build begins.</li>
+      </ul>
+
+      <pre><code># HITL session — user advances each stage
+jwc
+
+> "Plan a refactor of the auth module"
+# Agent writes plan, stops at pending-approval
+> "Looks good, run audit"
+# Agent runs A-stage, stops with verdicts
+> "Build it"
+# Agent implements, stops with verifier result
+> "Check"
+# Agent runs C-stage gates</code></pre>
+
+      <h2>HOTL: Human-on-the-Loop</h2>
+      <p><code>jwc goal</code> wraps the same PABCD loop as <strong>HOTL</strong>. The goal gives the agent permission to keep moving with evidence checkpoints, while the human watches progress and steps in only to steer, pause, or cancel.</p>
+
+      <h3>How it works</h3>
+      <ol>
+        <li>User sets a goal: <code>"Implement feature X with tests and docs"</code>.</li>
+        <li>Agent enters PABCD autonomously — I, P, A, B, C, D — recording evidence at each stage.</li>
+        <li>If the goal requires multiple PABCD cycles, the agent loops back to P-stage after D-stage closes.</li>
+        <li>Agent records milestones in the goal ledger: <code>.jwc/goal/ledger.jsonl</code>.</li>
+        <li>Human can intervene at any time: steer, pause, cancel, or inspect the ledger.</li>
+        <li>Agent calls <code>jwc goal done</code> only when every deliverable has evidence.</li>
+      </ol>
+
+      <h3>When to use HOTL</h3>
+      <ul>
+        <li>Large tasks that span multiple PABCD cycles.</li>
+        <li>When you trust the pipeline's gates (audit, check, adversarial review) to catch issues.</li>
+        <li>When you want to do other work while the agent executes.</li>
+        <li>Batch operations where manual approval at each stage would be tedious.</li>
+      </ul>
+
+      <pre><code># HOTL session — agent advances autonomously
+jwc
+
+> "Goal: build docs site with 55 pages, deploy to GitHub Pages"
+# Agent enters I-stage, interviews if needed
+# Agent enters P-stage, writes plan, runs Critic
+# Agent enters A-stage, dual audit (Planner + Architect)
+# Agent enters B-stage, delegates to subagents
+# Agent enters C-stage, runs mechanical gates
+# Agent enters D-stage, writes WONDER + REFLECT
+# If deliverables remain, loops back to P-stage
+# When all done, runs: jwc goal done</code></pre>
+
+      <h2>Comparison</h2>
+      <table>
+        <thead>
+          <tr><th>Aspect</th><th>HITL (<code>jwc orchestrate</code>)</th><th>HOTL (<code>jwc goal</code>)</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Stage advancement</td>
+            <td>User approves each transition</td>
+            <td>Agent advances autonomously</td>
+          </tr>
+          <tr>
+            <td>Human role</td>
+            <td>Reviewer at every gate</td>
+            <td>Observer who can steer/pause/cancel</td>
+          </tr>
+          <tr>
+            <td>Evidence</td>
+            <td>Shown to user at each stop</td>
+            <td>Recorded in goal ledger, reviewable anytime</td>
+          </tr>
+          <tr>
+            <td>Multi-cycle</td>
+            <td>User re-enters each cycle</td>
+            <td>Agent loops P-D until goal is met</td>
+          </tr>
+          <tr>
+            <td>Best for</td>
+            <td>High-risk, learning, detailed review</td>
+            <td>Large scope, batch work, trusted pipeline</td>
+          </tr>
+          <tr>
+            <td>Safety net</td>
+            <td>Human judgment at every gate</td>
+            <td>IPABCD gates + adversarial review + goal pause</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Intervention commands</h2>
+      <p>In HOTL mode, you always retain control:</p>
+      <table>
+        <thead>
+          <tr><th>Action</th><th>What happens</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Steer</strong></td>
+            <td>Send a message to redirect the agent's approach without stopping it.</td>
+          </tr>
+          <tr>
+            <td><strong>Pause</strong></td>
+            <td>Agent stops at the next safe boundary. Goal state preserved. Resume later.</td>
+          </tr>
+          <tr>
+            <td><strong>Cancel</strong></td>
+            <td>Goal is dropped. Partial work remains on disk for manual review.</td>
+          </tr>
+          <tr>
+            <td><strong>Inspect</strong></td>
+            <td>Read <code>.jwc/goal/ledger.jsonl</code> for the full evidence trail.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>The key insight</h2>
+      <p>HITL and HOTL run the <em>same</em> IPABCD pipeline with the <em>same</em> gates. The difference is only who presses "next." In HITL, you press it. In HOTL, the goal presses it — and you watch, ready to grab the wheel.</p>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subagent System Overview — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Subagent System Overview</h1>
+      <p class="page-lead">
+        Jawcode delegates bounded work to <strong>subagents</strong> — independent
+        agent instances that run asynchronously while the main session continues
+        answering the user, doing independent work, or simply waiting.
+      </p>
+
+      <h2>Fork / Spawn / Resume</h2>
+      <p>
+        The subagent lifecycle has three core operations:
+      </p>
+      <pre><code>Main Session
+  |
+  |-- spawn(executor, assignment) --> Subagent A  (running)
+  |-- spawn(executor, assignment) --> Subagent B  (running)
+  |                                       |
+  |   ... main keeps working ...          |-- yield(result)
+  |                                       |
+  |-- await(A, timeout) <-- result        |
+  |-- resume(B, "correction") ----------> B re-enters with CORRECTION_DEANCHORING
+  |                                       |-- yield(revised_result)
+  |-- inspect(B) <-- revised_result
+</code></pre>
+      <ul>
+        <li><strong>spawn</strong> — launches a detached subagent with a self-contained
+          assignment. The main session is not blocked; it returns immediately.</li>
+        <li><strong>await</strong> — waits for completion with a timeout. Timeout is an
+          observation window, not a failure — the subagent keeps running.</li>
+        <li><strong>resume / steer</strong> — sends a message into a running, paused, or
+          completed subagent. When the message corrects a prior answer, the
+          <a href="de-anchoring.html">correction de-anchoring protocol</a> activates.</li>
+      </ul>
+
+      <h2>Async by Default</h2>
+      <p>
+        Every <code>task</code> launch returns immediately as a detached background
+        subagent. While subagents work, the main session can:
+      </p>
+      <ul>
+        <li>Continue answering the user</li>
+        <li>Do independent work (edits, searches, other spawns)</li>
+        <li>Simply wait — there is no obligation to stay busy</li>
+      </ul>
+      <p>
+        The main session must <strong>never duplicate work</strong> that a subagent
+        is already doing. If research or implementation was delegated to a subagent,
+        do not perform the same searches or edits yourself — wait for their result.
+      </p>
+
+      <h2>Five Role Agents</h2>
+      <p>
+        Jawcode bundles five callable role agents. Each is a specialization of the
+        base subagent runtime with different constraints and output contracts:
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Agent</th>
+            <th>Mode</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>executor</code></td>
+            <td>Read-write</td>
+            <td>Default subagent. Implementation, fixes, research. Uses the parent model via self-fork.</td>
+          </tr>
+          <tr>
+            <td><code>executor_ext</code></td>
+            <td>Read-write</td>
+            <td>External/fresh model lane. Different model perspective or independent verification.</td>
+          </tr>
+          <tr>
+            <td><code>architect</code></td>
+            <td>Read-only</td>
+            <td>Architecture review. CLEAR / WATCH / BLOCK status with severity-rated findings.</td>
+          </tr>
+          <tr>
+            <td><code>planner</code></td>
+            <td>Read-only</td>
+            <td>Sequencing, acceptance criteria, risk mapping, and execution handoff.</td>
+          </tr>
+          <tr>
+            <td><code>critic</code></td>
+            <td>Read-only</td>
+            <td>Plan critique. OKAY / ITERATE / REJECT with evidence-backed justification.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Routing Rules</h2>
+      <p>
+        The main session routes work to subagents based on these rules:
+      </p>
+      <ul>
+        <li><strong>Generic parallel work</strong> — <code>executor</code> (default)</li>
+        <li><strong>User requests external/fresh/model-diverse work</strong> — <code>executor_ext</code></li>
+        <li><strong>User names a specific model + generic worker</strong> — <code>executor_ext</code> with explicit <code>provider/modelId[:effort]</code></li>
+        <li><strong>User explicitly requests specialist lens</strong> — <code>architect</code>, <code>planner</code>, or <code>critic</code></li>
+        <li><strong>IPABCD B-stage slices</strong> — <code>executor</code> unless the user requests external lane</li>
+      </ul>
+      <p>
+        Specialist role agents (<code>architect</code>, <code>planner</code>,
+        <code>critic</code>) are never auto-routed. They activate only when the
+        user explicitly asks for that lens.
+      </p>
+
+      <h2>Shared Guardrails</h2>
+      <p>
+        All subagents inherit a common set of guardrails from the
+        <code>subagent-system-prompt.md</code> template:
+      </p>
+      <ul>
+        <li><strong>Completion contract</strong> — no fabricated outputs, no suppressed tests,
+          verification claims must match what was actually run</li>
+        <li><strong>Repo safety</strong> — never revert, stash, commit, push, or delete user work
+          unless the assignment explicitly requires it</li>
+        <li><strong>Authority-bias prevention</strong> — verify the parent's factual claims
+          (file paths, symbol names, behavior descriptions) with own tool calls</li>
+        <li><strong>Sunk-cost awareness</strong> — if significant effort yields no progress,
+          evaluate whether the approach itself is wrong instead of continuing</li>
+        <li><strong>Confirmation-bias prevention</strong> — seek disconfirming evidence;
+          if first checks all support one hypothesis, run at least one that would falsify it</li>
+        <li><strong>Correction de-anchoring</strong> — on resume with a correction, discard
+          prior analysis and generate 3+ fresh hypotheses from different angles</li>
+      </ul>
+
+      <h2>Coordination</h2>
+      <p>
+        Subagents coordinate through two mechanisms:
+      </p>
+      <ul>
+        <li><strong>IRC</strong> — lightweight peer-to-peer messaging between live agents.
+          Use for quick questions; not for long-form content transfer.</li>
+        <li><strong>Filesystem</strong> — subagents read/write to the shared repository.
+          When working in isolated worktrees, they never modify files outside their tree.</li>
+      </ul>
+      <p>
+        The main session can manage subagents through the <code>subagent</code> tool:
+        <code>list</code>, <code>inspect</code>, <code>await</code>,
+        <code>pause</code>, <code>resume</code>, <code>steer</code>, and
+        <code>cancel</code>.
+      </p>
+
+    </main>
+  </div>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

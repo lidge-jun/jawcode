@@ -1,0 +1,10 @@
+[
+  "start_session",
+  "list_apps",
+  "get_window_state",
+  "click",
+  "type_text",
+  "press_key",
+  "scroll",
+  "end_session"
+]

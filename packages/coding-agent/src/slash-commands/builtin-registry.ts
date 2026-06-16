@@ -1,0 +1,1879 @@
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
+import type { ThinkingLevel } from "@gajae-code/agent-core";
+import { type AuthStorage, type Model, modelsAreEqual } from "@gajae-code/ai";
+import { APP_NAME, getAgentDir, setProjectDir } from "@gajae-code/utils";
+import {
+	JWC_MODEL_ASSIGNMENT_TARGET_IDS,
+	JWC_MODEL_ASSIGNMENT_TARGETS,
+	type JwcModelAssignmentTargetId,
+} from "../config/model-registry";
+import { extractExplicitThinkingSelector, formatModelSelectorValue, parseModelPattern } from "../config/model-resolver";
+import { resolveOAuthProviderId } from "../config/oauth-provider-aliases";
+import { clearPluginRootsAndCaches, isJawBrand, resolveActiveProjectRegistryPath } from "../discovery/helpers.js";
+import { buildGoalPlanningStart } from "../goals/goal-planning-start";
+import { runNativeGoalCommand } from "../jwc-runtime/goal-cli";
+import { createGoalPlan, startNextGoal } from "../jwc-runtime/goal-engine";
+import { runNativeOrchestrateCommand } from "../jwc-runtime/orchestrate-runtime";
+import { resolveMemoryBackend } from "../memory-backend";
+import { MCPCommandController } from "../modes/controllers/runtime-mcp-command-controller";
+import type { InteractiveModeContext } from "../modes/types";
+import { formatModelOnboardingGuidance } from "../setup/model-onboarding-guidance";
+import {
+	addApiCompatibleProvider,
+	formatProviderPresetList,
+	formatProviderSetupResult,
+	parseProviderCompatibility,
+} from "../setup/provider-onboarding";
+import { parseThinkingLevel } from "../thinking";
+import { getSearchProvider, nativeSearchProviderFor, setPreferredSearchProvider } from "../web/search/provider";
+import { isSearchProviderPreference, type SearchProviderId } from "../web/search/types";
+
+/**
+ * 083.4: parse a /effort argument, accepting Codex ReasoningEffort vocabulary
+ * (none/minimal) as aliases for jwc thinking levels (off/min).
+ */
+function parseEffortArg(raw: string): ThinkingLevel | undefined {
+	const normalized = raw === "none" ? "off" : raw === "minimal" ? "min" : raw;
+	const level = parseThinkingLevel(normalized);
+	// "inherit" is a model-selector concept, not a session effort.
+	return level === "inherit" ? undefined : level;
+}
+
+import { buildContextReportText } from "./helpers/context-report";
+import { formatDuration } from "./helpers/format";
+import { handleMcpAcp } from "./helpers/mcp";
+import { commandConsumed, errorMessage, parseSlashCommand, usage } from "./helpers/parse";
+import { handleSshAcp } from "./helpers/ssh";
+import { buildQuotaText, buildUsageReportText } from "./helpers/usage-report";
+import type {
+	BuiltinSlashCommand,
+	ParsedSlashCommand,
+	SlashCommandResult,
+	SlashCommandRuntime,
+	SlashCommandSpec,
+	TuiSlashCommandRuntime,
+} from "./types";
+
+export type { BuiltinSlashCommand, SubcommandDef } from "./types";
+
+/** TUI-specific runtime accepted by `executeBuiltinSlashCommand`. */
+export type BuiltinSlashCommandRuntime = TuiSlashCommandRuntime;
+
+function parseProviderSetupSlashArgs(args: string): {
+	preset?: string;
+	compat?: string;
+	provider?: string;
+	baseUrl?: string;
+	apiKeyEnv?: string;
+	rejectedRawApiKey: boolean;
+	force: boolean;
+	models: string[];
+} {
+	const tokens = args.split(/\s+/).filter(Boolean);
+	const result: {
+		preset?: string;
+		compat?: string;
+		provider?: string;
+		baseUrl?: string;
+		apiKeyEnv?: string;
+		rejectedRawApiKey: boolean;
+		force: boolean;
+		models: string[];
+	} = {
+		force: false,
+		models: [],
+		rejectedRawApiKey: false,
+	};
+	for (let i = 0; i < tokens.length; i++) {
+		const token = tokens[i];
+		if (token === "--force" || token === "-f") {
+			result.force = true;
+			continue;
+		}
+		if (!token.startsWith("-") && !result.preset) {
+			result.preset = token;
+			continue;
+		}
+		const value = tokens[i + 1];
+		if (!value) continue;
+		if (token === "--preset") {
+			result.preset = value;
+			i += 1;
+		} else if (token === "--compat") {
+			result.compat = value;
+			i += 1;
+		} else if (token === "--provider") {
+			result.provider = value;
+			i += 1;
+		} else if (token === "--base-url") {
+			result.baseUrl = value;
+			i += 1;
+		} else if (token === "--api-key") {
+			result.rejectedRawApiKey = true;
+			i += 1;
+		} else if (token === "--api-key-env") {
+			result.apiKeyEnv = value;
+			i += 1;
+		} else if (token === "--model" || token === "--models") {
+			result.models.push(value);
+			i += 1;
+		}
+	}
+	return result;
+}
+
+function providerSetupUsage(): string {
+	return [
+		"Provider onboarding",
+		"Presets: /provider add --preset <minimax|minimax-cn|glm> [--force]",
+		"Aliases: /provider add minimax, /provider add minimax-cn, /provider add glm, /provider add zai (writes glm-proxy)",
+		"API providers: /provider add --compat <openai|anthropic> --provider <id> --base-url <url> --api-key-env <ENV> --model <model> [--force]",
+		`Available presets:\n${formatProviderPresetList()}`,
+		"OAuth/subscription providers: /provider login [provider-id|alias] or /login [provider-id|alias]",
+		"Headless OAuth callbacks can be pasted with /login <redirect URL or code>.",
+	].join("\n");
+}
+
+function formatModelAssignmentSummary(runtime: SlashCommandRuntime): string {
+	const agentModelOverrides = runtime.settings.get("task.agentModelOverrides");
+	const lines = ["Model assignments:"];
+	for (const targetId of JWC_MODEL_ASSIGNMENT_TARGET_IDS) {
+		const target = JWC_MODEL_ASSIGNMENT_TARGETS[targetId];
+		const modelSelector =
+			target.settingsPath === "modelRoles" ? runtime.settings.getModelRole(targetId) : agentModelOverrides[targetId];
+		lines.push(`  ${target.tag ?? target.id.toUpperCase()} (${target.name}): ${modelSelector ?? "(unset)"}`);
+	}
+	return lines.join("\n");
+}
+
+function parseModelCommandArgs(args: string): { targetId: JwcModelAssignmentTargetId; selector: string } {
+	const tokens = args.trim().split(/\s+/).filter(Boolean);
+	const first = tokens[0]?.toLowerCase();
+	const explicitTarget = JWC_MODEL_ASSIGNMENT_TARGET_IDS.includes(first as JwcModelAssignmentTargetId)
+		? (first as JwcModelAssignmentTargetId)
+		: undefined;
+	if (explicitTarget) {
+		return { targetId: explicitTarget, selector: tokens.slice(1).join(" ") };
+	}
+	if (first === "set") {
+		const second = tokens[1]?.toLowerCase();
+		if (JWC_MODEL_ASSIGNMENT_TARGET_IDS.includes(second as JwcModelAssignmentTargetId)) {
+			return { targetId: second as JwcModelAssignmentTargetId, selector: tokens.slice(2).join(" ") };
+		}
+	}
+	return { targetId: "default", selector: args.trim() };
+}
+
+function splitExplicitThinkingSelector(selector: string): { baseSelector: string; thinkingLevel?: ThinkingLevel } {
+	const trimmed = selector.trim();
+	const colonIndex = trimmed.lastIndexOf(":");
+	if (colonIndex === -1) {
+		return { baseSelector: trimmed };
+	}
+	const thinkingLevel = parseThinkingLevel(trimmed.slice(colonIndex + 1));
+	return thinkingLevel ? { baseSelector: trimmed.slice(0, colonIndex), thinkingLevel } : { baseSelector: trimmed };
+}
+
+function resolveModelCommandSelection(
+	runtime: SlashCommandRuntime,
+	selector: string,
+): { model: Model; selector: string; thinkingLevel?: ThinkingLevel } | undefined {
+	const availableModels = runtime.session.getAvailableModels?.() ?? [];
+	const matchPreferences = { usageOrder: runtime.settings.getStorage()?.getModelUsageOrder() };
+	const resolved = parseModelPattern(selector, availableModels, matchPreferences, {
+		modelRegistry: runtime.session.modelRegistry,
+	});
+	if (!resolved.model) {
+		return undefined;
+	}
+
+	const splitSelector = splitExplicitThinkingSelector(selector);
+	const canonicalModel = runtime.session.modelRegistry.resolveCanonicalModel?.(splitSelector.baseSelector, {
+		availableOnly: false,
+		candidates: availableModels,
+	});
+	const persistedSelector =
+		canonicalModel && modelsAreEqual(canonicalModel, resolved.model)
+			? splitSelector.baseSelector
+			: `${resolved.model.provider}/${resolved.model.id}`;
+	return {
+		model: resolved.model,
+		selector: persistedSelector,
+		thinkingLevel: resolved.explicitThinkingLevel ? resolved.thinkingLevel : undefined,
+	};
+}
+
+/**
+ * Operator-facing aliases for /searchengine. Canonical ids pass through via
+ * `isSearchProviderPreference`; only convenience names live here.
+ */
+const SEARCH_ENGINE_ALIASES: Record<string, SearchProviderId | "auto"> = {
+	active: "auto",
+	native: "auto",
+	default: "auto",
+	chatgpt: "codex",
+	openai: "codex",
+	claude: "anthropic",
+	google: "gemini",
+	grok: "xai",
+	x: "xai",
+	ddg: "duckduckgo",
+	duck: "duckduckgo",
+};
+
+function normalizeSearchEngineArg(raw: string): SearchProviderId | "auto" | undefined {
+	const value = raw.trim().toLowerCase();
+	if (!value) return undefined;
+	const alias = SEARCH_ENGINE_ALIASES[value];
+	if (alias) return alias;
+	return isSearchProviderPreference(value) ? value : undefined;
+}
+
+function describeAutoSearchTarget(activeModelProvider: string | undefined): string {
+	const native = nativeSearchProviderFor(activeModelProvider);
+	return native ? `active model native search: ${native}` : "active model has no native search; DuckDuckGo";
+}
+
+const SEARCH_ENGINE_IDS: ReadonlyArray<SearchProviderId> = [
+	"duckduckgo",
+	"codex",
+	"anthropic",
+	"gemini",
+	"xai",
+	"perplexity",
+	"kimi",
+	"zai",
+	"exa",
+	"brave",
+	"jina",
+	"tavily",
+	"parallel",
+	"kagi",
+	"synthetic",
+	"searxng",
+];
+
+/**
+ * Activation guidance per provider. OAuth-capable providers unlock via
+ * /login; keyed providers activate only when their API key/credential is
+ * present (mirrors the model layer's OAuth-vs-key gating for
+ * openai/xai/anthropic).
+ */
+const SEARCH_ENGINE_SETUP_HINTS: Record<SearchProviderId, string> = {
+	duckduckgo: "keyless — always available",
+	codex: "OAuth — run /login codex (or /login openai-codex)",
+	gemini: "OAuth — run /login gemini (or /login google-gemini-cli)",
+	anthropic: "set ANTHROPIC_SEARCH_API_KEY or store anthropic auth",
+	perplexity: "set PERPLEXITY_API_KEY / PERPLEXITY_COOKIES, or /login perplexity (OAuth)",
+	kimi: "set MOONSHOT_SEARCH_API_KEY / KIMI_SEARCH_API_KEY, or /login kimi (OAuth)",
+	zai: "set ZAI_API_KEY",
+	exa: "set EXA_API_KEY (and keep exa.enabled on)",
+	brave: "set BRAVE_API_KEY",
+	jina: "set JINA_API_KEY",
+	tavily: "set TAVILY_API_KEY",
+	parallel: "set PARALLEL_API_KEY",
+	kagi: "store kagi credential (auth storage only — no env var)",
+	synthetic: "set SYNTHETIC_API_KEY",
+	searxng: "set SEARXNG_ENDPOINT (or the searxng.endpoint setting)",
+	xai: "OAuth — run grok login (or set XAI_API_KEY) — Grok web + X search",
+};
+
+async function isSearchEngineAvailable(id: SearchProviderId, authStorage: AuthStorage): Promise<boolean> {
+	try {
+		const provider = await getSearchProvider(id);
+		return await provider.isAvailable(authStorage);
+	} catch {
+		return false;
+	}
+}
+
+function formatSearchEngineCandidates(): string {
+	return [
+		`Providers: auto, ${SEARCH_ENGINE_IDS.join(", ")}`,
+		"Aliases: chatgpt/openai → codex, claude → anthropic, google → gemini, grok/x → xai, ddg/duck → duckduckgo, active/native/default → auto",
+	].join("\n");
+}
+
+async function formatSearchEngineStatus(
+	current: SearchProviderId | "auto",
+	activeModelProvider: string | undefined,
+	authStorage: AuthStorage | undefined,
+): Promise<string> {
+	const lines = [
+		current === "auto"
+			? `Search engine: auto (${describeAutoSearchTarget(activeModelProvider)})`
+			: `Search engine: ${current}`,
+		"Fallback: duckduckgo (always appended)",
+	];
+	if (authStorage) {
+		const probes = await Promise.all(
+			SEARCH_ENGINE_IDS.map(async id => ({ id, available: await isSearchEngineAvailable(id, authStorage) })),
+		);
+		const activated = probes.filter(p => p.available).map(p => p.id);
+		const locked = probes.filter(p => !p.available);
+		lines.push(`Activated: auto, ${activated.join(", ")}`);
+		if (locked.length > 0) {
+			lines.push("Needs setup:");
+			for (const { id } of locked) {
+				lines.push(`  ${id} — ${SEARCH_ENGINE_SETUP_HINTS[id]}`);
+			}
+		}
+	} else {
+		lines.push(formatSearchEngineCandidates());
+	}
+	return lines.join("\n");
+}
+
+function modelSelectionUsage(runtime: SlashCommandRuntime, currentModelLine?: string): string {
+	return [
+		currentModelLine,
+		formatModelAssignmentSummary(runtime),
+		"ACP/text mode: use /model <model> for DEFAULT, or /model <target> <model> for EXECUTOR, ARCHITECT, PLANNER, or CRITIC.",
+		formatModelOnboardingGuidance(),
+	]
+		.filter((line): line is string => Boolean(line))
+		.join("\n\n");
+}
+
+function refreshStatusLine(ctx: InteractiveModeContext): void {
+	ctx.statusLine.invalidate();
+	ctx.updateEditorTopBorder();
+	ctx.ui.requestRender();
+}
+
+const GOAL_PAUSED_DIAGNOSTIC = "Resume the current goal first, or drop it before setting a new objective.";
+
+function goalCommandVerb(args: string): { verb: string; rest: string } {
+	const trimmed = args.trim();
+	if (!trimmed) return { verb: "", rest: "" };
+	const spaceIndex = trimmed.search(/\s/);
+	if (spaceIndex === -1) return { verb: trimmed.toLowerCase(), rest: "" };
+	return { verb: trimmed.slice(0, spaceIndex).toLowerCase(), rest: trimmed.slice(spaceIndex + 1).trim() };
+}
+
+async function addGoalTool(runtime: SlashCommandRuntime): Promise<void> {
+	const previousTools = runtime.session.getActiveToolNames().filter(name => name !== "goal");
+	await runtime.session.setActiveToolsByName([...new Set([...previousTools, "goal"])]);
+}
+
+async function removeGoalTool(runtime: SlashCommandRuntime): Promise<void> {
+	await runtime.session.setActiveToolsByName(runtime.session.getActiveToolNames().filter(name => name !== "goal"));
+}
+
+async function showNativeGoalStatus(runtime: SlashCommandRuntime): Promise<SlashCommandResult> {
+	const result = await runNativeGoalCommand(["status"], runtime.cwd);
+	if (result.stderr) await runtime.output(result.stderr.trimEnd());
+	if (result.stdout) await runtime.output(result.stdout.trimEnd());
+	return commandConsumed();
+}
+
+async function startTextGoalPlan(runtime: SlashCommandRuntime, hint: string): Promise<SlashCommandResult> {
+	const current = runtime.session.getGoalModeState();
+	if (current?.goal.status === "paused") {
+		await runtime.output("Resume the current goal first, or drop it before starting goal planning.");
+		return commandConsumed();
+	}
+
+	const { brief, prompt } = buildGoalPlanningStart(hint);
+	await createGoalPlan({ cwd: runtime.cwd, brief });
+	await startNextGoal({ cwd: runtime.cwd });
+	const replacingActive = current?.enabled && current.goal.status === "active";
+	const state = replacingActive
+		? await runtime.session.goalRuntime.replaceGoal({ objective: brief })
+		: await runtime.session.goalRuntime.createGoal({ objective: brief });
+	await addGoalTool(runtime);
+	runtime.session.setGoalModeState(state);
+	return { prompt };
+}
+
+async function startTextGoal(runtime: SlashCommandRuntime, objective: string): Promise<SlashCommandResult> {
+	const trimmedObjective = objective.trim();
+	if (!trimmedObjective) {
+		await runtime.output("usage: /goal <objective>");
+		return commandConsumed();
+	}
+
+	const current = runtime.session.getGoalModeState();
+	if (current?.goal.status === "paused") {
+		await runtime.output(GOAL_PAUSED_DIAGNOSTIC);
+		return commandConsumed();
+	}
+
+	await createGoalPlan({ cwd: runtime.cwd, brief: trimmedObjective });
+	await startNextGoal({ cwd: runtime.cwd });
+	const replacingActive = current?.enabled && current.goal.status === "active";
+	const state = replacingActive
+		? await runtime.session.goalRuntime.replaceGoal({ objective: trimmedObjective })
+		: await runtime.session.goalRuntime.createGoal({ objective: trimmedObjective });
+	await addGoalTool(runtime);
+	runtime.session.setGoalModeState(state);
+	return { prompt: trimmedObjective };
+}
+
+async function handleGoalTextCommand(
+	command: ParsedSlashCommand,
+	runtime: SlashCommandRuntime,
+): Promise<SlashCommandResult> {
+	const args = (command.args ?? "").trim();
+	if (!args) return await showNativeGoalStatus(runtime);
+
+	const { verb, rest } = goalCommandVerb(args);
+	switch (verb) {
+		case "plan":
+			return await startTextGoalPlan(runtime, rest);
+		case "set":
+			return await startTextGoal(runtime, rest);
+		case "show":
+		case "status":
+			return await showNativeGoalStatus(runtime);
+		case "pause": {
+			const state = await runtime.session.goalRuntime.pauseGoal();
+			if (!state) {
+				await runtime.output("No active goal to pause.");
+				return commandConsumed();
+			}
+			runtime.session.setGoalModeState(state);
+			await removeGoalTool(runtime);
+			await runtime.output("Goal mode paused.");
+			return commandConsumed();
+		}
+		case "resume": {
+			const state = await runtime.session.goalRuntime.resumeGoal();
+			await addGoalTool(runtime);
+			runtime.session.setGoalModeState(state);
+			await runtime.output("Goal mode resumed.");
+			return commandConsumed();
+		}
+		case "drop":
+		case "cancel":
+			await runtime.session.goalRuntime.dropGoal();
+			runtime.session.setGoalModeState(undefined);
+			await removeGoalTool(runtime);
+			await runtime.output("Goal dropped.");
+			return commandConsumed();
+		default:
+			return await startTextGoal(runtime, args);
+	}
+}
+
+const shutdownHandlerTui = (_command: ParsedSlashCommand, runtime: TuiSlashCommandRuntime): SlashCommandResult => {
+	runtime.ctx.editor.setText("");
+	void runtime.ctx.shutdown();
+	return commandConsumed();
+};
+
+/** Providers with a local CLI token detector (`/login <provider> local`). */
+const LOCAL_IMPORT_PROVIDERS = new Set<string>(["anthropic", "openai-codex", "xai"]);
+
+const BUILTIN_SLASH_COMMAND_REGISTRY: ReadonlyArray<SlashCommandSpec> = [
+	{
+		name: "settings",
+		description: "Open settings menu",
+		handleTui: (_command, runtime) => {
+			runtime.ctx.showSettingsSelector();
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "theme",
+		description: "Open theme selector",
+		handleTui: (_command, runtime) => {
+			runtime.ctx.showThemeSelector();
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "identity",
+		description: "Show agent identity settings and where to configure them",
+		handle: async (_command, runtime) => {
+			const configPath = path.join(getAgentDir(), "config.yml");
+			const value = (key: "identity.name" | "identity.emoji" | "identity.vibe" | "identity.language") =>
+				runtime.settings.get(key) ?? "(unset)";
+			await runtime.output(
+				[
+					"Identity settings (rendered into the system prompt identity block when set):",
+					`  identity.name     = ${value("identity.name")}`,
+					`  identity.emoji    = ${value("identity.emoji")}`,
+					`  identity.vibe     = ${value("identity.vibe")}`,
+					`  identity.language = ${value("identity.language")}`,
+					"",
+					"Configure via:",
+					"  /settings → Identity tab",
+					"  /identity-auto — the agent interviews you, then saves the answers",
+					`  ${APP_NAME} config set identity.name "<value>" — CLI`,
+					`  ${configPath} — identity.* keys`,
+					"  SYSTEM.md (project or user level) — free-form prompt customization beyond identity",
+				].join("\n"),
+			);
+			return commandConsumed();
+		},
+	},
+	{
+		name: "identity-auto",
+		description: "Interview-style identity setup: answer a few questions, the agent saves them",
+		handle: async (_command, runtime) => {
+			const configPath = path.join(getAgentDir(), "config.yml");
+			const instruction = [
+				"Help me set up my agent identity settings interactively.",
+				"Ask me, in the language I have been using, a few short questions (one compact message) covering:",
+				"1. display name for the agent (identity.name)",
+				"2. signature emoji, optional (identity.emoji)",
+				"3. tone/personality lines (identity.vibe — separate multiple traits with ;)",
+				"4. preferred response language (identity.language)",
+				"Wait for my answers. Skip any field I decline.",
+				`Then persist each answered field with: ${APP_NAME} config set <key> "<value>"`,
+				`(settings file: ${configPath})`,
+				"Finish with a one-line summary of what was saved, and note that the identity block applies to new prompts.",
+			].join("\n");
+			await runtime.session.prompt(instruction);
+			return commandConsumed();
+		},
+	},
+	{
+		name: "goal",
+		description: "Toggle goal-ledger mode — durable autonomous objective (IPABCD D-stage target or standalone goal)",
+		subcommands: [
+			{ name: "set", description: "Set or replace the goal", usage: "<objective>" },
+			{ name: "plan", description: "Start AI-driven goal planning", usage: "[hint]" },
+			{ name: "show", description: "Show current goal details" },
+			{ name: "pause", description: "Pause the current goal" },
+			{ name: "resume", description: "Resume a paused goal" },
+			{ name: "drop", description: "Drop the current goal" },
+		],
+		inlineHint: "[objective]",
+		allowArgs: true,
+		handle: handleGoalTextCommand,
+		handleTui: async (command, runtime) => {
+			const hadArgs = !!command.args;
+			// Capture state BEFORE the call (see /plan above for rationale).
+			const wasGoalModeEnabled = runtime.ctx.goalModeEnabled;
+			await runtime.ctx.handleGoalModeCommand(command.args || undefined);
+			if (hadArgs && wasGoalModeEnabled) {
+				runtime.ctx.editor.addToHistory(command.text);
+			}
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "orchestrate",
+		aliases: ["pabcd"],
+		description: "Native IPABCD orchestration — enter a stage (jaw brand only)",
+		subcommands: [
+			{ name: "i", description: "I-stage: interview — gather requirements (jaw-interview engine)" },
+			{ name: "p", description: "P-stage: plan — main session drafts, Critic 1-pass review" },
+			{ name: "a", description: "A-stage: plan audit — Planner ∥ Architect read-only auditors" },
+			{ name: "b", description: "B-stage: build — main session implements, subagent verifies" },
+			{ name: "c", description: "C-stage: check — mechanical gates + adversarial review" },
+			{ name: "d", description: "D-stage: done — summary + WONDER/REFLECT, close out" },
+			{ name: "status", description: "Show current orchestration state" },
+		],
+		inlineHint: "<i|p|a|b|c|d|status>",
+		allowArgs: true,
+		handle: async (command, runtime) => {
+			const args = (command.args ?? "").trim();
+			const argv = args.length > 0 ? args.split(/\s+/) : [];
+			const sessionId = runtime.session.sessionManager.getSessionId?.();
+			if (sessionId) argv.push("--session-id", sessionId);
+			const result = await runNativeOrchestrateCommand(argv, runtime.session.sessionManager.getCwd());
+			if (result.stderr) await runtime.output(result.stderr.trimEnd());
+			const sub = argv[0]?.toLowerCase();
+			const stageEntered = result.status === 0 && !!sub && sub !== "status" && sub !== "verdict";
+			if (stageEntered && result.stdout) {
+				await runtime.output(result.stdout.trimEnd());
+				await runtime.session.sendPabcdStageContext({ deliverAs: "nextTurn" });
+			} else if (result.stdout) {
+				await runtime.output(result.stdout.trimEnd());
+			}
+			return commandConsumed();
+		},
+		handleTui: async (command, runtime) => {
+			const args = (command.args ?? "").trim();
+			const argv = args.length > 0 ? args.split(/\s+/) : [];
+			const sessionId = runtime.ctx.session.sessionManager.getSessionId?.();
+			if (sessionId) argv.push("--session-id", sessionId);
+			const result = await runNativeOrchestrateCommand(argv, runtime.ctx.session.sessionManager.getCwd());
+			const sub = argv[0]?.toLowerCase();
+			const stageEntered = result.status === 0 && !!sub && sub !== "status" && sub !== "verdict";
+			if (stageEntered) {
+				await runtime.ctx.session.sendPabcdStageContext({ deliverAs: "nextTurn" });
+				runtime.ctx.statusLine.refreshPabcdNow();
+			}
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "interview",
+		aliases: ["jaw-interview", "deep-interview"],
+		description: "Socratic requirements gathering — IPABCD I-stage (jaw-interview engine)",
+		inlineHint: "[request]",
+		allowArgs: true,
+		handle: async (command, runtime) => {
+			const args = (command.args ?? "").trim();
+			const argv = ["i", ...(args ? [args] : [])];
+			const sessionId = runtime.session.sessionManager.getSessionId?.();
+			if (sessionId) argv.push("--session-id", sessionId);
+			const result = await runNativeOrchestrateCommand(argv, runtime.session.sessionManager.getCwd());
+			if (result.stderr) await runtime.output(result.stderr.trimEnd());
+			const sub = argv[0]?.toLowerCase();
+			const entered = result.status === 0 && !!sub && sub !== "status";
+			if (result.stdout) await runtime.output(result.stdout.trimEnd());
+			if (!entered) return commandConsumed();
+			await runtime.session.sendPabcdStageContext({ deliverAs: "nextTurn" });
+			return { prompt: args || "i" };
+		},
+		handleTui: async (command, runtime) => {
+			const args = (command.args ?? "").trim();
+			const argv = ["i", ...(args ? [args] : [])];
+			const sessionId = runtime.ctx.session.sessionManager.getSessionId?.();
+			if (sessionId) argv.push("--session-id", sessionId);
+			const result = await runNativeOrchestrateCommand(argv, runtime.ctx.session.sessionManager.getCwd());
+			const entered = result.status === 0 && argv[0]?.toLowerCase() === "i";
+			if (result.stderr) runtime.ctx.showError(result.stderr.trimEnd());
+			if (result.stdout) runtime.ctx.showStatus(result.stdout.trimEnd());
+			runtime.ctx.editor.setText("");
+			if (!entered) return commandConsumed();
+			await runtime.ctx.session.sendPabcdStageContext({ deliverAs: "nextTurn" });
+			runtime.ctx.statusLine.refreshPabcdNow();
+			return { prompt: args || "i" };
+		},
+	},
+	{
+		name: "goalplan",
+		aliases: ["goal-plan"],
+		description: "AI-driven goal planning — agent analyzes context and sets goal autonomously",
+		inlineHint: "[hint]",
+		allowArgs: true,
+		handle: async (command, runtime) => {
+			return await startTextGoalPlan(runtime, (command.args ?? "").trim());
+		},
+		handleTui: async (command, runtime) => {
+			const args = (command.args ?? "").trim();
+			const goalArgs = args ? `plan ${args}` : "plan";
+			await runtime.ctx.handleGoalModeCommand(goalArgs);
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "model",
+		aliases: ["models"],
+		description: "Select model (opens selector UI)",
+		acpDescription: "Show current model selection",
+		inlineHint: "[target] <model>",
+		acpInputHint: "[target] <model>",
+		// Without allowArgs the TUI dispatcher refuses "/model sonnet" and the
+		// input silently falls through to the LLM as chat (cmd_audit P1).
+		allowArgs: true,
+		handle: async (command, runtime) => {
+			if (command.args) {
+				const parsedArgs = parseModelCommandArgs(command.args);
+				const modelId = parsedArgs.selector;
+				if (!modelId) {
+					return usage(
+						modelSelectionUsage(runtime, `Missing model for ${parsedArgs.targetId.toUpperCase()}.`),
+						runtime,
+					);
+				}
+				const selection = resolveModelCommandSelection(runtime, modelId);
+				if (!selection) {
+					return usage(
+						modelSelectionUsage(
+							runtime,
+							`Unknown model: ${modelId}. Configure or login to a provider first, then list/select models with /model.`,
+						),
+						runtime,
+					);
+				}
+				try {
+					const persistedSelector = formatModelSelectorValue(selection.selector, selection.thinkingLevel);
+					if (parsedArgs.targetId === "default") {
+						await runtime.session.setModel(selection.model, "default", {
+							selector: selection.selector,
+							thinkingLevel: selection.thinkingLevel,
+						});
+						if (selection.thinkingLevel) {
+							runtime.session.setThinkingLevel(selection.thinkingLevel);
+						}
+						await runtime.output(`Default model set to ${persistedSelector}.`);
+						await runtime.notifyTitleChanged?.();
+					} else {
+						const apiKey = await runtime.session.modelRegistry.getApiKey(
+							selection.model,
+							runtime.session.sessionId,
+						);
+						if (!apiKey) {
+							throw new Error(`No API key for ${selection.model.provider}/${selection.model.id}`);
+						}
+						const overrides = runtime.settings.get("task.agentModelOverrides");
+						const thinkingLevel =
+							selection.thinkingLevel ??
+							extractExplicitThinkingSelector(overrides[parsedArgs.targetId], runtime.settings);
+						const roleSelector = formatModelSelectorValue(selection.selector, thinkingLevel);
+						runtime.settings.set("task.agentModelOverrides", {
+							...overrides,
+							[parsedArgs.targetId]: roleSelector,
+						});
+						runtime.settings.getStorage()?.recordModelUsage(`${selection.model.provider}/${selection.model.id}`);
+						await runtime.output(`${parsedArgs.targetId} agent model set to ${roleSelector}.`);
+					}
+					await runtime.notifyConfigChanged?.();
+					return commandConsumed();
+				} catch (err) {
+					return usage(`Failed to set model: ${errorMessage(err)}`, runtime);
+				}
+			}
+
+			const model = runtime.session.model;
+			await runtime.output(
+				modelSelectionUsage(
+					runtime,
+					model ? `Current model: ${model.provider}/${model.id}` : "No model is currently selected.",
+				),
+			);
+			return commandConsumed();
+		},
+		handleTui: async (command, runtime) => {
+			// Args form runs the same parsing path as ACP (cmd_audit P1): the
+			// selector is the bare-invocation UX only.
+			if (command.args.trim()) {
+				const handle = lookupBuiltinSlashCommand("model")?.handle;
+				if (handle) {
+					const result = await handle(command, adaptTuiSlashRuntime(runtime.ctx));
+					runtime.ctx.editor.setText("");
+					return result && typeof result === "object" && "prompt" in result ? result : undefined;
+				}
+			}
+			runtime.ctx.showModelSelector();
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "searchengine",
+		description: "Select web search engine provider",
+		acpDescription: "Select web search engine provider",
+		inlineHint: "[provider|status]",
+		acpInputHint: "[provider|status]",
+		// Args form must dispatch ("/searchengine chatgpt") instead of falling
+		// through to LLM chat — same trap as /model (cmd_audit P1).
+		allowArgs: true,
+		subcommands: [
+			{ name: "status", description: "Show current search engine" },
+			{ name: "auto", description: "Active model's native search, DuckDuckGo fallback" },
+			{ name: "chatgpt", description: "ChatGPT/OpenAI native search (codex)" },
+			{ name: "claude", description: "Anthropic native search" },
+			{ name: "gemini", description: "Google Gemini native search" },
+			{ name: "grok", description: "xAI Grok unified web + X search (xai)" },
+			{ name: "duckduckgo", description: "Keyless DuckDuckGo (always available)" },
+			{ name: "perplexity", description: "Perplexity search" },
+			{ name: "exa", description: "Exa keyed search API" },
+			{ name: "brave", description: "Brave keyed search API" },
+			{ name: "tavily", description: "Tavily keyed search API" },
+		],
+		handle: async (command, runtime) => {
+			const current = runtime.settings.get("providers.webSearch");
+			const authStorage = runtime.session.modelRegistry?.authStorage;
+			const raw = command.args.trim();
+			if (!raw || raw.toLowerCase() === "status") {
+				await runtime.output(await formatSearchEngineStatus(current, runtime.session.model?.provider, authStorage));
+				return commandConsumed();
+			}
+			const next = normalizeSearchEngineArg(raw);
+			if (!next) {
+				return usage(`Unknown search engine: ${raw}\n${formatSearchEngineCandidates()}`, runtime);
+			}
+			runtime.settings.set("providers.webSearch", next);
+			setPreferredSearchProvider(next);
+			await runtime.notifyConfigChanged?.();
+			// Explicit keyed/OAuth providers selected without credentials still
+			// persist (operator may set the key next), but warn so the choice
+			// isn't silently a no-op behind the DuckDuckGo fallback.
+			let setupNote = "";
+			if (next !== "auto" && next !== "duckduckgo" && authStorage) {
+				const available = await isSearchEngineAvailable(next, authStorage);
+				if (!available) {
+					setupNote = `\n⚠ ${next} is not activated yet — ${SEARCH_ENGINE_SETUP_HINTS[next]}. Searches use DuckDuckGo until then.`;
+				}
+			}
+			await runtime.output(
+				(next === "auto"
+					? `Search engine set to auto (${describeAutoSearchTarget(runtime.session.model?.provider)}). Fallback remains DuckDuckGo.`
+					: `Search engine set to ${next}. Fallback remains DuckDuckGo.`) + setupNote,
+			);
+			return commandConsumed();
+		},
+		handleTui: (command, runtime) => {
+			const raw = command.args.trim();
+			// No args → interactive bottom selector (parity with /effort, /model).
+			if (!raw) {
+				runtime.ctx.showSearchEngineSelector();
+				runtime.ctx.editor.setText("");
+				return;
+			}
+			if (raw.toLowerCase() === "status") {
+				const current = runtime.ctx.settings.get("providers.webSearch");
+				runtime.ctx.showStatus(`Search engine: ${current ?? "auto"}. Fallback remains DuckDuckGo.`);
+				runtime.ctx.editor.setText("");
+				return;
+			}
+			const next = normalizeSearchEngineArg(raw);
+			if (!next) {
+				runtime.ctx.showError(`Unknown search engine: ${raw}\n${formatSearchEngineCandidates()}`);
+				runtime.ctx.editor.setText("");
+				return;
+			}
+			runtime.ctx.settings.set("providers.webSearch", next);
+			setPreferredSearchProvider(next);
+			void runtime.ctx.notifyConfigChanged?.();
+			refreshStatusLine(runtime.ctx);
+			runtime.ctx.showStatus(`Search engine set to ${next}. Fallback remains DuckDuckGo.`);
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "effort",
+		description: "Set reasoning effort for the current session",
+		acpDescription: "Set reasoning effort",
+		acpInputHint: "[off|minimal|low|medium|high|xhigh|max]",
+		subcommands: [
+			{ name: "off", description: "No reasoning" },
+			{ name: "minimal", description: "Very brief reasoning (~1k tokens)" },
+			{ name: "low", description: "Light reasoning (~2k tokens)" },
+			{ name: "medium", description: "Moderate reasoning (~8k tokens)" },
+			{ name: "high", description: "Deep reasoning (~16k tokens)" },
+			{ name: "xhigh", description: "Maximum reasoning (~32k tokens)" },
+			{ name: "max", description: "Unrestricted reasoning" },
+			{ name: "status", description: "Show current reasoning effort" },
+		],
+		allowArgs: true,
+		handle: async (command, runtime) => {
+			const raw = command.args.trim().toLowerCase();
+			if (!raw || raw === "status") {
+				await runtime.output(
+					`Reasoning effort: ${runtime.session.thinkingLevel ?? "off"}. Options: off, minimal, low, medium, high, xhigh, max.`,
+				);
+				return commandConsumed();
+			}
+			const level = parseEffortArg(raw);
+			if (!level) {
+				await runtime.output(
+					`Unknown effort "${command.args.trim()}". Options: off, minimal, low, medium, high, xhigh, max.`,
+				);
+				return commandConsumed();
+			}
+			runtime.session.setThinkingLevel(level);
+			await runtime.output(`Reasoning effort set to ${runtime.session.thinkingLevel ?? "off"}.`);
+			return commandConsumed();
+		},
+		handleTui: (command, runtime) => {
+			const raw = command.args.trim().toLowerCase();
+			if (!raw) {
+				runtime.ctx.showEffortSelector();
+				runtime.ctx.editor.setText("");
+				return;
+			}
+			if (raw === "status") {
+				runtime.ctx.showStatus(
+					`Reasoning effort: ${runtime.ctx.session.thinkingLevel ?? "off"} (off|minimal|low|medium|high|xhigh|max)`,
+				);
+				runtime.ctx.editor.setText("");
+				return;
+			}
+			const level = parseEffortArg(raw);
+			if (!level) {
+				runtime.ctx.showError(`Unknown effort "${command.args.trim()}" (off|minimal|low|medium|high|xhigh|max)`);
+				runtime.ctx.editor.setText("");
+				return;
+			}
+			runtime.ctx.session.setThinkingLevel(level);
+			refreshStatusLine(runtime.ctx);
+			runtime.ctx.showStatus(`Reasoning effort set to ${runtime.ctx.session.thinkingLevel ?? "off"}.`);
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		// jwc fork (devlog 086.2): manual escape hatch for stale TUI fragments left
+		// in terminal scrollback (VS Code reflow, IME cursor drift, resize races).
+		// Forces requestRender(true) → full clear (2J/H/3J) + repaint of the whole
+		// transcript, the same recovery path used after Ctrl-Z/external-editor resume.
+		name: "redraw",
+		description: "Force a full screen repaint (clears stale TUI fragments)",
+		handleTui: (_command, runtime) => {
+			runtime.ctx.editor.setText("");
+			runtime.ctx.ui.requestRender(true);
+		},
+	},
+	{
+		name: "fast",
+		description: "Toggle priority service tier (OpenAI service_tier=priority, Anthropic speed=fast)",
+		acpDescription: "Toggle fast mode",
+		acpInputHint: "[on|off|status]",
+		subcommands: [
+			{ name: "on", description: "Enable fast mode" },
+			{ name: "off", description: "Disable fast mode" },
+			{ name: "status", description: "Show fast mode status" },
+		],
+		allowArgs: true,
+		handle: async (command, runtime) => {
+			const arg = command.args.toLowerCase();
+			if (!arg || arg === "toggle") {
+				const enabled = runtime.session.toggleFastMode();
+				await runtime.output(`Fast mode ${enabled ? "enabled" : "disabled"}.`);
+				return commandConsumed();
+			}
+			if (arg === "on") {
+				runtime.session.setFastMode(true);
+				await runtime.output("Fast mode enabled.");
+				return commandConsumed();
+			}
+			if (arg === "off") {
+				runtime.session.setFastMode(false);
+				await runtime.output("Fast mode disabled.");
+				return commandConsumed();
+			}
+			if (arg === "status") {
+				await runtime.output(`Fast mode is ${runtime.session.isFastModeEnabled() ? "on" : "off"}.`);
+				return commandConsumed();
+			}
+			return usage("Usage: /fast [on|off|status]", runtime);
+		},
+		handleTui: (command, runtime) => {
+			const arg = command.args.trim().toLowerCase();
+			if (!arg || arg === "toggle") {
+				const enabled = runtime.ctx.session.toggleFastMode();
+				refreshStatusLine(runtime.ctx);
+				runtime.ctx.showStatus(`Fast mode ${enabled ? "enabled" : "disabled"}.`);
+				runtime.ctx.editor.setText("");
+				return;
+			}
+			if (arg === "on") {
+				runtime.ctx.session.setFastMode(true);
+				refreshStatusLine(runtime.ctx);
+				runtime.ctx.showStatus("Fast mode enabled.");
+				runtime.ctx.editor.setText("");
+				return;
+			}
+			if (arg === "off") {
+				runtime.ctx.session.setFastMode(false);
+				refreshStatusLine(runtime.ctx);
+				runtime.ctx.showStatus("Fast mode disabled.");
+				runtime.ctx.editor.setText("");
+				return;
+			}
+			if (arg === "status") {
+				const enabled = runtime.ctx.session.isFastModeEnabled();
+				runtime.ctx.showStatus(`Fast mode is ${enabled ? "on" : "off"}.`);
+				runtime.ctx.editor.setText("");
+				return;
+			}
+			runtime.ctx.showStatus("Usage: /fast [on|off|status]");
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "export",
+		description: "Export session to HTML file",
+		inlineHint: "[path]",
+		allowArgs: true,
+		handle: async (command, runtime) => {
+			const arg = command.args.trim();
+			// Match the interactive `/export` behavior: clipboard aliases are not a
+			// valid export target. Without this, the literal value (`copy`,
+			// `--copy`, `clipboard`) is passed to `exportToHtml` and becomes the
+			// output filename.
+			if (arg === "--copy" || arg === "clipboard" || arg === "copy") {
+				return usage("Use /dump to copy the session to clipboard.", runtime);
+			}
+			try {
+				const filePath = await runtime.session.exportToHtml(arg || undefined);
+				await runtime.output(`Session exported to: ${filePath}`);
+				return commandConsumed();
+			} catch (err) {
+				return usage(`Failed to export session: ${errorMessage(err)}`, runtime);
+			}
+		},
+		handleTui: async (command, runtime) => {
+			await runtime.ctx.handleExportCommand(command.text);
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "dump",
+		description: "Copy session transcript to clipboard",
+		acpDescription: "Return full transcript as plain text",
+		handle: async (_command, runtime) => {
+			const text = runtime.session.formatSessionAsText();
+			await runtime.output(text || "No messages to dump yet.");
+			return commandConsumed();
+		},
+		handleTui: async (_command, runtime) => {
+			await runtime.ctx.handleDumpCommand();
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "session",
+		description: "Session management commands",
+		acpDescription: "Show session information",
+		acpInputHint: "info|delete",
+		subcommands: [
+			{ name: "info", description: "Show session info and stats" },
+			{ name: "delete", description: "Delete current session and return to selector" },
+		],
+		allowArgs: true,
+		handle: async (command, runtime) => {
+			if (!command.args || command.args === "info") {
+				await runtime.output(
+					[
+						`Session: ${runtime.session.sessionId}`,
+						`Title: ${runtime.session.sessionName}`,
+						`CWD: ${runtime.cwd}`,
+					].join("\n"),
+				);
+				return commandConsumed();
+			}
+			if (command.args === "delete") {
+				if (runtime.session.isStreaming) return usage("Cannot delete the session while streaming.", runtime);
+				const sessionFile = runtime.sessionManager.getSessionFile();
+				if (!sessionFile) return usage("No session file to delete (in-memory session).", runtime);
+				// Route through the active SessionManager so the persist writer is
+				// closed before the file is deleted. Constructing a fresh
+				// FileSessionStorage and calling deleteSessionWithArtifacts leaves
+				// the active writer attached to the now-deleted path, so the next
+				// prompt would silently resurrect or corrupt the "deleted" file.
+				try {
+					await runtime.sessionManager.dropSession(sessionFile);
+				} catch (err) {
+					return usage(`Failed to delete session: ${errorMessage(err)}`, runtime);
+				}
+				await runtime.output(
+					`Session deleted: ${sessionFile}. Use ACP \`session/load\` to switch to another session.`,
+				);
+				return commandConsumed();
+			}
+			return usage("Usage: /session [info|delete]", runtime);
+		},
+		handleTui: async (command, runtime) => {
+			const sub = command.args.trim().toLowerCase() || "info";
+			if (sub === "delete") {
+				runtime.ctx.editor.setText("");
+				await runtime.ctx.handleSessionDeleteCommand();
+				return;
+			}
+			// Default: show session info
+			await runtime.ctx.handleSessionCommand();
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "jobs",
+		description: "Show async background jobs status",
+		acpDescription: "Show background jobs",
+		handle: async (_command, runtime) => {
+			const snapshot = runtime.session.getAsyncJobSnapshot({ recentLimit: 5 });
+			if (!snapshot || (snapshot.running.length === 0 && snapshot.recent.length === 0)) {
+				await runtime.output(
+					"No background jobs running. (Background jobs run async tools — e.g. long-running bash, debug, or task subagents that would otherwise tie up a turn. They appear here while alive and for ~5 minutes after.)",
+				);
+				return commandConsumed();
+			}
+			const now = Date.now();
+			const lines: string[] = ["Background Jobs", `Running: ${snapshot.running.length}`];
+			if (snapshot.running.length > 0) {
+				lines.push("", "Running Jobs");
+				for (const job of snapshot.running) {
+					lines.push(`  [${job.id}] ${job.type} (${job.status}) — ${formatDuration(now - job.startTime)}`);
+					lines.push(`    ${job.label}`);
+				}
+			}
+			if (snapshot.recent.length > 0) {
+				lines.push("", "Recent Jobs");
+				for (const job of snapshot.recent) {
+					lines.push(`  [${job.id}] ${job.type} (${job.status}) — ${formatDuration(now - job.startTime)}`);
+					lines.push(`    ${job.label}`);
+				}
+			}
+			await runtime.output(lines.join("\n"));
+			return commandConsumed();
+		},
+		handleTui: async (_command, runtime) => {
+			await runtime.ctx.handleJobsCommand();
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "context",
+		description: "Show active context token usage breakdown",
+		acpDescription: "Show active context token usage breakdown",
+		handle: async (_command, runtime) => {
+			await runtime.output(buildContextReportText(runtime));
+			return commandConsumed();
+		},
+		handleTui: (_command, runtime) => {
+			runtime.ctx.handleContextCommand();
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "usage",
+		description: "Show provider usage and limits",
+		acpDescription: "Show token usage",
+		handle: async (_command, runtime) => {
+			await runtime.output(await buildUsageReportText(runtime));
+			return commandConsumed();
+		},
+		handleTui: async (_command, runtime) => {
+			await runtime.ctx.handleUsageCommand();
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "quota",
+		description: "Show provider quota and usage limits",
+		acpDescription: "Show quota for an OAuth provider",
+		acpInputHint: "[provider]",
+		subcommands: [
+			{ name: "anthropic", description: "Anthropic (Claude Pro/Max)" },
+			{ name: "openai-codex", description: "OpenAI (Codex/ChatGPT Plus)" },
+			{ name: "xai", description: "xAI (Grok)" },
+			{ name: "kiro", description: "Kiro" },
+		],
+		allowArgs: true,
+		handle: async (command, runtime) => {
+			const provider = command.args.trim() || null;
+			if (provider) {
+				const text = await buildQuotaText(runtime, provider);
+				await runtime.output(text);
+			} else {
+				await runtime.output(await buildUsageReportText(runtime));
+			}
+			return commandConsumed();
+		},
+		handleTui: (command, runtime) => {
+			const provider = command.args.trim();
+			if (provider) {
+				void runtime.ctx.handleQuotaForProvider(provider);
+			} else {
+				runtime.ctx.showQuotaSelector();
+			}
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "help",
+		description: "Show usage help and all available commands",
+		acpDescription: "List available commands",
+		// Text/ACP path: plain command catalog (builtin only — file/skill
+		// commands are advertised separately via available_commands_update).
+		handle: async (_command, runtime) => {
+			const lines = ACTIVE_BUILTIN_SLASH_COMMAND_REGISTRY.map(
+				cmd => `/${cmd.name} — ${cmd.acpDescription ?? cmd.description}`,
+			);
+			await runtime.output(lines.join("\n"));
+			return commandConsumed();
+		},
+		handleTui: (_command, runtime) => {
+			runtime.ctx.handleHelpCommand();
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "hotkeys",
+		description: "Show all keyboard shortcuts",
+		handleTui: (_command, runtime) => {
+			runtime.ctx.handleHotkeysCommand();
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "tools",
+		description: "Show tools currently visible to the agent",
+		acpDescription: "Show available tools",
+		handle: async (_command, runtime) => {
+			const active = runtime.session.getActiveToolNames();
+			const all = runtime.session.getAllToolNames();
+			if (all.length === 0) {
+				await runtime.output("No tools are available.");
+				return commandConsumed();
+			}
+			await runtime.output(all.map(name => `${active.includes(name) ? "*" : "-"} ${name}`).join("\n"));
+			return commandConsumed();
+		},
+		handleTui: (_command, runtime) => {
+			runtime.ctx.handleToolsCommand();
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "agents",
+		description: "Open Agent Control Center dashboard",
+		handleTui: (_command, runtime) => {
+			runtime.ctx.showAgentsDashboard();
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "monitors",
+		description: "Open the monitor/cron jobs overlay",
+		handleTui: (_command, runtime) => {
+			runtime.ctx.showJobsOverlay();
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "tree",
+		description: "Navigate session tree (switch branches)",
+		handleTui: (_command, runtime) => {
+			runtime.ctx.showTreeSelector();
+			runtime.ctx.editor.setText("");
+		},
+	},
+
+	{
+		name: "provider",
+		description: "Set up API-compatible providers or login providers",
+		inlineHint: "add|login",
+		allowArgs: true,
+		handle: async (command, runtime) => {
+			const args = command.args.trim();
+			if (!args || args === "help") {
+				await runtime.output(providerSetupUsage());
+				return commandConsumed();
+			}
+			if (args === "login" || args.startsWith("login ")) {
+				await runtime.output(
+					"Use the terminal UI /login selector for browser, device-code, or manual callback provider login.",
+				);
+				return commandConsumed();
+			}
+			if (!args.startsWith("add ")) return usage(providerSetupUsage(), runtime);
+			const parsed = parseProviderSetupSlashArgs(args.slice(4));
+			const missing: string[] = [];
+			if (!parsed.preset) {
+				if (!parsed.compat) missing.push("--compat");
+				if (!parsed.provider) missing.push("--provider");
+				if (!parsed.baseUrl) missing.push("--base-url");
+			}
+			if (parsed.rejectedRawApiKey) {
+				return usage("Provider setup rejects raw --api-key values; use --api-key-env <ENV> instead.", runtime);
+			}
+			if (!parsed.preset) {
+				if (!parsed.apiKeyEnv) missing.push("--api-key-env");
+				if (parsed.models.length === 0) missing.push("--model");
+			}
+			if (missing.length > 0) {
+				return usage(
+					`Missing required option(s): ${missing.join(", ")}. Or use /provider add --preset <preset>.`,
+					runtime,
+				);
+			}
+			try {
+				const result = await addApiCompatibleProvider({
+					compatibility: parsed.compat ? parseProviderCompatibility(parsed.compat) : undefined,
+					preset: parsed.preset,
+					providerId: parsed.provider,
+					baseUrl: parsed.baseUrl,
+					apiKeyEnv: parsed.apiKeyEnv,
+					models: parsed.models,
+					force: parsed.force,
+				});
+				await runtime.session.modelRegistry.refresh("offline");
+				await runtime.output(formatProviderSetupResult(result));
+				await runtime.notifyConfigChanged?.();
+				return commandConsumed();
+			} catch (err) {
+				return usage(`Provider setup failed: ${errorMessage(err)}`, runtime);
+			}
+		},
+		handleTui: async (command, runtime) => {
+			const args = command.args.trim();
+			if (!args) {
+				runtime.ctx.showProviderOnboarding();
+				runtime.ctx.editor.setText("");
+				return;
+			}
+			if (args === "help") {
+				runtime.ctx.showStatus(providerSetupUsage());
+				runtime.ctx.editor.setText("");
+				return;
+			}
+			if (args === "login" || args.startsWith("login ")) {
+				const providerId = args.slice("login".length).trim() || undefined;
+				await runtime.ctx.showOAuthSelector("login", providerId);
+				runtime.ctx.editor.setText("");
+				return;
+			}
+			if (args.startsWith("add ")) {
+				const parsed = parseProviderSetupSlashArgs(args.slice(4));
+				try {
+					if (parsed.rejectedRawApiKey) {
+						throw new Error("Provider setup rejects raw --api-key values; use --api-key-env <ENV> instead.");
+					}
+					const result = await addApiCompatibleProvider({
+						compatibility: parsed.compat ? parseProviderCompatibility(parsed.compat) : undefined,
+						preset: parsed.preset,
+						providerId: parsed.provider,
+						baseUrl: parsed.baseUrl,
+						apiKeyEnv: parsed.apiKeyEnv,
+						models: parsed.models,
+						force: parsed.force,
+					});
+					await runtime.ctx.session.modelRegistry.refresh("offline");
+					runtime.ctx.showStatus(formatProviderSetupResult(result));
+				} catch (err) {
+					runtime.ctx.showError(`Provider setup failed: ${errorMessage(err)}`);
+				}
+				runtime.ctx.editor.setText("");
+				return;
+			}
+			runtime.ctx.showStatus(providerSetupUsage());
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "login",
+		description: "Login with OAuth provider",
+		inlineHint: "[provider|alias [local]|redirect URL]",
+		allowArgs: true,
+		handleTui: (command, runtime) => {
+			const manualInput = runtime.ctx.oauthManualInput;
+			const args = command.args.trim();
+			if (args.length > 0) {
+				const [providerArg = "", modifier = ""] = args.split(/\s+/, 2);
+				const resolvedProviderId = resolveOAuthProviderId(providerArg);
+				if (resolvedProviderId) {
+					const importLocal = modifier === "local";
+					if (modifier && !importLocal) {
+						runtime.ctx.showWarning(
+							`Unknown /login option "${modifier}". Did you mean: /login ${providerArg} local`,
+						);
+						runtime.ctx.editor.setText("");
+						return;
+					}
+					if (importLocal && !LOCAL_IMPORT_PROVIDERS.has(resolvedProviderId)) {
+						runtime.ctx.showWarning(
+							`Local token import is not supported for ${resolvedProviderId}. Supported: ${[...LOCAL_IMPORT_PROVIDERS].join(", ")}.`,
+						);
+						runtime.ctx.editor.setText("");
+						return;
+					}
+					if (manualInput.hasPending()) {
+						const pendingProvider = manualInput.pendingProviderId;
+						const message = pendingProvider
+							? `OAuth login already in progress for ${pendingProvider}. Paste the redirect URL with /login <url>.`
+							: "OAuth login already in progress. Paste the redirect URL with /login <url>.";
+						runtime.ctx.showWarning(message);
+						runtime.ctx.editor.setText("");
+						return;
+					}
+					void runtime.ctx.showOAuthSelector(
+						"login",
+						resolvedProviderId,
+						importLocal ? { importLocal } : undefined,
+					);
+					runtime.ctx.editor.setText("");
+					return;
+				}
+				const submitted = manualInput.submit(args);
+				if (submitted) {
+					runtime.ctx.showStatus("OAuth callback received; completing login…");
+				} else {
+					runtime.ctx.showWarning("No OAuth login is waiting for a manual callback.");
+				}
+				runtime.ctx.editor.setText("");
+				return;
+			}
+
+			if (manualInput.hasPending()) {
+				const provider = manualInput.pendingProviderId;
+				const message = provider
+					? `OAuth login already in progress for ${provider}. Paste the redirect URL with /login <url>.`
+					: "OAuth login already in progress. Paste the redirect URL with /login <url>.";
+				runtime.ctx.showWarning(message);
+				runtime.ctx.editor.setText("");
+				return;
+			}
+
+			runtime.ctx.showProviderOnboarding();
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "logout",
+		description: "Logout from OAuth provider",
+		inlineHint: "[provider]",
+		allowArgs: true,
+		handleTui: (command, runtime) => {
+			const providerId = command.args.trim() || undefined;
+			void runtime.ctx.showOAuthSelector("logout", providerId);
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "mcp",
+		description: "Manage MCP servers and runtime tools",
+		acpDescription: "Manage MCP servers",
+		acpInputHint: "<subcommand>",
+		subcommands: [
+			{ name: "add", description: "Add a new MCP server" },
+			{ name: "list", description: "List configured MCP servers" },
+			{ name: "remove", description: "Remove an MCP server", usage: "<name> [--scope project|user]" },
+			{ name: "rm", description: "Alias for remove", usage: "<name> [--scope project|user]" },
+			{ name: "test", description: "Test an MCP server connection", usage: "<name>" },
+			{ name: "reauth", description: "Reauthorize OAuth for an MCP server", usage: "<name>" },
+			{ name: "unauth", description: "Remove OAuth auth from an MCP server", usage: "<name>" },
+			{ name: "enable", description: "Enable an MCP server", usage: "<name>" },
+			{ name: "disable", description: "Disable an MCP server", usage: "<name>" },
+			{ name: "resources", description: "List available MCP resources" },
+			{ name: "prompts", description: "List available MCP prompts" },
+			{ name: "notifications", description: "Show MCP notification state" },
+			{ name: "smithery-search", description: "Search Smithery registry", usage: "<keyword>" },
+			{ name: "smithery-login", description: "Login to Smithery" },
+			{ name: "smithery-logout", description: "Remove cached Smithery API key" },
+			{ name: "reconnect", description: "Reconnect an MCP server", usage: "<name>" },
+			{ name: "reload", description: "Reload MCP runtime tools" },
+			{ name: "help", description: "Show MCP help" },
+		],
+		allowArgs: true,
+		handle: handleMcpAcp,
+		handleTui: async (command, runtime) => {
+			runtime.ctx.editor.addToHistory(command.text);
+			runtime.ctx.editor.setText("");
+			await new MCPCommandController(runtime.ctx).handle(command.text);
+		},
+	},
+	{
+		name: "ssh",
+		description: "Manage SSH hosts (add, list, remove)",
+		acpDescription: "Manage SSH connections",
+		inlineHint: "<subcommand>",
+		subcommands: [
+			{
+				name: "add",
+				description: "Add an SSH host",
+				usage: "<name> --host <host> [--user <user>] [--port <port>] [--key <keyPath>]",
+			},
+			{ name: "list", description: "List all configured SSH hosts" },
+			{ name: "remove", description: "Remove an SSH host", usage: "<name> [--scope project|user]" },
+			{ name: "help", description: "Show help message" },
+		],
+		allowArgs: true,
+		handle: handleSshAcp,
+		handleTui: async (command, runtime) => {
+			runtime.ctx.editor.addToHistory(command.text);
+			runtime.ctx.editor.setText("");
+			await runtime.ctx.handleSSHCommand(command.text);
+		},
+	},
+	{
+		name: "new",
+		description: "Start a new session",
+		handleTui: async (_command, runtime) => {
+			runtime.ctx.editor.setText("");
+			await runtime.ctx.handleClearCommand();
+		},
+	},
+	{
+		name: "drop",
+		description: "Delete the current session and start a new one",
+		handleTui: async (_command, runtime) => {
+			runtime.ctx.editor.setText("");
+			await runtime.ctx.handleDropCommand();
+		},
+	},
+	{
+		name: "compact",
+		description: "Manually compact the session context",
+		acpDescription: "Compact the conversation",
+		inlineHint: "[focus instructions]",
+		allowArgs: true,
+		handle: async (command, runtime) => {
+			const before = runtime.session.getContextUsage?.();
+			const beforeTokens = before?.tokens;
+			try {
+				await runtime.session.compact(command.args || undefined);
+			} catch (err) {
+				// Compaction precondition failures (no model, already compacted, too
+				// small) and provider errors propagate as plain Errors; surface them
+				// via runtime.output so they don't fail the ACP prompt turn.
+				return usage(`Compaction failed: ${errorMessage(err)}`, runtime);
+			}
+			const after = runtime.session.getContextUsage?.();
+			const afterTokens = after?.tokens;
+			if (beforeTokens != null && afterTokens != null) {
+				const saved = beforeTokens - afterTokens;
+				await runtime.output(`Compaction complete. Tokens: ${beforeTokens} -> ${afterTokens} (saved ${saved}).`);
+			} else {
+				await runtime.output("Compaction complete.");
+			}
+			return commandConsumed();
+		},
+		handleTui: async (command, runtime) => {
+			const customInstructions = command.args || undefined;
+			runtime.ctx.editor.setText("");
+			await runtime.ctx.handleCompactCommand(customInstructions);
+		},
+	},
+	{
+		name: "contribute-pr",
+		aliases: ["contribution-prep"],
+		description: "Dump redacted session context and spawn a fresh contribute-pr worker",
+		inlineHint: "[focus instructions]",
+		allowArgs: true,
+		handle: async (command, runtime) => {
+			const result = await runtime.session.prepareContributionPrep({
+				customInstructions: command.args || undefined,
+				spawnWorker: true,
+			});
+			await runtime.output(
+				[
+					"Contribution prep artifacts written.",
+					`Manifest: ${result.manifestPath}`,
+					`Worker prompt: ${result.workerPromptPath}`,
+				].join("\n"),
+			);
+			return commandConsumed();
+		},
+		handleTui: async (command, runtime) => {
+			await runtime.ctx.handleContributionPrepCommand(command.args || undefined);
+		},
+	},
+	{
+		name: "resume",
+		aliases: ["sessions", "switch"],
+		description: "Resume a different session (optionally by id prefix)",
+		inlineHint: "[session id]",
+		allowArgs: true,
+		handleTui: async (command, runtime) => {
+			const sessionArg = command.args.trim();
+			runtime.ctx.editor.setText("");
+			if (!sessionArg) {
+				runtime.ctx.showSessionSelector();
+				return;
+			}
+			await runtime.ctx.handleResumeByIdCommand(sessionArg);
+		},
+	},
+	{
+		name: "fork",
+		description: "Fork the session and switch to the copy (optionally send a message)",
+		inlineHint: "[message]",
+		allowArgs: true,
+		handleTui: async (command, runtime) => {
+			const message = command.args.trim();
+			runtime.ctx.editor.setText("");
+			await runtime.ctx.handleForkCommand(message || undefined);
+		},
+	},
+	{
+		name: "branch",
+		description: "Branch from an earlier user message",
+		handleTui: (_command, runtime) => {
+			runtime.ctx.editor.setText("");
+			runtime.ctx.showUserMessageSelector();
+		},
+	},
+	{
+		name: "btw",
+		description: "Ask an ephemeral side question using the current session context",
+		inlineHint: "<question>",
+		allowArgs: true,
+		handleTui: async (command, runtime) => {
+			const question = command.text.slice(`/${command.name}`.length).trim();
+			runtime.ctx.editor.setText("");
+			await runtime.ctx.handleBtwCommand(question);
+		},
+	},
+	{
+		name: "retry",
+		description: "Retry the last failed agent turn",
+		handleTui: async (_command, runtime) => {
+			const didRetry = await runtime.ctx.session.retry();
+			if (!didRetry) {
+				runtime.ctx.showStatus("Nothing to retry");
+			}
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "background",
+		aliases: ["bg"],
+		description: "Detach UI and continue running in background",
+		handleTui: (_command, runtime) => {
+			runtime.ctx.editor.setText("");
+			runtime.handleBackgroundCommand();
+		},
+	},
+	{
+		name: "debug",
+		description: "Open debug tools selector",
+		handleTui: (_command, runtime) => {
+			runtime.ctx.showDebugSelector();
+			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		name: "memory",
+		description: "Inspect and operate memory maintenance",
+		acpDescription: "Manage memory",
+		acpInputHint: "<subcommand>",
+		subcommands: [
+			{ name: "view", description: "Show current memory injection payload" },
+			{ name: "clear", description: "Clear persisted memory data and artifacts" },
+			{ name: "reset", description: "Alias for clear" },
+			{ name: "enqueue", description: "Enqueue memory consolidation maintenance" },
+			{ name: "rebuild", description: "Alias for enqueue" },
+			{ name: "mm list", description: "List mental models on the active bank" },
+			{ name: "mm show", description: "Show one mental model (id required)" },
+			{
+				name: "mm refresh",
+				description: "Refresh auto-refresh models bank-wide, or one model by id",
+			},
+			{ name: "mm history", description: "Diff the change history of a mental model" },
+			{ name: "mm seed", description: "Create any built-in mental models that are missing" },
+			{ name: "mm delete", description: "Delete a mental model from the bank (id required)" },
+			{ name: "mm reload", description: "Re-pull the cached <mental_models> block" },
+		],
+		allowArgs: true,
+		handle: async (command, runtime) => {
+			const verb = (command.args.trim().split(/\s+/)[0] ?? "").toLowerCase() || "view";
+			const backend = resolveMemoryBackend(runtime.settings);
+			switch (verb) {
+				case "view": {
+					const payload = await backend.buildDeveloperInstructions(
+						runtime.settings.getAgentDir(),
+						runtime.settings,
+						runtime.session,
+					);
+					await runtime.output(
+						payload || "Memory payload is empty; durable memory is unavailable or unconfirmed.",
+					);
+					return commandConsumed();
+				}
+				case "clear":
+				case "reset": {
+					await backend.clear(runtime.settings.getAgentDir(), runtime.cwd, runtime.session);
+					await runtime.session.refreshBaseSystemPrompt();
+					await runtime.output("Memory cleared.");
+					return commandConsumed();
+				}
+				case "enqueue":
+				case "rebuild": {
+					await backend.enqueue(runtime.settings.getAgentDir(), runtime.cwd, runtime.session);
+					await runtime.output("Memory consolidation enqueued.");
+					return commandConsumed();
+				}
+				case "mm":
+					return usage(
+						"Mental-model maintenance via /memory mm is unsupported in ACP mode; use the hindsight HTTP API directly.",
+						runtime,
+					);
+				default:
+					return usage("Usage: /memory <view|clear|reset|enqueue|rebuild>", runtime);
+			}
+		},
+		handleTui: async (command, runtime) => {
+			runtime.ctx.editor.setText("");
+			await runtime.ctx.handleMemoryCommand(command.text);
+		},
+	},
+	{
+		name: "rename",
+		description: "Rename the current session",
+		inlineHint: "<title>",
+		allowArgs: true,
+		handle: async (command, runtime) => {
+			if (!command.args) return usage("Usage: /rename <title>", runtime);
+			const ok = await runtime.sessionManager.setSessionName(command.args, "user");
+			if (!ok) {
+				await runtime.output("Session name not changed (a user-set name takes precedence).");
+				return commandConsumed();
+			}
+			await runtime.notifyTitleChanged?.();
+			await runtime.output(`Session renamed to ${command.args}.`);
+			return commandConsumed();
+		},
+		handleTui: async (command, runtime) => {
+			const title = command.args.trim();
+			if (!title) {
+				runtime.ctx.showError("Usage: /rename <title>");
+				runtime.ctx.editor.setText("");
+				return;
+			}
+			runtime.ctx.editor.setText("");
+			await runtime.ctx.handleRenameCommand(title);
+		},
+	},
+	{
+		name: "move",
+		description: "Move session to a different working directory",
+		acpDescription: "Move the current session file",
+		inlineHint: "<path>",
+		allowArgs: true,
+		handle: async (command, runtime) => {
+			if (runtime.session.isStreaming) return usage("Cannot move while streaming.", runtime);
+			if (!command.args) return usage("Usage: /move <path>", runtime);
+			const resolvedPath = path.resolve(runtime.cwd, command.args);
+			let isDirectory: boolean;
+			try {
+				isDirectory = (await fs.stat(resolvedPath)).isDirectory();
+			} catch {
+				return usage(`Directory does not exist or is not a directory: ${resolvedPath}`, runtime);
+			}
+			if (!isDirectory) return usage(`Directory does not exist or is not a directory: ${resolvedPath}`, runtime);
+			try {
+				await runtime.sessionManager.flush();
+				await runtime.sessionManager.moveTo(resolvedPath);
+			} catch (err) {
+				return usage(`Move failed: ${errorMessage(err)}`, runtime);
+			}
+			setProjectDir(resolvedPath);
+			// Reload plugin/capability caches so the next prompt sees commands and
+			// capabilities scoped to the new cwd.
+			await runtime.reloadPlugins();
+			await runtime.notifyTitleChanged?.();
+			await runtime.output(`Session moved to ${runtime.sessionManager.getCwd()}.`);
+			return commandConsumed();
+		},
+		handleTui: async (command, runtime) => {
+			const targetPath = command.args;
+			if (!targetPath) {
+				runtime.ctx.showError("Usage: /move <path>");
+				runtime.ctx.editor.setText("");
+				return;
+			}
+			runtime.ctx.editor.setText("");
+			await runtime.ctx.handleMoveCommand(targetPath);
+		},
+	},
+	{
+		name: "exit",
+		description: "Exit the application",
+		handleTui: shutdownHandlerTui,
+	},
+];
+
+const QUARANTINED_UTILITY_SLASH_COMMANDS = new Set(["agents"]);
+
+/** Jaw-brand-only slash surface (D050-24) — hidden for env-unset engine runs. */
+const JAW_ONLY_SLASH_COMMANDS = new Set(["orchestrate"]);
+
+const ACTIVE_BUILTIN_SLASH_COMMAND_REGISTRY: ReadonlyArray<SlashCommandSpec> = BUILTIN_SLASH_COMMAND_REGISTRY.filter(
+	command =>
+		!QUARANTINED_UTILITY_SLASH_COMMANDS.has(command.name) &&
+		(isJawBrand() || !JAW_ONLY_SLASH_COMMANDS.has(command.name)),
+);
+
+const BUILTIN_SLASH_COMMAND_LOOKUP = new Map<string, SlashCommandSpec>();
+for (const command of ACTIVE_BUILTIN_SLASH_COMMAND_REGISTRY) {
+	BUILTIN_SLASH_COMMAND_LOOKUP.set(command.name, command);
+	for (const alias of command.aliases ?? []) {
+		BUILTIN_SLASH_COMMAND_LOOKUP.set(alias, command);
+	}
+}
+
+export function formatUnknownBuiltinSlashCommandDiagnostic(commandName: string): string | undefined {
+	if (commandName !== "provicer") return undefined;
+	return [
+		"Unknown slash command: /provicer.",
+		"Did you mean /provider?",
+		"Run: /provider add --compat <openai|anthropic> --provider <id> --base-url <url> --api-key-env <ENV> --model <model>",
+	].join("\n");
+}
+
+/** Builtin command metadata used for slash-command autocomplete and help text. */
+export const BUILTIN_SLASH_COMMAND_DEFS: ReadonlyArray<BuiltinSlashCommand> = ACTIVE_BUILTIN_SLASH_COMMAND_REGISTRY.map(
+	command => ({
+		name: command.name,
+		aliases: command.aliases,
+		description: command.description,
+		subcommands: command.subcommands,
+		inlineHint: command.inlineHint,
+	}),
+);
+
+/**
+ * Unified registry exposed for cross-mode tooling. Each spec carries at least
+ * one of `handle` / `handleTui`. The TUI dispatcher prefers `handleTui`; the
+ * ACP dispatcher requires `handle` and skips TUI-only entries.
+ */
+export const BUILTIN_SLASH_COMMANDS_INTERNAL: ReadonlyArray<SlashCommandSpec> = ACTIVE_BUILTIN_SLASH_COMMAND_REGISTRY;
+
+/**
+ * Execute a builtin slash command in the interactive TUI.
+ *
+ * Returns `false` when no builtin matched. Returns `true` when a command
+ * consumed the input entirely. Returns a `string` when the command was handled
+ * but remaining text should be sent as a prompt.
+ */
+export async function executeBuiltinSlashCommand(
+	text: string,
+	runtime: BuiltinSlashCommandRuntime,
+): Promise<string | boolean> {
+	const parsed = parseSlashCommand(text);
+	if (!parsed) return false;
+
+	const command = BUILTIN_SLASH_COMMAND_LOOKUP.get(parsed.name);
+	if (!command) {
+		const diagnostic = formatUnknownBuiltinSlashCommandDiagnostic(parsed.name);
+		if (!diagnostic) return false;
+		runtime.ctx.showError(diagnostic);
+		runtime.ctx.editor.setText("");
+		return true;
+	}
+	if (parsed.args.length > 0 && !command.allowArgs) {
+		return false;
+	}
+	if (command.handleTui) {
+		const result = await command.handleTui(parsed, runtime);
+		if (result && typeof result === "object" && "prompt" in result) return result.prompt;
+		return true;
+	}
+	if (command.handle) {
+		// No TUI-specific override → adapt the ACP/text-mode `handle` to the
+		// TUI. Spec authors get a single body usable from either dispatcher
+		// without forcing every TUI test to construct the full
+		// `SlashCommandRuntime` shape.
+		const ctx = runtime.ctx;
+		const result = await command.handle(parsed, adaptTuiSlashRuntime(ctx));
+		ctx.editor.setText("");
+		if (result && typeof result === "object" && "prompt" in result) return result.prompt;
+		return true;
+	}
+	return false;
+}
+
+/**
+ * Adapt an interactive-mode context to the text/ACP `SlashCommandRuntime`
+ * shape: `output` routes through `ctx.showStatus` and plugin reload reuses the
+ * active session's pipeline. Shared by the TUI dispatcher's `handle` adapter
+ * and by `handleTui` bodies that delegate their args form to `handle`.
+ */
+function adaptTuiSlashRuntime(ctx: InteractiveModeContext): SlashCommandRuntime {
+	return {
+		session: ctx.session,
+		sessionManager: ctx.sessionManager,
+		settings: ctx.settings,
+		cwd: ctx.sessionManager.getCwd(),
+		output: (text: string) => {
+			ctx.showStatus(text);
+		},
+		refreshCommands: () => ctx.refreshSlashCommandState(),
+		reloadPlugins: async () => {
+			const projectPath = await resolveActiveProjectRegistryPath(ctx.sessionManager.getCwd());
+			clearPluginRootsAndCaches(projectPath ? [projectPath] : undefined);
+			await ctx.refreshSlashCommandState();
+			await ctx.session.refreshSshTool({ activateIfAvailable: true });
+		},
+		// Forward config-change notifications so `handle`-only commands that
+		// mutate settings (e.g. /searchengine) reach TUI consumers, matching
+		// the ACP dispatcher which wires this through.
+		notifyConfigChanged: ctx.notifyConfigChanged ? () => ctx.notifyConfigChanged?.() : undefined,
+	};
+}
+
+/** Look up a unified spec by name or alias. Used by the ACP dispatcher. */
+export function lookupBuiltinSlashCommand(name: string): SlashCommandSpec | undefined {
+	return BUILTIN_SLASH_COMMAND_LOOKUP.get(name);
+}
+
+export type { ParsedSlashCommand, SlashCommandResult, SlashCommandRuntime, SlashCommandSpec, TuiSlashCommandRuntime };

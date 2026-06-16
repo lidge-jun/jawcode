@@ -1,0 +1,111 @@
+{
+  "architectReview": {
+    "architectureStatus": "CLEAR",
+    "productStatus": "CLEAR",
+    "codeStatus": "CLEAR",
+    "recommendation": "APPROVE",
+    "commands": [
+      "A-stage Planner/Architect audits with accepted findings through ctrlo-r3",
+      "B-stage verifier 91-CtrlOBVerifier"
+    ],
+    "evidence": "B verifier returned DONE; C gates passed; Ctrl+T path was not modified; known scroll duplicate follow-up is outside the Ctrl+O objective.",
+    "blockers": []
+  },
+  "executorQa": {
+    "status": "passed",
+    "e2eStatus": "passed",
+    "redTeamStatus": "passed",
+    "e2eCommands": [
+      "bun test packages/coding-agent/test/input-controller-keybindings.test.ts packages/coding-agent/test/modes/controllers/event-controller-message-start.test.ts packages/coding-agent/test/interactive-mode-current-turn-boundary.test.ts",
+      "bun run check"
+    ],
+    "redTeamCommands": [
+      "bun biome check packages/coding-agent/src/modes/types.ts packages/coding-agent/src/modes/interactive-mode.ts packages/coding-agent/src/modes/components/user-message.ts packages/coding-agent/src/modes/controllers/event-controller.ts packages/coding-agent/src/modes/controllers/input-controller.ts packages/coding-agent/test/input-controller-keybindings.test.ts packages/coding-agent/test/modes/controllers/event-controller-message-start.test.ts packages/coding-agent/test/interactive-mode-current-turn-boundary.test.ts",
+      "B-stage verifier 91-CtrlOBVerifier"
+    ],
+    "evidence": "Focused Ctrl+O tests passed 34 tests / 139 assertions; workspace bun run check passed; touched-file Biome passed; coding-agent typecheck passed with marker CODING_AGENT_TYPES_DONE.",
+    "blockers": [],
+    "artifactRefs": [
+      {
+        "id": "ctrl-o-verification",
+        "kind": "test-report",
+        "description": "Ctrl+O verification command summary",
+        "path": "artifacts/ctrl-o-verification.md"
+      },
+      {
+        "id": "ctrl-o-goal-snapshot",
+        "kind": "goal-snapshot",
+        "description": "Ctrl+O goal completion snapshot",
+        "path": "artifacts/ctrl-o-goal-snapshot.json"
+      }
+    ],
+    "surfaceEvidence": [
+      {
+        "id": "focused-tests",
+        "contractRef": "Ctrl+O current-turn expansion/collapse boundary",
+        "surface": "package test command",
+        "status": "passed",
+        "invocation": "bun test Ctrl+O focused files",
+        "verdict": "passed",
+        "artifactRefs": ["ctrl-o-verification"]
+      },
+      {
+        "id": "workspace-check",
+        "contractRef": "Repository mechanical gate",
+        "surface": "workspace check command",
+        "status": "passed",
+        "invocation": "bun run check",
+        "verdict": "passed",
+        "artifactRefs": ["ctrl-o-verification"]
+      }
+    ],
+    "adversarialCases": [
+      {
+        "id": "b-verifier",
+        "contractRef": "Ctrl+O implementation plan conformance",
+        "scenario": "Read-only B verifier inspected source/tests/evidence",
+        "expectedBehavior": "DONE or itemized NEEDS_FIX",
+        "verdict": "passed",
+        "artifactRefs": ["ctrl-o-verification"]
+      }
+    ],
+    "contractCoverage": [
+      {
+        "id": "current-turn-boundary",
+        "contractRef": "Ctrl+O only targets output after the immediately previous real user message",
+        "obligation": "Optimistic submit, message_start, and rebuild paths must set currentTurnStartIndex correctly.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["focused-tests"],
+        "adversarialCaseRefs": ["b-verifier"]
+      },
+      {
+        "id": "complete-collapse",
+        "contractRef": "Collapse returns completed tool output to minimized summary mode",
+        "obligation": "Collapse must call setExpanded(false) and setMinimized(true) for completed current-turn tools while skipping active live tools.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["focused-tests"],
+        "adversarialCaseRefs": ["b-verifier"]
+      },
+      {
+        "id": "ctrl-t-preserved",
+        "contractRef": "Ctrl+T/full transcript work preserved",
+        "obligation": "Ctrl+T overlay code path remains unchanged by Ctrl+O fix and nearby keybinding tests continue to pass.",
+        "status": "covered",
+        "surfaceEvidenceRefs": ["focused-tests"],
+        "adversarialCaseRefs": ["b-verifier"]
+      }
+    ]
+  },
+  "iteration": {
+    "status": "passed",
+    "fullRerun": true,
+    "rerunCommands": [
+      "bun run check",
+      "bun test packages/coding-agent/test/input-controller-keybindings.test.ts packages/coding-agent/test/modes/controllers/event-controller-message-start.test.ts packages/coding-agent/test/interactive-mode-current-turn-boundary.test.ts",
+      "bun biome check packages/coding-agent/src/modes/types.ts packages/coding-agent/src/modes/interactive-mode.ts packages/coding-agent/src/modes/components/user-message.ts packages/coding-agent/src/modes/controllers/event-controller.ts packages/coding-agent/src/modes/controllers/input-controller.ts packages/coding-agent/test/input-controller-keybindings.test.ts packages/coding-agent/test/modes/controllers/event-controller-message-start.test.ts packages/coding-agent/test/interactive-mode-current-turn-boundary.test.ts",
+      "bun --cwd=packages/coding-agent run check:types"
+    ],
+    "evidence": "All objective-scoped verification rerun against current repo state: workspace check passed; focused tests 34/0; touched-file Biome OK; coding-agent typecheck marker done.",
+    "blockers": []
+  }
+}

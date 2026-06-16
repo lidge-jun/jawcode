@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compaction — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+      <h1>Compaction</h1>
+      <p>
+        Compaction keeps long sessions usable by summarizing old conversation history
+        without losing critical context. It works alongside branch summarization and
+        tool-output pruning to manage the context window budget.
+      </p>
+
+      <h2>How It Works</h2>
+      <p>
+        When context grows past a threshold, compaction rewrites older messages into a
+        structured summary. The LLM then sees the summary plus recent messages, rather
+        than the full history. This is transparent to the user.
+      </p>
+      <pre><code>Before compaction:
+
+  entry:  0     1     2     3      4     5     6      7      8     9
+        +-----+-----+-----+------+-----+-----+------+------+-----+------+
+        | hdr | usr | ass | tool | usr | ass | tool | tool | ass | tool |
+        +-----+-----+-----+------+-----+-----+------+------+-----+------+
+                |___________|       |__________________________|
+               messagesToSummarize            kept messages
+                                   ^
+                          firstKeptEntryId (entry 4)
+
+After compaction (CompactionEntry appended):
+
+  What the LLM sees:
+  +--------+---------+-----+-----+------+------+-----+------+
+  | system | summary | usr | ass | tool | tool | ass | tool |
+  +--------+---------+-----+-----+------+------+-----+------+
+       ^         ^      |___________________|
+    prompt   from cmp     messages from firstKeptEntryId</code></pre>
+
+      <h2>Trigger Conditions</h2>
+      <p>Compaction runs in four scenarios:</p>
+      <table>
+        <thead>
+          <tr><th>Trigger</th><th>Condition</th><th>Behavior</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Manual</td>
+            <td><code>/compact [instructions]</code></td>
+            <td>Immediate compaction with optional user guidance</td>
+          </tr>
+          <tr>
+            <td>Overflow recovery</td>
+            <td>Context overflow error from the model</td>
+            <td>Tries context promotion first; if unavailable, compacts with
+                <code>reason: "overflow"</code> and auto-continues</td>
+          </tr>
+          <tr>
+            <td>Threshold maintenance</td>
+            <td>Successful turn exceeds <code>resolveThresholdTokens()</code></td>
+            <td>Tries promotion first; if unavailable, may use handoff strategy
+                or fall back to context-full compaction</td>
+          </tr>
+          <tr>
+            <td>Idle maintenance</td>
+            <td><code>runIdleCompaction()</code> when not streaming</td>
+            <td>Uses <code>reason: "idle"</code>; no auto-continue afterward</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Pre-Compaction Pruning</h2>
+      <p>
+        Before compaction checks, tool-output pruning may run to reclaim space without
+        summarizing. Default prune policy:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Default</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Protected recent tokens</td><td>40,000</td></tr>
+          <tr><td>Minimum savings required</td><td>20,000 tokens</td></tr>
+          <tr><td>Never-prune tools</td><td><code>skill</code>, <code>read</code></td></tr>
+          <tr><td>Replacement text</td><td><code>[Output truncated - N tokens]</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2>Cut-Point Selection</h2>
+      <p>
+        <code>findCutPoint()</code> determines where to split history into
+        "summarize" and "keep" regions. The algorithm adapts
+        <code>keepRecentTokens</code> using measured usage ratios.
+      </p>
+      <p>Valid cut points:</p>
+      <ul>
+        <li><code>user</code>, <code>assistant</code>, <code>bashExecution</code>,
+            <code>hookMessage</code>, <code>branchSummary</code>,
+            <code>compactionSummary</code> messages</li>
+        <li><code>custom_message</code> and <code>branch_summary</code> entries</li>
+      </ul>
+      <p>
+        Hard rule: never cut at a <code>toolResult</code>. Metadata entries
+        (model changes, thinking-level changes, labels) before the cut point are pulled
+        into the kept region.
+      </p>
+
+      <h2>Split-Turn Handling</h2>
+      <p>
+        When the cut point falls inside a multi-message turn (not at a user-turn boundary),
+        compaction generates two separate summaries:
+      </p>
+      <ol>
+        <li><strong>History summary</strong> — covers <code>messagesToSummarize</code></li>
+        <li><strong>Turn-prefix summary</strong> — covers the partial turn before the cut</li>
+      </ol>
+      <p>The final stored summary merges both:</p>
+      <pre><code>&lt;history summary&gt;
+
+---
+
+**Turn Context (split turn):**
+
+&lt;turn prefix summary&gt;</code></pre>
+
+      <h2>Summary Generation</h2>
+      <p>The summarization pipeline:</p>
+      <ol>
+        <li>Convert messages via <code>convertToLlm()</code></li>
+        <li>Serialize with <code>serializeConversation()</code></li>
+        <li>Wrap in <code>&lt;conversation&gt;...&lt;/conversation&gt;</code></li>
+        <li>Optionally include <code>&lt;previous-summary&gt;</code> for iterative compaction</li>
+        <li>Optionally inject hook context as <code>&lt;additional-context&gt;</code></li>
+        <li>Execute with <code>SUMMARIZATION_SYSTEM_PROMPT</code></li>
+      </ol>
+
+      <h3>Prompt Templates</h3>
+      <table>
+        <thead>
+          <tr><th>Scenario</th><th>Template</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>First compaction</td><td><code>compaction-summary.md</code></td></tr>
+          <tr><td>Iterative (with prior summary)</td><td><code>compaction-update-summary.md</code></td></tr>
+          <tr><td>Split-turn second pass</td><td><code>compaction-turn-prefix.md</code></td></tr>
+          <tr><td>Short UI summary</td><td><code>compaction-short-summary.md</code></td></tr>
+          <tr><td>Handoff document</td><td><code>handoff-document.md</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2>Handoff Strategy</h2>
+      <p>
+        When <code>compaction.strategy</code> is set to <code>"handoff"</code>, threshold
+        maintenance creates a new session instead of writing a compaction entry. The handoff:
+      </p>
+      <ul>
+        <li>Preserves the live agent cache prefix by sending the active system prompt,
+            tool array, and real LLM message history</li>
+        <li>Appends a single agent-attributed user message with the handoff prompt</li>
+        <li>Forces <code>toolChoice: "none"</code></li>
+        <li>Injects the generated document as a visible <code>custom_message</code> with
+            <code>customType: "handoff"</code> in the new session</li>
+      </ul>
+      <p>If handoff returns no document, it falls back to context-full compaction.</p>
+
+      <h2>Remote Summarization</h2>
+      <p>
+        When <code>compaction.remoteEndpoint</code> is configured, summarization POSTs
+        <code>{ systemPrompt, prompt }</code> to the endpoint and expects
+        <code>{ summary }</code> in the response.
+      </p>
+      <p>
+        For OpenAI/OpenAI Code provider models, compaction first tries the provider-native
+        <code>/responses/compact</code> endpoint. Provider replacement history is preserved
+        in <code>preserveData.openaiRemoteCompaction</code>, with fallback to local
+        summarization on failure.
+      </p>
+
+      <h2>File-Operation Tracking</h2>
+      <p>
+        Compaction tracks cumulative file activity from assistant tool calls
+        (<code>read</code>, <code>write</code>, <code>edit</code>) and appends file tags
+        to the summary:
+      </p>
+      <pre><code>&lt;read-files&gt;
+src/main.ts, src/utils.ts
+&lt;/read-files&gt;
+&lt;modified-files&gt;
+src/config.ts
+&lt;/modified-files&gt;</code></pre>
+      <p>
+        Files that appear in both read and modified sets are reported only as modified.
+        Prior compaction details are included only when the prior entry is internally generated.
+      </p>
+
+      <h2>Session Entry Model</h2>
+      <p>
+        Compaction produces first-class session entries, not plain messages:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Entry Type</th><th>Key Fields</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>CompactionEntry</code></td>
+            <td><code>type: "compaction"</code>, <code>summary</code>,
+                <code>shortSummary</code>, <code>firstKeptEntryId</code>,
+                <code>tokensBefore</code>, <code>details</code>,
+                <code>preserveData</code></td>
+          </tr>
+          <tr>
+            <td><code>BranchSummaryEntry</code></td>
+            <td><code>type: "branch_summary"</code>, <code>fromId</code>,
+                <code>summary</code>, <code>details</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Context Rebuild</h2>
+      <p>
+        When context is rebuilt via <code>buildSessionContext()</code>:
+      </p>
+      <ol>
+        <li>Latest compaction on the active path becomes a <code>compactionSummary</code> message</li>
+        <li>Kept entries from <code>firstKeptEntryId</code> to the compaction point are re-included</li>
+        <li>Later entries on the path are appended normally</li>
+        <li><code>branch_summary</code> entries become <code>branchSummary</code> messages</li>
+        <li>Custom messages are converted using static context templates</li>
+      </ol>
+
+      <h2>Branch Summarization</h2>
+      <p>
+        Branch summarization is separate from compaction. It captures context from
+        abandoned conversation branches during <code>/tree</code> navigation.
+      </p>
+      <pre><code>Tree before navigation:
+
+         +- B - C - D  (old leaf, being abandoned)
+    A ---+
+         +- E - F      (target)
+
+Common ancestor: A
+Entries to summarize: B, C, D
+
+After navigation with summary:
+
+         +- B - C - D - [summary of B,C,D]
+    A ---+
+         +- E - F      (new leaf)</code></pre>
+      <p>
+        Budget is calculated as <code>model.contextWindow - branchSummary.reserveTokens</code>.
+        Recent context is preferred; preparation walks newest-to-oldest until the budget
+        is reached.
+      </p>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

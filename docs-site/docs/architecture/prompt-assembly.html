@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prompt Assembly — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+      <h1>Prompt Assembly</h1>
+      <p>
+        Jawcode assembles its system prompt from static Handlebars templates, dynamic context,
+        and per-turn injection rails. Understanding this pipeline is essential for customization,
+        embedding, and debugging unexpected agent behavior.
+      </p>
+
+      <h2>Assembly Pipeline</h2>
+      <p>
+        The full prompt is built once at session start and cached. It is only rebuilt when
+        tools change or <code>refreshBaseSystemPrompt()</code> is called explicitly.
+      </p>
+      <pre><code>createAgentSession()
+  -> rebuildSystemPrompt(toolNames, tools)
+     -> resolveMemoryBackend(...).buildDeveloperInstructions(...)
+     -> buildSystemPromptInternal(...)
+        -> loadSystemPromptFiles(SYSTEM.md)
+        -> loadProjectContextFiles(AGENTS.md, etc.)
+        -> buildWorkspaceTree(...)
+        -> loadSkills(...)
+        -> render system-prompt.md or custom-system-prompt.md
+        -> optional project-prompt.md block
+  -> options.systemPrompt(defaultPrompt) override/append</code></pre>
+
+      <h2>Template Files</h2>
+      <p>
+        Three Handlebars templates control the prompt shape. The engine picks one based on
+        whether a custom prompt override is provided.
+      </p>
+      <table>
+        <thead>
+          <tr><th>File</th><th>Role</th><th>Key Slots</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>system-prompt.md</code></td>
+            <td>Default system prompt. Contains identity, runtime config, workflow surface,
+                tools, skills, soul, and communication sections.</td>
+            <td><code>{{systemPromptCustomization}}</code>, <code>{{#if toolInfo.length}}</code>,
+                <code>{{#if skills.length}}</code></td>
+          </tr>
+          <tr>
+            <td><code>custom-system-prompt.md</code></td>
+            <td>Rendered when <code>customPrompt</code> is provided. Contains only
+                customization, custom prompt, append, context files, and skills.</td>
+            <td><code>{{customPrompt}}</code>, <code>{{appendPrompt}}</code>,
+                <code>contextFiles</code>, <code>skills</code></td>
+          </tr>
+          <tr>
+            <td><code>project-prompt.md</code></td>
+            <td>Appended as a separate block after the main prompt render.</td>
+            <td>Rendered via <code>projectPromptTemplate</code>, pushed to <code>systemPrompt[]</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>system-prompt.md Sections</h2>
+      <p>
+        The default template is organized into named XML-like sections. Each section has a
+        specific responsibility and can reference Handlebars conditionals.
+      </p>
+      <table>
+        <thead>
+          <tr><th>Section</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>&lt;identity&gt;</code></td><td>Agent name, role, and operating contract</td></tr>
+          <tr><td><code>&lt;authority&gt;</code></td><td>RFC 2119 keyword semantics, tag interpretation rules</td></tr>
+          <tr><td><code>&lt;jwc-runtime&gt;</code></td><td>Public workflow surface (4 skills + IPABCD orchestrate),
+              role agents, routing rules, dev-work classification</td></tr>
+          <tr><td><code>&lt;communication&gt;</code></td><td>Output formatting, progress reporting, confirmation checkpoints</td></tr>
+          <tr><td><code>&lt;completion-contract&gt;</code></td><td>Fabrication prevention, security, verification claims</td></tr>
+          <tr><td><code>&lt;repo-safety&gt;</code></td><td>Blast radius assessment, reversibility gates</td></tr>
+          <tr><td><code>&lt;tools&gt;</code></td><td>Dynamic: tool inventory, priority rules, AST tools, subagent guidance</td></tr>
+          <tr><td><code>&lt;skills&gt;</code></td><td>Dynamic: loaded skill descriptions with paths</td></tr>
+          <tr><td><code>&lt;search-mandate&gt;</code></td><td>Search-before-answering rules, scaling tiers, citation requirements</td></tr>
+          <tr><td><code>&lt;workflow&gt;</code></td><td>Scope, before-editing, decomposition, and verification disciplines</td></tr>
+          <tr><td><code>&lt;soul&gt;</code></td><td>Personality, freedom scope, behavioral guardrails</td></tr>
+        </tbody>
+      </table>
+
+      <h2>SYSTEM.md Customization</h2>
+      <p>
+        Users can customize the system prompt without editing templates. The runtime scans
+        for <code>SYSTEM.md</code> files at two levels:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Level</th><th>Location</th><th>Precedence</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>User-level</td>
+            <td><code>~/.jwc/agent/SYSTEM.md</code></td>
+            <td>Fallback when no project-level file exists</td>
+          </tr>
+          <tr>
+            <td>Project-level</td>
+            <td><code>.jwc/SYSTEM.md</code> (nearest config dir)</td>
+            <td>Takes priority over user-level</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        The resolved content fills the <code>{{systemPromptCustomization}}</code> slot in the
+        template, appearing near the top of the final prompt.
+      </p>
+
+      <h2>CLI Overrides</h2>
+      <p>
+        Two CLI surfaces provide runtime prompt injection:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Surface</th><th>Behavior</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>--system-prompt</code></td>
+            <td>Replaces the first default prompt block entirely</td>
+          </tr>
+          <tr>
+            <td><code>APPEND_SYSTEM.md</code></td>
+            <td>Discovery: project-level first, then global. Appended after default prompt blocks.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Dynamic Sections</h2>
+
+      <h3>Tools</h3>
+      <p>
+        Tool descriptions are rendered from the active tool set. Priority:
+        explicit <code>toolNames</code> parameter, then <code>tools</code> map keys,
+        then the hardcoded default set
+        (<code>read</code>, <code>bash</code>, <code>eval</code>, <code>edit</code>, <code>write</code>).
+      </p>
+
+      <h3>Skills</h3>
+      <p>
+        Skills are included only when the <code>read</code> tool is available.
+        Hidden skills (<code>hide: true</code>) are excluded.
+        Even if <code>options.skills = []</code> is passed, the four default workflow skills
+        (jaw-interview, plan, goal, team) are always injected by
+        <code>withEmbeddedDefaultGjcSkills()</code>.
+      </p>
+
+      <h3>Context Files</h3>
+      <p>
+        <code>AGENTS.md</code> and similar context files are loaded from the working directory
+        tree. The workspace tree itself is generated with a 5-second timeout and included
+        as a truncated directory listing.
+      </p>
+
+      <h2>Per-Turn Injection Rails</h2>
+      <p>
+        While the system prompt is cached, ten rails inject state into the model context
+        on every turn:
+      </p>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Rail</th><th>Timing</th><th>Content</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td><td>Memory backend</td>
+            <td><code>beforeAgentStartPrompt</code></td>
+            <td>Task snapshot + hindsight memories/mental models</td>
+          </tr>
+          <tr>
+            <td>2</td><td>Plan mode</td>
+            <td>Before user message</td>
+            <td>PLAN.md body + acceptance criteria</td>
+          </tr>
+          <tr>
+            <td>3</td><td>Goal mode</td>
+            <td>Custom message + periodic continuation</td>
+            <td>Active goal objective, token usage, PABCD hints</td>
+          </tr>
+          <tr>
+            <td>4</td><td>Skill injection</td>
+            <td><code>/skill:</code> invocation or yield</td>
+            <td>Full SKILL.md body via <code>sendCustomMessage</code></td>
+          </tr>
+          <tr>
+            <td>5</td><td>TTSR (prose)</td>
+            <td>Stream interrupt retry</td>
+            <td>Hidden custom message from <code>ttsr-interrupt.md</code></td>
+          </tr>
+          <tr>
+            <td>6</td><td>TTSR (tool)</td>
+            <td><code>afterToolCall</code> hook</td>
+            <td>Tool reminder prepended to result content</td>
+          </tr>
+          <tr>
+            <td>7</td><td>Plan decision</td>
+            <td>Plan-to-execute transition</td>
+            <td>Decision reminder steer</td>
+          </tr>
+          <tr>
+            <td>8</td><td>Todo eager prelude</td>
+            <td>Before <code>prompt()</code></td>
+            <td>Todo template with forced tool choice</td>
+          </tr>
+          <tr>
+            <td>9</td><td>Todo stop reminder</td>
+            <td>Final stop (no tool calls)</td>
+            <td>Incomplete todo reminder + auto-continue</td>
+          </tr>
+          <tr>
+            <td>10</td><td>PABCD stage header</td>
+            <td>Every <code>prompt()</code> turn</td>
+            <td>Current stage, gate chips, goal objective prefix</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Subagent Prompt</h2>
+      <p>
+        Subagents receive a separate prompt from <code>subagent-system-prompt.md</code>.
+        This template includes:
+      </p>
+      <ul>
+        <li>Role-specific identity block (executor, architect, planner, critic)</li>
+        <li>Shared context from the parent agent</li>
+        <li>Completion contract with fabrication/suppression guards</li>
+        <li>Repo safety rules (no revert/stash/commit/push/delete)</li>
+        <li>Correction de-anchoring protocol for resume/steer corrections</li>
+        <li>Authority-bias prevention (verify parent claims with own tool calls)</li>
+        <li>Confirmation-bias prevention (seek disconfirming evidence)</li>
+      </ul>
+
+      <h2>Prompt Directory Map</h2>
+      <table>
+        <thead>
+          <tr><th>Directory</th><th>Contents</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>prompts/system/</code></td>
+            <td>System prompt templates, auto-continue, plan mode reminders</td>
+          </tr>
+          <tr>
+            <td><code>prompts/agents/</code></td>
+            <td>Role agent prompts: executor, architect, planner, critic</td>
+          </tr>
+          <tr>
+            <td><code>prompts/goals/</code></td>
+            <td>Goal continuation and active goal mode templates</td>
+          </tr>
+          <tr>
+            <td><code>prompts/memories/</code></td>
+            <td>Memory consolidation, read, and unavailable templates</td>
+          </tr>
+          <tr>
+            <td><code>prompts/jaw/</code></td>
+            <td>IPABCD orchestrate stage prompts (p, a, b, c, d)</td>
+          </tr>
+          <tr>
+            <td><code>prompts/tools/</code></td>
+            <td>Per-tool description templates rendered into the tool inventory</td>
+          </tr>
+          <tr>
+            <td><code>~/.jwc/agent/prompts</code></td>
+            <td>User-level global prompt templates</td>
+          </tr>
+          <tr>
+            <td><code>.jwc/prompts</code></td>
+            <td>Project-level prompt templates</td>
+          </tr>
+        </tbody>
+      </table>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orchestration Tools — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Orchestration Tools</h1>
+      <p>Five tools manage parallel work and background processes: <code>task</code> launches subagents, <code>subagent</code> controls them, <code>background</code> manages background rows, <code>monitor</code> streams events from long-running scripts, and <code>job</code> provides legacy async job control.</p>
+
+      <h2>task</h2>
+      <p>Launches subagents to parallelize workflows. Subagents run asynchronously &mdash; the main agent continues working while they execute. Results are delivered automatically when complete.</p>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Parameter</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>agent</code></td><td>Yes</td><td>Role agent: <code>executor</code>, <code>executor_ext</code>, <code>planner</code>, <code>architect</code>, or <code>critic</code></td></tr>
+          <tr><td><code>tasks</code></td><td>Yes</td><td>Array of task objects</td></tr>
+          <tr><td><code>context</code></td><td>No</td><td>Shared background prepended to every assignment</td></tr>
+          <tr><td><code>spawnPlan</code></td><td>No</td><td>Required before batches of more than 4 tasks</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Task object</h3>
+      <table>
+        <thead><tr><th>Field</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>Yes</td><td>CamelCase identifier, max 32 characters</td></tr>
+          <tr><td><code>description</code></td><td>Yes</td><td>UI label only &mdash; subagent never sees this</td></tr>
+          <tr><td><code>assignment</code></td><td>Yes</td><td>Complete, self-contained instructions. One-liners are prohibited.</td></tr>
+          <tr><td><code>model</code></td><td>No</td><td>Model hint: <code>"self"</code>, <code>"provider/modelId[:effort]"</code>, or <code>"cheap:provider"</code></td></tr>
+          <tr><td><code>inheritContext</code></td><td>No</td><td>Fork parent conversation: <code>none</code>, <code>receipt</code>, <code>last-turn</code>, <code>bounded</code>, <code>full</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>Agent routing</h3>
+      <table>
+        <thead><tr><th>Scenario</th><th>Agent</th><th>Model</th></tr></thead>
+        <tbody>
+          <tr><td>Generic parallel implementation or research</td><td><code>executor</code></td><td>Omit (uses parent model)</td></tr>
+          <tr><td>PABCD B-stage implementation slices</td><td><code>executor</code></td><td>Omit (self-fork routing)</td></tr>
+          <tr><td>External/fresh executor with no named model</td><td><code>executor_ext</code></td><td>Omit (uses configured target)</td></tr>
+          <tr><td>Specific external model</td><td><code>executor_ext</code></td><td><code>"provider/modelId[:effort]"</code></td></tr>
+          <tr><td>Architecture review</td><td><code>architect</code></td><td>Omit or specify</td></tr>
+          <tr><td>Plan sequencing</td><td><code>planner</code></td><td>Omit or specify</td></tr>
+          <tr><td>Plan critique</td><td><code>critic</code></td><td>Omit or specify</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Prompt-cache-aware design</h3>
+      <p>The spawn/resume cycle is designed around prompt caching. Static system prompt content forms a cacheable prefix shared across all subagents in a session. When a subagent is resumed, the cached session context is reused, reducing latency and redundant token processing with each cycle.</p>
+
+      <h3>Example</h3>
+      <pre><code>// Spawn two parallel executors
+task({
+  agent: "executor",
+  context: "Working on the auth module refactor",
+  tasks: [
+    {
+      id: "RefactorLogin",
+      description: "Refactor login handler",
+      assignment: `# Target
+src/auth/login.ts
+
+# Change
+Extract validation logic into a separate function.
+Add input sanitization for email field.
+
+# Acceptance
+- Login handler calls validateInput() before processing
+- Email is normalized to lowercase`
+    },
+    {
+      id: "RefactorSession",
+      description: "Refactor session manager",
+      assignment: `# Target
+src/auth/session.ts
+
+# Change
+Replace manual token generation with crypto.randomUUID().
+
+# Acceptance
+- Session tokens use crypto.randomUUID()
+- Existing tests pass`
+    }
+  ]
+})</code></pre>
+
+      <h2>subagent</h2>
+      <p>Lists, inspects, awaits, pauses, resumes, steers, or cancels detached task subagents. Use after <code>task</code> launches to manage running work.</p>
+
+      <h3>Actions</h3>
+      <table>
+        <thead><tr><th>Action</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>list</code></td><td>Snapshot all visible subagents (running, paused, queued, terminal)</td></tr>
+          <tr><td><code>inspect</code></td><td>Inspect specific subagents by <code>ids</code></td></tr>
+          <tr><td><code>await</code></td><td>Wait for subagents to complete (set <code>timeout_ms</code>)</td></tr>
+          <tr><td><code>pause</code></td><td>Graceful safe-boundary pause</td></tr>
+          <tr><td><code>resume</code></td><td>Resume a paused subagent (with optional <code>message</code>)</td></tr>
+          <tr><td><code>steer</code></td><td>Send a message to a running subagent</td></tr>
+          <tr><td><code>cancel</code></td><td>Stop a subagent (only when actually failed or off-track)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Verbosity levels</h3>
+      <table>
+        <thead><tr><th>Level</th><th>Output</th></tr></thead>
+        <tbody>
+          <tr><td><code>receipt</code></td><td>Status + 280-char preview (default)</td></tr>
+          <tr><td><code>preview</code></td><td>Up to 2000 characters</td></tr>
+          <tr><td><code>full</code></td><td>Up to 12000 characters (requires explicit <code>ids</code>)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Correction de-anchoring</h3>
+      <p>When a subagent is resumed with a correction ("your answer was wrong"), it activates a de-anchoring protocol: it discards its prior analysis entirely, generates 3+ materially different hypotheses from fresh angles, investigates each with new tool calls, and only then forms a new conclusion. This prevents anchoring bias where the agent merely patches its original flawed conclusion.</p>
+
+      <h3>Example</h3>
+      <pre><code>// Check on running subagents
+subagent({ action: "list" })
+
+// Wait up to 30 seconds for a specific subagent
+subagent({ action: "await", ids: ["50-RefactorLogin"], timeout_ms: 30000 })
+
+// Steer a running subagent with new information
+subagent({ action: "steer", id: "50-RefactorLogin",
+           message: "Also handle the OAuth2 callback endpoint" })
+
+// Resume a terminal subagent with a correction
+subagent({ action: "resume", id: "50-RefactorLogin",
+           message: "The root cause was wrong. Re-investigate from scratch." })</code></pre>
+
+      <h2>background</h2>
+      <p>Manages background work rows created by other launch tools (<code>task</code>, <code>bash</code> async, <code>monitor</code>). This tool does not launch new work; it inspects and manages existing rows.</p>
+
+      <h3>Operations</h3>
+      <table>
+        <thead><tr><th>Operation</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>list</code></td><td>Enumerate current background rows</td></tr>
+          <tr><td><code>detail</code></td><td>Inspect kind, status, timing, previews, output refs</td></tr>
+          <tr><td><code>follow</code></td><td>Read retained output with pagination (<code>nextOffset</code>)</td></tr>
+          <tr><td><code>cancel</code></td><td>Cancel work (only when user asks or work is obsolete)</td></tr>
+          <tr><td><code>settings</code></td><td>Read background-related settings/keybindings (read-only)</td></tr>
+        </tbody>
+      </table>
+      <p>The TUI footer panel (<code>bg ... ctrl+j</code>) and this tool are two views over the same background work surface. Always call <code>list</code> or <code>detail</code> when accuracy matters &mdash; do not claim a background state from memory.</p>
+
+      <h2>monitor</h2>
+      <p>Starts a background monitor that streams stdout lines from a long-running script as notifications. Each line becomes a separate event delivered into the conversation between turns.</p>
+
+      <h3>When to use</h3>
+      <ul>
+        <li><strong>One notification</strong> ("tell me when the build finishes") &mdash; use <code>bash</code> with <code>async: true</code></li>
+        <li><strong>Many ongoing events</strong> (logs, polling, file watching) &mdash; use <code>monitor</code></li>
+      </ul>
+
+      <h3>Parameters</h3>
+      <table>
+        <thead><tr><th>Parameter</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>command</code></td><td>Yes</td><td>Shell command to monitor</td></tr>
+          <tr><td><code>kind</code></td><td>Yes</td><td><code>"log"</code>, <code>"poll"</code>, <code>"watch"</code>, or <code>"other"</code></td></tr>
+          <tr><td><code>description</code></td><td>Yes</td><td>Human-readable description for listings</td></tr>
+          <tr><td><code>timeout</code></td><td>No</td><td>Max seconds before auto-shutdown</td></tr>
+          <tr><td><code>persistent</code></td><td>No</td><td>Keep running past the current turn (default <code>false</code>)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Examples</h3>
+      <pre><code>// Tail a log file for errors
+monitor({
+  command: "tail -F server.log | grep -i error",
+  kind: "log",
+  description: "Watch server.log for errors"
+})
+
+// Watch directory for changes
+monitor({
+  command: "fswatch -r dist/",
+  kind: "watch",
+  description: "Watch dist/ for file changes"
+})</code></pre>
+
+      <h2>job (legacy)</h2>
+      <p>Legacy async job polling and cancellation surface. Prefer <code>background</code> for the canonical background row management; use <code>job</code> only for raw async job compatibility.</p>
+
+      <h3>Operations</h3>
+      <table>
+        <thead><tr><th>Operation</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>list: true</code></td><td>Inspect running jobs</td></tr>
+          <tr><td><code>poll: [id, ...]</code></td><td>Block until jobs finish or wait window elapses</td></tr>
+          <tr><td><code>cancel: [id, ...]</code></td><td>Stop running jobs</td></tr>
+        </tbody>
+      </table>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">&#9776;</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>

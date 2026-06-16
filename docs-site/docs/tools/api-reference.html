@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tool API Reference — Jawcode Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/doc-layout.css">
+</head>
+<body>
+  <div class="docs-page">
+    <div class="docs-sidebar-container" id="docsSidebar" data-base="../"></div>
+    <main class="docs-content">
+
+      <h1>Tool API Reference</h1>
+      <p>
+        Complete parameter reference for every built-in tool.
+        Sourced from the canonical <code>BUILTIN_TOOLS</code> registry in
+        <code>packages/coding-agent/src/tools/index.ts</code>.
+        Tools marked <em>conditional</em> require a settings flag or runtime state to be available.
+      </p>
+
+      <h2>Essential tools (always loaded)</h2>
+      <p>These 14 tools are loaded by default in every session unless overridden via <code>tools.essentialOverride</code>:</p>
+      <pre><code>read, bash, edit, write, find, search, ast_grep, ast_edit,
+web_search, browser, ask, subagent, task, skill</code></pre>
+
+      <!-- ════════════════════════════════════════ Filesystem ═══ -->
+      <h2 id="filesystem">Filesystem &amp; Code</h2>
+
+      <h3 id="read">read</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>path</code></td><td>string</td><td>Yes</td><td>Local path, internal URI (<code>agent://</code>, <code>artifact://</code>, <code>rule://</code>, <code>local://</code>), or URL. Append <code>:&lt;sel&gt;</code> for line ranges, raw mode, or special modes.</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Selectors</strong>: <code>:50</code>, <code>:50-200</code>, <code>:50+150</code>, <code>:20+1</code>, <code>:5-16,960-973</code>, <code>:raw</code>, <code>:2-4:raw</code>, <code>:conflicts</code>. Reads files, directories, archives (.tar/.zip), SQLite, images (metadata), documents (PDF/DOCX/PPTX/XLSX/RTF/EPUB/ipynb), and web URLs (reader-mode).</p>
+
+      <h3 id="bash">bash</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>command</code></td><td>string</td><td>Yes</td><td>Shell command to execute</td></tr>
+          <tr><td><code>cwd</code></td><td>string</td><td>No</td><td>Working directory (prefer over <code>cd dir &amp;&amp;</code>)</td></tr>
+          <tr><td><code>env</code></td><td>object</td><td>No</td><td>Extra environment variables</td></tr>
+          <tr><td><code>pty</code></td><td>boolean</td><td>No</td><td>Run in PTY mode (for sudo, ssh)</td></tr>
+          <tr><td><code>timeout</code></td><td>number</td><td>No</td><td>Timeout in seconds (default 300)</td></tr>
+        </tbody>
+      </table>
+      <p>Returns output and exit code. Stdout/stderr merged. Truncated output available via <code>artifact://&lt;id&gt;</code>.</p>
+
+      <h3 id="edit">edit</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>path</code></td><td>string</td><td>Yes</td><td>Target file path</td></tr>
+          <tr><td><code>input</code></td><td>string</td><td>Yes</td><td>Patch language input using line anchors and ops</td></tr>
+        </tbody>
+      </table>
+      <p>Compact line-anchored edit format with <code>&raquo;</code> (insert after), <code>&laquo;</code> (insert before), <code>:=</code> (replace/delete) ops. Anchors reference lines by number + 2-char content hash.</p>
+
+      <h3 id="write">write</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>path</code></td><td>string</td><td>Yes</td><td>File path (supports archive entries and SQLite row ops)</td></tr>
+          <tr><td><code>content</code></td><td>string</td><td>Yes</td><td>File content</td></tr>
+        </tbody>
+      </table>
+      <p>Creates or overwrites files. Supports <code>.tar/.zip</code> archive entries (<code>archive.ext:path/inside</code>) and SQLite row operations (<code>db.sqlite:table</code> for insert, <code>db.sqlite:table:key</code> for update/delete).</p>
+
+      <h3 id="find">find</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>paths</code></td><td>string[]</td><td>Yes</td><td>Globs, files, or directories</td></tr>
+          <tr><td><code>gitignore</code></td><td>boolean</td><td>No</td><td>Respect .gitignore (default true)</td></tr>
+          <tr><td><code>hidden</code></td><td>boolean</td><td>No</td><td>Include hidden files (default true)</td></tr>
+          <tr><td><code>limit</code></td><td>number</td><td>No</td><td>Max results (default 1000)</td></tr>
+          <tr><td><code>timeout</code></td><td>number</td><td>No</td><td>Timeout in seconds (0.5-60, default 5)</td></tr>
+        </tbody>
+      </table>
+      <p>Returns matching file paths sorted by mtime (most recent first). Truncated at 1000 entries or 50KB.</p>
+
+      <h3 id="search">search</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>pattern</code></td><td>string</td><td>Yes</td><td>Regex pattern (Rust/RE2 syntax, no lookaround)</td></tr>
+          <tr><td><code>paths</code></td><td>string[]</td><td>Yes</td><td>Files, directories, globs, or internal URLs to search</td></tr>
+          <tr><td><code>i</code></td><td>boolean</td><td>No</td><td>Case-insensitive search</td></tr>
+          <tr><td><code>gitignore</code></td><td>boolean</td><td>No</td><td>Respect .gitignore</td></tr>
+          <tr><td><code>skip</code></td><td>number</td><td>No</td><td>Files to skip (pagination)</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="ast_grep">ast_grep</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>pat</code></td><td>string</td><td>Yes</td><td>AST pattern. <code>$NAME</code>=one node, <code>$_</code>=ignore one, <code>$$$NAME</code>=zero-or-more</td></tr>
+          <tr><td><code>paths</code></td><td>string[]</td><td>Yes</td><td>Files, directories, globs to search</td></tr>
+          <tr><td><code>skip</code></td><td>number</td><td>No</td><td>Matches to skip</td></tr>
+        </tbody>
+      </table>
+      <p>Structural AST matching via native ast-grep. Language inferred from paths. Matches AST structure, not text.</p>
+
+      <h3 id="ast_edit">ast_edit</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>ops</code></td><td>array</td><td>Yes</td><td>Rewrite ops. Each: <code>{ pat: string, out: string }</code>. Empty <code>out</code> deletes.</td></tr>
+          <tr><td><code>paths</code></td><td>string[]</td><td>Yes</td><td>Files, directories, globs to rewrite</td></tr>
+        </tbody>
+      </table>
+      <p>Structural AST-aware rewrites. Metavariables captured in <code>pat</code> are substituted into <code>out</code>.</p>
+
+      <!-- ════════════════════════════════════════ Web ═══ -->
+      <h2 id="web">Web &amp; Media</h2>
+
+      <h3 id="web_search">web_search</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>query</code></td><td>string</td><td>Yes</td><td>Search query</td></tr>
+          <tr><td><code>depth</code></td><td><code>"fast"</code>|<code>"deep"</code></td><td>No</td><td>fast=60s sync, deep=180s async with reasoning</td></tr>
+          <tr><td><code>limit</code></td><td>number</td><td>No</td><td>Max results</td></tr>
+          <tr><td><code>num_search_results</code></td><td>number</td><td>No</td><td>Number of search results</td></tr>
+          <tr><td><code>recency</code></td><td>string</td><td>No</td><td><code>day</code>, <code>week</code>, <code>month</code>, <code>year</code></td></tr>
+          <tr><td><code>temperature</code></td><td>number</td><td>No</td><td>Sampling temperature</td></tr>
+          <tr><td><code>max_tokens</code></td><td>number</td><td>No</td><td>Max output tokens</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="browser">browser</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>action</code></td><td>string</td><td>Yes</td><td><code>open</code>, <code>close</code>, <code>run</code>, <code>act</code></td></tr>
+          <tr><td><code>name</code></td><td>string</td><td>No</td><td>Tab id (default "main")</td></tr>
+          <tr><td><code>url</code></td><td>string</td><td>No</td><td>URL to navigate to (for <code>open</code>)</td></tr>
+          <tr><td><code>code</code></td><td>string</td><td>No</td><td>JS code for <code>run</code> action</td></tr>
+          <tr><td><code>actions</code></td><td>array</td><td>No</td><td>Structured steps for <code>act</code> action. Verbs: navigate, click, type, fill, select, press, scroll, back, wait, observe, extract, screenshot</td></tr>
+          <tr><td><code>viewport</code></td><td>object</td><td>No</td><td><code>{ width, height, scale }</code></td></tr>
+          <tr><td><code>timeout</code></td><td>number</td><td>No</td><td>Seconds (default 30, max 300)</td></tr>
+        </tbody>
+      </table>
+      <p>Controls a real Chromium tab. Must call <code>open</code> before <code>run</code> or <code>act</code>. Default to <code>observe</code> over <code>screenshot</code>.</p>
+
+      <h3 id="inspect_image">inspect_image</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>path</code></td><td>string</td><td>Yes</td><td>Path to local image file</td></tr>
+          <tr><td><code>question</code></td><td>string</td><td>Yes</td><td>Specific question about the image</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="generate_image">generate_image</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>subject</code></td><td>string</td><td>Yes</td><td>Detailed prompt for generation/editing</td></tr>
+          <tr><td><code>input</code></td><td>array</td><td>No</td><td>Input images: <code>[{ path, data, mime_type }]</code></td></tr>
+          <tr><td><code>style</code></td><td>string</td><td>No</td><td>Artistic style</td></tr>
+          <tr><td><code>scene</code></td><td>string</td><td>No</td><td>Location/environment</td></tr>
+          <tr><td><code>action</code></td><td>string</td><td>No</td><td>What subject is doing</td></tr>
+          <tr><td><code>composition</code></td><td>string</td><td>No</td><td>Camera angle/framing</td></tr>
+          <tr><td><code>lighting</code></td><td>string</td><td>No</td><td>Lighting setup</td></tr>
+          <tr><td><code>text</code></td><td>string</td><td>No</td><td>Text to render</td></tr>
+          <tr><td><code>changes</code></td><td>string[]</td><td>No</td><td>Edits to make</td></tr>
+          <tr><td><code>aspect_ratio</code></td><td>string</td><td>No</td><td>1:1, 3:4, 4:3, 9:16, 16:9</td></tr>
+          <tr><td><code>image_size</code></td><td>string</td><td>No</td><td>1024x1024, 1536x1024, 1024x1536</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="render_mermaid">render_mermaid</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>mermaid</code></td><td>string</td><td>Yes</td><td>Mermaid graph source text</td></tr>
+          <tr><td><code>config</code></td><td>object</td><td>No</td><td>JSON render config (spacing/layout)</td></tr>
+        </tbody>
+      </table>
+      <p>Returns ASCII diagram. Saves full output to <code>artifact://&lt;id&gt;</code>.</p>
+
+      <!-- ════════════════════════════════════════ Agents ═══ -->
+      <h2 id="agents">Agent &amp; Task Management</h2>
+
+      <h3 id="task">task</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>agent</code></td><td>string</td><td>Yes</td><td>Role: <code>executor</code>, <code>executor_ext</code>, <code>planner</code>, <code>architect</code>, <code>critic</code></td></tr>
+          <tr><td><code>tasks</code></td><td>array</td><td>Yes</td><td>Tasks to parallelize. Each: <code>{ id, description, assignment, model?, inheritContext? }</code></td></tr>
+          <tr><td><code>context</code></td><td>string</td><td>No</td><td>Shared background prepended to every assignment</td></tr>
+          <tr><td><code>schema</code></td><td>string</td><td>No</td><td>JTD schema for structured output</td></tr>
+          <tr><td><code>spawnPlan</code></td><td>object</td><td>No</td><td>Required for batches > 4 tasks. Fields: whyParallel, whyNotLocal, independence, expectedReceiptShape, maxInlineTokens</td></tr>
+        </tbody>
+      </table>
+      <p>Launches subagents to parallelize workflows. Results delivered automatically. Max 4 tasks without <code>spawnPlan</code>.</p>
+
+      <h3 id="subagent">subagent</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>action</code></td><td>string</td><td>Yes</td><td><code>list</code>, <code>inspect</code>, <code>await</code>, <code>pause</code>, <code>resume</code>, <code>steer</code>, <code>cancel</code></td></tr>
+          <tr><td><code>ids</code></td><td>string[]</td><td>No</td><td>Target subagent ids</td></tr>
+          <tr><td><code>id</code></td><td>string</td><td>No</td><td>Single subagent id (for resume/steer)</td></tr>
+          <tr><td><code>message</code></td><td>string</td><td>No</td><td>Message for resume/steer</td></tr>
+          <tr><td><code>timeout_ms</code></td><td>number</td><td>No</td><td>Await timeout (0-3600000ms)</td></tr>
+          <tr><td><code>verbosity</code></td><td>string</td><td>No</td><td><code>receipt</code> (280 chars), <code>preview</code> (2000), <code>full</code> (12000, requires ids)</td></tr>
+          <tr><td><code>pause</code></td><td>boolean</td><td>No</td><td>Pause after steering</td></tr>
+        </tbody>
+      </table>
+      <p>Manage detached task subagents. Await timeout does not stop the subagent. Cancel only when actually failed/off-track.</p>
+
+      <h3 id="irc">irc</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>op</code></td><td>string</td><td>Yes</td><td><code>list</code> or <code>send</code></td></tr>
+          <tr><td><code>to</code></td><td>string</td><td>For send</td><td>Recipient id or <code>"all"</code></td></tr>
+          <tr><td><code>message</code></td><td>string</td><td>For send</td><td>Text message</td></tr>
+          <tr><td><code>awaitReply</code></td><td>boolean</td><td>No</td><td>Wait for reply (default true for send)</td></tr>
+        </tbody>
+      </table>
+
+      <!-- ════════════════════════════════════════ Background ═══ -->
+      <h2 id="background">Background &amp; Scheduling</h2>
+
+      <h3 id="background_tool">background</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>op</code></td><td>string</td><td>Yes</td><td><code>list</code>, <code>detail</code>, <code>follow</code>, <code>cancel</code>, <code>settings</code></td></tr>
+        </tbody>
+      </table>
+      <p>Manage background rows created by task, bash (async), and monitor. Launch stays with the originating tool. TUI footer rows and this tool's rows are the same surface.</p>
+
+      <h3 id="job">job</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>list</code></td><td>boolean</td><td>No</td><td>Enumerate running jobs</td></tr>
+          <tr><td><code>poll</code></td><td>string[]</td><td>No</td><td>Block until specified jobs finish or timeout</td></tr>
+          <tr><td><code>cancel</code></td><td>string[]</td><td>No</td><td>Stop running jobs</td></tr>
+        </tbody>
+      </table>
+      <p>Legacy async job surface. Prefer <code>background</code> for canonical row management.</p>
+
+      <h3 id="monitor">monitor</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>command</code></td><td>string</td><td>Yes</td><td>Shell command to run. Each stdout line becomes an event.</td></tr>
+          <tr><td><code>kind</code></td><td>string</td><td>Yes</td><td><code>log</code>, <code>poll</code>, <code>watch</code>, <code>other</code></td></tr>
+          <tr><td><code>description</code></td><td>string</td><td>Yes</td><td>Human-readable description</td></tr>
+          <tr><td><code>timeout</code></td><td>number</td><td>No</td><td>Max seconds before auto-shutdown</td></tr>
+          <tr><td><code>persistent</code></td><td>boolean</td><td>No</td><td>Keep running past current turn (default false)</td></tr>
+        </tbody>
+      </table>
+      <p>Background event stream. Each stdout line delivered as <code>&lt;task-notification&gt;</code> between turns.</p>
+
+      <h3 id="cron_create">CronCreate</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>expression</code></td><td>string</td><td>Yes</td><td>5-field cron expression (local timezone)</td></tr>
+          <tr><td><code>prompt</code></td><td>string</td><td>Yes</td><td>Prompt to execute on fire</td></tr>
+          <tr><td><code>recurring</code></td><td>boolean</td><td>No</td><td>Recur or one-shot</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="cron_list">CronList</h3>
+      <p>No parameters. Returns all scheduled tasks in the session.</p>
+
+      <h3 id="cron_delete">CronDelete</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>string</td><td>Yes</td><td>8-character job id from CronCreate</td></tr>
+        </tbody>
+      </table>
+
+      <!-- ════════════════════════════════════════ Code Intelligence ═══ -->
+      <h2 id="code-intel">Code Intelligence</h2>
+
+      <h3 id="lsp_ref">lsp</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>action</code></td><td>string</td><td>Yes</td><td>diagnostics, definition, type_definition, implementation, references, hover, symbols, rename, rename_file, code_actions, status, capabilities, request, reload</td></tr>
+          <tr><td><code>file</code></td><td>string</td><td>Varies</td><td>File path, glob, or <code>"*"</code></td></tr>
+          <tr><td><code>line</code></td><td>number</td><td>No</td><td>1-indexed line number</td></tr>
+          <tr><td><code>symbol</code></td><td>string</td><td>No</td><td>Target symbol substring. <code>#N</code> for Nth occurrence</td></tr>
+          <tr><td><code>query</code></td><td>string</td><td>No</td><td>Search query or LSP method name</td></tr>
+          <tr><td><code>new_name</code></td><td>string</td><td>For rename</td><td>New symbol/file name</td></tr>
+          <tr><td><code>apply</code></td><td>boolean</td><td>No</td><td>Apply edits (default true for rename)</td></tr>
+          <tr><td><code>payload</code></td><td>string</td><td>No</td><td>JSON params for raw request</td></tr>
+          <tr><td><code>timeout</code></td><td>number</td><td>No</td><td>Seconds (5-60, default 20)</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="github_ref">github</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>op</code></td><td>string</td><td>Yes</td><td>repo_view, pr_create, pr_checkout, pr_push, search_issues, search_prs, search_code, search_commits, search_repos, run_watch</td></tr>
+          <tr><td><code>repo</code></td><td>string</td><td>No</td><td>owner/repo (defaults to checkout)</td></tr>
+          <tr><td><code>pr</code></td><td>number|string|array</td><td>For pr_*</td><td>PR number, URL, branch, or array</td></tr>
+          <tr><td><code>title</code></td><td>string</td><td>For pr_create</td><td>PR title</td></tr>
+          <tr><td><code>body</code></td><td>string</td><td>No</td><td>PR body</td></tr>
+          <tr><td><code>query</code></td><td>string</td><td>For search</td><td>GitHub search syntax</td></tr>
+          <tr><td><code>since</code></td><td>string</td><td>No</td><td>Date filter: <code>3d</code>, <code>12h</code>, ISO date</td></tr>
+          <tr><td><code>until</code></td><td>string</td><td>No</td><td>Date filter end</td></tr>
+          <tr><td><code>limit</code></td><td>number</td><td>No</td><td>Max results</td></tr>
+          <tr><td><code>draft</code></td><td>boolean</td><td>No</td><td>Create as draft PR</td></tr>
+          <tr><td><code>fill</code></td><td>boolean</td><td>No</td><td>Auto-fill from commits</td></tr>
+          <tr><td><code>base</code></td><td>string</td><td>No</td><td>Target branch</td></tr>
+          <tr><td><code>head</code></td><td>string</td><td>No</td><td>Source branch</td></tr>
+        </tbody>
+      </table>
+
+      <!-- ════════════════════════════════════════ Workflow ═══ -->
+      <h2 id="workflow">Workflow &amp; State</h2>
+
+      <h3 id="goal_ref">goal</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>op</code></td><td>string</td><td>Yes</td><td><code>create</code>, <code>get</code>, <code>resume</code>, <code>complete</code>, <code>pause</code>, <code>drop</code></td></tr>
+          <tr><td><code>objective</code></td><td>string</td><td>For create</td><td>Goal objective text</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="skill_ref">skill</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>name</code></td><td>string</td><td>Yes</td><td>Skill name (e.g. <code>goal</code>, <code>team</code>, <code>jaw-interview</code>)</td></tr>
+          <tr><td><code>args</code></td><td>string</td><td>No</td><td>Free-form argument string</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="resolve_ref">resolve</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>action</code></td><td>string</td><td>Yes</td><td><code>apply</code> or <code>discard</code></td></tr>
+          <tr><td><code>reason</code></td><td>string</td><td>Yes</td><td>One sentence explaining why</td></tr>
+          <tr><td><code>extra</code></td><td>object</td><td>No</td><td>Free-form metadata (e.g. <code>extra.title</code> for plan approval)</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="checkpoint_ref">checkpoint</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>goal</code></td><td>string</td><td>Yes</td><td>Investigation goal description</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="rewind_ref">rewind</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>report</code></td><td>string</td><td>Yes</td><td>Concise findings summary</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="todo_write_ref">todo_write</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>ops</code></td><td>array</td><td>Yes</td><td>Array of ops: <code>init</code>, <code>start</code>, <code>done</code>, <code>drop</code>, <code>rm</code>, <code>append</code>, <code>note</code></td></tr>
+        </tbody>
+      </table>
+
+      <!-- ════════════════════════════════════════ Utility ═══ -->
+      <h2 id="utility">Utility</h2>
+
+      <h3 id="ask_ref">ask</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>questions</code></td><td>array</td><td>Yes</td><td>Each: <code>{ id, question, options: [{label}], recommended?, multi? }</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="calc_ref">calc</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>expression</code></td><td>string</td><td>Yes</td><td>Math expression (+, -, *, /, %, **, parens, hex/bin/oct)</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="ssh_ref">ssh</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>host</code></td><td>string</td><td>Yes</td><td>Target host from available hosts</td></tr>
+          <tr><td><code>command</code></td><td>string</td><td>Yes</td><td>Command matching the host's shell type</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="recipe_ref">recipe</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>op</code></td><td>string</td><td>Yes</td><td>Task name + args (e.g. <code>"test"</code>, <code>"pkg-a/build"</code>)</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="eval_ref">eval</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>cells</code></td><td>array</td><td>Yes</td><td>Each: <code>{ language: "py"|"js", code, title?, timeout?, reset? }</code></td></tr>
+        </tbody>
+      </table>
+      <p>Persistent kernel execution. State persists across calls per language.</p>
+
+      <h3 id="debug_ref">debug</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>action</code></td><td>string</td><td>Yes</td><td>launch, attach, set_breakpoint, remove_breakpoint, continue, step_over, step_in, step_out, pause, threads, stack_trace, scopes, variables, evaluate, output, sessions, terminate</td></tr>
+          <tr><td><code>program</code></td><td>string</td><td>For launch</td><td>Executable/debug target</td></tr>
+          <tr><td><code>adapter</code></td><td>string</td><td>No</td><td>Debugger adapter (auto-selected if omitted)</td></tr>
+          <tr><td><code>file</code></td><td>string</td><td>For breakpoints</td><td>Source file path</td></tr>
+          <tr><td><code>line</code></td><td>number</td><td>For breakpoints</td><td>Line number</td></tr>
+          <tr><td><code>expression</code></td><td>string</td><td>For evaluate</td><td>Expression to evaluate</td></tr>
+        </tbody>
+      </table>
+      <p>DAP debugger. Common adapters: <code>gdb</code>, <code>lldb-dap</code>, <code>debugpy</code>, <code>dlv dap</code>.</p>
+
+      <h3 id="computer_use_ref">computer_use</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>action</code></td><td>string</td><td>Yes</td><td>Desktop control action</td></tr>
+        </tbody>
+      </table>
+      <p>Control desktop apps through lazy CUA-driver backend. Conditional on availability.</p>
+
+      <h3 id="search_tool_bm25_ref">search_tool_bm25</h3>
+      <table>
+        <thead><tr><th>Param</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>query</code></td><td>string</td><td>Yes</td><td>Natural-language or keyword query</td></tr>
+          <tr><td><code>limit</code></td><td>number</td><td>No</td><td>Max matches (default 8)</td></tr>
+        </tbody>
+      </table>
+      <p>Search hidden tool metadata to discover and activate tools (MCP and built-in). Active when <code>tools.discoveryMode !== "off"</code>.</p>
+
+      <!-- ════════════════════════════════════════ Hidden ═══ -->
+      <h2 id="hidden">Hidden Tools</h2>
+      <p>These tools are always available but not listed in the default tool set:</p>
+      <table>
+        <thead><tr><th>Tool</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>yield</code></td><td>Finish a subagent task with structured JSON output. Required for subagent sessions.</td></tr>
+          <tr><td><code>report_finding</code></td><td>Report a review finding (used by reviewer agents).</td></tr>
+          <tr><td><code>resolve</code></td><td>Resolve pending actions (apply/discard). Always injected.</td></tr>
+        </tbody>
+      </table>
+
+    </main>
+  </div>
+  <button class="docs-hamburger" onclick="toggleDocsSidebar()">☰</button>
+  <script src="../../assets/docs.js"></script>
+</body>
+</html>
