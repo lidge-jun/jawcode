@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { GOAL_PLAN_PENDING_BRIEF, runNativeGoalCommand } from "../../src/jwc-runtime/goal-cli";
 import { readGoalLedger, readGoalPlan } from "../../src/jwc-runtime/goal-engine";
+import { readCurrentSessionGoalModeState } from "../../src/jwc-runtime/goal-mode-request";
 
 const QUALITY_GATE = JSON.stringify({
 	architectReview: { verdict: "approved", evidence: "review notes attached" },
@@ -181,6 +182,35 @@ describe("jwc goal adapter (060/061)", () => {
 		const audited = ledger.find(event => event.event === "goal_pause_audited");
 		expect(audited?.actor).toBe("agent");
 		expect(audited?.evidence).toBe("no viable path remains");
+	});
+	it("pause and resume update the current session goal mode", async () => {
+		await runNativeGoalCommand(["set", "shared objective"], cwd);
+		const sessionFile = await writeSessionFileWithGoal(cwd, { objective: "shared objective", status: "active" });
+
+		await withSessionEnv({ jwc: "session-match", sessionFile }, () =>
+			runNativeGoalCommand(["pause", "--agent"], cwd),
+		);
+		const paused = await withSessionEnv({ jwc: "session-match", sessionFile }, () =>
+			runNativeGoalCommand(["pause", "--agent", "--audit", "user requested a tactical stop"], cwd),
+		);
+		expect(paused.status).toBe(0);
+
+		const pausedState = await readCurrentSessionGoalModeState({ sessionFile });
+		expect(pausedState).toMatchObject({
+			mode: "goal_paused",
+			goal: { objective: "shared objective", status: "paused" },
+		});
+
+		const resumed = await withSessionEnv({ jwc: "session-match", sessionFile }, () =>
+			runNativeGoalCommand(["resume"], cwd),
+		);
+		expect(resumed.status).toBe(0);
+
+		const resumedState = await readCurrentSessionGoalModeState({ sessionFile });
+		expect(resumedState).toMatchObject({
+			mode: "goal",
+			goal: { objective: "shared objective", status: "active" },
+		});
 	});
 
 	it("pause --agent --audit without a prior tap is rejected", async () => {
@@ -394,7 +424,7 @@ describe("goal status readability (99.00.03 P1-2)", () => {
 	it("leads with the user objective and the 5-field block", async () => {
 		const cwd = mkdtempSync(path.join(os.tmpdir(), "jwc-goal-status-"));
 		await runNativeGoalCommand(["set", "사용자 목표 헤드라인"], cwd);
-		const status = await runNativeGoalCommand(["status"], cwd);
+		const status = await runNativeGoalCommand(["status", "--shared"], cwd);
 		expect(status.stdout?.startsWith("Goal:    사용자 목표 헤드라인")).toBe(true);
 		expect(status.stdout).toContain("Status:  active");
 		expect(status.stdout).toContain("Mode:    goal ledger (.jwc/goal/)");

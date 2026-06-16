@@ -28,6 +28,8 @@ import {
 	readCurrentSessionGoalModeState,
 	resolveCliWorkflowSessionFile,
 	resolveCliWorkflowSessionId,
+	writeCurrentSessionGoalModeActiveState,
+	writeCurrentSessionGoalModePausedState,
 	writeCurrentSessionGoalModeState,
 	writePendingGoalModeRequest,
 } from "./goal-mode-request";
@@ -355,10 +357,12 @@ export async function runNativeGoalCommand(argv: readonly string[], cwd: string)
 				const scopeError = await assertGoalMutationScope(cwd, scope);
 				if (scopeError) return scopeError;
 				const gate = await readPauseGate(cwd);
+				const pauseNow = Date.now();
 				if (!agent) {
+					await writeCurrentSessionGoalModePausedState({ sessionFile: scope.sessionFile, now: pauseNow });
 					await writePauseGate(cwd, {
 						agentPauseCount: 0,
-						paused: { actor: "human", timestamp: new Date().toISOString() },
+						paused: { actor: "human", timestamp: new Date(pauseNow).toISOString() },
 					});
 					return { stdout: "⏸ goal paused (manual)\n", status: 0 };
 				}
@@ -377,7 +381,8 @@ export async function runNativeGoalCommand(argv: readonly string[], cwd: string)
 						status: 1,
 					};
 				}
-				const timestamp = new Date().toISOString();
+				const timestamp = new Date(pauseNow).toISOString();
+				await writeCurrentSessionGoalModePausedState({ sessionFile: scope.sessionFile, now: pauseNow });
 				await writePauseGate(cwd, { agentPauseCount: 0, paused: { actor: "agent", evidence: audit, timestamp } });
 				await appendGoalLedgerEvent(cwd, {
 					event: "goal_pause_audited",
@@ -391,6 +396,7 @@ export async function runNativeGoalCommand(argv: readonly string[], cwd: string)
 				const scopeError = await assertGoalMutationScope(cwd, scope);
 				if (scopeError) return scopeError;
 				await writePauseGate(cwd, { agentPauseCount: 0 });
+				await writeCurrentSessionGoalModeActiveState({ sessionFile: scope.sessionFile });
 				const plan = await readGoalPlan(cwd);
 				if (plan) await activateGoalMode(cwd, plan.jwcObjective, scope);
 				return { stdout: "▶ goal resumed\n", status: 0 };

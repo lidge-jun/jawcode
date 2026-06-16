@@ -50,9 +50,11 @@ export interface PendingGoalModeRequest {
 }
 
 export type CurrentSessionGoalModeWriteResult =
-	| { status: "unavailable"; reason: "missing_session_file" | "empty_session_file" }
+	| { status: "unavailable"; reason: "missing_session_file" | "empty_session_file" | "missing_goal" }
 	| { status: "existing_goal"; goal: Goal }
 	| { status: "updated"; goal: Goal; sessionFile: string };
+
+type SessionGoalMode = "goal" | "goal_paused";
 
 interface GoalPlanShape {
 	jwcObjective?: unknown;
@@ -151,6 +153,55 @@ function nextSessionEntryId(entries: readonly SessionEntry[]): string {
 	}
 	return String(Snowflake.next());
 }
+async function appendSessionGoalModeEntry(input: {
+	sessionFile: string;
+	entries: readonly SessionEntry[];
+	mode: SessionGoalMode;
+	goal: Goal;
+}): Promise<void> {
+	const entry: ModeChangeEntry = {
+		type: "mode_change",
+		id: nextSessionEntryId(input.entries),
+		parentId: input.entries.at(-1)?.id ?? null,
+		timestamp: new Date().toISOString(),
+		mode: input.mode,
+		data: { goal: input.goal },
+	};
+	// The session transcript file lives outside `.jwc/` (GJC_SESSION_FILE), so it is not a
+	// sanctioned-writer target; append directly.
+	await fs.appendFile(input.sessionFile, `${JSON.stringify(entry)}\n`);
+}
+
+async function writeExistingSessionGoalModeState(input: {
+	sessionFile?: string | null;
+	mode: SessionGoalMode;
+	status: "active" | "paused";
+	now?: number;
+}): Promise<CurrentSessionGoalModeWriteResult> {
+	const sessionFile = input.sessionFile?.trim();
+	if (!sessionFile) return { status: "unavailable", reason: "missing_session_file" };
+
+	const fileEntries = await loadEntriesFromFile(sessionFile);
+	const entries = fileEntries.filter((entry): entry is SessionEntry => entry.type !== "session");
+	if (fileEntries.length === 0) return { status: "unavailable", reason: "empty_session_file" };
+
+	const context = buildSessionContext(entries);
+	const existingGoal = goalFromModeData(context.modeData);
+	if ((context.mode !== "goal" && context.mode !== "goal_paused") || !isNonTerminalGoal(existingGoal)) {
+		return { status: "unavailable", reason: "missing_goal" };
+	}
+	if (context.mode === input.mode && existingGoal.status === input.status) {
+		return { status: "existing_goal", goal: existingGoal };
+	}
+
+	const goal: Goal = {
+		...existingGoal,
+		status: input.status,
+		updatedAt: input.now ?? Date.now(),
+	};
+	await appendSessionGoalModeEntry({ sessionFile, entries, mode: input.mode, goal });
+	return { status: "updated", goal, sessionFile };
+}
 
 export async function writeCurrentSessionGoalModeState(input: {
 	sessionFile?: string | null;
@@ -173,18 +224,32 @@ export async function writeCurrentSessionGoalModeState(input: {
 	}
 
 	const state = createGoalModeState(objective);
-	const entry: ModeChangeEntry = {
-		type: "mode_change",
-		id: nextSessionEntryId(entries),
-		parentId: entries.at(-1)?.id ?? null,
-		timestamp: new Date().toISOString(),
-		mode: "goal",
-		data: { goal: state.goal },
-	};
-	// The session transcript file lives outside `.jwc/` (GJC_SESSION_FILE), so it is not a
-	// sanctioned-writer target; append directly.
-	await fs.appendFile(sessionFile, `${JSON.stringify(entry)}\n`);
+	await appendSessionGoalModeEntry({ sessionFile, entries, mode: "goal", goal: state.goal });
 	return { status: "updated", goal: state.goal, sessionFile };
+}
+
+export async function writeCurrentSessionGoalModePausedState(input: {
+	sessionFile?: string | null;
+	now?: number;
+}): Promise<CurrentSessionGoalModeWriteResult> {
+	return await writeExistingSessionGoalModeState({
+		sessionFile: input.sessionFile,
+		mode: "goal_paused",
+		status: "paused",
+		now: input.now,
+	});
+}
+
+export async function writeCurrentSessionGoalModeActiveState(input: {
+	sessionFile?: string | null;
+	now?: number;
+}): Promise<CurrentSessionGoalModeWriteResult> {
+	return await writeExistingSessionGoalModeState({
+		sessionFile: input.sessionFile,
+		mode: "goal",
+		status: "active",
+		now: input.now,
+	});
 }
 
 export async function readCurrentSessionGoalModeState(input?: {
