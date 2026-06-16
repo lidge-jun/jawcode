@@ -18,7 +18,7 @@ const EXPECTED_ROLE_AGENT_PROMPT_FILES = ["architect", "critic", "executor", "pl
 const EXPECTED_CALLABLE_TASK_ROLES = ["architect", "critic", "executor", "executor_ext", "planner"] as const;
 const EXPECTED_PUBLIC_PACKAGE_VERSION_CATALOG_KEY = "@jawcode-dev/coding-agent";
 const BUNDLED_NON_WORKFLOW_SKILLS = new Set(["browse", "search"]);
-const ALLOWED_PUBLIC_PACKAGE_VERSIONS = new Map<string, string>([["jawcode", "1.0.2"]]);
+const ALLOWED_PUBLIC_PACKAGE_VERSIONS = new Map<string, string>([["jawcode", "1.0.3"]]);
 const ALLOWED_PRIVATE_PACKAGE_VERSIONS = new Map<string, string>([
 	["@jawcode-dev/orchestration-token-benchmark", "0.0.1"],
 	["jawcode-compat", "0.4.5"],
