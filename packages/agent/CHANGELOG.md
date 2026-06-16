@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-16
+
 ### Changed
 
 - Changed the built-in automatic compaction threshold from the legacy reserve-derived default (about 85% on large windows) to a 73% context-window threshold while still capping it by reserved output budget.
