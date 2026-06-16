@@ -2,4 +2,5 @@
 # jwc — direct source entry. No Node shim, no re-exec, no stale node_modules.
 export JWC_BRAND_NAME="${JWC_BRAND_NAME:-jwc}"
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0" 2>/dev/null || realpath "$0" 2>/dev/null || echo "$0")")" && pwd)"
+export JWC_PACKAGE_VERSION="${JWC_PACKAGE_VERSION:-$(node -e "console.log(require('${SCRIPT_DIR}/../../jwc/package.json').version)" 2>/dev/null || echo "dev")}"
 exec bun "${SCRIPT_DIR}/../src/cli.ts" "$@"
