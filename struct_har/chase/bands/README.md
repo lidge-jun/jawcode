@@ -3,22 +3,23 @@
 > 횡단 표: [002_gap_inventory.md](../002_gap_inventory.md)  
 > 구체 갭: `chase/10.NNN_*` · `20.NNN_*` · 완료 `_fin/`
 
-## 밴드 요약 (2026-06-14 · `50_status` 동형)
+## 밴드 요약 (2026-06-16 · `50_status` 동형)
 
 | 밴드 | G1 gjc | G3 jwc (제품) | struct_har 대조 |
 |------|--------|---------------|-----------------|
-| 010 | 🟡 publish/bin | ✅ `jwc` only | [jwc_patched/010_shell](../../jwc_patched/010_shell/) |
-| 020 | 🟡 prompt drift | ✅ **99.03 M1–M3** | [020_prompt](../../jwc_patched/020_prompt/) |
-| 030 | 🟡 team profile | 🟡 D5 cli-jaw | [030_skills](../../jwc_patched/030_skills/) |
+| 010 | 🟡 publish/bin · setup/bridge(10.035) | ✅ `jwc` only | [jwc_patched/010_shell](../../jwc_patched/010_shell/) |
+| 020 | 🟡 prompt/search/RLM drift(10.027·10.033) | ✅ **99.03 M1–M3** | [020_prompt](../../jwc_patched/020_prompt/) |
+| 030 | 🟡 team/subagent/profile(10.007·10.032) | 🟡 D5 cli-jaw | [030_skills](../../jwc_patched/030_skills/) |
 | 040 | 🟡 deep-interview | ✅ jaw-interview | [040_interview](../../jwc_patched/040_interview/) |
-| 050 | 🟡 ralplan upstream | ✅ orchestrate | [050_plan](../../jwc_patched/050_plan/) |
-| 060 | 🟡 goal busy-loop | ✅ goal · 🟡 steering | [060_goal](../../jwc_patched/060_goal/) |
+| 050 | 🟡 ralplan/state invariants(10.034) | ✅ orchestrate | [050_plan](../../jwc_patched/050_plan/) |
+| 060 | 🟡 goal busy-loop/red-team | ✅ goal · 🟡 steering | [060_goal](../../jwc_patched/060_goal/) |
 | 070 | 🟡 hooks | ✅ **99.01** memory CLI | [070_memory](../../jwc_patched/070_memory/) |
-| 080 | 🟡 TUI fixes | 🟡 **99.04** HUD | [080_tui](../../jwc_patched/080_tui/) |
+| 080 | 🟡 TUI long-session fixes(10.030) | 🟡 **99.04** HUD | [080_tui](../../jwc_patched/080_tui/) |
 | 081 | 🟡 cursor **높음** | 🟡 kiro WIP | [081_cursor](../../jwc_patched/081_cursor/) |
-| 083 | 🟡 compaction class | ✅ segment/collapse | [083_output](../../jwc_patched/083_output/) |
+| 083 | 🟡 compaction/output/process class(10.029) | ✅ segment/collapse | [083_output](../../jwc_patched/083_output/) |
+| 090 | 🟡 provider/auth(10.002·10.031) | 🟡 99.05 | [090_auth](../../jwc_patched/090_auth/) |
 | 099 | — | 🟡 99.02·04·05·06 | [099_stabilization](../../jwc_patched/099_stabilization/) |
-| 100 | 🟡 runtime | ✅ Node M2 | [100_node](../../jwc_patched/100_node/) |
+| 100 | 🟡 runtime/computer_use(10.028·10.029) | ✅ Node M2 | [100_node](../../jwc_patched/100_node/) |
 
 ## 050_plan — jwc 앵커 (코드 스니펫)
 

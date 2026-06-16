@@ -1,6 +1,6 @@
 # 10 — gjc_chase_MOC
 
-> 상태: 🟡 운영 중 (2026-06-14)
+> 상태: 🟡 운영 중 (2026-06-16)
 > **정본 디렉터리**: `struct_har/chase/10_*` · `10.NNN_*`
 > **의미**: `devlog/_upstream_gjc` 대비 jwc **뒤쳐짐(G1)** — **1갭 = 문서 1개** (`10.NNN`, `001`~)
 
@@ -26,7 +26,7 @@
 
 | gjc | jwc |
 |---|---|
-| `269387babcbf` (0.5.1 + Unreleased) | `d60b7822` (worktree) |
+| `5ed80862` (0.5.3 + Unreleased RLM) | `d60b7822` (worktree) |
 
 > OMP head is intentionally not repeated here; see [20_omp_chase_MOC.md](./20_omp_chase_MOC.md).
 
@@ -43,6 +43,15 @@
 | 018 | RPC registry | ✅ **_fin** [10.018](./_fin/10/10.018_gjc_chase_rpc_registry_uds.md) (UDS P2) |
 | 022 | goal AgentBusyError (#616) | ✅ **_fin** [10.022](./_fin/10/10.022_gjc_chase_goal_agent_busy_loop.md) |
 | 026 | issues/01–13 | ✅ **_fin** [10.026](./_fin/10/10.026_gjc_chase_rpc_issues_audit.md) |
+| 027 | RLM research mode (#778) | ⬜ **신규** [10.027](./10.027_gjc_chase_rlm_research_mode.md) — public surface decision 필요 |
+| 028 | native `computer_use` coordinate contract (#695) | ⬜ **신규** [10.028](./10.028_gjc_chase_computer_use_coordinate_contract.md) — lazy tool/runtime diff |
+| 029 | process/resource lifecycle hardening (F1/U1–U10) | ⬜ **신규** [10.029](./10.029_gjc_chase_process_lifecycle_hardening.md) — P0 safety bundle |
+| 030 | long-session TUI/render/output-size hardening | ⬜ **신규** [10.030](./10.030_gjc_chase_long_session_tui_hardening.md) — JWC visual/scroll guards 유지 |
+| 031 | provider/auth reliability fixes | ⬜ **신규** [10.031](./10.031_gjc_chase_provider_auth_reliability.md) — [10.002](./10.002_gjc_chase_ai_auth.md) 구현 시 fold |
+| 032 | subagent controls/service tier/resume durability | ⬜ **신규** [10.032](./10.032_gjc_chase_subagent_controls.md) — [10.005](./10.005_gjc_chase_task_subagent.md) 업데이트 후보 |
+| 033 | native model-provider `web_search` routing | ⬜ **신규** [10.033](./10.033_gjc_chase_web_search_provider_routing.md) — search skill policy와 reconcile |
+| 034 | state-writer/workflow invariants | ⬜ **신규** [10.034](./10.034_gjc_chase_state_writer_invariants.md) — JWC orchestrate semantics-only |
+| 035 | setup credential import + bridge endpoint opt-ins | ⬜ **신규** [10.035](./10.035_gjc_chase_setup_bridge_optins.md) — onboarding/security split |
 
 ## 활성 (`10.NNN`)
 
@@ -61,7 +70,16 @@
 | 020 | [10.020_gjc_chase_deep_interview_semantics.md](./10.020_gjc_chase_deep_interview_semantics.md) | interview ref | P3 | ⬜ |
 | 024 | [10.024_gjc_chase_coordinator_mcp_watch.md](./10.024_gjc_chase_coordinator_mcp_watch.md) | coordinator | P3 | ⬜ |
 | 025 | [10.025_gjc_chase_perf_corpus_geobench.md](./10.025_gjc_chase_perf_corpus_geobench.md) | perf ref | P3 | ⬜ |
-| 027+ | _(미할당)_ | | | ⬜ |
+| 027 | [10.027_gjc_chase_rlm_research_mode.md](./10.027_gjc_chase_rlm_research_mode.md) | RLM research lane | P2 | ⬜ |
+| 028 | [10.028_gjc_chase_computer_use_coordinate_contract.md](./10.028_gjc_chase_computer_use_coordinate_contract.md) | computer_use native | **P1** | ⬜ |
+| 029 | [10.029_gjc_chase_process_lifecycle_hardening.md](./10.029_gjc_chase_process_lifecycle_hardening.md) | process lifecycle | **P0** | ⬜ |
+| 030 | [10.030_gjc_chase_long_session_tui_hardening.md](./10.030_gjc_chase_long_session_tui_hardening.md) | TUI/output long-session | **P1** | ⬜ |
+| 031 | [10.031_gjc_chase_provider_auth_reliability.md](./10.031_gjc_chase_provider_auth_reliability.md) | provider/auth | **P1** | ⬜ |
+| 032 | [10.032_gjc_chase_subagent_controls.md](./10.032_gjc_chase_subagent_controls.md) | subagent controls | **P1** | ⬜ |
+| 033 | [10.033_gjc_chase_web_search_provider_routing.md](./10.033_gjc_chase_web_search_provider_routing.md) | web_search routing | P2 | ⬜ |
+| 034 | [10.034_gjc_chase_state_writer_invariants.md](./10.034_gjc_chase_state_writer_invariants.md) | workflow state invariants | **P1** | ⬜ |
+| 035 | [10.035_gjc_chase_setup_bridge_optins.md](./10.035_gjc_chase_setup_bridge_optins.md) | setup/bridge opt-ins | P2 | ⬜ |
+| 036+ | _(미할당)_ | | | ⬜ |
 
 ## 완료
 

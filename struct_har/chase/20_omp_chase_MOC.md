@@ -1,6 +1,6 @@
 # 20 — omp_chase_MOC (omp 따라잡기)
 
-> 상태: 🟡 운영 중
+> 상태: 🟡 운영 중 (2026-06-16)
 > **정본 디렉터리**: `struct_har/chase/20_*` · `20.NNN_*`
 > **의미**: `devlog/_upstream_omp` 대비 jwc **약함(G2)** — 참조·설계 (`20.NNN`). **1:1 이식 ❌**
 
@@ -24,7 +24,7 @@
 
 | omp | jwc |
 |---|---|
-| `7e8122000ad9` (15.13.0) | `d60b7822` (worktree) |
+| `dc14689fc` (16.0.2) | `d60b7822` (worktree) |
 
 > GJC head is intentionally not repeated here; see [10_gjc_chase_MOC.md](./10_gjc_chase_MOC.md).
 
@@ -40,6 +40,9 @@
 | steering delivery | yield-boundary `lateSteering` re-poll; settle-time stranded queue drain; steer image-normalization idle mirror (`packages/agent/src/agent-loop.ts:818-826`, `agent-session.ts:1147-1158,5273-5280`, `42ffc83`) | **[20.005](./20.005_omp_chase_steering_delivery.md)** — jwc 부분 보유, gjc 미수용 |
 | TUI 입력 micro | Esc draft clear + selector `resetDisplay` (`e914bf0`); double-esc history **revert** (`d055f64`); ast-edit status 공백 축약 (`3d646d8`) | **[20.006](./20.006_omp_chase_tui_input_micro_fixes.md)** — collab/brew 커밋은 lineage 부재로 비채택 |
 | OMP 15.12→15.13 | session split, auto-learn, STT/TTS, compaction UI | [20.008](./20.008_omp_chase_pull_15_13_delta.md) |
+| OMP 15.13→16.0.2 | profiles, advisor, dialect/tool schema, task coordination, plugins, terminal resilience, review PR URLs, unexpected-stop retry | [20.009](./20.009_omp_chase_profiles_aliases.md)–[20.017](./20.017_omp_chase_unexpected_stop_detection.md) |
+| steering/job polling | interruptible tool polling for queued steering + streaming `/tan` queueing | update [20.005](./20.005_omp_chase_steering_delivery.md) |
+| TUI terminal resilience | keypad CSI-u, xterm scroll suppression, multiplexer detection, resize guards | [20.015](./20.015_omp_chase_terminal_resilience.md) + update [20.006](./20.006_omp_chase_tui_input_micro_fixes.md) |
 
 ## 활성 (`20.NNN`)
 
@@ -53,7 +56,16 @@
 | 006 | [20.006_omp_chase_tui_input_micro_fixes.md](./20.006_omp_chase_tui_input_micro_fixes.md) | Esc·ast status | 082·99.20 | ⬜ |
 | 007 | [20.007_omp_chase_session_modularization.md](./20.007_omp_chase_session_modularization.md) | session modules | 083 | ⬜ |
 | 008 | [20.008_omp_chase_pull_15_13_delta.md](./20.008_omp_chase_pull_15_13_delta.md) | 15.13 index | 횡단 | 🟡 |
-| 009+ | _(미할당)_ | | | ⬜ |
+| 009 | [20.009_omp_chase_profiles_aliases.md](./20.009_omp_chase_profiles_aliases.md) | profiles/auth isolation | P2 | ⬜ |
+| 010 | [20.010_omp_chase_advisor_review_lane.md](./20.010_omp_chase_advisor_review_lane.md) | advisor/WATCHDOG | P2 | ⬜ |
+| 011 | [20.011_omp_chase_tool_dialect.md](./20.011_omp_chase_tool_dialect.md) | tool dialects | **P1** | ⬜ |
+| 012 | [20.012_omp_chase_ai_tool_schema_streaming.md](./20.012_omp_chase_ai_tool_schema_streaming.md) | AI schema/stream | **P1** | ⬜ |
+| 013 | [20.013_omp_chase_task_coordination.md](./20.013_omp_chase_task_coordination.md) | task coordination | P2 | ⬜ |
+| 014 | [20.014_omp_chase_extensions_plugins.md](./20.014_omp_chase_extensions_plugins.md) | extensions/plugins | P3 | ⬜ |
+| 015 | [20.015_omp_chase_terminal_resilience.md](./20.015_omp_chase_terminal_resilience.md) | terminal resilience | P2 | ⬜ |
+| 016 | [20.016_omp_chase_review_pr_url.md](./20.016_omp_chase_review_pr_url.md) | review PR URLs | P3 | ⬜ |
+| 017 | [20.017_omp_chase_unexpected_stop_detection.md](./20.017_omp_chase_unexpected_stop_detection.md) | unexpected-stop retry | P2 | ⬜ |
+| 018+ | _(미할당)_ | | | ⬜ |
 
 ## 완료
 

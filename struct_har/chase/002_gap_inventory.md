@@ -1,9 +1,9 @@
 # chase — 갭 인벤토리 (횡단)
 
-> 스냅샷: gjc **`269387babcbf`** · jwc **`d60b7822`** (worktree) · omp **`7e8122000ad9`** (2026-06-14 **5차 — pull + jwc-rpc 명명 정본**).
-> **reviewed through**: GJC `269387babcbf` · OMP `7e8122000ad9` · JWC `d60b7822`
+> 스냅샷: gjc **`5ed80862`** · jwc **`d60b7822`** (worktree) · omp **`dc14689fc`** (2026-06-16 **6차 — pull + chase 카드 10.027–035 / 20.009–017**).
+> **reviewed through**: GJC `5ed80862` · OMP `dc14689fc` · JWC `d60b7822`
 > **명명**: [008_gjc_jwc_naming_contract.md](./008_gjc_jwc_naming_contract.md) — Python **`python/jwc-rpc`** (`jwc_rpc`); upstream만 `gjc-rpc`.
-> **RPC 실현성**: [devlog 03_rpc_bundle_feasibility_jwc_rpc](../../devlog/_plan/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md)
+> **RPC 실현성**: [devlog 03_rpc_bundle_feasibility_jwc_rpc](../../devlog/_fin/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md)
 > 상태: `⬜` 미착수 · `🟡` 설계/부분 · `✅` jwc 선행 · `—` 해당 없음
 > **기록**: [10_gjc_chase_MOC](./10_gjc_chase_MOC.md) · [20_omp_chase_MOC](./20_omp_chase_MOC.md) (`10.NNN_*` / `20.NNN_*`)
 
@@ -11,8 +11,8 @@
 
 | 축 | jwc가 **앞서거나 유일** | jwc가 **뒤처지거나 약함** |
 |---|---|---|
-| **gjc** | orchestrate/PABCD, jaw 표면, `.jwc`, lazy `computer_use`, pi-shell·submit gate(10.009·10.010 ✅), goal busy-loop #616 ✅, session compaction/progress ✅ | RPC lifecycle 잔여(008), receipt spool 테스트(011), **registry TS+Py ✅ / UDS ✅**(018), team profile self-heal(007) |
-| **omp** | 4 workflow 번들, jaw 워크플로 | task-agent, session ops, memory, pruning = **참조** ([20.008](./20.008_omp_chase_pull_15_13_delta.md)) |
+| **gjc** | orchestrate/PABCD, jaw 표면, `.jwc`, lazy `computer_use`, pi-shell·submit gate(10.009·10.010 ✅), goal busy-loop #616 ✅, session compaction/progress ✅ | RPC lifecycle 잔여(008), team profile self-heal(007), **process lifecycle P0(10.029)**, computer_use native(10.028), provider/auth(10.031), subagent controls(10.032), RLM/검색/setup bridge(10.027·033·035) |
+| **omp** | 4 workflow 번들, jaw 워크플로 | task-agent, session ops, memory, pruning = **참조** ([20.008](./20.008_omp_chase_pull_15_13_delta.md)); **16.0.2 reference** profiles/advisor/dialect/schema/task/plugins/terminal/review/retry ([20.009](./20.009_omp_chase_profiles_aliases.md)–[20.017](./20.017_omp_chase_unexpected_stop_detection.md)) |
 | **자체** | 100 Node 완료, TUI O(n²) 수정, 99.03·99.01·99.07 부분 | 99.02·99.04·99.05·99.06 · M2 110+ |
 
 ## 밴드별
@@ -47,10 +47,19 @@
 | pi-shell / harness submit | #551 / #549 | ✅ landed 260613 | [_fin/10](./_fin/INDEX.md) |
 | model-profiles UX | #553 | 사용자 패치 중 — 카드 없음 | [10.001](./10.001_gjc_chase_cycle.md) |
 | providers/schemas | drift | ai diff; **99.02** | `packages/ai/` |
+| RLM research | opt-in research notebook/report lane | 중 — public surface decision | [10.027](./10.027_gjc_chase_rlm_research_mode.md) |
+| computer_use native | coordinate contract + Rust/tool integration | 중상 — safety/runtime diff | [10.028](./10.028_gjc_chase_computer_use_coordinate_contract.md) |
+| process lifecycle | owned process/resource cleanup | 높음 — P0 safety bundle | [10.029](./10.029_gjc_chase_process_lifecycle_hardening.md) |
+| TUI/output long-session | render lifecycle + output caps | 중 — visual/scroll guards | [10.030](./10.030_gjc_chase_long_session_tui_hardening.md) |
+| provider/auth reliability | credential ranking + Codex WS recovery | 중상 — [10.002](./10.002_gjc_chase_ai_auth.md) fold | [10.031](./10.031_gjc_chase_provider_auth_reliability.md) |
+| subagent controls | serviceTier + resume durability | 중 — [10.005](./10.005_gjc_chase_task_subagent.md) fold | [10.032](./10.032_gjc_chase_subagent_controls.md) |
+| web_search routing | model-provider search fallback | 중 — search policy reconcile | [10.033](./10.033_gjc_chase_web_search_provider_routing.md) |
+| workflow state | state-writer invariants | 중상 — JWC semantics-only | [10.034](./10.034_gjc_chase_state_writer_invariants.md) |
+| setup/bridge | credential import + bridge opt-in | 중 — onboarding/security split | [10.035](./10.035_gjc_chase_setup_bridge_optins.md) |
 
 ### RPC 한 묶음 (PABCD 권장)
 
-**011 → 008 → 018 → 026** — [007_follow_index](./007_follow_index.md) · [03 feasibility](../../devlog/_plan/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md).  
+**011 → 008 → 018 → 026** — [007_follow_index](./007_follow_index.md) · [03 feasibility](../../devlog/_fin/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md).
 Executor v2 (260614): **011 YES**, **008/026 RISKY**; **018 registry TS+Py landed** @ `d60b7822`; UDS `--listen` + issues 06–08 client API **갭**.
 
 ## G2 — omp 참조만
@@ -62,12 +71,21 @@ Executor v2 (260614): **011 YES**, **008/026 RISKY**; **018 registry TS+Py lande
 | TUI micro | Esc draft, ast status | [20.006](./20.006_omp_chase_tui_input_micro_fixes.md) |
 | session modules | listing/loader | [20.007](./20.007_omp_chase_session_modularization.md) |
 | memory/skills | mnemopi | [20.003](./20.003_omp_chase_memory_skills.md) |
+| profiles/auth isolation | `--profile`, profile-scoped config/OAuth | [20.009](./20.009_omp_chase_profiles_aliases.md) |
+| advisor/WATCHDOG | passive review lane | [20.010](./20.010_omp_chase_advisor_review_lane.md) |
+| tool dialects | in-band tool-call conversion | [20.011](./20.011_omp_chase_tool_dialect.md) |
+| AI schema/stream hardening | strict schemas + streamed args | [20.012](./20.012_omp_chase_ai_tool_schema_streaming.md) |
+| task coordination | roles, IRC, fallback chains | [20.013](./20.013_omp_chase_task_coordination.md) |
+| extensions/plugins | discovery/marketplace hardening | [20.014](./20.014_omp_chase_extensions_plugins.md) |
+| terminal resilience | keypad/multiplexer/resize/input | [20.015](./20.015_omp_chase_terminal_resilience.md) |
+| review PR URLs | remote PR review UX | [20.016](./20.016_omp_chase_review_pr_url.md) |
+| unexpected-stop retry | classifier + bounded retry | [20.017](./20.017_omp_chase_unexpected_stop_detection.md) |
 | collab/brew | — | **비채택** |
 
-## 260613–14 jwc 독자 성과 (chase 비대상 완료)
+## 260613–16 jwc 독자 성과 + chase pull 기록
 
 Codex reformation · TUI O(n²) · xAI `/searchengine` · 100 Node · MCP discovery · 99.xx TUI — [structure/50_status.md](../../structure/50_status.md).  
-**260614**: upstream pull +68 gjc / +370 omp; chase 카드 10.018–026 발급; **008 명명 계약**.
+**260614**: upstream pull +68 gjc / +370 omp; chase 카드 10.018–026 발급; **008 명명 계약**. **260616**: upstream pull gjc `5ed80862` / omp `dc14689fc`; chase 카드 **10.027–035** + **20.009–017** 발급.
 
 ## 구현가치 (MLB) — 활성 핵심
 
@@ -81,6 +99,13 @@ Codex reformation · TUI O(n²) · xAI `/searchengine` · 100 Node · MCP discov
 | 10.026 issues | gjc | 50 | 설계 |
 | 10.002·003 | gjc | 60 | 선별 |
 | 20.005 steering | omp | 60 | 참조 |
+| 10.029 lifecycle | gjc | 80 | **P0 안전** |
+| 10.028 computer_use | gjc | 65 | 선별 |
+| 10.031 provider/auth | gjc | 60 | 선별 |
+| 10.032 subagent controls | gjc | 55 | 선별 |
+| 20.011 dialect | omp | 65 | 참조 |
+| 20.012 schema/stream | omp | 65 | 참조 |
+| 20.015 terminal | omp | 50 | 선별 |
 | 20.006 TUI micro | omp | 50 | 선별 |
 
 ## 갱신 체크리스트

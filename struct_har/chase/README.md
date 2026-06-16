@@ -17,13 +17,13 @@
 
 [008_gjc_jwc_naming_contract.md](./008_gjc_jwc_naming_contract.md) — upstream `gjc-rpc` → jaw **`python/jwc-rpc`** (`jwc_rpc`).
 
-## 정본 축 (2026-06-14)
+## 정본 축 (2026-06-16)
 
 | 축 | 클론 / SoT | struct_har 대조 |
 |---|---|---|
-| **gjc** | `devlog/_upstream_gjc/` @ **`269387babcbf`** | [../gjc_origin/](../gjc_origin/) |
+| **gjc** | `devlog/_upstream_gjc/` @ **`5ed80862`** | [../gjc_origin/](../gjc_origin/) |
 | **jwc** | worktree @ **`d60b7822`** | [../jwc_patched/](../jwc_patched/) · [structure/](../../structure/) |
-| **omp** | `devlog/_upstream_omp/` @ **`7e8122000ad9`** | [../omp_origin/](../omp_origin/) |
+| **omp** | `devlog/_upstream_omp/` @ **`dc14689fc`** | [../omp_origin/](../omp_origin/) |
 | **자체 백로그** | 99·M2·OSS | [006_jwc_own_backlog.md](./006_jwc_own_backlog.md) |
 
 ## 문서 트리
@@ -51,6 +51,6 @@
 ## 관련
 
 - [structure/50_status.md](../../structure/50_status.md)
-- [devlog 260614 chase pull](../../devlog/_plan/260614_chase_upstream_pull_priority_report/000_moc.md)
+- [devlog 260614 chase pull](../../devlog/_fin/260614_chase_upstream_pull_priority_report/000_moc.md)
 
 *정본: `struct_har/chase/10_` · `20_`.*
