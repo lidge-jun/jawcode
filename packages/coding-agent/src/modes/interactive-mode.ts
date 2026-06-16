@@ -2560,6 +2560,14 @@ export class InteractiveMode implements InteractiveModeContext {
 	isBackgroundFooterDetailOpen(): boolean {
 		return this.#backgroundFooterDetail !== undefined;
 	}
+	closeBackgroundFooterDetail(): void {
+		if (!this.#backgroundFooterDetail) return;
+		this.#backgroundFooterDetail = undefined;
+		this.editorContainer.clear();
+		this.editorContainer.addChild(this.editor);
+		this.ui.setFocus(this.editor);
+		this.ui.requestRender();
+	}
 
 	toggleBackgroundFooterPanel(): void {
 		if (this.#backgroundFooterDetail) return;

@@ -1020,12 +1020,28 @@ export class InputController {
 		const editor = this.ctx.editor;
 		const prevInterruptPriority = editor.onInterruptPriority;
 		this.#backgroundFooterHandlers = { prevInterruptPriority };
-		editor.setCustomKeyHandler("up", () => this.ctx.handleBackgroundFooterPanelKey("up"));
-		editor.setCustomKeyHandler("down", () => this.ctx.handleBackgroundFooterPanelKey("down"));
-		editor.setCustomKeyHandler("enter", () => this.ctx.handleBackgroundFooterPanelKey("enter"));
+		editor.setCustomKeyHandler("up", () => {
+			if (editor.getText().trim()) return false; // let editor handle if typing
+			return this.ctx.handleBackgroundFooterPanelKey("up");
+		});
+		editor.setCustomKeyHandler("down", () => {
+			if (editor.getText().trim()) return false;
+			return this.ctx.handleBackgroundFooterPanelKey("down");
+		});
+		editor.setCustomKeyHandler("enter", () => {
+			if (editor.getText().trim()) {
+				// User typed something — collapse panel, remove handlers, let editor re-process Enter
+				this.ctx.handleBackgroundFooterPanelKey("escape");
+				// Panel handlers are now removed; re-dispatch Enter to the editor's normal path
+				editor.handleInput("\n");
+				return;
+			}
+			this.ctx.handleBackgroundFooterPanelKey("enter");
+		});
 		editor.onInterruptPriority = () => {
 			if (this.ctx.isBackgroundFooterDetailOpen()) {
-				return prevInterruptPriority?.() ?? false;
+				this.ctx.closeBackgroundFooterDetail();
+				return true;
 			}
 			if (this.ctx.handleBackgroundFooterPanelKey("escape")) {
 				return true;

@@ -280,6 +280,7 @@ export interface InteractiveModeContext {
 	showJobsOverlay(): void;
 	toggleBackgroundFooterPanel(): void;
 	openBackgroundFooterDetail(rowId: string): void;
+	closeBackgroundFooterDetail(): void;
 	handleBackgroundFooterPanelKey(action: "up" | "down" | "enter" | "escape"): boolean;
 	resetObserverRegistry(): void;
 
