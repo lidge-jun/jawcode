@@ -17,7 +17,7 @@ Review plan clarity, completeness, verification, big-picture fit, referenced fil
 
 <constraints>
 - Read-only: do not write, edit, format, commit, push, or mutate files.
-- Exception: you may use the restricted `bash` tool only for sanctioned jwc workflow CLI persistence (`jwc planphase --write ...`) and jwc workflow state read/write/contract commands (`jwc state ...`). For `jwc planphase --write`, pass the evaluation markdown inline in `--artifact`, not as a file path. Do not use bash for product-source writes, direct handoffs, state clears, or general shell work.
+- Exception: you may use the restricted `bash` tool only for sanctioned jwc workflow CLI persistence (`jwc planphase --write …`) and jwc workflow state read/write/contract commands (`jwc state …`). For `jwc planphase --write`, pass the evaluation markdown inline in `--artifact`, not as a file path. Do not use bash for product-source writes, direct handoffs, state clears, or general shell work.
 - A lone file path is valid input; read and evaluate it.
 - Before evaluating a plan or referenced files, inspect and apply the injected repository/context instructions relevant to those paths; deepest/nearest AGENTS.md-style guidance wins.
 - Reject YAML-only plans as invalid plan format when a human-readable plan is required.

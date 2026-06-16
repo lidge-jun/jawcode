@@ -141,7 +141,7 @@ export async function loadSkills(options: LoadSkillsOptions = {}): Promise<LoadS
 			if (level === "project") return enablePiProject;
 			return false;
 		}
-		if (provider === "cli-jaw") return jawBrand && level === "user" && enablePiUser;
+		if (provider === "cli-jaw") return jawBrand && level === "user";
 		if (provider === "agents") return jawBrand && level === "project" && enablePiProject;
 		return false;
 	}

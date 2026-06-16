@@ -7,6 +7,7 @@ import { DEFAULT_JWC_DEFINITION_NAMES } from "@gajae-code/coding-agent/defaults/
 import type { Skill } from "@gajae-code/coding-agent/sdk";
 import { createAgentSession } from "@gajae-code/coding-agent/sdk";
 import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
+import { buildSystemPrompt } from "@gajae-code/coding-agent/system-prompt";
 import { cleanupTempHome } from "./helpers/temp-home-cleanup";
 
 function createIsolatedSkillsSettings(): Settings {
@@ -20,11 +21,27 @@ function createIsolatedSkillsSettings(): Settings {
 	});
 }
 
+function writeCliJawSkill(cliJawHome: string, name: string): void {
+	const skillDir = path.join(cliJawHome, "skills", name);
+	fs.mkdirSync(skillDir, { recursive: true });
+	fs.writeFileSync(
+		path.join(skillDir, "SKILL.md"),
+		`---
+name: ${name}
+description: ${name} global skill.
+---
+
+# ${name}
+`,
+	);
+}
+
 describe("createAgentSession skills option", () => {
 	let tempDir: string;
 	let skillsDir: string;
 	let tempHomeDir = "";
 	let originalHome: string | undefined;
+	let originalCliJawHome: string | undefined;
 
 	beforeEach(() => {
 		tempDir = path.join(os.tmpdir(), `gjc-sdk-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -32,8 +49,10 @@ describe("createAgentSession skills option", () => {
 		skillsDir = path.join(tempDir, ".jwc", "skills", "test-skill");
 		fs.mkdirSync(skillsDir, { recursive: true });
 		originalHome = process.env.HOME;
+		originalCliJawHome = process.env.CLI_JAW_HOME;
 		tempHomeDir = fs.mkdtempSync(path.join(os.tmpdir(), "gjc-sdk-home-"));
 		process.env.HOME = tempHomeDir;
+		process.env.CLI_JAW_HOME = path.join(tempHomeDir, ".cli-jaw");
 		const nativeUserSkillsDir = path.join(tempHomeDir, ".jwc", "agent", "skills");
 		fs.mkdirSync(nativeUserSkillsDir, { recursive: true });
 
@@ -68,7 +87,11 @@ Loaded via symbolic link.
 		fs.symlinkSync(externalSkillDir, path.join(path.dirname(skillsDir), "symlinked-skill-link"), "dir");
 	});
 
-	afterEach(cleanupTempHome(() => ({ tempDir, tempHomeDir, originalHome })));
+	afterEach(() => {
+		if (originalCliJawHome === undefined) delete process.env.CLI_JAW_HOME;
+		else process.env.CLI_JAW_HOME = originalCliJawHome;
+		cleanupTempHome(() => ({ tempDir, tempHomeDir, originalHome }))();
+	});
 
 	it("loads embedded default GJC workflow skills even when .jwc is absent and arbitrary skill discovery is disabled", async () => {
 		fs.rmSync(path.join(tempDir, ".jwc"), { recursive: true, force: true });
@@ -133,6 +156,105 @@ Loaded via symbolic link.
 
 		expect(session.skills.map(skill => skill.name).sort()).toEqual([...DEFAULT_JWC_DEFINITION_NAMES].sort());
 		expect(session.skillWarnings).toEqual([]);
+	});
+
+	it("merges cli-jaw global dev skills when options.skills is explicitly empty", async () => {
+		const originalGjcBrand = process.env.GJC_BRAND_NAME;
+		const originalJwcBrand = process.env.JWC_BRAND_NAME;
+		const originalCliJawHome = process.env.CLI_JAW_HOME;
+		const cliJawHome = path.join(tempHomeDir, ".cli-jaw");
+
+		writeCliJawSkill(cliJawHome, "dev");
+		writeCliJawSkill(cliJawHome, "dev-backend");
+		writeCliJawSkill(cliJawHome, "memory");
+		writeCliJawSkill(cliJawHome, "dev-pabcd");
+		process.env.GJC_BRAND_NAME = "jwc";
+		delete process.env.JWC_BRAND_NAME;
+		process.env.CLI_JAW_HOME = cliJawHome;
+
+		try {
+			const { session } = await createAgentSession({
+				cwd: tempDir,
+				agentDir: tempDir,
+				sessionManager: SessionManager.inMemory(),
+				skills: [],
+				settings: createIsolatedSkillsSettings(),
+			});
+
+			const skillNames = session.skills.map(skill => skill.name);
+			expect(skillNames).toContain("dev");
+			expect(skillNames).toContain("dev-backend");
+			expect(skillNames).not.toContain("memory");
+			expect(skillNames).not.toContain("dev-pabcd");
+			expect(session.skills.find(skill => skill.name === "dev")?.source).toBe("cli-jaw:user");
+			const renderedPrompt = session.systemPrompt.join("\n");
+			expect(renderedPrompt).toContain("<dev-skill-routing>");
+			expect(renderedPrompt).toContain("/skill:dev");
+			for (const name of DEFAULT_JWC_DEFINITION_NAMES) {
+				expect(skillNames).toContain(name);
+			}
+			expect(session.skillWarnings).toEqual([]);
+		} finally {
+			if (originalGjcBrand === undefined) delete process.env.GJC_BRAND_NAME;
+			else process.env.GJC_BRAND_NAME = originalGjcBrand;
+			if (originalJwcBrand === undefined) delete process.env.JWC_BRAND_NAME;
+			else process.env.JWC_BRAND_NAME = originalJwcBrand;
+			if (originalCliJawHome === undefined) delete process.env.CLI_JAW_HOME;
+			else process.env.CLI_JAW_HOME = originalCliJawHome;
+		}
+	});
+
+	it("merges cli-jaw global dev skills when system prompt is built with explicit skills", async () => {
+		const originalGjcBrand = process.env.GJC_BRAND_NAME;
+		const originalJwcBrand = process.env.JWC_BRAND_NAME;
+		const originalCliJawHome = process.env.CLI_JAW_HOME;
+		const cliJawHome = path.join(tempHomeDir, ".cli-jaw");
+
+		writeCliJawSkill(cliJawHome, "dev");
+		writeCliJawSkill(cliJawHome, "dev-backend");
+		process.env.GJC_BRAND_NAME = "jwc";
+		delete process.env.JWC_BRAND_NAME;
+		process.env.CLI_JAW_HOME = cliJawHome;
+
+		try {
+			const { systemPrompt } = await buildSystemPrompt({
+				cwd: tempDir,
+				contextFiles: [],
+				skills: [],
+				skillsSettings: {
+					enabled: true,
+					enableCodexUser: false,
+					enableClaudeUser: false,
+					enableClaudeProject: false,
+					enablePiUser: false,
+					enablePiProject: false,
+					customDirectories: [],
+					ignoredSkills: [],
+					includeSkills: [],
+				},
+				rules: [],
+				toolNames: ["read"],
+				workspaceTree: {
+					rootPath: tempDir,
+					rendered: "",
+					truncated: false,
+					totalLines: 0,
+					agentsMdFiles: [],
+				},
+			});
+
+			const renderedPrompt = systemPrompt.join("\n");
+			expect(renderedPrompt).toContain("<dev-skill-routing>");
+			expect(renderedPrompt).toContain("/skill:dev");
+			expect(renderedPrompt).toContain("/skill:dev-backend");
+		} finally {
+			if (originalGjcBrand === undefined) delete process.env.GJC_BRAND_NAME;
+			else process.env.GJC_BRAND_NAME = originalGjcBrand;
+			if (originalJwcBrand === undefined) delete process.env.JWC_BRAND_NAME;
+			else process.env.JWC_BRAND_NAME = originalJwcBrand;
+			if (originalCliJawHome === undefined) delete process.env.CLI_JAW_HOME;
+			else process.env.CLI_JAW_HOME = originalCliJawHome;
+		}
 	});
 
 	it("should use provided skills plus bundled GJC workflow skills when options.skills is explicitly set", async () => {

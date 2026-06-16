@@ -196,11 +196,19 @@ describe("default GJC definitions", () => {
 		});
 	});
 
-	it("exposes default, external executor, and three review roles as model assignment targets", () => {
-		expect(JWC_MODEL_ASSIGNMENT_TARGET_IDS).toEqual(["default", "executor_ext", "architect", "planner", "critic"]);
+	it("exposes default, executor lanes, and three review roles as model assignment targets", () => {
+		expect(JWC_MODEL_ASSIGNMENT_TARGET_IDS).toEqual([
+			"default",
+			"executor_ext",
+			"executor",
+			"architect",
+			"planner",
+			"critic",
+		]);
 		expect(JWC_MODEL_ASSIGNMENT_TARGET_IDS.map(id => JWC_MODEL_ASSIGNMENT_TARGETS[id].tag)).toEqual([
 			"DEFAULT",
 			"EXECUTOR_EXT",
+			"EXECUTOR",
 			"ARCHITECT",
 			"PLANNER",
 			"CRITIC",

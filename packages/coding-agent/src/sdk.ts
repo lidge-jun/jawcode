@@ -803,6 +803,16 @@ function withEmbeddedDefaultJwcSkills(skills: Skill[]): Skill[] {
 	return [...byName.values()];
 }
 
+function mergeMissingSkills(primary: Skill[], secondary: Skill[]): Skill[] {
+	const byName = new Map(primary.map(skill => [skill.name, skill]));
+	for (const skill of secondary) {
+		if (!byName.has(skill.name)) {
+			byName.set(skill.name, skill);
+		}
+	}
+	return [...byName.values()];
+}
+
 export async function createAgentSession(options: CreateAgentSessionOptions = {}): Promise<CreateAgentSessionResult> {
 	const cwd = options.cwd ?? getProjectDir();
 	const agentDir = options.agentDir ?? getDefaultAgentDir();
@@ -1011,11 +1021,25 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 	let skills: Skill[];
 	let skillWarnings: SkillWarning[];
 	if (options.skills !== undefined) {
-		// The four public GJC workflow skills are a product invariant, not
-		// ordinary filesystem-discovered skills. Keep them available even for
-		// explicit SDK skill lists so startup and command routing survive
-		// accidental `.jwc` deletion or overzealous caller filtering.
-		skills = withEmbeddedDefaultJwcSkills(options.skills);
+		// Explicit SDK skill lists are a caller override for ordinary discovery,
+		// but the jwc runtime still owns bundled workflow/tool-help skills and
+		// the cli-jaw dev-skill surface. Keep those visible for API sessions
+		// that pass a prefiltered skill list.
+		let explicitSkills = options.skills;
+		if (settings.get("skills.enabled")) {
+			const cliJawSkillsResult = await logger.time("loadCliJawSkillsForExplicitList", loadSkills, {
+				...settings.getGroup("skills"),
+				cwd,
+				enablePiProject: false,
+				customDirectories: [],
+				disabledExtensions: settings.get("disabledExtensions"),
+			});
+			explicitSkills = mergeMissingSkills(
+				explicitSkills,
+				cliJawSkillsResult.skills.filter(skill => skill.source === "cli-jaw:user"),
+			);
+		}
+		skills = withEmbeddedDefaultJwcSkills(explicitSkills);
 		skillWarnings = [];
 	} else if (settings.get("skills.enabled")) {
 		const skillsResult = await logger.time("loadSkills", loadSkills, {
@@ -1026,8 +1050,8 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 		skills = withEmbeddedDefaultJwcSkills(skillsResult.skills);
 		skillWarnings = skillsResult.warnings;
 	} else {
-		// GJC's four public workflow skills are bundled into the binary so the
-		// default workflow surface survives accidental .jwc deletion. Arbitrary
+		// Bundled JWC workflow and tool-help skills are built into the binary so
+		// the default workflow surface survives accidental .jwc deletion. Arbitrary
 		// filesystem skill discovery remains gated by skills.enabled above.
 		skills = getEmbeddedDefaultJwcSkills();
 		skillWarnings = [];

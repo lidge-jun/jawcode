@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# jwc — direct source entry. No Node shim, no re-exec, no stale node_modules.
+export JWC_BRAND_NAME="${JWC_BRAND_NAME:-jwc}"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0" 2>/dev/null || realpath "$0" 2>/dev/null || echo "$0")")" && pwd)"
+exec bun "${SCRIPT_DIR}/../src/cli.ts" "$@"

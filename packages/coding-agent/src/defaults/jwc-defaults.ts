@@ -16,9 +16,7 @@ import planSkill from "./jwc/skills/plan/SKILL.md" with { type: "text" };
 import searchSkill from "./jwc/skills/search/SKILL.md" with { type: "text" };
 import teamSkill from "./jwc/skills/team/SKILL.md" with { type: "text" };
 
-export const DEFAULT_JWC_DEFINITION_NAMES = ["jaw-interview", "plan", "team", "goal", "browse", "search"] as const;
-
-export type DefaultJwcDefinitionName = (typeof DEFAULT_JWC_DEFINITION_NAMES)[number];
+export type DefaultJwcDefinitionName = string;
 export type DefaultJwcDefinitionKind = "skill" | "skill-fragment";
 export type EmbeddedDefaultJwcSkill = {
 	name: DefaultJwcDefinitionName;
@@ -126,6 +124,10 @@ const DEFAULT_GJC_DEFINITIONS: readonly DefaultJwcDefinition[] = [
 		content: webAiFragment,
 	},
 ];
+
+export const DEFAULT_JWC_DEFINITION_NAMES: readonly string[] = DEFAULT_GJC_DEFINITIONS.filter(
+	(definition): definition is DefaultJwcSkillDefinition => definition.kind === "skill",
+).map(definition => definition.name);
 
 export function getDefaultJwcDefinitions(): readonly DefaultJwcDefinition[] {
 	return DEFAULT_GJC_DEFINITIONS;

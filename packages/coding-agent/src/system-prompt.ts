@@ -75,6 +75,27 @@ function firstNonEmpty(...values: (string | undefined | null)[]): string | null 
 	return null;
 }
 
+function mergeMissingSkills(primary: Skill[], secondary: Skill[]): Skill[] {
+	const byName = new Map(primary.map(skill => [skill.name, skill]));
+	for (const skill of secondary) {
+		if (!byName.has(skill.name)) {
+			byName.set(skill.name, skill);
+		}
+	}
+	return [...byName.values()];
+}
+
+async function loadCliJawUserSkills(cwd: string, skillsSettings: SkillsSettings | undefined): Promise<Skill[]> {
+	if (skillsSettings?.enabled === false) return [];
+	const result = await loadSkills({
+		...skillsSettings,
+		cwd,
+		enablePiProject: false,
+		customDirectories: [],
+	});
+	return result.skills.filter(skill => skill.source === "cli-jaw:user");
+}
+
 function parseWmicTable(output: string, header: string): string | null {
 	const lines = output
 		.split("\n")
@@ -497,7 +518,9 @@ export async function buildSystemPrompt(options: BuildSystemPromptOptions = {}):
 				);
 	const skillsPromise: Promise<Skill[]> =
 		providedSkills !== undefined
-			? Promise.resolve(providedSkills)
+			? loadCliJawUserSkills(resolvedCwd, skillsSettings).then(cliJawSkills =>
+					mergeMissingSkills(providedSkills, cliJawSkills),
+				)
 			: skillsSettings?.enabled !== false
 				? loadSkills({ ...skillsSettings, cwd: resolvedCwd }).then(result => result.skills)
 				: Promise.resolve([]);
