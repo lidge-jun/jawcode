@@ -1862,7 +1862,7 @@ export const SETTINGS_SCHEMA = {
 	// LSP
 	"lsp.enabled": {
 		type: "boolean",
-		default: true,
+		default: false,
 		ui: { tab: "editing", label: "LSP", description: "Enable the lsp tool for language server protocol" },
 	},
 
