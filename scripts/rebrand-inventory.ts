@@ -36,8 +36,8 @@ const expectedBundledRoleAgentPromptFiles = ["architect", "critic", "executor", 
 const expectedCallableTaskRoles = ["architect", "critic", "executor", "executor_ext", "planner"] as const;
 const expectedPackageScope = "@jawcode-dev/";
 const expectedCliBins = ["gjc", "gjc-stats", "jwc"] as const;
-const expectedRootPackageName = "jawcode";
-const allowedUnscopedPackageNames = new Set([expectedRootPackageName, "jawcode", "jawcode-cu-mcp-server"]);
+const expectedRootPackageName = "jawcode-monorepo";
+const allowedUnscopedPackageNames = new Set([expectedRootPackageName, "jawcode", "jawcode-compat", "jawcode-cu-mcp-server"]);
 const rootPublicMetadataFields = ["name", "description", "homepage", "repository", "bugs"] as const;
 const rootLegacyScriptKeys = new Set(["test:py"]);
 

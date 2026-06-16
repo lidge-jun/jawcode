@@ -174,11 +174,7 @@ describe("gjc harness CLI (foundation)", () => {
 			"lidge-jun/jawcode#265",
 			"https://github.com/lidge-jun/jawcode/pull/265",
 		]) {
-			const res = runHarness([
-				"preflight",
-				"--input",
-				JSON.stringify({ harness: "jawcode", workspace, issueOrPr }),
-			]);
+			const res = runHarness(["preflight", "--input", JSON.stringify({ harness: "jawcode", workspace, issueOrPr })]);
 			expect(res.code).toBe(0);
 			expect(res.json.evidence.preflight.normalizedIssueOrPr).toBe("265");
 		}

@@ -293,7 +293,13 @@ async function loadExtension(
 		}
 
 		const extension = createExtension(extensionPath, resolvedPath);
-		const api = new ConcreteExtensionAPI(await import("@jawcode-dev/coding-agent"), extension, runtime, cwd, eventBus);
+		const api = new ConcreteExtensionAPI(
+			await import("@jawcode-dev/coding-agent"),
+			extension,
+			runtime,
+			cwd,
+			eventBus,
+		);
 		await factory(api);
 
 		return { extension, error: null };
