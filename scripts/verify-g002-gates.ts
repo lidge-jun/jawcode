@@ -18,18 +18,18 @@ const EXPECTED_ROLE_AGENT_PROMPT_FILES = ["architect", "critic", "executor", "pl
 const EXPECTED_CALLABLE_TASK_ROLES = ["architect", "critic", "executor", "executor_ext", "planner"] as const;
 const EXPECTED_PUBLIC_PACKAGE_VERSION_CATALOG_KEY = "@jawcode-dev/coding-agent";
 const BUNDLED_NON_WORKFLOW_SKILLS = new Set(["browse", "search"]);
-const ALLOWED_PUBLIC_PACKAGE_VERSIONS = new Map<string, string>([["jawcode", "0.1.0"]]);
+const ALLOWED_PUBLIC_PACKAGE_VERSIONS = new Map<string, string>([["jawcode", "1.0.1"]]);
 const ALLOWED_PRIVATE_PACKAGE_VERSIONS = new Map<string, string>([
 	["@jawcode-dev/orchestration-token-benchmark", "0.0.1"],
-	["jawcode", "0.4.5"],
+	["jawcode-compat", "0.4.5"],
 	["@jawcode-dev/typescript-edit-benchmark", "0.0.1"],
 ]);
-const ALLOWED_UNSCOPED_PACKAGE_NAMES = new Set<string>(["jawcode", "jawcode-cu-mcp-server", "jawcode"]);
+const ALLOWED_UNSCOPED_PACKAGE_NAMES = new Set<string>(["jawcode-monorepo", "jawcode", "jawcode-compat", "jawcode-cu-mcp-server"]);
 const ALLOWED_PACKAGE_BINARIES = new Map<string, readonly string[]>([
 	["@jawcode-dev/ai", ["pi-ai"]],
 	["@jawcode-dev/coding-agent", ["gjc"]],
 	["jawcode-cu-mcp-server", ["cu-mcp-server"]],
-	["jawcode", ["gjc"]],
+	["jawcode-compat", ["gjc"]],
 	["@jawcode-dev/stats", ["gjc-stats"]],
 	["jawcode", ["jwc"]],
 	["@jawcode-dev/typescript-edit-benchmark", ["typescript-edit-benchmark"]],
@@ -197,7 +197,7 @@ async function verifyRebrandSurface(): Promise<GateResult> {
 
 	return {
 		name: "rebrand CLI/package surface",
-		passed: rootName === "jawcode" && codingName.includes("gajae") && hasJwcBin && !hasLegacyBin,
+		passed: rootName === "jawcode-monorepo" && codingName.includes("jawcode") && hasJwcBin && !hasLegacyBin,
 		details,
 	};
 }
@@ -228,7 +228,7 @@ async function verifyPackageVersionAndBinaryAllowlist(): Promise<GateResult> {
 		const isPrivate = packageJson.private === true;
 
 		if (relativePath === "package.json") {
-			if (packageName !== "jawcode") nameFindings.push(`${relativePath}: expected jawcode, found ${packageName}`);
+			if (packageName !== "jawcode-monorepo") nameFindings.push(`${relativePath}: expected jawcode-monorepo, found ${packageName}`);
 			continue;
 		}
 
