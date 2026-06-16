@@ -1306,7 +1306,7 @@
 				"enabled": {
 					"type": "boolean",
 					"description": "Enable the lsp tool for language server protocol",
-					"default": true
+					"default": false
 				},
 				"formatOnWrite": {
 					"type": "boolean",
