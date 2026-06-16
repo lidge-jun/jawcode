@@ -1,14 +1,14 @@
 {
 	"type": "module",
 	"private": true,
-	"name": "@gajae-code/typescript-edit-benchmark",
+	"name": "@jawcode-dev/typescript-edit-benchmark",
 	"version": "0.0.1",
 	"description": "Edit benchmark suite using TypeScript source code mutations",
 	"author": "Yeachan-Heo",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/gajae-ai/gajae-code.git",
+		"url": "git+https://github.com/lidge-jun/jawcode.git",
 		"directory": "packages/typescript-edit-benchmark"
 	},
 	"main": "./src/index.ts",
@@ -30,14 +30,14 @@
 		"@babel/parser": "catalog:",
 		"@babel/traverse": "catalog:",
 		"@babel/types": "catalog:",
-		"@gajae-code/agent-core": "catalog:",
-		"@gajae-code/coding-agent": "catalog:",
-		"@gajae-code/utils": "catalog:",
+		"@jawcode-dev/agent-core": "catalog:",
+		"@jawcode-dev/coding-agent": "catalog:",
+		"@jawcode-dev/utils": "catalog:",
 		"diff": "catalog:",
 		"prettier": "catalog:",
 		"regexp-tree": "catalog:",
-		"@gajae-code/ai": "catalog:",
-		"@gajae-code/tui": "catalog:"
+		"@jawcode-dev/ai": "catalog:",
+		"@jawcode-dev/tui": "catalog:"
 	},
 	"devDependencies": {
 		"@types/babel__generator": "catalog:",

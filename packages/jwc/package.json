@@ -32,7 +32,7 @@
 		"src/sdk.ts"
 	],
 	"scripts": {
-		"bundle": "bun build src/cli-entry.ts --target=bun --outfile=dist/jwc.bundle.js --external mupdf --external markit-ai --external @gajae-code/natives && bun build ../stats/src/sync-worker.ts --target=bun --outfile=dist/sync-worker.js --external @gajae-code/natives",
+		"bundle": "bun build src/cli-entry.ts --target=bun --outfile=dist/jwc.bundle.js --external mupdf --external markit-ai --external @jawcode-dev/natives && bun build ../stats/src/sync-worker.ts --target=bun --outfile=dist/sync-worker.js --external @jawcode-dev/natives",
 		"build:node": "bun scripts/build-node.ts",
 		"postinstall": "node scripts/verify-runtime.cjs --postinstall && node scripts/bootstrap-cli-jaw-home.cjs --postinstall",
 		"bootstrap:cli-jaw": "node scripts/bootstrap-cli-jaw-home.cjs",
@@ -41,7 +41,7 @@
 		"smoke:packed-sdk": "node scripts/smoke-packed-sdk.mjs"
 	},
 	"dependencies": {
-		"@gajae-code/natives": "1.0.0",
+		"@jawcode-dev/natives": "1.0.0",
 		"markit-ai": "0.5.3",
 		"better-sqlite3": "^11.10.0",
 		"json5": "^2.2.3",
@@ -50,7 +50,7 @@
 		"bun": "1.3.14"
 	},
 	"devDependencies": {
-		"@gajae-code/coding-agent": "1.0.0",
+		"@jawcode-dev/coding-agent": "1.0.0",
 		"esbuild": "^0.25.0",
 		"yaml": "^2.6.0",
 		"smol-toml": "^1.3.0",

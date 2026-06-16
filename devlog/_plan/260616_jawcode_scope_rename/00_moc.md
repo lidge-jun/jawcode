@@ -31,16 +31,16 @@ Status: Loop plan active
 
 | Current | Proposed |
 |---|---|
-| `@gajae-code/utils` | `@jawcode/utils` |
-| `@gajae-code/ai` | `@jawcode/ai` |
-| `@gajae-code/natives` | `@jawcode/natives` |
-| `@gajae-code/tui` | `@jawcode/tui` |
-| `@gajae-code/stats` | `@jawcode/stats` |
-| `@gajae-code/agent-core` | `@jawcode/agent-core` |
-| `@gajae-code/coding-agent` | `@jawcode/coding-agent` |
-| `@gajae-code/bridge-client` | `@jawcode/bridge-client` |
-| `@gajae-code/typescript-edit-benchmark` | `@jawcode/typescript-edit-benchmark` |
-| `@gajae-code/orchestration-token-benchmark` | `@jawcode/orchestration-token-benchmark` |
+| `@gajae-code/utils` | `@jawcode-dev/utils` |
+| `@gajae-code/ai` | `@jawcode-dev/ai` |
+| `@gajae-code/natives` | `@jawcode-dev/natives` |
+| `@gajae-code/tui` | `@jawcode-dev/tui` |
+| `@gajae-code/stats` | `@jawcode-dev/stats` |
+| `@gajae-code/agent-core` | `@jawcode-dev/agent-core` |
+| `@gajae-code/coding-agent` | `@jawcode-dev/coding-agent` |
+| `@gajae-code/bridge-client` | `@jawcode-dev/bridge-client` |
+| `@gajae-code/typescript-edit-benchmark` | `@jawcode-dev/typescript-edit-benchmark` |
+| `@gajae-code/orchestration-token-benchmark` | `@jawcode-dev/orchestration-token-benchmark` |
 | `gajae-code` (root private) | `jawcode-monorepo` |
 
 ## Cycle Details
@@ -54,11 +54,11 @@ Status: Loop plan active
 - `bun install` → `bun.lock` regen
 - `bun run generate-schemas` (if schema references scope)
 
-**Acceptance**: `bun install --frozen-lockfile` fails (expected, new lockfile), `bun install` succeeds, all package.json names are `@jawcode/*`
+**Acceptance**: `bun install --frozen-lockfile` fails (expected, new lockfile), `bun install` succeeds, all package.json names are `@jawcode-dev/*`
 
 ### PABCD-2: Source + Test Imports
 **Scope**: ~1,900 files, ~3,300 refs
-- Global text replace `@gajae-code/` → `@jawcode/` across `packages/*/src/**/*.ts` and `packages/*/test/**/*.ts`
+- Global text replace `@gajae-code/` → `@jawcode-dev/` across `packages/*/src/**/*.ts` and `packages/*/test/**/*.ts`
 - Test fixtures (serialized JSON — careful with escaping)
 - Parallelizable: 6 source workers + 4 test workers
 
@@ -66,7 +66,7 @@ Status: Loop plan active
 
 ### PABCD-3: Gates + CI + Docs + Verify + Publish
 **Scope**: ~20 files manual + full verification
-- `scripts/rebrand-inventory.ts` — expectedPackageScope → `@jawcode/`
+- `scripts/rebrand-inventory.ts` — expectedPackageScope → `@jawcode-dev/`
 - `scripts/verify-g002-gates.ts` — 27 refs, scope constants
 - `scripts/check-public-legacy-zero.ts` — allowlist
 - `scripts/release.ts` — catalog regex
@@ -79,7 +79,7 @@ Status: Loop plan active
 - Full verify: `ci:check:full` + `ci:test:smoke` + gates
 - Push + release
 
-**Acceptance**: All gates green, `npm publish` succeeds as `jawcode@1.0.2` with `@jawcode/natives` dep
+**Acceptance**: All gates green, `npm publish` succeeds as `jawcode@1.0.2` with `@jawcode-dev/natives` dep
 
 ## NOT Changing (Explicit Exclusions)
 - `ENGINE_NAME = "gjc"` — internal log path identifier

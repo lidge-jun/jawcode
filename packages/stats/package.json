@@ -1,6 +1,6 @@
 {
 	"type": "module",
-	"name": "@gajae-code/stats",
+	"name": "@jawcode-dev/stats",
 	"version": "1.0.0",
 	"description": "Local observability dashboard for pi AI usage statistics",
 	"homepage": "https://gaebal-gajae.dev",
@@ -8,11 +8,11 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/gajae-ai/gajae-code.git",
+		"url": "git+https://github.com/lidge-jun/jawcode.git",
 		"directory": "packages/stats"
 	},
 	"bugs": {
-		"url": "https://github.com/gajae-ai/gajae-code/issues"
+		"url": "https://github.com/lidge-jun/jawcode/issues"
 	},
 	"keywords": [
 		"ai",
@@ -37,8 +37,8 @@
 		"fmt": "biome format --write ."
 	},
 	"dependencies": {
-		"@gajae-code/ai": "catalog:",
-		"@gajae-code/utils": "catalog:",
+		"@jawcode-dev/ai": "catalog:",
+		"@jawcode-dev/utils": "catalog:",
 		"@tailwindcss/node": "catalog:",
 		"chart.js": "catalog:",
 		"date-fns": "catalog:",

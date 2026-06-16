@@ -1,6 +1,6 @@
 {
 	"type": "module",
-	"name": "@gajae-code/tui",
+	"name": "@jawcode-dev/tui",
 	"version": "1.0.0",
 	"description": "Terminal User Interface library with differential rendering for efficient text-based applications",
 	"homepage": "https://gaebal-gajae.dev",
@@ -11,11 +11,11 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/gajae-ai/gajae-code.git",
+		"url": "git+https://github.com/lidge-jun/jawcode.git",
 		"directory": "packages/tui"
 	},
 	"bugs": {
-		"url": "https://github.com/gajae-ai/gajae-code/issues"
+		"url": "https://github.com/lidge-jun/jawcode/issues"
 	},
 	"keywords": [
 		"tui",
@@ -38,8 +38,8 @@
 		"fmt": "biome format --write ."
 	},
 	"dependencies": {
-		"@gajae-code/natives": "catalog:",
-		"@gajae-code/utils": "catalog:",
+		"@jawcode-dev/natives": "catalog:",
+		"@jawcode-dev/utils": "catalog:",
 		"lru-cache": "catalog:",
 		"marked": "catalog:"
 	},

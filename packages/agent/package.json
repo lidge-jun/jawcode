@@ -1,6 +1,6 @@
 {
 	"type": "module",
-	"name": "@gajae-code/agent-core",
+	"name": "@jawcode-dev/agent-core",
 	"version": "1.0.0",
 	"description": "General-purpose agent with transport abstraction, state management, and attachment support",
 	"homepage": "https://gaebal-gajae.dev",
@@ -11,11 +11,11 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/gajae-ai/gajae-code.git",
+		"url": "git+https://github.com/lidge-jun/jawcode.git",
 		"directory": "packages/agent"
 	},
 	"bugs": {
-		"url": "https://github.com/gajae-ai/gajae-code/issues"
+		"url": "https://github.com/lidge-jun/jawcode/issues"
 	},
 	"keywords": [
 		"ai",
@@ -35,9 +35,9 @@
 		"fmt": "biome format --write ."
 	},
 	"dependencies": {
-		"@gajae-code/ai": "catalog:",
-		"@gajae-code/natives": "catalog:",
-		"@gajae-code/utils": "catalog:",
+		"@jawcode-dev/ai": "catalog:",
+		"@jawcode-dev/natives": "catalog:",
+		"@jawcode-dev/utils": "catalog:",
 		"@opentelemetry/api": "catalog:"
 	},
 	"devDependencies": {

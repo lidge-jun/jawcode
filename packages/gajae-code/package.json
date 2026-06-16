@@ -1,7 +1,7 @@
 {
 	"private": true,
 	"type": "module",
-	"name": "gajae-code",
+	"name": "jawcode-compat",
 	"version": "0.4.5",
 	"description": "One-line npm install wrapper for the Gajae-Code gjc CLI",
 	"homepage": "https://gaebal-gajae.dev",
@@ -12,11 +12,11 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/gajae-ai/gajae-code.git",
+		"url": "git+https://github.com/lidge-jun/jawcode.git",
 		"directory": "packages/gajae-code"
 	},
 	"bugs": {
-		"url": "https://github.com/gajae-ai/gajae-code/issues"
+		"url": "https://github.com/lidge-jun/jawcode/issues"
 	},
 	"keywords": [
 		"coding-agent",
@@ -31,7 +31,7 @@
 		"gjc": "bin/gjc.js"
 	},
 	"dependencies": {
-		"@gajae-code/coding-agent": "catalog:"
+		"@jawcode-dev/coding-agent": "catalog:"
 	},
 	"engines": {
 		"bun": ">=1.3.14"
