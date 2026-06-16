@@ -44,6 +44,39 @@ jwc --version
 </details>
 
 <details>
+<summary>Don't have bun or npm? Install bun first</summary>
+
+**macOS / Linux**
+```sh
+curl -fsSL https://bun.sh/install | bash
+```
+
+**Windows (PowerShell)**
+```powershell
+irm bun.sh/install.ps1 | iex
+```
+
+**Windows (WSL recommended for full support)**
+```powershell
+# 1. Install WSL if you haven't
+wsl --install
+
+# 2. Inside WSL (Ubuntu), install bun
+curl -fsSL https://bun.sh/install | bash
+```
+
+After installing bun, restart your terminal and run:
+```sh
+bun install -g jawcode
+jwc --version
+```
+
+> **Note:** On Windows without WSL, `jwc` runs but the agent's shell tool targets bash.
+> For the full experience (bash, tmux, fd, ripgrep), use WSL.
+
+</details>
+
+<details>
 <summary>From source (for contributors or latest dev)</summary>
 
 ```sh
