@@ -87,16 +87,16 @@ jobs:
             exit 1
           fi
 
-      - name: Publish all packages
+      - name: Publish jawcode
         run: |
-          ARGS="--tag ${{ inputs.tag }}"
+          cd packages/jwc
+          bun run bundle
+          bun run build:node
           if [ "${{ inputs.dry-run }}" = "true" ]; then
-            bun scripts/ci-release-publish.ts --dry-run $ARGS
+            npm publish --dry-run --tag ${{ inputs.tag }} --access public --provenance
           else
-            bun scripts/ci-release-publish.ts $ARGS
+            npm publish --tag ${{ inputs.tag }} --access public --provenance
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Post-publish registry smoke
         if: inputs.dry-run != true
