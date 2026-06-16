@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { hookFetch } from "@gajae-code/utils";
+import { hookFetch } from "@jawcode-dev/utils";
 import { analyzeAuthError, discoverOAuthEndpoints, extractMcpAuthServerUrl } from "../src/runtime-mcp/oauth-discovery";
 
 describe("mcp oauth discovery", () => {

@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { $which, logger, Snowflake } from "@gajae-code/utils";
+import { $which, logger, Snowflake } from "@jawcode-dev/utils";
 import { $ } from "bun";
 
 export interface RecordingHandle {

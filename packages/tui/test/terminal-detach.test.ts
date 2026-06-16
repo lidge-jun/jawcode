@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "bun:test";
-import { ProcessTerminal, type Terminal, type TerminalAppearance } from "@gajae-code/tui/terminal";
-import { type Component, CURSOR_MARKER, TUI } from "@gajae-code/tui/tui";
+import { ProcessTerminal, type Terminal, type TerminalAppearance } from "@jawcode-dev/tui/terminal";
+import { type Component, CURSOR_MARKER, TUI } from "@jawcode-dev/tui/tui";
 
 class StaticComponent implements Component {
 	#line: string;

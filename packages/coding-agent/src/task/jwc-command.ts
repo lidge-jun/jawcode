@@ -1,6 +1,6 @@
 import process from "node:process";
 
-import { $env } from "@gajae-code/utils";
+import { $env } from "@jawcode-dev/utils";
 
 interface JwcCommand {
 	cmd: string;

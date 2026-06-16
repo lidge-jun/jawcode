@@ -14,9 +14,9 @@
  *   - Esc from picker -> close overlay
  *   - Enter on main session -> close overlay (jump back)
  */
-import type { ToolResultMessage } from "@gajae-code/ai";
-import { Container, Markdown, type MarkdownTheme, matchesKey } from "@gajae-code/tui";
-import { formatDuration, formatNumber, logger } from "@gajae-code/utils";
+import type { ToolResultMessage } from "@jawcode-dev/ai";
+import { Container, Markdown, type MarkdownTheme, matchesKey } from "@jawcode-dev/tui";
+import { formatDuration, formatNumber, logger } from "@jawcode-dev/utils";
 import type { KeyId } from "../../config/keybindings";
 import { isSilentAbort } from "../../session/messages";
 import type { SessionMessageEntry } from "../../session/session-manager";

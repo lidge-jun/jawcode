@@ -1,4 +1,4 @@
-import { untilAborted } from "@gajae-code/utils";
+import { untilAborted } from "@jawcode-dev/utils";
 import type { Markit, StreamInfo } from "markit-ai";
 import { ToolAbortError } from "../tools/tool-errors";
 

@@ -1,7 +1,7 @@
 /**
  * `gjc auth-broker` — manage the gjc credential vault.
  */
-import { Args, Command, Flags, renderCommandHelp } from "@gajae-code/utils/cli";
+import { Args, Command, Flags, renderCommandHelp } from "@jawcode-dev/utils/cli";
 import {
 	AUTH_BROKER_ACTIONS,
 	type AuthBrokerAction,

@@ -97,9 +97,9 @@ describe("GJC red-claw redesign defaults", () => {
 
 	it("brands HTML session exports as GJC without changing transcript role support", () => {
 		expect(TEMPLATE).toContain("<title>GJC Session Export</title>");
-		expect(TEMPLATE).toContain('content="gajae-code"');
+		expect(TEMPLATE).toContain('content="jawcode"');
 		expect(TEMPLATE).toContain("GJC Session Export:");
-		expect(TEMPLATE).toContain("GJC / gajae-code");
+		expect(TEMPLATE).toContain("GJC / jawcode");
 		expect(TEMPLATE).toContain('meta[name="gjc-url-params"]');
 		expect(TEMPLATE).toContain('meta[name="gjc-share-base-url"]');
 		expect(TEMPLATE).toContain("gjc-share:v1:sidebar-width");

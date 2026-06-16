@@ -1,8 +1,8 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { AgentMessage } from "@gajae-code/agent-core";
-import type { AssistantMessage, ToolResultMessage, UserMessage } from "@gajae-code/ai";
+import type { AgentMessage } from "@jawcode-dev/agent-core";
+import type { AssistantMessage, ToolResultMessage, UserMessage } from "@jawcode-dev/ai";
 import { $ } from "bun";
 import { resolveJwcCommand } from "../task/jwc-command";
 import { shortenPath } from "../tools/render-utils";

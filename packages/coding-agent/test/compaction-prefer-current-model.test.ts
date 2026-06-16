@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import * as path from "node:path";
-import { Agent } from "@gajae-code/agent-core";
-import * as compactionModule from "@gajae-code/agent-core/compaction";
-import { getBundledModel } from "@gajae-code/ai";
-import { ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { AgentSession } from "@gajae-code/coding-agent/session/agent-session";
-import { AuthStorage } from "@gajae-code/coding-agent/session/auth-storage";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { TempDir } from "@gajae-code/utils";
+import { Agent } from "@jawcode-dev/agent-core";
+import * as compactionModule from "@jawcode-dev/agent-core/compaction";
+import { getBundledModel } from "@jawcode-dev/ai";
+import { ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { AgentSession } from "@jawcode-dev/coding-agent/session/agent-session";
+import { AuthStorage } from "@jawcode-dev/coding-agent/session/auth-storage";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { TempDir } from "@jawcode-dev/utils";
 import { assistantMsg, userMsg } from "./utilities";
 
 /**

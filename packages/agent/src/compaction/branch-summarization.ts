@@ -5,9 +5,9 @@
  * a summary of the branch being left so context isn't lost.
  */
 
-import type { Model } from "@gajae-code/ai";
-import type { Encoding } from "@gajae-code/natives";
-import { prompt } from "@gajae-code/utils";
+import type { Model } from "@jawcode-dev/ai";
+import type { Encoding } from "@jawcode-dev/natives";
+import { prompt } from "@jawcode-dev/utils";
 import { type AgentTelemetry, instrumentedCompleteSimple } from "../telemetry";
 import type { AgentMessage } from "../types";
 import { countMessageTokensNative, estimateTokens } from "./compaction";

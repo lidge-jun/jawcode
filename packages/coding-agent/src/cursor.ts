@@ -6,14 +6,14 @@ import type {
 	AgentToolContext,
 	AgentToolResult,
 	AgentToolUpdateCallback,
-} from "@gajae-code/agent-core";
+} from "@jawcode-dev/agent-core";
 import type {
 	CursorMcpCall,
 	CursorShellStreamCallbacks,
 	CursorExecHandlers as ICursorExecHandlers,
 	ToolResultMessage,
-} from "@gajae-code/ai";
-import { sanitizeText } from "@gajae-code/utils";
+} from "@jawcode-dev/ai";
+import { sanitizeText } from "@jawcode-dev/utils";
 import { resolveToCwd } from "./tools/path-utils";
 
 interface CursorExecBridgeOptions {

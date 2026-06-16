@@ -7,9 +7,9 @@ import {
 	loadEntriesFromFile,
 	type SessionHeader,
 	SessionManager,
-} from "@gajae-code/coding-agent/session/session-manager";
-import { stripOuterDoubleQuotes } from "@gajae-code/coding-agent/tools/path-utils";
-import { getConfigRootDir, setAgentDir } from "@gajae-code/utils";
+} from "@jawcode-dev/coding-agent/session/session-manager";
+import { stripOuterDoubleQuotes } from "@jawcode-dev/coding-agent/tools/path-utils";
+import { getConfigRootDir, setAgentDir } from "@jawcode-dev/utils";
 
 // -- helpers ----------------------------------------------------------------
 

@@ -5,19 +5,19 @@ import * as url from "node:url";
 
 // Canonical scope for in-process pi packages. Plugins published against any of
 // the aliased scopes below (mariozechner's original publish, earendil-works'
-// fork, or the canonical @gajae-code scope itself) are remapped to this scope and
+// fork, or the canonical @jawcode scope itself) are remapped to this scope and
 // resolved against the bundled copy that ships inside the gjc binary. This
 // keeps plugins running against the exact runtime state of the host (single
 // module registry, single tool registry, etc.) regardless of which historical
 // scope name they happened to declare in their peerDependencies.
-const CANONICAL_PI_SCOPE = "@gajae-code";
+const CANONICAL_PI_SCOPE = "@jawcode";
 
 // Scopes that have historically been used to publish (or alias) the same set
-// of internal pi-* packages. `@gajae-code` is intentionally included so that
+// of internal pi-* packages. `@jawcode` is intentionally included so that
 // direct imports of the canonical name still flow through `Bun.resolveSync`
 // against the host binary, avoiding a duplicate copy being pulled in from a
 // plugin's own node_modules tree at install time.
-const PI_SCOPE_ALIASES = ["gajae-code", "mariozechner", "earendil-works"] as const;
+const PI_SCOPE_ALIASES = ["jawcode", "mariozechner", "earendil-works"] as const;
 
 // Internal package basenames historically used by Pi plugins plus the current
 // Gajae package basenames bundled inside the gjc binary.
@@ -25,7 +25,7 @@ const PI_PACKAGE_NAME_REMAPS: ReadonlyMap<string, string> = new Map<string, stri
 	["agent-core", "agent-core"],
 	["ai", "ai"],
 	["coding-agent", "coding-agent"],
-	["gajae-code", "coding-agent"],
+	["jawcode", "coding-agent"],
 	["natives", "natives"],
 	["pi-agent-core", "agent-core"],
 	["pi-ai", "ai"],
@@ -269,7 +269,7 @@ function resolveLegacyPiSpecifier(args: { path: string; importer: string }): { p
 		return undefined;
 	}
 
-	// Primary: resolve the canonical @gajae-code/* specifier from the host binary
+	// Primary: resolve the canonical @jawcode-dev/* specifier from the host binary
 	// location. Works in dev mode and in source-link installs.
 	try {
 		return { path: getResolvedSpecifier(remappedSpecifier) };

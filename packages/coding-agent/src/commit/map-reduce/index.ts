@@ -1,6 +1,6 @@
-import type { ThinkingLevel } from "@gajae-code/agent-core";
-import type { Api, Model } from "@gajae-code/ai";
-import { $env } from "@gajae-code/utils";
+import type { ThinkingLevel } from "@jawcode-dev/agent-core";
+import type { Api, Model } from "@jawcode-dev/ai";
+import { $env } from "@jawcode-dev/utils";
 import { parseFileDiffs } from "../../commit/git/diff";
 import type { ConventionalAnalysis } from "../../commit/types";
 import { isExcludedFile } from "../../commit/utils/exclusions";

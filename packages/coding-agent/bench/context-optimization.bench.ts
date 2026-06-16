@@ -14,14 +14,14 @@
  * improvement invariants so regressions are provable.
  */
 
-import { estimateTokens } from "@gajae-code/agent-core/compaction/compaction";
-import type { SessionEntry } from "@gajae-code/agent-core/compaction/entries";
+import { estimateTokens } from "@jawcode-dev/agent-core/compaction/compaction";
+import type { SessionEntry } from "@jawcode-dev/agent-core/compaction/entries";
 import {
 	DEFAULT_PRUNE_CONFIG,
 	type PruneConfig,
 	pruneToolOutputs,
-} from "@gajae-code/agent-core/compaction/pruning";
-import type { AgentMessage } from "@gajae-code/agent-core/types";
+} from "@jawcode-dev/agent-core/compaction/pruning";
+import type { AgentMessage } from "@jawcode-dev/agent-core/types";
 import { buildPhaseRollupReceipt } from "../src/harness-control-plane/phase-rollup";
 import { ingestReceipts, RECEIPT_DIGEST_MAX_CHARS } from "../src/harness-control-plane/receipt-ingest";
 import {
@@ -377,10 +377,10 @@ function benchSessionState(): SessionState {
 		schemaVersion: 1,
 		sessionId: "bench-session",
 		lifecycle: "finalizing",
-		harness: "gajae-code",
+		harness: "jawcode",
 		handle: {
 			sessionId: "bench-session",
-			harness: "gajae-code",
+			harness: "jawcode",
 			mode: "implement",
 			repo: "/repo",
 			workspace: "/ws",

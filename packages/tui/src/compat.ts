@@ -1,5 +1,5 @@
 /**
- * Node.js compatibility shim for Bun APIs used by @gajae-code/tui.
+ * Node.js compatibility shim for Bun APIs used by @jawcode-dev/tui.
  * Import this module before any TUI code when running on Node.js.
  * On Bun, this is a no-op (globalThis.Bun already exists).
  */

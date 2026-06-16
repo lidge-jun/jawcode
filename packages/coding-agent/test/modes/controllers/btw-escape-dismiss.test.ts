@@ -1,11 +1,11 @@
 import { beforeAll, describe, expect, it, vi } from "bun:test";
-import { CustomEditor } from "@gajae-code/coding-agent/modes/components/custom-editor";
-import { BtwController } from "@gajae-code/coding-agent/modes/controllers/btw-controller";
-import { InputController } from "@gajae-code/coding-agent/modes/controllers/input-controller";
-import { getEditorTheme, initTheme } from "@gajae-code/coding-agent/modes/theme/theme";
-import type { InteractiveModeContext } from "@gajae-code/coding-agent/modes/types";
-import { Container, type TUI } from "@gajae-code/tui";
-import { setKittyProtocolActive } from "@gajae-code/tui/keys";
+import { CustomEditor } from "@jawcode-dev/coding-agent/modes/components/custom-editor";
+import { BtwController } from "@jawcode-dev/coding-agent/modes/controllers/btw-controller";
+import { InputController } from "@jawcode-dev/coding-agent/modes/controllers/input-controller";
+import { getEditorTheme, initTheme } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import type { InteractiveModeContext } from "@jawcode-dev/coding-agent/modes/types";
+import { Container, type TUI } from "@jawcode-dev/tui";
+import { setKittyProtocolActive } from "@jawcode-dev/tui/keys";
 
 beforeAll(async () => {
 	await initTheme();

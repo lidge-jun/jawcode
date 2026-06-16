@@ -1,5 +1,5 @@
-import { APP_NAME } from "@gajae-code/utils";
-import { Command } from "@gajae-code/utils/cli";
+import { APP_NAME } from "@jawcode-dev/utils";
+import { Command } from "@jawcode-dev/utils/cli";
 import { runNativePlanWriterCommand } from "../jwc-runtime/plan-writer";
 
 export default class Ralplan extends Command {

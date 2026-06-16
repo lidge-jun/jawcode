@@ -2,10 +2,10 @@ import { afterEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { Message } from "@gajae-code/ai";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { FileSessionStorage, MemorySessionStorage } from "@gajae-code/coding-agent/session/session-storage";
-import { getAgentDir, setAgentDir } from "@gajae-code/utils";
+import type { Message } from "@jawcode-dev/ai";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { FileSessionStorage, MemorySessionStorage } from "@jawcode-dev/coding-agent/session/session-storage";
+import { getAgentDir, setAgentDir } from "@jawcode-dev/utils";
 
 const LARGE_TEXT = `${"resident lifecycle ".repeat(50_000)}TEXT_TAIL`;
 const LARGE_IMAGE = Buffer.from("resident lifecycle image".repeat(20_000)).toString("base64");

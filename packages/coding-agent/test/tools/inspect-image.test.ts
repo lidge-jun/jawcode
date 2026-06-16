@@ -2,14 +2,14 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { completeSimple, Model } from "@gajae-code/ai";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { getThemeByName } from "@gajae-code/coding-agent/modes/theme/theme";
-import type { ToolSession } from "@gajae-code/coding-agent/tools";
-import { InspectImageTool } from "@gajae-code/coding-agent/tools/inspect-image";
-import { inspectImageToolRenderer } from "@gajae-code/coding-agent/tools/inspect-image-renderer";
-import { toolRenderers } from "@gajae-code/coding-agent/tools/renderers";
-import { sanitizeText } from "@gajae-code/utils";
+import type { completeSimple, Model } from "@jawcode-dev/ai";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { getThemeByName } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import type { ToolSession } from "@jawcode-dev/coding-agent/tools";
+import { InspectImageTool } from "@jawcode-dev/coding-agent/tools/inspect-image";
+import { inspectImageToolRenderer } from "@jawcode-dev/coding-agent/tools/inspect-image-renderer";
+import { toolRenderers } from "@jawcode-dev/coding-agent/tools/renderers";
+import { sanitizeText } from "@jawcode-dev/utils";
 
 const TINY_PNG_BASE64 =
 	"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==";

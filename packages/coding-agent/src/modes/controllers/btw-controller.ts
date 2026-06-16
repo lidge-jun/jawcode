@@ -1,4 +1,4 @@
-import { prompt } from "@gajae-code/utils";
+import { prompt } from "@jawcode-dev/utils";
 import btwUserPrompt from "../../prompts/system/btw-user.md" with { type: "text" };
 import { BtwPanelComponent } from "../components/btw-panel";
 import type { InteractiveModeContext } from "../types";

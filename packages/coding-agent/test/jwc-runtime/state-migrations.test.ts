@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { WorkflowStateEnvelopeSchema } from "@gajae-code/coding-agent/jwc-runtime/state-schema";
+import { WorkflowStateEnvelopeSchema } from "@jawcode-dev/coding-agent/jwc-runtime/state-schema";
 import { migrateWorkflowState, normalizeLegacyState } from "../../src/jwc-runtime/state-migrations";
 import { WORKFLOW_STATE_VERSION } from "../../src/skill-state/workflow-state-contract";
 

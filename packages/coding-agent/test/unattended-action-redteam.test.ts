@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import type { RpcUnattendedActionClass, RpcUnattendedDeclaration } from "@gajae-code/coding-agent/modes/rpc/rpc-types";
-import { classifyBashAction } from "@gajae-code/coding-agent/modes/shared/agent-wire/unattended-action-policy";
+import type { RpcUnattendedActionClass, RpcUnattendedDeclaration } from "@jawcode-dev/coding-agent/modes/rpc/rpc-types";
+import { classifyBashAction } from "@jawcode-dev/coding-agent/modes/shared/agent-wire/unattended-action-policy";
 import {
 	ActionDeniedError,
 	UnattendedRunController,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/unattended-run-controller";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/unattended-run-controller";
 
 function readonlyOnlyController() {
 	const decl: RpcUnattendedDeclaration = {

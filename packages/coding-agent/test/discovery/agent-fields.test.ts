@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { Effort } from "@gajae-code/ai";
+import { Effort } from "@jawcode-dev/ai";
 import { parseAgentFields } from "../../src/discovery/helpers";
 
 describe("parseAgentFields", () => {

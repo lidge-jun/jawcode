@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { TabBar, type TabBarTheme } from "@gajae-code/tui/components/tab-bar";
-import { visibleWidth } from "@gajae-code/tui/utils";
+import { TabBar, type TabBarTheme } from "@jawcode-dev/tui/components/tab-bar";
+import { visibleWidth } from "@jawcode-dev/tui/utils";
 
 const ansiTheme: TabBarTheme = {
 	label: text => text,

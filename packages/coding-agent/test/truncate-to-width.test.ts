@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { truncateToWidth, visibleWidth } from "@gajae-code/tui";
+import { truncateToWidth, visibleWidth } from "@jawcode-dev/tui";
 
 /**
  * Tests for truncateToWidth behavior with Unicode characters.

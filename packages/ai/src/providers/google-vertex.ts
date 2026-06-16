@@ -1,4 +1,4 @@
-import { $env } from "@gajae-code/utils";
+import { $env } from "@jawcode-dev/utils";
 import type { Context, Model, StreamFunction } from "../types";
 import type { AssistantMessageEventStream } from "../utils/event-stream";
 import { getVertexAccessToken } from "./google-auth";

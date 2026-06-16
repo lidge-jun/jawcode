@@ -1,17 +1,17 @@
 /**
- * Core types for the gajae-code-native coding-harness operations control plane (v1).
+ * Core types for the jawcode-native coding-harness operations control plane (v1).
  *
  * See the approved consensus plan at
  * `.jwc/plans/planphase/2026-06-02-0853-3e33/stage-02-revision.md` and the spec at
  * `.jwc/specs/deep-interview-harness-control-plane.md`.
  *
- * v1 implements the gajae-code adapter only. omx/codex/remote/auth are deferred seams.
+ * v1 implements the jawcode adapter only. omx/codex/remote/auth are deferred seams.
  */
 
 import type { AgentWireObservedSignal } from "../modes/shared/agent-wire/event-contract";
 
-/** Harnesses the control plane can operate. v1 implements `gajae-code` only. */
-export type Harness = "gajae-code" | "codex" | "omx";
+/** Harnesses the control plane can operate. v1 implements `jawcode` only. */
+export type Harness = "jawcode" | "codex" | "omx";
 
 /** Operating mode of a session. `implement` builds/changes code; `review` produces a read-only verdict. */
 export type SessionMode = "implement" | "review";

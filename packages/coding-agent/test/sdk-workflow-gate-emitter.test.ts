@@ -2,11 +2,11 @@ import { afterEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { AgentToolContext } from "@gajae-code/agent-core";
-import { getBundledModel } from "@gajae-code/ai";
-import type { WorkflowGateEmitter } from "@gajae-code/coding-agent/modes/shared/agent-wire/unattended-session";
-import type { OpenGateInput } from "@gajae-code/coding-agent/modes/shared/agent-wire/workflow-gate-broker";
-import { createAgentSession } from "@gajae-code/coding-agent/sdk";
+import type { AgentToolContext } from "@jawcode-dev/agent-core";
+import { getBundledModel } from "@jawcode-dev/ai";
+import type { WorkflowGateEmitter } from "@jawcode-dev/coding-agent/modes/shared/agent-wire/unattended-session";
+import type { OpenGateInput } from "@jawcode-dev/coding-agent/modes/shared/agent-wire/workflow-gate-broker";
+import { createAgentSession } from "@jawcode-dev/coding-agent/sdk";
 import { Settings } from "../src/config/settings";
 import { SessionManager } from "../src/session/session-manager";
 

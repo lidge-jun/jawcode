@@ -4,10 +4,10 @@
  * Run with: npx tsx test/streaming-render-debug.ts
  */
 import * as path from "node:path";
-import type { AssistantMessage } from "@gajae-code/ai";
-import { AssistantMessageComponent } from "@gajae-code/coding-agent/modes/components/assistant-message";
-import { initTheme } from "@gajae-code/coding-agent/modes/theme/theme";
-import { ProcessTerminal, TUI } from "@gajae-code/tui";
+import type { AssistantMessage } from "@jawcode-dev/ai";
+import { AssistantMessageComponent } from "@jawcode-dev/coding-agent/modes/components/assistant-message";
+import { initTheme } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import { ProcessTerminal, TUI } from "@jawcode-dev/tui";
 import { sleep } from "bun";
 
 // Initialize dark theme with full color support

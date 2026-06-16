@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { extractReadableFromHtml } from "@gajae-code/coding-agent/tools/browser";
+import { extractReadableFromHtml } from "@jawcode-dev/coding-agent/tools/browser";
 
 describe("browser readable extraction", () => {
 	it("extracts markdown content from article-style pages", async () => {

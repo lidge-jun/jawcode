@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { resetSettingsForTest, Settings } from "@gajae-code/coding-agent/config/settings";
-import { resolveMemoryBackend } from "@gajae-code/coding-agent/memory-backend";
+import { resetSettingsForTest, Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { resolveMemoryBackend } from "@jawcode-dev/coding-agent/memory-backend";
 
 describe("resolveMemoryBackend", () => {
 	beforeEach(() => {

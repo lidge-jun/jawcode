@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { KeybindingsManager, TUI_KEYBINDINGS } from "@gajae-code/tui/keybindings";
+import { KeybindingsManager, TUI_KEYBINDINGS } from "@jawcode-dev/tui/keybindings";
 
 describe("KeybindingsManager", () => {
 	it("does not evict selector confirm when input submit is rebound", () => {

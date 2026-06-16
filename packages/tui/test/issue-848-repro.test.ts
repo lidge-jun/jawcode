@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { Ellipsis, truncateToWidth } from "../src/utils";
 
-// Regression test for https://github.com/can1357/gajae-code/issues/848
+// Regression test for https://github.com/lidge-jun/jawcode/issues/848
 //
 // On Windows, rendering a saved write tool record crashed with:
 //   Error: Failed to convert napi value Null into rust type `u8`

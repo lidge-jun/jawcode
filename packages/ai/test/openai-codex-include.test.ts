@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { type RequestBody, transformRequestBody } from "@gajae-code/ai/providers/openai-codex/request-transformer";
+import { type RequestBody, transformRequestBody } from "@jawcode-dev/ai/providers/openai-codex/request-transformer";
 import { createCodexModel } from "./helpers";
 
 describe("openai-codex include handling", () => {

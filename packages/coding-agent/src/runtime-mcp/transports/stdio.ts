@@ -5,7 +5,7 @@
  * Messages are newline-delimited JSON.
  */
 
-import { getProjectDir, ptree, readJsonl, Snowflake } from "@gajae-code/utils";
+import { getProjectDir, ptree, readJsonl, Snowflake } from "@jawcode-dev/utils";
 import type {
 	JsonRpcError,
 	JsonRpcMessage,

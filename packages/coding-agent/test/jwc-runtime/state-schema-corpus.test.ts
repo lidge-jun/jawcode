@@ -1,12 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { migrateWorkflowState } from "@gajae-code/coding-agent/jwc-runtime/state-migrations";
+import { migrateWorkflowState } from "@jawcode-dev/coding-agent/jwc-runtime/state-migrations";
 import {
 	normalizeWorkflowSkillSlug,
 	RequiredOnWriteEnvelopeSchema,
 	WorkflowStateEnvelopeSchema,
-} from "@gajae-code/coding-agent/jwc-runtime/state-schema";
+} from "@jawcode-dev/coding-agent/jwc-runtime/state-schema";
 
 const fixturesRoot = path.join(import.meta.dir, "..", "fixtures", "jwc-state");
 

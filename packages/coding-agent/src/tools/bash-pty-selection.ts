@@ -1,5 +1,5 @@
-import { $resolveEnv } from "@gajae-code/utils";
-import { $env } from "@gajae-code/utils/env";
+import { $resolveEnv } from "@jawcode-dev/utils";
+import { $env } from "@jawcode-dev/utils/env";
 
 /** Minimal UI-capability fields needed to decide whether bash can use the local PTY overlay. */
 export interface BashPtyContext {

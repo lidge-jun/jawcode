@@ -8,9 +8,9 @@ import {
 	toolWireSchema,
 	validateSchemaCompatibility,
 	validateStrictSchemaEnforcement,
-} from "@gajae-code/ai/utils/schema";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { createTools, HIDDEN_TOOLS, type ToolSession } from "@gajae-code/coding-agent/tools";
+} from "@jawcode-dev/ai/utils/schema";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { createTools, HIDDEN_TOOLS, type ToolSession } from "@jawcode-dev/coding-agent/tools";
 
 interface ToolSchemaEntry {
 	name: string;

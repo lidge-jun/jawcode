@@ -8,12 +8,12 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
-import type { AgentMessage } from "@gajae-code/agent-core";
-import { resetSettingsForTest, Settings } from "@gajae-code/coding-agent/config/settings";
-import { hindsightBackend, reloadMentalModelsForSession } from "@gajae-code/coding-agent/hindsight/backend";
-import { HindsightApi } from "@gajae-code/coding-agent/hindsight/client";
-import type { HindsightSessionState } from "@gajae-code/coding-agent/hindsight/state";
-import type { AgentSessionEventListener } from "@gajae-code/coding-agent/session/agent-session";
+import type { AgentMessage } from "@jawcode-dev/agent-core";
+import { resetSettingsForTest, Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { hindsightBackend, reloadMentalModelsForSession } from "@jawcode-dev/coding-agent/hindsight/backend";
+import { HindsightApi } from "@jawcode-dev/coding-agent/hindsight/client";
+import type { HindsightSessionState } from "@jawcode-dev/coding-agent/hindsight/state";
+import type { AgentSessionEventListener } from "@jawcode-dev/coding-agent/session/agent-session";
 
 interface FakeSessionDeps {
 	sessionId: string | null;

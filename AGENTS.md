@@ -1,6 +1,6 @@
 # Jawcode Agent Contract
 
-Jawcode (`jwc`) is this repository's coding-agent implementation, forked from [`gajae-code`](https://github.com/Yeachan-Heo/gajae-code). The internal `@gajae-code/*` package namespace originates from that upstream repo. Treat this file as the repo-local operating contract for contributors and automated agents working in this tree.
+Jawcode (`jwc`) is this repository's coding-agent implementation, forked from [`gajae-code`](https://github.com/Yeachan-Heo/gajae-code). The internal `@jawcode-dev/*` package namespace originates from that upstream repo. Treat this file as the repo-local operating contract for contributors and automated agents working in this tree.
 
 ## Public workflow surface
 
@@ -132,7 +132,7 @@ Use `node:fs/promises` for directory operations. Avoid redundant parent-director
 Spawn workers with the compile-safe hybrid pattern:
 
 ```ts
-import { isCompiledBinary } from "@gajae-code/pi-utils";
+import { isCompiledBinary } from "@jawcode-dev/pi-utils";
 
 const worker = isCompiledBinary()
 	? new Worker("./packages/<pkg>/src/<worker>.ts", { type: "module" })
@@ -153,7 +153,7 @@ The TUI's visual identity (gradient welcome banner, intro sweep animation, shine
 
 ## Logging and TUI safety
 
-Do not use `console.log`, `console.warn`, or `console.error` in `packages/coding-agent/`; it corrupts TUI rendering. Use the centralized logger from `@gajae-code/pi-utils`.
+Do not use `console.log`, `console.warn`, or `console.error` in `packages/coding-agent/`; it corrupts TUI rendering. Use the centralized logger from `@jawcode-dev/pi-utils`.
 
 All text displayed in tool renderers must be sanitized:
 - tabs to spaces via `replaceTabs()`

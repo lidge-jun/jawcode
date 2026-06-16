@@ -1,8 +1,8 @@
-import { INTENT_FIELD } from "@gajae-code/agent-core";
-import { calculatePromptTokens } from "@gajae-code/agent-core/compaction/compaction";
-import type { AssistantMessage, ImageContent } from "@gajae-code/ai";
-import { parseRateLimitReason } from "@gajae-code/ai";
-import { type Component, Loader, TERMINAL, Text } from "@gajae-code/tui";
+import { INTENT_FIELD } from "@jawcode-dev/agent-core";
+import { calculatePromptTokens } from "@jawcode-dev/agent-core/compaction/compaction";
+import type { AssistantMessage, ImageContent } from "@jawcode-dev/ai";
+import { parseRateLimitReason } from "@jawcode-dev/ai";
+import { type Component, Loader, TERMINAL, Text } from "@jawcode-dev/tui";
 import { settings } from "../../config/settings";
 import { isJawBrand } from "../../discovery/helpers";
 import { AssistantMessageComponent } from "../../modes/components/assistant-message";

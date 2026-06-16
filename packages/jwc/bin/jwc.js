@@ -41,7 +41,7 @@ if (!globalThis.Bun) {
 const workspaceCli = new URL("../../coding-agent/src/cli.ts", import.meta.url);
 if (existsSync(workspaceCli)) {
 	// Internal workspace import: public package/bin/docs remain Jawcode/JWC.
-	await import("@gajae-code/coding-agent/cli");
+	await import("@jawcode-dev/coding-agent/cli");
 } else {
 	await import("../dist/jwc.bundle.js");
 }

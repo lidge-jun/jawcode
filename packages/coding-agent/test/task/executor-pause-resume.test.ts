@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "bun:test";
-import type { AgentEvent } from "@gajae-code/agent-core";
-import type { AssistantMessage } from "@gajae-code/ai";
+import type { AgentEvent } from "@jawcode-dev/agent-core";
+import type { AssistantMessage } from "@jawcode-dev/ai";
 import { AsyncJobManager } from "../../src/async/job-manager";
 import { Settings } from "../../src/config/settings";
 import type { LoadExtensionsResult } from "../../src/extensibility/extensions/types";

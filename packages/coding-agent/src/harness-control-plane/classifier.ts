@@ -6,7 +6,7 @@
  *   - dirty deltas are NEVER `restart-clean`; they map to `restart-preserve-delta`.
  *   - unknown deltas are NEVER destructive; they map to `human-check`.
  *   - a deleted/mismatched worktree maps to `human-check` (never recreate over unknown data).
- * `send-enter` is intentionally never emitted: it is unsupported for the gajae-code
+ * `send-enter` is intentionally never emitted: it is unsupported for the jawcode
  * RPC adapter in v1 (no blind key injection).
  */
 import type { ClassifyInput, RecoveryDecision } from "./types";

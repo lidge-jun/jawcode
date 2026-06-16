@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { TempDir } from "@gajae-code/utils";
+import { TempDir } from "@jawcode-dev/utils";
 import { verifyExpectedFiles } from "../src/verify";
 
 async function createTempDirs(): Promise<{

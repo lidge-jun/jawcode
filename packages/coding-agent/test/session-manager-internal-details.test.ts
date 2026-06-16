@@ -12,8 +12,8 @@
  * `__`-prefixed fields not in the allowlist) is preserved verbatim.
  */
 import { describe, expect, it } from "bun:test";
-import { type SkillPromptDetails, stripInternalDetailsFields } from "@gajae-code/coding-agent/session/messages";
-import { type CustomMessageEntry, SessionManager } from "@gajae-code/coding-agent/session/session-manager";
+import { type SkillPromptDetails, stripInternalDetailsFields } from "@jawcode-dev/coding-agent/session/messages";
+import { type CustomMessageEntry, SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
 
 const SKILL_TYPE = "skill-prompt";
 

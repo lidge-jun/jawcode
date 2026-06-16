@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { getBundledModel } from "@gajae-code/ai/models";
-import { streamOpenAICompletions } from "@gajae-code/ai/providers/openai-completions";
-import type { Context, Model } from "@gajae-code/ai/types";
+import { getBundledModel } from "@jawcode-dev/ai/models";
+import { streamOpenAICompletions } from "@jawcode-dev/ai/providers/openai-completions";
+import type { Context, Model } from "@jawcode-dev/ai/types";
 
 const originalFetch = global.fetch;
 

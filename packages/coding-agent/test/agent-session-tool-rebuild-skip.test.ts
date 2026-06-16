@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, setSystemTime } from "bun:test";
-import { Agent, type AgentTool } from "@gajae-code/agent-core";
-import type { Model } from "@gajae-code/ai";
+import { Agent, type AgentTool } from "@jawcode-dev/agent-core";
+import type { Model } from "@jawcode-dev/ai";
 import * as z from "zod/v4";
 import { Settings } from "../src/config/settings";
 import type { CustomTool } from "../src/extensibility/custom-tools/types";

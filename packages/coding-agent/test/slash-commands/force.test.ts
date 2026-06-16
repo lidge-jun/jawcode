@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { Model } from "@gajae-code/ai";
-import { buildNamedToolChoice } from "@gajae-code/coding-agent/utils/tool-choice";
+import type { Model } from "@jawcode-dev/ai";
+import { buildNamedToolChoice } from "@jawcode-dev/coding-agent/utils/tool-choice";
 
 describe("tool choice helpers", () => {
 	it("builds a named Ollama choice for local forced tools", () => {

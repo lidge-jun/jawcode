@@ -4,7 +4,7 @@ import {
 	compileActionSteps,
 	validateActionStep,
 	validateActionSteps,
-} from "@gajae-code/coding-agent/tools/browser/actions";
+} from "@jawcode-dev/coding-agent/tools/browser/actions";
 
 describe("validateActionStep", () => {
 	it("requires url for navigate", () => {

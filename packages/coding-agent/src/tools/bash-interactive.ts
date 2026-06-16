@@ -1,5 +1,5 @@
-import type { AgentToolContext } from "@gajae-code/agent-core";
-import { type PtyRunResult, PtySession } from "@gajae-code/natives";
+import type { AgentToolContext } from "@jawcode-dev/agent-core";
+import { type PtyRunResult, PtySession } from "@jawcode-dev/natives";
 import {
 	type Component,
 	extractPrintableText,
@@ -9,8 +9,8 @@ import {
 	parseKittySequence,
 	truncateToWidth,
 	visibleWidth,
-} from "@gajae-code/tui";
-import { sanitizeText } from "@gajae-code/utils";
+} from "@jawcode-dev/tui";
+import { sanitizeText } from "@jawcode-dev/utils";
 import type { Terminal as XtermTerminalType } from "@xterm/headless";
 import xterm from "@xterm/headless";
 import { Settings } from "../config/settings";

@@ -7,7 +7,7 @@ import {
 	AUDIT_SCHEMA_VERSION,
 	answerHash,
 	UnattendedAuditLog,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/unattended-audit";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/unattended-audit";
 
 function tmpFile(name = "audit.jsonl"): string {
 	return path.join(mkdtempSync(path.join(tmpdir(), "audit-")), name);

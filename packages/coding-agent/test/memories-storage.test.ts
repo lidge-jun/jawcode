@@ -12,8 +12,8 @@ import {
 	openMemoryDb,
 	tryClaimGlobalPhase2Job,
 	upsertThreads,
-} from "@gajae-code/coding-agent/memories/storage";
-import { Snowflake } from "@gajae-code/utils";
+} from "@jawcode-dev/coding-agent/memories/storage";
+import { Snowflake } from "@jawcode-dev/utils";
 
 const GLOBAL_KIND = "memory_consolidate_global";
 const PROJECT_CWD = "/repo";

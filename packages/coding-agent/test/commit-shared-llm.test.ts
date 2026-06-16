@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { AssistantMessage } from "@gajae-code/ai";
+import type { AssistantMessage } from "@jawcode-dev/ai";
 import { createConventionalAnalysisTool, parseConventionalAnalysisResponse } from "../src/commit/shared-llm";
 
 describe("commit shared LLM parsing", () => {

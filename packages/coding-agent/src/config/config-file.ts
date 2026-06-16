@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getAgentDir, isEnoent, logger } from "@gajae-code/utils";
+import { getAgentDir, isEnoent, logger } from "@jawcode-dev/utils";
 import { JSONC, YAML } from "bun";
 import type { ZodType } from "zod/v4";
 

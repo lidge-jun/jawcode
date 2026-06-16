@@ -1,4 +1,4 @@
-import { Command, Flags } from "@gajae-code/utils/cli";
+import { Command, Flags } from "@jawcode-dev/utils/cli";
 import { prepareContributionPrep } from "../session/contribution-prep";
 
 function writeText(lines: string[]): void {

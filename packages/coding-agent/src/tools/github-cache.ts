@@ -19,7 +19,7 @@ import { Database } from "bun:sqlite";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { getGithubCacheDbPath, logger } from "@gajae-code/utils";
+import { getGithubCacheDbPath, logger } from "@jawcode-dev/utils";
 import type { Settings } from "../config/settings";
 
 // ────────────────────────────────────────────────────────────────────────────

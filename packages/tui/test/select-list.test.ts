@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { visibleWidth } from "@gajae-code/tui/utils";
+import { visibleWidth } from "@jawcode-dev/tui/utils";
 import { SelectList } from "../src/components/select-list";
 import { KeybindingsManager, setKeybindings, TUI_KEYBINDINGS } from "../src/keybindings";
 

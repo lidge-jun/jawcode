@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { stripVTControlCharacters } from "node:util";
-import { CURSOR_MARKER } from "@gajae-code/tui";
-import { CombinedAutocompleteProvider } from "@gajae-code/tui/autocomplete";
-import { Editor } from "@gajae-code/tui/components/editor";
-import { visibleWidth } from "@gajae-code/tui/utils";
-import { setDefaultTabWidth } from "@gajae-code/utils";
+import { CURSOR_MARKER } from "@jawcode-dev/tui";
+import { CombinedAutocompleteProvider } from "@jawcode-dev/tui/autocomplete";
+import { Editor } from "@jawcode-dev/tui/components/editor";
+import { visibleWidth } from "@jawcode-dev/tui/utils";
+import { setDefaultTabWidth } from "@jawcode-dev/utils";
 import { KeybindingsManager, setKeybindings, TUI_KEYBINDINGS } from "../src/keybindings";
 import { defaultEditorTheme } from "./test-themes";
 

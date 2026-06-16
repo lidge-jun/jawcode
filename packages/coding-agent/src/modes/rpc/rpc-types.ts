@@ -4,9 +4,9 @@
  * Commands are sent as JSON lines on stdin.
  * Responses and events are emitted as JSON lines on stdout.
  */
-import type { AgentMessage, AgentToolResult, ThinkingLevel } from "@gajae-code/agent-core";
-import type { CompactionResult } from "@gajae-code/agent-core/compaction";
-import type { Effort, ImageContent, Model } from "@gajae-code/ai";
+import type { AgentMessage, AgentToolResult, ThinkingLevel } from "@jawcode-dev/agent-core";
+import type { CompactionResult } from "@jawcode-dev/agent-core/compaction";
+import type { Effort, ImageContent, Model } from "@jawcode-dev/ai";
 import type { BashResult } from "../../exec/bash-executor";
 import type { ContextUsage } from "../../extensibility/extensions/types";
 import type { SessionStats } from "../../session/agent-session";

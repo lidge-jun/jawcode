@@ -2,17 +2,17 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { AgentEvent, AgentMessage } from "@gajae-code/agent-core";
-import { type AssistantMessage, Effort, type TextContent } from "@gajae-code/ai";
+import type { AgentEvent, AgentMessage } from "@jawcode-dev/agent-core";
+import { type AssistantMessage, Effort, type TextContent } from "@jawcode-dev/ai";
 import {
 	type CompactionEntry,
 	type FileEntry,
 	parseSessionEntries,
 	type SessionMessageEntry,
-} from "@gajae-code/coding-agent";
-import { RpcClient } from "@gajae-code/coding-agent/modes/rpc/rpc-client";
-import type { BashExecutionMessage } from "@gajae-code/coding-agent/session/messages";
-import { Snowflake } from "@gajae-code/utils";
+} from "@jawcode-dev/coding-agent";
+import { RpcClient } from "@jawcode-dev/coding-agent/modes/rpc/rpc-client";
+import type { BashExecutionMessage } from "@jawcode-dev/coding-agent/session/messages";
+import { Snowflake } from "@jawcode-dev/utils";
 import { e2eApiKey } from "./utilities";
 
 type MessageEndEvent = Extract<AgentEvent, { type: "message_end" }>;

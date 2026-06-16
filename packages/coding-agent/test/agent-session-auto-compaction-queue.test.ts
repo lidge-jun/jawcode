@@ -1,20 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { Agent } from "@gajae-code/agent-core";
-import { estimateMessageTokensHeuristic } from "@gajae-code/agent-core/compaction";
-import type { AssistantMessage } from "@gajae-code/ai";
-import { getBundledModel } from "@gajae-code/ai/models";
-import { AssistantMessageEventStream } from "@gajae-code/ai/utils/event-stream";
-import { ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { loadExtensions } from "@gajae-code/coding-agent/extensibility/extensions/loader";
-import { ExtensionRunner } from "@gajae-code/coding-agent/extensibility/extensions/runner";
-import { AgentSession } from "@gajae-code/coding-agent/session/agent-session";
-import { AuthStorage } from "@gajae-code/coding-agent/session/auth-storage";
-import { convertToLlm } from "@gajae-code/coding-agent/session/messages";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { getProjectAgentDir, TempDir, withTimeout } from "@gajae-code/utils";
+import { Agent } from "@jawcode-dev/agent-core";
+import { estimateMessageTokensHeuristic } from "@jawcode-dev/agent-core/compaction";
+import type { AssistantMessage } from "@jawcode-dev/ai";
+import { getBundledModel } from "@jawcode-dev/ai/models";
+import { AssistantMessageEventStream } from "@jawcode-dev/ai/utils/event-stream";
+import { ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { loadExtensions } from "@jawcode-dev/coding-agent/extensibility/extensions/loader";
+import { ExtensionRunner } from "@jawcode-dev/coding-agent/extensibility/extensions/runner";
+import { AgentSession } from "@jawcode-dev/coding-agent/session/agent-session";
+import { AuthStorage } from "@jawcode-dev/coding-agent/session/auth-storage";
+import { convertToLlm } from "@jawcode-dev/coding-agent/session/messages";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { getProjectAgentDir, TempDir, withTimeout } from "@jawcode-dev/utils";
 
 const runtimeSignalStoreKey = "__gjcRuntimeSignals";
 

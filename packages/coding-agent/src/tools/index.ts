@@ -1,6 +1,6 @@
-import type { AgentTelemetryConfig, AgentTool } from "@gajae-code/agent-core";
-import type { Model, ToolChoice } from "@gajae-code/ai";
-import { $env, $flag, logger } from "@gajae-code/utils";
+import type { AgentTelemetryConfig, AgentTool } from "@jawcode-dev/agent-core";
+import type { Model, ToolChoice } from "@jawcode-dev/ai";
+import { $env, $flag, logger } from "@jawcode-dev/utils";
 import type { PromptTemplate } from "../config/prompt-templates";
 import type { Settings } from "../config/settings";
 import { EditTool } from "../edit";
@@ -329,7 +329,7 @@ export function computeEssentialBuiltinNames(settings: Settings): string[] {
  * `BUILTIN_TOOLS[name](session)` to construct a public coding-harness tool directly.
  *
  * Hindsight memory helpers are intentionally excluded: memory is a private backend
- * integration, not a public gajae-code tool surface.
+ * integration, not a public jawcode tool surface.
  */
 export const BUILTIN_TOOLS: Record<string, ToolFactory> = {
 	read: s => new ReadTool(s),

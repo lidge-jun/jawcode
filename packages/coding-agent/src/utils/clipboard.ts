@@ -1,7 +1,7 @@
 import { execSync } from "node:child_process";
-import type { ClipboardImage } from "@gajae-code/natives";
-import * as native from "@gajae-code/natives";
-import { logger } from "@gajae-code/utils";
+import type { ClipboardImage } from "@jawcode-dev/natives";
+import * as native from "@jawcode-dev/natives";
+import { logger } from "@jawcode-dev/utils";
 
 function hasDisplay(): boolean {
 	return process.platform !== "linux" || Boolean(process.env.DISPLAY || process.env.WAYLAND_DISPLAY);

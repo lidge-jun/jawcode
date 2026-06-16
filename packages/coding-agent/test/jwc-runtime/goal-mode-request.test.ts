@@ -13,12 +13,12 @@ import {
 	resolveCliWorkflowSessionId,
 	writeCurrentSessionGoalModeState,
 	writePendingGoalModeRequest,
-} from "@gajae-code/coding-agent/jwc-runtime/goal-mode-request";
+} from "@jawcode-dev/coding-agent/jwc-runtime/goal-mode-request";
 import {
 	buildSessionContext,
 	loadEntriesFromFile,
 	type SessionEntry,
-} from "@gajae-code/coding-agent/session/session-manager";
+} from "@jawcode-dev/coding-agent/session/session-manager";
 
 async function withSessionEnv<T>(
 	env: { jwc?: string; gjc?: string; sessionFile?: string },

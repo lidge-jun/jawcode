@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import type { AssistantMessage } from "@gajae-code/ai";
-import { logger } from "@gajae-code/utils";
+import type { AssistantMessage } from "@jawcode-dev/ai";
+import { logger } from "@jawcode-dev/utils";
 
 export const JWC_COORDINATOR_SESSION_STATE_FILE_ENV = "JWC_COORDINATOR_SESSION_STATE_FILE";
 export const JWC_COORDINATOR_SESSION_ID_ENV = "JWC_COORDINATOR_SESSION_ID";

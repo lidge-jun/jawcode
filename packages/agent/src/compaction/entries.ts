@@ -1,4 +1,4 @@
-import type { ImageContent, MessageAttribution, ServiceTier, TextContent } from "@gajae-code/ai";
+import type { ImageContent, MessageAttribution, ServiceTier, TextContent } from "@jawcode-dev/ai";
 import type { AgentMessage } from "../types";
 
 export interface SessionEntryBase {

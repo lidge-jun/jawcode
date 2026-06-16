@@ -5,7 +5,7 @@
  */
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { scheduler } from "node:timers/promises";
-import { extractHttpStatusFromError, fetchWithRetry, readSseJson } from "@gajae-code/utils";
+import { extractHttpStatusFromError, fetchWithRetry, readSseJson } from "@jawcode-dev/utils";
 import { calculateCost } from "../models";
 import type {
 	Api,

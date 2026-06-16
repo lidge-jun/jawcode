@@ -4,7 +4,7 @@
  * Automatically commits changes when the agent exits.
  * Uses the last assistant message to generate a commit message.
  */
-import type { HookAPI } from "@gajae-code/coding-agent";
+import type { HookAPI } from "@jawcode-dev/coding-agent";
 
 export default function (pi: HookAPI) {
 	pi.on("session_shutdown", async (_event, ctx) => {

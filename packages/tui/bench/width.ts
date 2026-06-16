@@ -3,8 +3,8 @@
  *
  * Run: bun packages/tui/bench/visible-width.ts
  */
-import { visibleWidth as nativeVisibleWidth } from "@gajae-code/natives";
-import { getDefaultTabWidth } from "@gajae-code/utils";
+import { visibleWidth as nativeVisibleWidth } from "@jawcode-dev/natives";
+import { getDefaultTabWidth } from "@jawcode-dev/utils";
 import { visibleWidthRaw as hybridVisibleWidth, replaceTabs } from "../src/utils";
 
 const ITERATIONS = 10_000;

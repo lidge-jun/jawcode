@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { getConfigRootDir, setAgentDir } from "@gajae-code/utils";
+import { getConfigRootDir, setAgentDir } from "@jawcode-dev/utils";
 import { runConfigCommand } from "../src/cli/config-cli";
 import { resetSettingsForTest } from "../src/config/settings";
 

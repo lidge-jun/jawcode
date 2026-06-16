@@ -191,7 +191,7 @@ export function planLaunchWorktree(
 	const baseRef = runGit(repoRoot, ["rev-parse", "HEAD"]);
 	const branchName = mode.detached ? null : mode.name;
 	if (branchName) validateBranchName(repoRoot, branchName);
-	const bucket = `${path.basename(repoRoot)}.gajae-code-worktrees`;
+	const bucket = `${path.basename(repoRoot)}.jawcode-worktrees`;
 	const worktreeSlug = mode.detached ? resolveSourceBranchSlug(repoRoot, baseRef) : sanitizePathToken(mode.name);
 	const worktreePath = path.join(path.dirname(repoRoot), bucket, worktreeSlug);
 	return { enabled: true, repoRoot, worktreePath, detached: mode.detached, baseRef, branchName };

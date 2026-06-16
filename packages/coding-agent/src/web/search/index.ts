@@ -4,9 +4,9 @@
  * Single tool supporting Anthropic, Perplexity, Exa, Brave, Jina, Kimi, Gemini, OpenAI code backend, Tavily, Kagi, Z.AI, SearXNG, and Synthetic
  * providers with provider-specific parameters exposed conditionally.
  */
-import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@gajae-code/agent-core";
-import type { AuthStorage } from "@gajae-code/ai";
-import { prompt } from "@gajae-code/utils";
+import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@jawcode-dev/agent-core";
+import type { AuthStorage } from "@jawcode-dev/ai";
+import { prompt } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import { AsyncJobManager } from "../../async";
 import { parseModelString } from "../../config/model-resolver";

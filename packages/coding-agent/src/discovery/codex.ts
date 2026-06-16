@@ -6,7 +6,7 @@
  * into GJC sessions.
  */
 import * as path from "node:path";
-import { logger, parseFrontmatter } from "@gajae-code/utils";
+import { logger, parseFrontmatter } from "@jawcode-dev/utils";
 import { registerProvider } from "../capability";
 import type { ContextFile } from "../capability/context-file";
 import { contextFileCapability } from "../capability/context-file";

@@ -7,7 +7,7 @@ import {
 	AppendOnlyContextManager,
 	INTENT_FIELD,
 	type ThinkingLevel,
-} from "@gajae-code/agent-core";
+} from "@jawcode-dev/agent-core";
 import {
 	type CredentialDisabledEvent,
 	type Message,
@@ -15,12 +15,12 @@ import {
 	type ProviderSessionState,
 	type SimpleStreamOptions,
 	streamSimple,
-} from "@gajae-code/ai";
+} from "@jawcode-dev/ai";
 import {
 	getOpenAICodexTransportDetails,
 	prewarmOpenAICodexResponses,
-} from "@gajae-code/ai/providers/openai-codex-responses";
-import type { Component } from "@gajae-code/tui";
+} from "@jawcode-dev/ai/providers/openai-codex-responses";
+import type { Component } from "@jawcode-dev/tui";
 import {
 	$flag,
 	getAgentDbPath,
@@ -30,7 +30,7 @@ import {
 	postmortem,
 	prompt,
 	Snowflake,
-} from "@gajae-code/utils";
+} from "@jawcode-dev/utils";
 
 import { type AsyncJob, AsyncJobManager, isBackgroundJobSupportEnabled } from "./async";
 import { loadCapability } from "./capability";
@@ -770,7 +770,7 @@ function buildMCPPromptCommands(manager: MCPManager): LoadedCustomCommand[] {
  * const { session } = await createAgentSession();
  *
  * // With explicit model
- * import { getModel } from '@gajae-code/ai';
+ * import { getModel } from '@jawcode-dev/ai';
  * const { session } = await createAgentSession({
  *   model: getModel('anthropic', 'Anthropic model-opus-4-5'),
  *   thinkingLevel: 'high',

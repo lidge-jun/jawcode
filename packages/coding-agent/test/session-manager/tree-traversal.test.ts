@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { type CustomEntry, SessionManager } from "@gajae-code/coding-agent/session/session-manager";
+import { type CustomEntry, SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
 import { assistantMsg, userMsg } from "../utilities";
 
 describe("SessionManager append and tree traversal", () => {

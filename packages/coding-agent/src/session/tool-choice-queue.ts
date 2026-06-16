@@ -1,4 +1,4 @@
-import type { ToolChoice } from "@gajae-code/ai";
+import type { ToolChoice } from "@jawcode-dev/ai";
 
 // ── Callback types ──────────────────────────────────────────────────────────
 

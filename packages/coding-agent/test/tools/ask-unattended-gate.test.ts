@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import type { AgentToolContext } from "@gajae-code/agent-core";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import type { WorkflowGateEmitter } from "@gajae-code/coding-agent/modes/shared/agent-wire/unattended-session";
-import type { OpenGateInput } from "@gajae-code/coding-agent/modes/shared/agent-wire/workflow-gate-broker";
-import type { ToolSession } from "@gajae-code/coding-agent/tools";
-import { AskTool } from "@gajae-code/coding-agent/tools/ask";
+import type { AgentToolContext } from "@jawcode-dev/agent-core";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import type { WorkflowGateEmitter } from "@jawcode-dev/coding-agent/modes/shared/agent-wire/unattended-session";
+import type { OpenGateInput } from "@jawcode-dev/coding-agent/modes/shared/agent-wire/workflow-gate-broker";
+import type { ToolSession } from "@jawcode-dev/coding-agent/tools";
+import { AskTool } from "@jawcode-dev/coding-agent/tools/ask";
 
 /**
  * G011: when an unattended workflow-gate emitter is attached to the session, the

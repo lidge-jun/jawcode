@@ -1,6 +1,6 @@
-import type { AgentTool } from "@gajae-code/agent-core";
-import { getOAuthProviders } from "@gajae-code/ai/utils/oauth";
-import { Snowflake } from "@gajae-code/utils";
+import type { AgentTool } from "@jawcode-dev/agent-core";
+import { getOAuthProviders } from "@jawcode-dev/ai/utils/oauth";
+import { Snowflake } from "@jawcode-dev/utils";
 import { resolveOAuthProviderId } from "../../../config/oauth-provider-aliases";
 import type { ExtensionUIContext } from "../../../extensibility/extensions";
 import type { AgentSession } from "../../../session/agent-session";

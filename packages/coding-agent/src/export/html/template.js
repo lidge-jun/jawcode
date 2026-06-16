@@ -1902,11 +1902,11 @@
 
         let html = `
           <div class="header">
-            <div class="brand-kicker">gajae-code · red-claw transcript</div>
+            <div class="brand-kicker">jawcode · red-claw transcript</div>
             <h1>GJC Session Export: ${escapeHtml(header?.id || 'unknown')}</h1>
             <div class="help-bar">Ctrl+T toggle thinking · Ctrl+O toggle tools</div>
             <div class="header-info">
-              <div class="info-item"><span class="info-label">Product:</span><span class="info-value">GJC / gajae-code</span></div>
+              <div class="info-item"><span class="info-label">Product:</span><span class="info-value">GJC / jawcode</span></div>
               <div class="info-item"><span class="info-label">Date:</span><span class="info-value">${header?.timestamp ? new Date(header.timestamp).toLocaleString() : 'unknown'}</span></div>
               <div class="info-item"><span class="info-label">Models:</span><span class="info-value">${globalStats.models.join(', ') || 'unknown'}</span></div>
               <div class="info-item"><span class="info-label">Messages:</span><span class="info-value">${msgParts.join(', ') || '0'}</span></div>

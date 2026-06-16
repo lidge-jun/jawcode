@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "bun:test";
-import type { AgentMessage } from "@gajae-code/agent-core";
+import type { AgentMessage } from "@jawcode-dev/agent-core";
 import { TreeSelectorComponent } from "../../../src/modes/components/tree-selector";
 import * as themeModule from "../../../src/modes/theme/theme";
 import type { SessionEntry, SessionTreeNode } from "../../../src/session/session-manager";

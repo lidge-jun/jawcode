@@ -1,7 +1,7 @@
 /**
  * Show what the read tool will return for a given path.
  */
-import { Args, Command } from "@gajae-code/utils/cli";
+import { Args, Command } from "@jawcode-dev/utils/cli";
 import { type ReadCommandArgs, runReadCommand } from "../cli/read-cli";
 import { initTheme } from "../modes/theme/theme";
 

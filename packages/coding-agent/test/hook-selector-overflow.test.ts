@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "bun:test";
-import { HookSelectorComponent } from "@gajae-code/coding-agent/modes/components/hook-selector";
-import { getThemeByName, setThemeInstance, theme } from "@gajae-code/coding-agent/modes/theme/theme";
-import { visibleWidth } from "@gajae-code/tui";
+import { HookSelectorComponent } from "@jawcode-dev/coding-agent/modes/components/hook-selector";
+import { getThemeByName, setThemeInstance, theme } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import { visibleWidth } from "@jawcode-dev/tui";
 
 // =============================================================================
 // Helpers shared across required tests.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { handleNvd } from "@gajae-code/coding-agent/web/scrapers/nvd";
-import { handleOsv } from "@gajae-code/coding-agent/web/scrapers/osv";
+import { handleNvd } from "@jawcode-dev/coding-agent/web/scrapers/nvd";
+import { handleOsv } from "@jawcode-dev/coding-agent/web/scrapers/osv";
 
 const SKIP = !Bun.env.WEB_FETCH_INTEGRATION;
 

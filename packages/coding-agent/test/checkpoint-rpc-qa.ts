@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { AgentEvent, AgentMessage } from "@gajae-code/agent-core";
+import type { AgentEvent, AgentMessage } from "@jawcode-dev/agent-core";
 import { RpcClient } from "../src/modes/rpc/rpc-client";
 import {
 	type BranchSummaryEntry,

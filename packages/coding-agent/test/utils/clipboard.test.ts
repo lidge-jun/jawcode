@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
-import * as native from "@gajae-code/natives";
+import * as native from "@jawcode-dev/natives";
 import type { Subprocess } from "bun";
 import { readImageFromClipboard } from "../../src/utils/clipboard";
 

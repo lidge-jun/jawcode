@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { Agent } from "@gajae-code/agent-core";
+import { Agent } from "@jawcode-dev/agent-core";
 
 function userMessage(text: string) {
 	return { role: "user" as const, content: text, timestamp: Date.now() };

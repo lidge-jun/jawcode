@@ -1,7 +1,7 @@
 /**
  * Shared command execution utilities for hooks and custom tools.
  */
-import { ptree } from "@gajae-code/utils";
+import { ptree } from "@jawcode-dev/utils";
 
 /**
  * Options for executing shell commands.

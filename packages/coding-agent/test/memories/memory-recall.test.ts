@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "bun:test";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { getAgentDbPath, setAgentDir } from "@gajae-code/utils";
+import { getAgentDbPath, setAgentDir } from "@jawcode-dev/utils";
 import { Settings } from "../../src/config/settings";
 import { HindsightApi } from "../../src/hindsight/client";
 import { runNativeMemoryCommand } from "../../src/jwc-runtime/memory-runtime";

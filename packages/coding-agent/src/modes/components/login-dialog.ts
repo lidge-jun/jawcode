@@ -1,5 +1,5 @@
-import { getOAuthProviders } from "@gajae-code/ai/utils/oauth";
-import { Container, getKeybindings, Input, Spacer, Text, type TUI } from "@gajae-code/tui";
+import { getOAuthProviders } from "@jawcode-dev/ai/utils/oauth";
+import { Container, getKeybindings, Input, Spacer, Text, type TUI } from "@jawcode-dev/tui";
 import { theme } from "../../modes/theme/theme";
 import { openPath } from "../../utils/open";
 import { DynamicBorder } from "./dynamic-border";

@@ -2,14 +2,14 @@ import { afterEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { ImageContent, Message, ProviderPayload, TextContent } from "@gajae-code/ai";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
+import type { ImageContent, Message, ProviderPayload, TextContent } from "@jawcode-dev/ai";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
 import {
 	MemorySessionStorage,
 	type SessionStorage,
 	type SessionStorageWriter,
-} from "@gajae-code/coding-agent/session/session-storage";
-import { getAgentDir, getBlobsDir, setAgentDir } from "@gajae-code/utils";
+} from "@jawcode-dev/coding-agent/session/session-storage";
+import { getAgentDir, getBlobsDir, setAgentDir } from "@jawcode-dev/utils";
 
 const LARGE_TEXT = "T".repeat(700_000);
 const LARGE_IMAGE = Buffer.alloc(180_000, 7).toString("base64");

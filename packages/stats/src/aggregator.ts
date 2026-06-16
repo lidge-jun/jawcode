@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import { fileURLToPath } from "node:url";
-import { isCompiledBinary } from "@gajae-code/utils";
+import { isCompiledBinary } from "@jawcode-dev/utils";
 import {
 	getRecentErrors as dbGetRecentErrors,
 	getRecentRequests as dbGetRecentRequests,

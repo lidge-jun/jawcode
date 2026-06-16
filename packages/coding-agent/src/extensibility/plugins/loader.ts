@@ -6,7 +6,7 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getPluginsLockfile, getPluginsNodeModules, getPluginsPackageJson, isEnoent } from "@gajae-code/utils";
+import { getPluginsLockfile, getPluginsNodeModules, getPluginsPackageJson, isEnoent } from "@jawcode-dev/utils";
 import { getConfigDirPaths } from "../../config";
 import { installLegacyPiSpecifierShim } from "./legacy-pi-compat";
 import type { InstalledPlugin, PluginManifest, PluginRuntimeConfig, ProjectPluginOverrides } from "./types";

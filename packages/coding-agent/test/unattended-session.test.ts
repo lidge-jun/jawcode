@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import type { RpcUnattendedDeclaration, RpcWorkflowGate } from "@gajae-code/coding-agent/modes/rpc/rpc-types";
-import { approvalGate } from "@gajae-code/coding-agent/modes/shared/agent-wire/approval-gate";
-import { questionToGate } from "@gajae-code/coding-agent/modes/shared/agent-wire/jaw-interview-gate";
-import { UnattendedSessionControlPlane } from "@gajae-code/coding-agent/modes/shared/agent-wire/unattended-session";
+import type { RpcUnattendedDeclaration, RpcWorkflowGate } from "@jawcode-dev/coding-agent/modes/rpc/rpc-types";
+import { approvalGate } from "@jawcode-dev/coding-agent/modes/shared/agent-wire/approval-gate";
+import { questionToGate } from "@jawcode-dev/coding-agent/modes/shared/agent-wire/jaw-interview-gate";
+import { UnattendedSessionControlPlane } from "@jawcode-dev/coding-agent/modes/shared/agent-wire/unattended-session";
 
 const DECL: RpcUnattendedDeclaration = {
 	actor: "hermes",

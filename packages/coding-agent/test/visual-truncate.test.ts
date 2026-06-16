@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { truncateToVisualLines } from "@gajae-code/coding-agent/modes/components/visual-truncate";
+import { truncateToVisualLines } from "@jawcode-dev/coding-agent/modes/components/visual-truncate";
 
 const red = "\u001b[31m";
 const reset = "\u001b[39m";

@@ -30,8 +30,8 @@ import {
 	resolveTelemetry,
 	type StablePrefixSnapshot,
 	ThinkingLevel,
-} from "@gajae-code/agent-core";
-import { normalizeMessagesForProvider } from "@gajae-code/agent-core/agent-loop";
+} from "@jawcode-dev/agent-core";
+import { normalizeMessagesForProvider } from "@jawcode-dev/agent-core/agent-loop";
 import {
 	AUTO_HANDOFF_THRESHOLD_FOCUS,
 	CompactionCancelledError,
@@ -50,8 +50,8 @@ import {
 	prepareCompaction,
 	type SummaryOptions,
 	shouldCompact,
-} from "@gajae-code/agent-core/compaction";
-import { DEFAULT_PRUNE_CONFIG, pruneToolOutputs } from "@gajae-code/agent-core/compaction/pruning";
+} from "@jawcode-dev/agent-core/compaction";
+import { DEFAULT_PRUNE_CONFIG, pruneToolOutputs } from "@jawcode-dev/agent-core/compaction/pruning";
 import type {
 	AssistantMessage,
 	Context,
@@ -68,7 +68,7 @@ import type {
 	ToolChoice,
 	Usage,
 	UsageReport,
-} from "@gajae-code/ai";
+} from "@jawcode-dev/ai";
 import {
 	calculateRateLimitBackoffMs,
 	clearAnthropicFastModeFallback,
@@ -81,7 +81,7 @@ import {
 	parseRateLimitReason,
 	resolveServiceTier,
 	streamSimple,
-} from "@gajae-code/ai";
+} from "@jawcode-dev/ai";
 
 export interface ForkContextSeedMetadata {
 	sourceSessionId: string;
@@ -118,7 +118,7 @@ export interface ForkContextSeedOptions {
 	signal?: AbortSignal;
 }
 
-import { MacOSPowerAssertion } from "@gajae-code/natives";
+import { MacOSPowerAssertion } from "@jawcode-dev/natives";
 import {
 	extractRetryHint,
 	isEnoent,
@@ -126,7 +126,7 @@ import {
 	logger,
 	prompt,
 	Snowflake,
-} from "@gajae-code/utils";
+} from "@jawcode-dev/utils";
 import { type AsyncJob, type AsyncJobDeliveryState, AsyncJobManager } from "../async";
 import { reset as resetCapabilities } from "../capability";
 import type { Rule } from "../capability/rule";

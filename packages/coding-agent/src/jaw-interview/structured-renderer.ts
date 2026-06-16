@@ -1,4 +1,4 @@
-import { type Component, Container, Markdown, Spacer, Text } from "@gajae-code/tui";
+import { type Component, Container, Markdown, Spacer, Text } from "@jawcode-dev/tui";
 import type { AskGateQuestionMeta } from "../modes/shared/agent-wire/jaw-interview-gate";
 import { getMarkdownTheme, type Theme } from "../modes/theme/theme";
 

@@ -4,7 +4,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { performance } from "node:perf_hooks";
-import { $flag, getDebugLogPath } from "@gajae-code/utils";
+import { $flag, getDebugLogPath } from "@jawcode-dev/utils";
 import { VIEWPORT_FILL_SENTINEL } from "./components/viewport-fill";
 import { buildInsertHistorySequence, detectHistoryLaneMode, type HistoryLaneMode } from "./insert-history";
 import { isKeyRelease, matchesKey } from "./keys";

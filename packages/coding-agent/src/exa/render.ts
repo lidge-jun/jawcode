@@ -3,9 +3,9 @@
  *
  * Tree-based rendering with collapsed/expanded states for Exa search results.
  */
-import type { Component } from "@gajae-code/tui";
-import { Text } from "@gajae-code/tui";
-import { logger } from "@gajae-code/utils";
+import type { Component } from "@jawcode-dev/tui";
+import { Text } from "@jawcode-dev/tui";
+import { logger } from "@jawcode-dev/utils";
 import type { RenderResultOptions } from "../extensibility/custom-tools/types";
 import type { Theme } from "../modes/theme/theme";
 import {

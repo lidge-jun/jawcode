@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import * as path from "node:path";
-import { createLspWritethrough } from "@gajae-code/coding-agent/lsp";
-import * as lspClient from "@gajae-code/coding-agent/lsp/client";
-import * as lspConfig from "@gajae-code/coding-agent/lsp/config";
-import type { Diagnostic, LspClient, ServerConfig } from "@gajae-code/coding-agent/lsp/types";
-import { fileToUri } from "@gajae-code/coding-agent/lsp/utils";
-import { type ptree, TempDir } from "@gajae-code/utils";
+import { createLspWritethrough } from "@jawcode-dev/coding-agent/lsp";
+import * as lspClient from "@jawcode-dev/coding-agent/lsp/client";
+import * as lspConfig from "@jawcode-dev/coding-agent/lsp/config";
+import type { Diagnostic, LspClient, ServerConfig } from "@jawcode-dev/coding-agent/lsp/types";
+import { fileToUri } from "@jawcode-dev/coding-agent/lsp/utils";
+import { type ptree, TempDir } from "@jawcode-dev/utils";
 
 const TEST_SERVER: ServerConfig = {
 	command: "test-lsp",

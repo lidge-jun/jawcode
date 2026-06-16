@@ -1,4 +1,4 @@
-import { prompt, Snowflake } from "@gajae-code/utils";
+import { prompt, Snowflake } from "@jawcode-dev/utils";
 import goalContinuationPrompt from "../prompts/goals/goal-continuation.md" with { type: "text" };
 import goalModeActivePrompt from "../prompts/goals/goal-mode-active.md" with { type: "text" };
 import {

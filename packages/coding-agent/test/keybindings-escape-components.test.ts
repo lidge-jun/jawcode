@@ -1,13 +1,13 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
-import { getBundledModel } from "@gajae-code/ai";
-import { KeybindingsManager } from "@gajae-code/coding-agent/config/keybindings";
-import type { ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { ModelSelectorComponent } from "@gajae-code/coding-agent/modes/components/model-selector";
-import { SessionSelectorComponent } from "@gajae-code/coding-agent/modes/components/session-selector";
-import { initTheme } from "@gajae-code/coding-agent/modes/theme/theme";
-import type { SessionInfo } from "@gajae-code/coding-agent/session/session-manager";
-import { setKeybindings, type TUI } from "@gajae-code/tui";
+import { getBundledModel } from "@jawcode-dev/ai";
+import { KeybindingsManager } from "@jawcode-dev/coding-agent/config/keybindings";
+import type { ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { ModelSelectorComponent } from "@jawcode-dev/coding-agent/modes/components/model-selector";
+import { SessionSelectorComponent } from "@jawcode-dev/coding-agent/modes/components/session-selector";
+import { initTheme } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import type { SessionInfo } from "@jawcode-dev/coding-agent/session/session-manager";
+import { setKeybindings, type TUI } from "@jawcode-dev/tui";
 
 beforeAll(() => {
 	initTheme();

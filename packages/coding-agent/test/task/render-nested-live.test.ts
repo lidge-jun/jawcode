@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "bun:test";
-import { getThemeByName, setThemeInstance } from "@gajae-code/coding-agent/modes/theme/theme";
-import type { AgentProgress, TaskResultReceipt, TaskToolDetails } from "@gajae-code/coding-agent/task";
-import { taskToolRenderer } from "@gajae-code/coding-agent/task/render";
+import { getThemeByName, setThemeInstance } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import type { AgentProgress, TaskResultReceipt, TaskToolDetails } from "@jawcode-dev/coding-agent/task";
+import { taskToolRenderer } from "@jawcode-dev/coding-agent/task/render";
 
 // Defends the live-rendering contract for the `task` tool: while a Level-1
 // subagent is still mid-flight, any nested `task` activity it has produced

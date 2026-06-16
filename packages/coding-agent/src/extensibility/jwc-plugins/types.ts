@@ -2,7 +2,7 @@ import type { CanonicalJwcWorkflowSkill } from "../../skill-state/active-state";
 import { CANONICAL_JWC_WORKFLOW_SKILLS } from "../../skill-state/active-state";
 
 export const GJC_PLUGIN_MANIFEST_FILENAME = "gajae-plugin.json";
-export const GJC_PLUGIN_KIND = "gajae-code-plugin";
+export const GJC_PLUGIN_KIND = "jawcode-plugin";
 
 export const GJC_SUBSKILL_PARENT_SKILLS = CANONICAL_JWC_WORKFLOW_SKILLS;
 export type JwcSubskillParentSkill = CanonicalJwcWorkflowSkill;
@@ -22,7 +22,7 @@ export const GJC_AGENT_SUBSKILL_PHASES: Record<JwcSubskillParentAgent, string[]>
 export interface JwcPluginManifest {
 	name: string;
 	version: string;
-	kind: "gajae-code-plugin";
+	kind: "jawcode-plugin";
 	subskills: string[];
 	tools: string[];
 }

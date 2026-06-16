@@ -15,8 +15,8 @@
  * mode-state or by running the handoff verb directly.
  */
 
-import type { AgentTool, AgentToolResult } from "@gajae-code/agent-core";
-import { prompt, untilAborted } from "@gajae-code/utils";
+import type { AgentTool, AgentToolResult } from "@jawcode-dev/agent-core";
+import { prompt, untilAborted } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import { resolveSubskillActivationForSkillInvocation } from "../extensibility/jwc-plugins";
 import { buildSkillPromptMessage } from "../extensibility/skills";

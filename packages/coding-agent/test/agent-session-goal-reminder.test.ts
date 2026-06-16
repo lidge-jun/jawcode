@@ -1,15 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import * as path from "node:path";
-import { Agent } from "@gajae-code/agent-core";
-import type { AssistantMessage, ToolCall } from "@gajae-code/ai";
-import { getBundledModel } from "@gajae-code/ai/models";
-import { ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import type { GoalModeState } from "@gajae-code/coding-agent/goals/state";
-import { AgentSession } from "@gajae-code/coding-agent/session/agent-session";
-import { AuthStorage } from "@gajae-code/coding-agent/session/auth-storage";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { TempDir } from "@gajae-code/utils";
+import { Agent } from "@jawcode-dev/agent-core";
+import type { AssistantMessage, ToolCall } from "@jawcode-dev/ai";
+import { getBundledModel } from "@jawcode-dev/ai/models";
+import { ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import type { GoalModeState } from "@jawcode-dev/coding-agent/goals/state";
+import { AgentSession } from "@jawcode-dev/coding-agent/session/agent-session";
+import { AuthStorage } from "@jawcode-dev/coding-agent/session/auth-storage";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { TempDir } from "@jawcode-dev/utils";
 import { createAssistantMessage } from "./helpers/agent-session-setup";
 
 describe("AgentSession active goal reminders", () => {

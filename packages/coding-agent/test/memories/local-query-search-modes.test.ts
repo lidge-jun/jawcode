@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { getAgentDbPath } from "@gajae-code/utils";
+import { getAgentDbPath } from "@jawcode-dev/utils";
 import { getMemoryRoot } from "../../src/memories";
 import {
 	reindexLocalMemoryFts,

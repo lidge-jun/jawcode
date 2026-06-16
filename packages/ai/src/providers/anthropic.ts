@@ -17,7 +17,7 @@ import {
 	isUnexpectedSocketCloseMessage,
 	logger,
 	readSseEvents,
-} from "@gajae-code/utils";
+} from "@jawcode-dev/utils";
 import { hasOpus47ApiRestrictions, mapEffortToAnthropicAdaptiveEffort } from "../model-thinking";
 import { calculateCost } from "../models";
 import { getEnvApiKey, OUTPUT_FALLBACK_BUFFER } from "../stream";
@@ -2075,7 +2075,7 @@ function buildParams(
  * Anthropic's standard tool_result schema only carries `tool_use_id`. Detect
  * that endpoint so we can emit the non-standard alias for it without
  * polluting requests to api.anthropic.com or other compatible proxies.
- * See: https://github.com/can1357/gajae-code/issues/814
+ * See: https://github.com/lidge-jun/jawcode/issues/814
  */
 function isZaiAnthropicEndpoint(model: Model<"anthropic-messages">): boolean {
 	if (model.provider === "zai") return true;

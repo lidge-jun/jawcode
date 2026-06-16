@@ -8,7 +8,7 @@
  */
 import * as os from "node:os";
 import * as path from "node:path";
-import { getProjectDir, logger } from "@gajae-code/utils";
+import { getProjectDir, logger } from "@jawcode-dev/utils";
 
 import type { Settings } from "../config/settings";
 import { clearCache as clearFsCache, findRepoRoot, cacheStats as fsCacheStats, invalidate as invalidateFs } from "./fs";

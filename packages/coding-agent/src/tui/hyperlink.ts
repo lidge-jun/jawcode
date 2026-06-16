@@ -5,7 +5,7 @@
  * sequences when the active terminal supports hyperlinks and the user setting
  * permits it. Falls back to plain text when disabled.
  */
-import { TERMINAL } from "@gajae-code/tui";
+import { TERMINAL } from "@jawcode-dev/tui";
 import { settings } from "../config/settings";
 import {
 	LocalProtocolHandler,

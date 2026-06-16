@@ -1,4 +1,4 @@
-import { isCompiledBinary, logger, Snowflake } from "@gajae-code/utils";
+import { isCompiledBinary, logger, Snowflake } from "@jawcode-dev/utils";
 import type { ToolSession } from "../../tools";
 import { ToolAbortError, ToolError } from "../../tools/tool-errors";
 import { callSessionTool, type JsStatusEvent } from "./tool-bridge";

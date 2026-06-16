@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import type { RpcUnattendedDeclaration } from "@gajae-code/coding-agent/modes/rpc/rpc-types";
+import type { RpcUnattendedDeclaration } from "@jawcode-dev/coding-agent/modes/rpc/rpc-types";
 import {
 	ActionDeniedError,
 	type UnattendedAuditEvent,
 	UnattendedRunController,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/unattended-run-controller";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/unattended-run-controller";
 
 /**
  * #319 acceptance: a destructive action that is NOT in the declared allowlist must

@@ -2,15 +2,15 @@ import { afterEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { AgentEvent } from "@gajae-code/agent-core";
-import { RpcHostToolBridge } from "@gajae-code/coding-agent/modes/rpc/host-tools";
-import { defineRpcClientTool, RpcClient } from "@gajae-code/coding-agent/modes/rpc/rpc-client";
+import type { AgentEvent } from "@jawcode-dev/agent-core";
+import { RpcHostToolBridge } from "@jawcode-dev/coding-agent/modes/rpc/host-tools";
+import { defineRpcClientTool, RpcClient } from "@jawcode-dev/coding-agent/modes/rpc/rpc-client";
 import type {
 	RpcHostToolCallRequest,
 	RpcHostToolCancelRequest,
 	RpcHostToolUpdate,
 	RpcWorkflowGate,
-} from "@gajae-code/coding-agent/modes/rpc/rpc-types";
+} from "@jawcode-dev/coding-agent/modes/rpc/rpc-types";
 
 const tempPaths: string[] = [];
 

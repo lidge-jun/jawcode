@@ -3,7 +3,7 @@
  *
  * @example
  * ```ts
- * import { hexToHsv, hsvToHex } from "@gajae-code/utils";
+ * import { hexToHsv, hsvToHex } from "@jawcode-dev/utils";
  *
  * // Work with HSV directly
  *

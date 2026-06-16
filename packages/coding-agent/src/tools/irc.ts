@@ -18,8 +18,8 @@
  * recipient's main agent loop being free.
  */
 
-import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@gajae-code/agent-core";
-import { prompt } from "@gajae-code/utils";
+import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@jawcode-dev/agent-core";
+import { prompt } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import ircDescription from "../prompts/tools/irc.md" with { type: "text" };
 import type { AgentRef, AgentRegistry } from "../registry/agent-registry";

@@ -13,7 +13,7 @@
  * An extension is a TypeScript file that exports a default function:
  *   export default function (pi: ExtensionAPI) { ... }
  */
-import { createAgentSession, SessionManager } from "@gajae-code/coding-agent";
+import { createAgentSession, SessionManager } from "@jawcode-dev/coding-agent";
 
 // Extensions are loaded from disk, not passed inline to createAgentSession.
 // Use the discovery mechanism:
@@ -38,7 +38,7 @@ console.log();
 
 // Example extension file (./my-logging-extension.ts):
 /*
-import type { ExtensionAPI } from "@gajae-code/coding-agent";
+import type { ExtensionAPI } from "@jawcode-dev/coding-agent";
 
 export default function (pi: ExtensionAPI) {
 	const { z } = pi.zod;

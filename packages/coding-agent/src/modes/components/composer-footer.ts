@@ -1,4 +1,4 @@
-import { type Component, truncateToWidth, visibleWidth } from "@gajae-code/tui";
+import { type Component, truncateToWidth, visibleWidth } from "@jawcode-dev/tui";
 import { sanitizeStatusText } from "../shared";
 import { theme } from "../theme/theme";
 

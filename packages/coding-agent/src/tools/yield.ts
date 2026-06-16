@@ -3,8 +3,8 @@
  *
  * Subagents must call this tool to finish and return structured JSON output.
  */
-import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@gajae-code/agent-core";
-import type { TSchema } from "@gajae-code/ai/types";
+import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@jawcode-dev/agent-core";
+import type { TSchema } from "@jawcode-dev/ai/types";
 import {
 	dereferenceJsonSchema,
 	isValidJsonSchema,
@@ -13,7 +13,7 @@ import {
 	sanitizeSchemaForStrictMode,
 	tryEnforceStrictSchema,
 	validateJsonSchemaValue,
-} from "@gajae-code/ai/utils/schema";
+} from "@jawcode-dev/ai/utils/schema";
 import { subprocessToolRegistry } from "../task/subprocess-tool-registry";
 import type { ToolSession } from ".";
 import { jtdToJsonSchema, normalizeSchema } from "./jtd-to-json-schema";

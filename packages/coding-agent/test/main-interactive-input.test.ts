@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "bun:test";
-import { submitInteractiveInput } from "@gajae-code/coding-agent/main";
-import type { SubmittedUserInput } from "@gajae-code/coding-agent/modes/types";
+import { submitInteractiveInput } from "@jawcode-dev/coding-agent/main";
+import type { SubmittedUserInput } from "@jawcode-dev/coding-agent/modes/types";
 
 function createInput(overrides: Partial<SubmittedUserInput> = {}): SubmittedUserInput {
 	return {

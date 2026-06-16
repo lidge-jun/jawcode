@@ -13,12 +13,12 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { Model } from "@gajae-code/ai";
-import * as ai from "@gajae-code/ai";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { startMemoryStartupTask } from "@gajae-code/coding-agent/memories";
-import * as memoryStorage from "@gajae-code/coding-agent/memories/storage";
-import { getAgentDbPath, logger, Snowflake } from "@gajae-code/utils";
+import type { Model } from "@jawcode-dev/ai";
+import * as ai from "@jawcode-dev/ai";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { startMemoryStartupTask } from "@jawcode-dev/coding-agent/memories";
+import * as memoryStorage from "@jawcode-dev/coding-agent/memories/storage";
+import { getAgentDbPath, logger, Snowflake } from "@jawcode-dev/utils";
 
 interface SessionLike {
 	sessionManager: {

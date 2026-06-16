@@ -16,7 +16,7 @@
 import type { Database } from "bun:sqlite";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getAgentDbPath } from "@gajae-code/utils";
+import { getAgentDbPath } from "@jawcode-dev/utils";
 import { getMemoryRoot } from "./index";
 import { MEMORY_RUNTIME_DEFAULTS, type MemorySearchMode } from "./memory-config";
 import {

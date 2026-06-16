@@ -1,5 +1,5 @@
-import type { TSchema } from "@gajae-code/ai";
-import { $env, logger } from "@gajae-code/utils";
+import type { TSchema } from "@jawcode-dev/ai";
+import { $env, logger } from "@jawcode-dev/utils";
 import type { CustomTool, CustomToolResult } from "../extensibility/custom-tools/types";
 import { callMCP } from "../runtime-mcp/json-rpc";
 import type {

@@ -1,8 +1,8 @@
 /**
  * CLI argument parsing and help display
  */
-import { type Effort, THINKING_EFFORTS } from "@gajae-code/ai";
-import { APP_NAME, CONFIG_DIR_NAME, logger } from "@gajae-code/utils";
+import { type Effort, THINKING_EFFORTS } from "@jawcode-dev/ai";
+import { APP_NAME, CONFIG_DIR_NAME, logger } from "@jawcode-dev/utils";
 import chalk from "chalk";
 import { parseEffort } from "../thinking";
 import { BUILTIN_TOOLS } from "../tools";

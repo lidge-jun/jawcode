@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import * as path from "node:path";
-import type { AgentMessage } from "@gajae-code/agent-core";
+import type { AgentMessage } from "@jawcode-dev/agent-core";
 import {
 	type CompactionSettings,
 	calculateContextTokens,
@@ -11,12 +11,12 @@ import {
 	prepareCompaction,
 	resolveThresholdTokens,
 	shouldCompact,
-} from "@gajae-code/agent-core/compaction/compaction";
-import * as ai from "@gajae-code/ai";
-import { getBundledModel } from "@gajae-code/ai/models";
-import { encodeTextSignatureV1 } from "@gajae-code/ai/providers/openai-responses-shared";
-import type { AssistantMessage, Model, ProviderPayload, Usage } from "@gajae-code/ai/types";
-import { hookFetch } from "@gajae-code/utils";
+} from "@jawcode-dev/agent-core/compaction/compaction";
+import * as ai from "@jawcode-dev/ai";
+import { getBundledModel } from "@jawcode-dev/ai/models";
+import { encodeTextSignatureV1 } from "@jawcode-dev/ai/providers/openai-responses-shared";
+import type { AssistantMessage, Model, ProviderPayload, Usage } from "@jawcode-dev/ai/types";
+import { hookFetch } from "@jawcode-dev/utils";
 import {
 	buildSessionContext,
 	type CompactionEntry,

@@ -36,7 +36,7 @@ import {
 	shouldSendServiceTier,
 	type ToolChoice,
 	type Usage,
-} from "@gajae-code/ai";
+} from "@jawcode-dev/ai";
 import {
 	type Attributes,
 	type AttributeValue,
@@ -51,7 +51,7 @@ import { AgentRunCollector, type AgentRunCoverage, type AgentRunSummary, type To
 import type { AgentTool } from "./types";
 
 /** Default tracer name. Override via {@link AgentTelemetryConfig.tracerName}. */
-export const DEFAULT_TRACER_NAME = "@gajae-code/agent-core";
+export const DEFAULT_TRACER_NAME = "@jawcode-dev/agent-core";
 
 /** Env var matching the OTEL semconv content-capture toggle. */
 const CONTENT_CAPTURE_ENV = "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT";
@@ -1634,7 +1634,7 @@ export interface InstrumentedChatSpanOptions {
 	readonly attributes?: Attributes;
 	/**
 	 * Override for the underlying {@link completeSimple} call. Defaults to
-	 * `completeSimple` from `@gajae-code/ai`. Use to retain a test injection
+	 * `completeSimple` from `@jawcode-dev/ai`. Use to retain a test injection
 	 * seam while still going through the chat-span lifecycle.
 	 */
 	readonly completeImpl?: <TApi extends Api>(

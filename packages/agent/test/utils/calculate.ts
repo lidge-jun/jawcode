@@ -1,4 +1,4 @@
-import type { AgentTool, AgentToolResult } from "@gajae-code/agent-core/types";
+import type { AgentTool, AgentToolResult } from "@jawcode-dev/agent-core/types";
 import * as z from "zod/v4";
 
 export interface CalculateResult extends AgentToolResult<undefined> {

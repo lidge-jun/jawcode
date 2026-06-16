@@ -16,7 +16,7 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getAgentDir, getSessionsDir, parseJsonlLenient } from "@gajae-code/utils";
+import { getAgentDir, getSessionsDir, parseJsonlLenient } from "@jawcode-dev/utils";
 import { Settings } from "../config/settings";
 import { computeBankScope } from "../hindsight/bank";
 import { createHindsightClient } from "../hindsight/client";

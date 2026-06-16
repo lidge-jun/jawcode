@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "bun:test";
-import { Agent, type AgentMessage } from "@gajae-code/agent-core";
-import type { Message, Model, SimpleStreamOptions } from "@gajae-code/ai";
-import { AssistantMessageEventStream } from "@gajae-code/ai/utils/event-stream";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { AgentSession, type AgentSessionEvent } from "@gajae-code/coding-agent/session/agent-session";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
+import { Agent, type AgentMessage } from "@jawcode-dev/agent-core";
+import type { Message, Model, SimpleStreamOptions } from "@jawcode-dev/ai";
+import { AssistantMessageEventStream } from "@jawcode-dev/ai/utils/event-stream";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { AgentSession, type AgentSessionEvent } from "@jawcode-dev/coding-agent/session/agent-session";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
 import { createAssistantMessage } from "./helpers/agent-session-setup";
 
 function createAgent(): Agent {

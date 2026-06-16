@@ -1,6 +1,6 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { parseFrontmatter } from "@gajae-code/utils";
+import { parseFrontmatter } from "@jawcode-dev/utils";
 import { resolveWithinRoot } from "./paths";
 import { parseManifest, parseSubskillFrontmatter } from "./schema";
 import {

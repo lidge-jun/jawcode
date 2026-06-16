@@ -2,7 +2,7 @@
  * Model resolution, scoping, and initial selection
  */
 
-import { ThinkingLevel } from "@gajae-code/agent-core";
+import { ThinkingLevel } from "@jawcode-dev/agent-core";
 import {
 	type Api,
 	clampThinkingLevelForModel,
@@ -11,9 +11,9 @@ import {
 	type KnownProvider,
 	type Model,
 	modelsAreEqual,
-} from "@gajae-code/ai";
-import { fuzzyMatch } from "@gajae-code/tui";
-import { logger } from "@gajae-code/utils";
+} from "@jawcode-dev/ai";
+import { fuzzyMatch } from "@jawcode-dev/tui";
+import { logger } from "@jawcode-dev/utils";
 import chalk from "chalk";
 import { parseThinkingLevel, resolveThinkingLevelForModel } from "../thinking";
 import { isAuthenticated, kNoAuth, MODEL_ROLE_IDS, type ModelRegistry, type ModelRole } from "./model-registry";

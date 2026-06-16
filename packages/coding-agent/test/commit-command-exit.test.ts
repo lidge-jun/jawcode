@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "bun:test";
-import { postmortem } from "@gajae-code/utils";
+import { postmortem } from "@jawcode-dev/utils";
 import CommitCommand from "../src/commands/commit";
 import * as commitModule from "../src/commit";
 import * as themeModule from "../src/modes/theme/theme";

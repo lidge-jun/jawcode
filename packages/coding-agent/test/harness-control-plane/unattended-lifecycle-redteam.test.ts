@@ -5,30 +5,30 @@ import { describe, expect, it } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
-import type { RpcUnattendedDeclaration, RpcWorkflowGate } from "@gajae-code/coding-agent/modes/rpc/rpc-types";
+import type { RpcUnattendedDeclaration, RpcWorkflowGate } from "@jawcode-dev/coding-agent/modes/rpc/rpc-types";
 import {
 	approvalGate,
 	decodeApproval,
 	executionGate,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/approval-gate";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/approval-gate";
 import {
 	type AskGateQuestion,
 	gateAnswerToResult,
 	questionToGate,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/jaw-interview-gate";
-import { UnattendedAuditLog } from "@gajae-code/coding-agent/modes/shared/agent-wire/unattended-audit";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/jaw-interview-gate";
+import { UnattendedAuditLog } from "@jawcode-dev/coding-agent/modes/shared/agent-wire/unattended-audit";
 import {
 	ActionDeniedError,
 	ScopeDeniedError,
 	type UnattendedAuditEvent,
 	UnattendedBudgetExceededError,
 	UnattendedRunController,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/unattended-run-controller";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/unattended-run-controller";
 import {
 	FileGateStore,
 	type GateAuditEvent,
 	WorkflowGateBroker,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/workflow-gate-broker";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/workflow-gate-broker";
 
 const DECLARATION: RpcUnattendedDeclaration = {
 	actor: "openclaw/hermes",

@@ -8,7 +8,7 @@
  *   sessions/<encoded-id>/receipts.jsonl     append-only receipt index
  *   sessions/<encoded-id>/receipts/<family>/<receiptId>.json  immutable receipts
  *   sessions/<encoded-id>/artifacts/...      diff/validation artifacts
- *   sessions/<encoded-id>/gjc-session/       underlying gajae-code --session-dir
+ *   sessions/<encoded-id>/gjc-session/       underlying jawcode --session-dir
  *
  * Receipt files are immutable: re-writing an existing receipt id fails closed.
  * JSON writes are atomic (temp + rename).

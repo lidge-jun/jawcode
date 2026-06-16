@@ -1,4 +1,4 @@
-import { $flag } from "@gajae-code/utils";
+import { $flag } from "@jawcode-dev/utils";
 import { upgradeJsonSchemaTo202012 } from "./draft";
 import { tryEnforceStrictSchema } from "./normalize";
 

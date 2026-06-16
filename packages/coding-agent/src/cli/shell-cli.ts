@@ -5,8 +5,8 @@
  */
 import * as path from "node:path";
 import { createInterface } from "node:readline/promises";
-import { Shell } from "@gajae-code/natives";
-import { APP_NAME, getProjectDir } from "@gajae-code/utils";
+import { Shell } from "@jawcode-dev/natives";
+import { APP_NAME, getProjectDir } from "@jawcode-dev/utils";
 import chalk from "chalk";
 import { Settings } from "../config/settings";
 import { buildMinimizerOptions } from "../exec/bash-executor";

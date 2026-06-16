@@ -1,8 +1,8 @@
 /**
  * List and clean up agent-managed git worktrees under `~/.jwc/wt`.
  */
-import { APP_NAME } from "@gajae-code/utils";
-import { Args, Command, Flags } from "@gajae-code/utils/cli";
+import { APP_NAME } from "@jawcode-dev/utils";
+import { Args, Command, Flags } from "@jawcode-dev/utils/cli";
 import { clearWorktrees, listWorktrees } from "../cli/worktree-cli";
 
 export default class Worktree extends Command {

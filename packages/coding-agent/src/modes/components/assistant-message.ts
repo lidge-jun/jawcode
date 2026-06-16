@@ -1,6 +1,6 @@
-import type { AssistantMessage, ImageContent, Usage } from "@gajae-code/ai";
-import { Container, Image, ImageProtocol, Markdown, Spacer, TERMINAL, Text } from "@gajae-code/tui";
-import { formatNumber } from "@gajae-code/utils";
+import type { AssistantMessage, ImageContent, Usage } from "@jawcode-dev/ai";
+import { Container, Image, ImageProtocol, Markdown, Spacer, TERMINAL, Text } from "@jawcode-dev/tui";
+import { formatNumber } from "@jawcode-dev/utils";
 import { settings } from "../../config/settings";
 import { resolveAgentDisplayName } from "../../jwc-runtime/agent-identity";
 import { getMarkdownTheme, theme } from "../../modes/theme/theme";

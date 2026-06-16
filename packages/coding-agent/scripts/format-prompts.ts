@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { prompt } from "@gajae-code/utils";
+import { prompt } from "@jawcode-dev/utils";
 /**
  * Format prompt files (mixed XML + Markdown + Handlebars).
  *

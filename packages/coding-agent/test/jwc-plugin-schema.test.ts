@@ -24,7 +24,7 @@ describe("GJC plugin schema", () => {
 				() =>
 					parseManifest(
 						{
-							kind: "gajae-code-plugin",
+							kind: "jawcode-plugin",
 							name: "forbidden",
 							version: "1.0.0",
 							subskills: [],

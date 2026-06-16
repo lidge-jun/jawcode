@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { runNativeStateCommand } from "@gajae-code/coding-agent/jwc-runtime/state-runtime";
+import { runNativeStateCommand } from "@jawcode-dev/coding-agent/jwc-runtime/state-runtime";
 
 const tempRoots: string[] = [];
 

@@ -11,9 +11,9 @@
  *
  * The generated prompt appears as a draft in the editor for review/editing.
  */
-import { complete, type Message } from "@gajae-code/ai";
-import type { HookAPI, SessionEntry } from "@gajae-code/coding-agent";
-import { BorderedLoader, convertToLlm, serializeConversation } from "@gajae-code/coding-agent";
+import { complete, type Message } from "@jawcode-dev/ai";
+import type { HookAPI, SessionEntry } from "@jawcode-dev/coding-agent";
+import { BorderedLoader, convertToLlm, serializeConversation } from "@jawcode-dev/coding-agent";
 
 const SYSTEM_PROMPT = `You are a context transfer assistant. Given a conversation history and the user's goal for a new thread, generate a focused prompt that:
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { serializeConversation } from "@gajae-code/agent-core/compaction/utils";
-import type { Message } from "@gajae-code/ai";
+import { serializeConversation } from "@jawcode-dev/agent-core/compaction/utils";
+import type { Message } from "@jawcode-dev/ai";
 
 describe("serializeConversation", () => {
 	it("truncates long tool results in serialized summaries", () => {

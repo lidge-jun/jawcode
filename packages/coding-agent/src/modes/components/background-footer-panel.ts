@@ -1,4 +1,4 @@
-import { type Component, replaceTabs, truncateToWidth } from "@gajae-code/tui";
+import { type Component, replaceTabs, truncateToWidth } from "@jawcode-dev/tui";
 import { theme } from "../theme/theme";
 import type { BackgroundFooterModel, BackgroundFooterRow } from "./background-footer-panel-model";
 

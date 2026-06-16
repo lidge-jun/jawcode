@@ -8,8 +8,8 @@ import {
 	setKeybindings,
 	TUI_KEYBINDINGS,
 	KeybindingsManager as TuiKeybindingsManager,
-} from "@gajae-code/tui";
-import { getAgentDir, isEnoent, logger } from "@gajae-code/utils";
+} from "@jawcode-dev/tui";
+import { getAgentDir, isEnoent, logger } from "@jawcode-dev/utils";
 
 /**
  * Application-level keybindings (coding agent specific).
@@ -57,7 +57,7 @@ interface AppKeybindings {
 
 export type AppKeybinding = keyof AppKeybindings;
 
-declare module "@gajae-code/tui" {
+declare module "@jawcode-dev/tui" {
 	interface Keybindings extends AppKeybindings {}
 }
 

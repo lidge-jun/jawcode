@@ -5,10 +5,10 @@
  * models must stay byte-identical to upstream behavior.
  */
 import { describe, expect, it } from "bun:test";
-import { COMPOSER_EDIT_DISCIPLINE_PROMPT, isComposerHarnessModel } from "@gajae-code/ai/providers/composer-discipline";
-import { buildCursorSystemPromptJsons } from "@gajae-code/ai/providers/cursor";
-import { convertMessages } from "@gajae-code/ai/providers/openai-completions";
-import type { Context, Model, OpenAICompat } from "@gajae-code/ai/types";
+import { COMPOSER_EDIT_DISCIPLINE_PROMPT, isComposerHarnessModel } from "@jawcode-dev/ai/providers/composer-discipline";
+import { buildCursorSystemPromptJsons } from "@jawcode-dev/ai/providers/cursor";
+import { convertMessages } from "@jawcode-dev/ai/providers/openai-completions";
+import type { Context, Model, OpenAICompat } from "@jawcode-dev/ai/types";
 
 const compat: Required<OpenAICompat> = {
 	supportsStore: true,

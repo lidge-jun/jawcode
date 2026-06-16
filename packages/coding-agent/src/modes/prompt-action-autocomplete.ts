@@ -1,5 +1,5 @@
-import type { AutocompleteItem, AutocompleteProvider, SlashCommand } from "@gajae-code/tui";
-import { CombinedAutocompleteProvider, getKeybindings, getSlashCommandMatchRank } from "@gajae-code/tui";
+import type { AutocompleteItem, AutocompleteProvider, SlashCommand } from "@jawcode-dev/tui";
+import { CombinedAutocompleteProvider, getKeybindings, getSlashCommandMatchRank } from "@jawcode-dev/tui";
 import type { KeybindingsManager } from "../config/keybindings";
 import { formatKeyHints } from "../config/keybindings";
 import { isSettingsInitialized, settings } from "../config/settings";

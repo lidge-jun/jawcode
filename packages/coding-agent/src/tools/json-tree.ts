@@ -1,7 +1,7 @@
 /**
  * JSON tree rendering utilities shared across tool renderers.
  */
-import { INTENT_FIELD } from "@gajae-code/agent-core";
+import { INTENT_FIELD } from "@jawcode-dev/agent-core";
 import type { Theme } from "../modes/theme/theme";
 import { truncateToWidth } from "./render-utils";
 

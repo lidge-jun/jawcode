@@ -9,7 +9,7 @@
  * Inverse direction (source-of-truth for item shapes): ../../providers/openai-responses.ts
  */
 
-import { logger } from "@gajae-code/utils";
+import { logger } from "@jawcode-dev/utils";
 import { resolvePromptCacheKey } from "../auth-gateway/http";
 import type { AuthGatewayParsedRequest as ParsedRequest } from "../auth-gateway/types";
 import type {

@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { $which, getRemoteHostDir, getSshControlDir, isEnoent, logger, postmortem } from "@gajae-code/utils";
+import { $which, getRemoteHostDir, getSshControlDir, isEnoent, logger, postmortem } from "@jawcode-dev/utils";
 import { $ } from "bun";
 import { buildSshTarget, sanitizeHostName } from "./utils";
 

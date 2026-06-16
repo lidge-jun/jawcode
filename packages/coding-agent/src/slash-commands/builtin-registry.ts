@@ -1,8 +1,8 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import type { ThinkingLevel } from "@gajae-code/agent-core";
-import { type AuthStorage, type Model, modelsAreEqual } from "@gajae-code/ai";
-import { APP_NAME, getAgentDir, setProjectDir } from "@gajae-code/utils";
+import type { ThinkingLevel } from "@jawcode-dev/agent-core";
+import { type AuthStorage, type Model, modelsAreEqual } from "@jawcode-dev/ai";
+import { APP_NAME, getAgentDir, setProjectDir } from "@jawcode-dev/utils";
 import {
 	JWC_MODEL_ASSIGNMENT_TARGET_IDS,
 	JWC_MODEL_ASSIGNMENT_TARGETS,

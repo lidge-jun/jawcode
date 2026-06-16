@@ -4,8 +4,8 @@
  * Handles /mcp subcommands for managing MCP servers.
  */
 import * as path from "node:path";
-import { Spacer, Text } from "@gajae-code/tui";
-import { getMCPConfigPath, getProjectDir } from "@gajae-code/utils";
+import { Spacer, Text } from "@jawcode-dev/tui";
+import { getMCPConfigPath, getProjectDir } from "@jawcode-dev/utils";
 import type { SourceMeta } from "../../capability/types";
 import { analyzeAuthError, discoverOAuthEndpoints, MCPManager } from "../../runtime-mcp";
 import { connectToServer, disconnectServer, listTools } from "../../runtime-mcp/client";

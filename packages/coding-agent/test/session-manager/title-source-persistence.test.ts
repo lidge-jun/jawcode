@@ -6,8 +6,8 @@ import {
 	loadEntriesFromFile,
 	type SessionHeader,
 	SessionManager,
-} from "@gajae-code/coding-agent/session/session-manager";
-import { getConfigRootDir, setAgentDir } from "@gajae-code/utils";
+} from "@jawcode-dev/coding-agent/session/session-manager";
+import { getConfigRootDir, setAgentDir } from "@jawcode-dev/utils";
 
 import { makeAssistantMessage } from "./helpers";
 

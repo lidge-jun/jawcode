@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import * as os from "node:os";
 import * as path from "node:path";
-import { getAgentDir, setAgentDir, TempDir } from "@gajae-code/utils";
+import { getAgentDir, setAgentDir, TempDir } from "@jawcode-dev/utils";
 import { getDashboardStats } from "../src/aggregator";
 import { closeDb, initDb, insertMessageStats } from "../src/db";
 import type { MessageStats } from "../src/types";

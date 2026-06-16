@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-// Cannot import parseArgs from cli/args.ts (transitively loads @gajae-code/natives
+// Cannot import parseArgs from cli/args.ts (transitively loads @jawcode-dev/natives
 // via ../tools). Instead, test the flag parsing logic by reimplementing the relevant
 // subset. The actual integration is verified by bun check:ts (Args.pluginDirs exists
 // and parseArgs populates it).

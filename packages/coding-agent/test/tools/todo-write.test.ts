@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import type { ToolSession } from "@gajae-code/coding-agent/tools";
-import { type TodoPhase, TodoWriteTool } from "@gajae-code/coding-agent/tools";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import type { ToolSession } from "@jawcode-dev/coding-agent/tools";
+import { type TodoPhase, TodoWriteTool } from "@jawcode-dev/coding-agent/tools";
 
 function createSession(initialPhases: TodoPhase[] = []): ToolSession {
 	let phases = initialPhases;

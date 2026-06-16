@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { prompt } from "@gajae-code/utils";
+import { prompt } from "@jawcode-dev/utils";
 
 describe("prompt.format renderPhase", () => {
 	test("pre-render preserves indentation on Handlebars block lines", () => {

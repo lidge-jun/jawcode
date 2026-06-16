@@ -16,17 +16,17 @@ import {
 	generateBranchSummary,
 	generateHandoff,
 	generateSummary,
-} from "@gajae-code/agent-core/compaction";
+} from "@jawcode-dev/agent-core/compaction";
 import {
 	type AgentTelemetryConfig,
 	GenAIAttr,
 	GenAIOperation,
 	PiGenAIAttr,
 	resolveTelemetry,
-} from "@gajae-code/agent-core/telemetry";
-import type { AgentMessage } from "@gajae-code/agent-core/types";
-import type { AssistantMessage, Model, Usage } from "@gajae-code/ai";
-import * as ai from "@gajae-code/ai";
+} from "@jawcode-dev/agent-core/telemetry";
+import type { AgentMessage } from "@jawcode-dev/agent-core/types";
+import type { AssistantMessage, Model, Usage } from "@jawcode-dev/ai";
+import * as ai from "@jawcode-dev/ai";
 import { SpanStatusCode } from "@opentelemetry/api";
 import {
 	BasicTracerProvider,

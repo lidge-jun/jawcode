@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { transformMessages } from "@gajae-code/ai/providers/transform-messages";
+import { transformMessages } from "@jawcode-dev/ai/providers/transform-messages";
 import type {
 	Api,
 	AssistantMessage,
@@ -9,7 +9,7 @@ import type {
 	ToolCall,
 	ToolResultMessage,
 	UserMessage,
-} from "@gajae-code/ai/types";
+} from "@jawcode-dev/ai/types";
 
 /**
  * Regression test for: "each tool_use must have a single result. Found multiple tool_result blocks with id"

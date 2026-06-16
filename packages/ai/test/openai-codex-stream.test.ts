@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "bun:test";
-import { enrichModelThinking } from "@gajae-code/ai/model-thinking";
+import { enrichModelThinking } from "@jawcode-dev/ai/model-thinking";
 import {
 	getOpenAICodexTransportDetails,
 	getOpenAICodexWebSocketDebugStats,
 	prewarmOpenAICodexResponses,
 	streamOpenAICodexResponses,
-} from "@gajae-code/ai/providers/openai-codex-responses";
-import type { Context, Model, ProviderSessionState } from "@gajae-code/ai/types";
-import { getAgentDir, setAgentDir, TempDir } from "@gajae-code/utils";
+} from "@jawcode-dev/ai/providers/openai-codex-responses";
+import type { Context, Model, ProviderSessionState } from "@jawcode-dev/ai/types";
+import { getAgentDir, setAgentDir, TempDir } from "@jawcode-dev/utils";
 
 const originalFetch = global.fetch;
 const originalAgentDir = getAgentDir();

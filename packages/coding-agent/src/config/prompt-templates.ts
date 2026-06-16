@@ -7,7 +7,7 @@ import {
 	logger,
 	parseFrontmatter,
 	prompt,
-} from "@gajae-code/utils";
+} from "@jawcode-dev/utils";
 import { computeLineHash, HL_BODY_SEP } from "../hashline/hash";
 import { jtdToTypeScript } from "../tools/jtd-to-typescript";
 import { parseCommandArgs, substituteArgs } from "../utils/command-args";

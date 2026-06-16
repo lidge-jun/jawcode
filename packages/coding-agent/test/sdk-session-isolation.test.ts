@@ -2,13 +2,13 @@ import { afterEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { type AssistantMessage, getBundledModel } from "@gajae-code/ai";
-import type { Rule } from "@gajae-code/coding-agent/capability/rule";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { createAgentSession } from "@gajae-code/coding-agent/sdk";
-import { SecretObfuscator } from "@gajae-code/coding-agent/secrets";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { getSessionsDir, Snowflake } from "@gajae-code/utils";
+import { type AssistantMessage, getBundledModel } from "@jawcode-dev/ai";
+import type { Rule } from "@jawcode-dev/coding-agent/capability/rule";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { createAgentSession } from "@jawcode-dev/coding-agent/sdk";
+import { SecretObfuscator } from "@jawcode-dev/coding-agent/secrets";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { getSessionsDir, Snowflake } from "@jawcode-dev/utils";
 
 function createTtsrRule(name: string): Rule {
 	return {

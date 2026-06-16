@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { TruncatedText } from "@gajae-code/tui/components/truncated-text";
-import { visibleWidth } from "@gajae-code/tui/utils";
+import { TruncatedText } from "@jawcode-dev/tui/components/truncated-text";
+import { visibleWidth } from "@jawcode-dev/tui/utils";
 import { Chalk } from "chalk";
 
 // Force full color in CI so ANSI assertions are deterministic

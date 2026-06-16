@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
-import { resetSettingsForTest, Settings } from "@gajae-code/coding-agent/config/settings";
-import { createAgentSession } from "@gajae-code/coding-agent/sdk";
-import { AuthStorage } from "@gajae-code/coding-agent/session/auth-storage";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { Snowflake } from "@gajae-code/utils";
+import { ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
+import { resetSettingsForTest, Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { createAgentSession } from "@jawcode-dev/coding-agent/sdk";
+import { AuthStorage } from "@jawcode-dev/coding-agent/session/auth-storage";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { Snowflake } from "@jawcode-dev/utils";
 import { YAML } from "bun";
 
 /**

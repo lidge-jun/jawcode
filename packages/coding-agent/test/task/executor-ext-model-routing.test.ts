@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "bun:test";
-import { Effort, type Message, type Model } from "@gajae-code/ai";
+import { Effort, type Message, type Model } from "@jawcode-dev/ai";
 import { AsyncJobManager } from "../../src/async";
 import { Settings } from "../../src/config/settings";
 import type { CreateAgentSessionOptions, CreateAgentSessionResult } from "../../src/sdk";

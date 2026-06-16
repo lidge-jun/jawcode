@@ -2,7 +2,7 @@
  * Antigravity OAuth flow (Gemini 3, Anthropic model, GPT-OSS via Google Cloud)
  * Uses different OAuth credentials than google-gemini-cli for access to additional models.
  */
-import { $env } from "@gajae-code/utils";
+import { $env } from "@jawcode-dev/utils";
 import { getAntigravityUserAgent } from "../../providers/google-gemini-headers";
 import { runGoogleOAuthLogin } from "./google-oauth-shared";
 import type { OAuthController, OAuthCredentials } from "./types";

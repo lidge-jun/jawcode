@@ -1,4 +1,4 @@
-import { getMCPConfigPath, logger } from "@gajae-code/utils";
+import { getMCPConfigPath, logger } from "@jawcode-dev/utils";
 import { connectToServer, disconnectServer, listPrompts, listResources, listTools } from "../../runtime-mcp/client";
 import {
 	addMCPServer,

@@ -1,7 +1,7 @@
-import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@gajae-code/agent-core";
-import type { Component } from "@gajae-code/tui";
-import { Text } from "@gajae-code/tui";
-import { formatNumber, prompt } from "@gajae-code/utils";
+import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@jawcode-dev/agent-core";
+import type { Component } from "@jawcode-dev/tui";
+import { Text } from "@jawcode-dev/tui";
+import { formatNumber, prompt } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import type { RenderResultOptions } from "../../extensibility/custom-tools/types";
 import { assertCanCompleteCurrentGoal } from "../../jwc-runtime/goal-guard";

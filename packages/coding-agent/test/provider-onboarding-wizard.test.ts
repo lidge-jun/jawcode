@@ -2,17 +2,17 @@ import { afterEach, beforeAll, describe, expect, it, mock } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { AuthStorage, SqliteAuthCredentialStore } from "@gajae-code/ai";
-import { ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
-import { CustomProviderWizardComponent } from "@gajae-code/coding-agent/modes/components/custom-provider-wizard";
+import { AuthStorage, SqliteAuthCredentialStore } from "@jawcode-dev/ai";
+import { ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
+import { CustomProviderWizardComponent } from "@jawcode-dev/coding-agent/modes/components/custom-provider-wizard";
 import {
 	type ProviderOnboardingAction,
 	ProviderOnboardingSelectorComponent,
-} from "@gajae-code/coding-agent/modes/components/provider-onboarding-selector";
-import { SelectorController } from "@gajae-code/coding-agent/modes/controllers/selector-controller";
-import { initTheme } from "@gajae-code/coding-agent/modes/theme/theme";
-import type { InteractiveModeContext } from "@gajae-code/coding-agent/modes/types";
-import { getAgentDir, setAgentDir } from "@gajae-code/utils";
+} from "@jawcode-dev/coding-agent/modes/components/provider-onboarding-selector";
+import { SelectorController } from "@jawcode-dev/coding-agent/modes/controllers/selector-controller";
+import { initTheme } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import type { InteractiveModeContext } from "@jawcode-dev/coding-agent/modes/types";
+import { getAgentDir, setAgentDir } from "@jawcode-dev/utils";
 
 const originalAgentDir = getAgentDir();
 let tempAgentDir: string | undefined;

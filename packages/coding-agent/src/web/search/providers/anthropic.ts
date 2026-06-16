@@ -13,8 +13,8 @@ import {
 	buildAnthropicSystemBlocks,
 	buildAnthropicUrl,
 	stripClaudeToolPrefix,
-} from "@gajae-code/ai";
-import { $env } from "@gajae-code/utils";
+} from "@jawcode-dev/ai";
+import { $env } from "@jawcode-dev/utils";
 import type {
 	AnthropicApiResponse,
 	AnthropicCitation,

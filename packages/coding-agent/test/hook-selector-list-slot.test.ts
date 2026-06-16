@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "bun:test";
-import { HookSelectorComponent } from "@gajae-code/coding-agent/modes/components/hook-selector";
-import { getThemeByName, setThemeInstance } from "@gajae-code/coding-agent/modes/theme/theme";
-import { CURSOR_MARKER } from "@gajae-code/tui";
+import { HookSelectorComponent } from "@jawcode-dev/coding-agent/modes/components/hook-selector";
+import { getThemeByName, setThemeInstance } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import { CURSOR_MARKER } from "@jawcode-dev/tui";
 
 beforeAll(async () => {
 	const theme = await getThemeByName("red-claw");

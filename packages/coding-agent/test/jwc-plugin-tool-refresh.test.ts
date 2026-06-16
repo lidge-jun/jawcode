@@ -1,17 +1,17 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { Agent, type AgentTool } from "@gajae-code/agent-core";
-import { getBundledModel } from "@gajae-code/ai";
-import { AssistantMessageEventStream } from "@gajae-code/ai/utils/event-stream";
-import { ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { AgentSession } from "@gajae-code/coding-agent/session/agent-session";
-import { AuthStorage } from "@gajae-code/coding-agent/session/auth-storage";
-import { convertToLlm } from "@gajae-code/coding-agent/session/messages";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { syncSkillActiveState } from "@gajae-code/coding-agent/skill-state/active-state";
-import { TempDir } from "@gajae-code/utils";
+import { Agent, type AgentTool } from "@jawcode-dev/agent-core";
+import { getBundledModel } from "@jawcode-dev/ai";
+import { AssistantMessageEventStream } from "@jawcode-dev/ai/utils/event-stream";
+import { ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { AgentSession } from "@jawcode-dev/coding-agent/session/agent-session";
+import { AuthStorage } from "@jawcode-dev/coding-agent/session/auth-storage";
+import { convertToLlm } from "@jawcode-dev/coding-agent/session/messages";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { syncSkillActiveState } from "@jawcode-dev/coding-agent/skill-state/active-state";
+import { TempDir } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 
 let tempDir: TempDir;
@@ -35,7 +35,7 @@ async function writeCustomTool(fileName: string, toolName: string): Promise<stri
 	const toolPath = path.join(toolsDir, fileName);
 	await fs.writeFile(
 		toolPath,
-		`import type { CustomToolFactory } from "@gajae-code/coding-agent/extensibility/custom-tools/types";
+		`import type { CustomToolFactory } from "@jawcode-dev/coding-agent/extensibility/custom-tools/types";
 
 const factory: CustomToolFactory = pi => ({
 	name: ${JSON.stringify(toolName)},

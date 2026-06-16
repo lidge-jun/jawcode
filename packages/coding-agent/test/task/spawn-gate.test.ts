@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { toolWireSchema } from "@gajae-code/ai/utils/schema";
+import { toolWireSchema } from "@jawcode-dev/ai/utils/schema";
 import {
 	DEFAULT_SPAWN_THRESHOLD,
 	evaluateReviewerExploreGate,

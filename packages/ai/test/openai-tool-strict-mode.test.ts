@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "bun:test";
-import { getBundledModel } from "@gajae-code/ai/models";
-import { streamOpenAICompletions } from "@gajae-code/ai/providers/openai-completions";
-import { streamOpenAIResponses } from "@gajae-code/ai/providers/openai-responses";
-import type { Context, Model, OpenAICompat, ProviderSessionState, Tool } from "@gajae-code/ai/types";
+import { getBundledModel } from "@jawcode-dev/ai/models";
+import { streamOpenAICompletions } from "@jawcode-dev/ai/providers/openai-completions";
+import { streamOpenAIResponses } from "@jawcode-dev/ai/providers/openai-responses";
+import type { Context, Model, OpenAICompat, ProviderSessionState, Tool } from "@jawcode-dev/ai/types";
 import * as z from "zod/v4";
 
 const originalFetch = global.fetch;

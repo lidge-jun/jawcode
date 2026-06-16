@@ -1,4 +1,4 @@
-import { logger, ptree } from "@gajae-code/utils";
+import { logger, ptree } from "@jawcode-dev/utils";
 import { formatCrashDiagnosticNotice, writeCrashReport } from "../debug/crash-diagnostics";
 import { NON_INTERACTIVE_ENV } from "../exec/non-interactive-env";
 import { ToolAbortError } from "../tools/tool-errors";

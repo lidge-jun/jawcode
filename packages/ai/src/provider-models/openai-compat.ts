@@ -1,4 +1,4 @@
-import { $env, $inheritedEnv } from "@gajae-code/utils";
+import { $env, $inheritedEnv } from "@jawcode-dev/utils";
 import type { ModelManagerOptions } from "../model-manager";
 import { Effort } from "../model-thinking";
 import { getBundledModels } from "../models";

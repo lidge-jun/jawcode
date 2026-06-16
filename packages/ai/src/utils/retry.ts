@@ -1,5 +1,5 @@
 import { scheduler } from "node:timers/promises";
-import { extractHttpStatusFromError, isRetryableError } from "@gajae-code/utils";
+import { extractHttpStatusFromError, isRetryableError } from "@jawcode-dev/utils";
 
 /**
  * GitHub Copilot intermittently rejects preview models (gpt-5.3-OpenAI code backend,

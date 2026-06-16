@@ -1,4 +1,4 @@
-import type { ptree } from "@gajae-code/utils";
+import type { ptree } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 
 // =============================================================================

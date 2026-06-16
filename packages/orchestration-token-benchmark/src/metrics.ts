@@ -11,7 +11,7 @@
  * A single persisted per-turn / per-subagent token record.
  *
  * Structurally mirrors `TaskTokenLog` from
- * `@gajae-code/coding-agent` (`src/task/types.ts`). It is duplicated here so the
+ * `@jawcode-dev/coding-agent` (`src/task/types.ts`). It is duplicated here so the
  * benchmark stays dependency-free and deterministic; `assertTokenLogShape`
  * guards against drift.
  */

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { getConfigRootDir } from "@gajae-code/utils";
+import { getConfigRootDir } from "@jawcode-dev/utils";
 
 const TOKENIZER_BASE_URL = "https://github.com/nicejunhee/jawcode-tokenizers/releases/download/v1";
 

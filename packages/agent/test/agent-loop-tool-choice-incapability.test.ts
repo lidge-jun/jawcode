@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { agentLoop } from "@gajae-code/agent-core/agent-loop";
-import type { AgentContext, AgentEvent, AgentLoopConfig, AgentMessage } from "@gajae-code/agent-core/types";
-import type { AssistantMessage, AssistantMessageEvent, Message } from "@gajae-code/ai";
-import { createMockModel } from "@gajae-code/ai/providers/mock";
-import { AssistantMessageEventStream } from "@gajae-code/ai/utils/event-stream";
+import { agentLoop } from "@jawcode-dev/agent-core/agent-loop";
+import type { AgentContext, AgentEvent, AgentLoopConfig, AgentMessage } from "@jawcode-dev/agent-core/types";
+import type { AssistantMessage, AssistantMessageEvent, Message } from "@jawcode-dev/ai";
+import { createMockModel } from "@jawcode-dev/ai/providers/mock";
+import { AssistantMessageEventStream } from "@jawcode-dev/ai/utils/event-stream";
 import { createUserMessage } from "./helpers";
 
 function identityConverter(messages: AgentMessage[]): Message[] {

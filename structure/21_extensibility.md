@@ -161,7 +161,7 @@
 
 ### Upstream baseline vs jwc runtime
 
-| 계층 | upstream gajae-code `[기본값]` | jwc runtime `[기본값]` | 호환 |
+| 계층 | upstream jawcode `[기본값]` | jwc runtime `[기본값]` | 호환 |
 |---|---|---|---|
 | bundled skill slug | `deep-interview` | `jaw-interview` | legacy skill alias accepted for state/read compatibility, not the public path |
 | system prompt routing | `deep-interview` | `jaw-interview` | `/Users/jun/Developer/new/700_projects/jawcode/packages/coding-agent/src/prompts/system/system-prompt.md:63` |

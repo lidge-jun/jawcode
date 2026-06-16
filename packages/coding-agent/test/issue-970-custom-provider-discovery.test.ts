@@ -2,14 +2,14 @@ import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "bu
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { ModelRegistry, ProviderDiscoveryState } from "@gajae-code/coding-agent/config/model-registry";
-import { ModelRegistry as ModelRegistryImpl } from "@gajae-code/coding-agent/config/model-registry";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { ModelSelectorComponent } from "@gajae-code/coding-agent/modes/components/model-selector";
-import { getThemeByName, setThemeInstance } from "@gajae-code/coding-agent/modes/theme/theme";
-import { AuthStorage } from "@gajae-code/coding-agent/session/auth-storage";
-import type { TUI } from "@gajae-code/tui";
-import { hookFetch, Snowflake } from "@gajae-code/utils";
+import type { ModelRegistry, ProviderDiscoveryState } from "@jawcode-dev/coding-agent/config/model-registry";
+import { ModelRegistry as ModelRegistryImpl } from "@jawcode-dev/coding-agent/config/model-registry";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { ModelSelectorComponent } from "@jawcode-dev/coding-agent/modes/components/model-selector";
+import { getThemeByName, setThemeInstance } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import { AuthStorage } from "@jawcode-dev/coding-agent/session/auth-storage";
+import type { TUI } from "@jawcode-dev/tui";
+import { hookFetch, Snowflake } from "@jawcode-dev/utils";
 
 function normalizeRenderedText(text: string): string {
 	return text

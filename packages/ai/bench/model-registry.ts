@@ -195,7 +195,7 @@ console.log(
 		{
 			schemaVersion: 1,
 			command: "bun packages/ai/bench/model-registry.ts",
-			package: "@gajae-code/ai",
+			package: "@jawcode-dev/ai",
 			bench: "model-registry",
 			fixture: "cold-import-and-registry-lookup-scenarios",
 			fixtureDimensions: { providerCount: providers.length, firstProvider, firstModel: firstModel.id },

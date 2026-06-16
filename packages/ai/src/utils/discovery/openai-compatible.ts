@@ -1,4 +1,4 @@
-import { UNK_CONTEXT_WINDOW, UNK_MAX_TOKENS } from "@gajae-code/ai";
+import { UNK_CONTEXT_WINDOW, UNK_MAX_TOKENS } from "@jawcode-dev/ai";
 import * as z from "zod/v4";
 import type { Api, Model, Provider } from "../../types";
 

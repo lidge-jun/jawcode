@@ -5,9 +5,9 @@
  * task execution in the terminal UI.
  */
 import path from "node:path";
-import type { Component } from "@gajae-code/tui";
-import { Text } from "@gajae-code/tui";
-import { formatNumber } from "@gajae-code/utils";
+import type { Component } from "@jawcode-dev/tui";
+import { Text } from "@jawcode-dev/tui";
+import { formatNumber } from "@jawcode-dev/utils";
 import type { RenderResultOptions } from "../extensibility/custom-tools/types";
 import type { Theme } from "../modes/theme/theme";
 import {

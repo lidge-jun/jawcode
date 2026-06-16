@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { $which, getRemoteDir, postmortem } from "@gajae-code/utils";
+import { $which, getRemoteDir, postmortem } from "@jawcode-dev/utils";
 import { $ } from "bun";
 import {
 	getControlDir,

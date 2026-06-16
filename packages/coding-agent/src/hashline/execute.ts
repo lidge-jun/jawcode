@@ -1,5 +1,5 @@
-import type { AgentToolResult } from "@gajae-code/agent-core";
-import { isEnoent } from "@gajae-code/utils";
+import type { AgentToolResult } from "@jawcode-dev/agent-core";
+import { isEnoent } from "@jawcode-dev/utils";
 import { generateDiffString } from "../edit/diff";
 import { getFileReadCache } from "../edit/file-read-cache";
 import { detectLineEnding, normalizeToLF, restoreLineEndings, stripBom } from "../edit/normalize";

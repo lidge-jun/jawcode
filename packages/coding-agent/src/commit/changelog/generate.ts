@@ -1,7 +1,7 @@
-import type { ThinkingLevel } from "@gajae-code/agent-core";
-import type { Api, AssistantMessage, Model } from "@gajae-code/ai";
-import { completeSimple, validateToolCall } from "@gajae-code/ai";
-import { prompt } from "@gajae-code/utils";
+import type { ThinkingLevel } from "@jawcode-dev/agent-core";
+import type { Api, AssistantMessage, Model } from "@jawcode-dev/ai";
+import { completeSimple, validateToolCall } from "@jawcode-dev/ai";
+import { prompt } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import changelogSystemPrompt from "../../commit/prompts/changelog-system.md" with { type: "text" };
 import changelogUserPrompt from "../../commit/prompts/changelog-user.md" with { type: "text" };

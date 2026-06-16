@@ -9,17 +9,17 @@
  * and aborts between stream phases). No production exports or shims are required.
  */
 import { benchRunMetadata, type BenchRunMetadata } from "./_meta";
-import { agentLoop } from "@gajae-code/agent-core/agent-loop";
-import type { AgentContext, AgentEvent, AgentLoopConfig, AgentMessage, AgentTool } from "@gajae-code/agent-core/types";
-import type { AssistantMessage, Message, Model, SimpleStreamOptions } from "@gajae-code/ai";
-import { createMockModel } from "@gajae-code/ai/providers/mock";
-import { AssistantMessageEventStream } from "@gajae-code/ai/utils/event-stream";
+import { agentLoop } from "@jawcode-dev/agent-core/agent-loop";
+import type { AgentContext, AgentEvent, AgentLoopConfig, AgentMessage, AgentTool } from "@jawcode-dev/agent-core/types";
+import type { AssistantMessage, Message, Model, SimpleStreamOptions } from "@jawcode-dev/ai";
+import { createMockModel } from "@jawcode-dev/ai/providers/mock";
+import { AssistantMessageEventStream } from "@jawcode-dev/ai/utils/event-stream";
 import * as z from "zod/v4";
 
 const WARMUP_ITERATIONS = 20;
 const MEASURE_ITERATIONS = 100;
 const LARGE_MEASURE_ITERATIONS = 30;
-const PACKAGE_NAME = "@gajae-code/agent-core";
+const PACKAGE_NAME = "@jawcode-dev/agent-core";
 
 type Fixture = {
 	name: string;

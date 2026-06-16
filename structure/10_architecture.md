@@ -1,29 +1,29 @@
 # Jawcode 아키텍처 (현재 형태)
 
-> 2026-06-14 기준. gajae-code 0.4.4 lineage, public repo root commit `7e51e5e2`.
+> 2026-06-14 기준. jawcode 0.4.4 lineage, public repo root commit `7e51e5e2`.
 > **현재 코드 형태** 기록. 로드맵·밴드: `devlog/_plan/260614_cli_jaw_jwc_distribution_strategy/_legacy/260612_jawcode_fork/`. 계보: [fork-delta.md](./40_fork-delta.md).
 
 ## 1. 정체
 
-Jawcode는 gajae-code 계열 코드베이스에서 출발한 JWC 모노레포이며 공개 실행 표면은 `jwc`다. 엔진은 Bun 런타임 기반의
+Jawcode는 jawcode 계열 코드베이스에서 출발한 JWC 모노레포이며 공개 실행 표면은 `jwc`다. 엔진은 Bun 런타임 기반의
 Claude Code급 풀 코딩 에이전트로, 프로바이더 계층부터 TUI까지 전부 자체 구현돼 있다.
 
 - 런타임: **Bun 1.3.14** (workspaces + catalog)
 - 린트/포맷: biome
-- 네이티브: `crates/` (Rust, napi-rs → `@gajae-code/natives`), `python/robogjc` (web)
+- 네이티브: `crates/` (Rust, napi-rs → `@jawcode-dev/natives`), `python/robogjc` (web)
 
 ## 2. 패키지 맵
 
 ```
 packages/
-  ai/              @gajae-code/ai          — 44+ 프로바이더 스트리밍 계층 (stream.ts 디스패처)
-  agent/           @gajae-code/agent-core  — 에이전트 루프, 상태, 컴팩션, transport 추상화
-  coding-agent/    @gajae-code/coding-agent — JWC CLI/runtime 본체 (도구, 세션, 스킬, 슬래시커맨드, 모드)
-  tui/             @gajae-code/tui         — 차등 렌더링 TUI 라이브러리
-  utils/           @gajae-code/utils       — 공용 유틸
-  stats/           @gajae-code/stats       — 사용량/통계
-  natives/         @gajae-code/natives     — Rust napi 바인딩
-  bridge-client/   @gajae-code/bridge-client — 원격 브리지
+  ai/              @jawcode-dev/ai          — 44+ 프로바이더 스트리밍 계층 (stream.ts 디스패처)
+  agent/           @jawcode-dev/agent-core  — 에이전트 루프, 상태, 컴팩션, transport 추상화
+  coding-agent/    @jawcode-dev/coding-agent — JWC CLI/runtime 본체 (도구, 세션, 스킬, 슬래시커맨드, 모드)
+  tui/             @jawcode-dev/tui         — 차등 렌더링 TUI 라이브러리
+  utils/           @jawcode-dev/utils       — 공용 유틸
+  stats/           @jawcode-dev/stats       — 사용량/통계
+  natives/         @jawcode-dev/natives     — Rust napi 바인딩
+  bridge-client/   @jawcode-dev/bridge-client — 원격 브리지
   jwc/             jawcode                 — jaw 표면 (npm: jawcode, bin: jwc, export: ./sdk)
 ```
 
@@ -63,7 +63,7 @@ packages/
 
 ### 3.3 `packages/agent/src/agent-loop.ts` — 에이전트 루프
 
-`@gajae-code/ai`의 `streamSimple()` 위에서 tool call → 실행 → 피드백 루프.
+`@jawcode-dev/ai`의 `streamSimple()` 위에서 tool call → 실행 → 피드백 루프.
 `AppendOnlyContextManager`, 컴팩션(`compaction/`), thinking 제어 포함.
 
 ### 3.4 확장 표면 (스킬/슬래시커맨드/도구)
@@ -121,20 +121,20 @@ packages/
 
 ## Packages / Crates Overview
 
-> jawcode는 Bun monorepo + Rust crates 구조다. 공개 CLI는 `jwc`이고, 현재 런타임 본체는 `@gajae-code/coding-agent`에 있다.
+> jawcode는 Bun monorepo + Rust crates 구조다. 공개 CLI는 `jwc`이고, 현재 런타임 본체는 `@jawcode-dev/coding-agent`에 있다.
 
 ### 의존 방향
 
 ```text
 jwc CLI/package
-  -> @gajae-code/coding-agent
-       -> @gajae-code/agent-core
-       -> @gajae-code/ai
-       -> @gajae-code/tui
-       -> @gajae-code/natives
-       -> @gajae-code/utils
-       -> @gajae-code/stats
-@gajae-code/natives
+  -> @jawcode-dev/coding-agent
+       -> @jawcode-dev/agent-core
+       -> @jawcode-dev/ai
+       -> @jawcode-dev/tui
+       -> @jawcode-dev/natives
+       -> @jawcode-dev/utils
+       -> @jawcode-dev/stats
+@jawcode-dev/natives
   -> crates/pi-natives
        -> crates/pi-ast
        -> crates/pi-iso
@@ -146,7 +146,7 @@ jwc CLI/package
 
 | 패키지 | 역할 | 핵심 진입 파일/표면 | 의존 방향 | 근거 |
 |---|---|---|---|---|
-| `packages/jwc` | `jawcode` 공개 npm 패키지. `jwc` Node launcher가 managed Bun runtime으로 bundle/workspace CLI를 실행하고 `jawcode/sdk`를 제공한다. | `bin/jwc.js`, `src/sdk.ts`, `src/index.ts`, `dist-node/sdk.js` | `@gajae-code/coding-agent` + package-local `bun` runtime dependency | `/Users/jun/Developer/new/700_projects/jawcode/packages/jwc/package.json:3`, `/Users/jun/Developer/new/700_projects/jawcode/packages/jwc/bin/jwc.js:1`, `/Users/jun/Developer/new/700_projects/jawcode/packages/jwc/src/sdk.ts:1` |
+| `packages/jwc` | `jawcode` 공개 npm 패키지. `jwc` Node launcher가 managed Bun runtime으로 bundle/workspace CLI를 실행하고 `jawcode/sdk`를 제공한다. | `bin/jwc.js`, `src/sdk.ts`, `src/index.ts`, `dist-node/sdk.js` | `@jawcode-dev/coding-agent` + package-local `bun` runtime dependency | `/Users/jun/Developer/new/700_projects/jawcode/packages/jwc/package.json:3`, `/Users/jun/Developer/new/700_projects/jawcode/packages/jwc/bin/jwc.js:1`, `/Users/jun/Developer/new/700_projects/jawcode/packages/jwc/src/sdk.ts:1` |
 | `packages/coding-agent` | jwc CLI 본체. 도구, 세션, 스킬, 슬래시커맨드, prompt, mode, workflow runtime이 있다. | `src/cli.ts`, `src/sdk.ts`, `src/main.ts` | `agent-core`, `ai`, `natives`, `tui`, `utils`, `stats` | `/Users/jun/Developer/new/700_projects/jawcode/packages/coding-agent/package.json:3`, `/Users/jun/Developer/new/700_projects/jawcode/packages/coding-agent/package.json:30`, `/Users/jun/Developer/new/700_projects/jawcode/packages/coding-agent/package.json:49` |
 | `packages/agent` | provider-agnostic agent loop/core. transport/state/attachment abstraction. | `src/index.ts` export | `ai`, `natives`, `utils` | `/Users/jun/Developer/new/700_projects/jawcode/packages/agent/package.json:3`, `/Users/jun/Developer/new/700_projects/jawcode/packages/agent/package.json:27`, `/Users/jun/Developer/new/700_projects/jawcode/packages/agent/package.json:37` |
 | `packages/ai` | provider/model registry, stream, auth broker/gateway, OAuth/API key 계층. | `src/index.ts`, `src/cli.ts`(`pi-ai`) | `utils`, OpenAI/Anthropic SDK 등 외부 provider deps | `/Users/jun/Developer/new/700_projects/jawcode/packages/ai/package.json:3`, `/Users/jun/Developer/new/700_projects/jawcode/packages/ai/package.json:31`, `/Users/jun/Developer/new/700_projects/jawcode/packages/ai/package.json:43` |
@@ -155,7 +155,7 @@ jwc CLI/package
 | `packages/utils` | 경로, config dir, logger, prompt/render helper 등 공용 유틸. | `src/index.ts` | `natives`, handlebars, winston | `/Users/jun/Developer/new/700_projects/jawcode/packages/utils/package.json:3`, `/Users/jun/Developer/new/700_projects/jawcode/packages/utils/package.json:23`, `/Users/jun/Developer/new/700_projects/jawcode/packages/utils/package.json:33` |
 | `packages/stats` | local observability dashboard. | `src/index.ts`, `gjc-stats` legacy package bin | `ai`, `utils`, React/Tailwind/Chart deps | `/Users/jun/Developer/new/700_projects/jawcode/packages/stats/package.json:3`, `/Users/jun/Developer/new/700_projects/jawcode/packages/stats/package.json:27`, `/Users/jun/Developer/new/700_projects/jawcode/packages/stats/package.json:39` |
 | `packages/bridge-client` | jwc backend bridge protocol TypeScript client SDK. | `src/index.ts` | 독립 TS SDK | `/Users/jun/Developer/new/700_projects/jawcode/packages/bridge-client/package.json:3`, `/Users/jun/Developer/new/700_projects/jawcode/packages/bridge-client/package.json:22`, `/Users/jun/Developer/new/700_projects/jawcode/packages/bridge-client/package.json:41` |
-| `packages/gajae-code` | REMOVED legacy shell wrapper. repo 내 공개 진입은 `packages/jwc` 하나다. | — | — | `structure/40_fork-delta.md:28` |
+| `packages/jawcode` | REMOVED legacy shell wrapper. repo 내 공개 진입은 `packages/jwc` 하나다. | — | — | `structure/40_fork-delta.md:28` |
 | `packages/orchestration-token-benchmark` | orchestration token efficiency internal benchmark. live model call 없는 deterministic benchmark가 기본이다. | `src/index.ts`, `src/live-runner.ts` | private package | `/Users/jun/Developer/new/700_projects/jawcode/packages/orchestration-token-benchmark/package.json:3`, `/Users/jun/Developer/new/700_projects/jawcode/packages/orchestration-token-benchmark/package.json:6`, `/Users/jun/Developer/new/700_projects/jawcode/packages/orchestration-token-benchmark/package.json:22` |
 | `packages/typescript-edit-benchmark` | TypeScript edit mutation benchmark. | `src/index.ts`, `typescript-edit-benchmark` bin | `coding-agent`, `agent-core`, `ai`, `tui`, AST deps | `/Users/jun/Developer/new/700_projects/jawcode/packages/typescript-edit-benchmark/package.json:3`, `/Users/jun/Developer/new/700_projects/jawcode/packages/typescript-edit-benchmark/package.json:15`, `/Users/jun/Developer/new/700_projects/jawcode/packages/typescript-edit-benchmark/package.json:28` |
 
@@ -175,7 +175,7 @@ jwc CLI/package
 | 구분 | 현재 상태 | 개발 판단 | 근거 |
 |---|---|---|---|
 | M1 `jwc` 표면 | `packages/jwc`는 Node launcher + managed Bun runtime wrapper다. | 공개 표면은 `packages/jwc`와 coding-agent CLI help/branding에서 jwc 기준으로 유지한다. | `/Users/jun/Developer/new/700_projects/jawcode/packages/jwc/bin/jwc.js:1`, `/Users/jun/Developer/new/700_projects/jawcode/devlog/_plan/260614_cli_jaw_jwc_distribution_strategy/_legacy/260612_jawcode_fork/phase1/000_roadmap.md:12` |
-| M2 임베딩 | `jawcode/sdk`가 `@gajae-code/coding-agent/sdk`를 재수출한다. | cli-jaw는 내부 `@gajae-code/*`가 아니라 `jawcode/sdk`를 import해야 리베이스 흡수 지점이 생긴다. | `/Users/jun/Developer/new/700_projects/jawcode/packages/jwc/src/sdk.ts:1`, `/Users/jun/Developer/new/700_projects/jawcode/packages/jwc/package.json:15` |
+| M2 임베딩 | `jawcode/sdk`가 `@jawcode-dev/coding-agent/sdk`를 재수출한다. | cli-jaw는 내부 `@jawcode-dev/*`가 아니라 `jawcode/sdk`를 import해야 리베이스 흡수 지점이 생긴다. | `/Users/jun/Developer/new/700_projects/jawcode/packages/jwc/src/sdk.ts:1`, `/Users/jun/Developer/new/700_projects/jawcode/packages/jwc/package.json:15` |
 | Node 포팅 위험 | package engines는 Bun `>=1.3.14`가 기본이다. | M2 Node 포팅은 `bun:sqlite`, Bun imports, Bun APIs를 별도 밴드에서 다뤄야 한다. | `/Users/jun/Developer/new/700_projects/jawcode/packages/coding-agent/package.json:77`, `/Users/jun/Developer/new/700_projects/jawcode/packages/agent/package.json:48`, `/Users/jun/Developer/new/700_projects/jawcode/devlog/_plan/260614_cli_jaw_jwc_distribution_strategy/_legacy/260612_jawcode_fork/phase1/05_interview_conclusions.md:17` |
 | **M2 Node 포팅 — 100밴드 완료 (260613)** | `packages/jwc/dist-node/`(esbuild 번들) + `packages/jwc/src/shims/`: global Bun shim, file/write/sleep/stdio, `Bun.spawn`/`spawnSync` Node 어댑터, data-core(`bun:sqlite`/hash/JSONL/JSON5/stripANSI), peripheral shims. Node 22 SDK import·`createAgentSession`·스트리밍 green, 적대 감사 라운드 1-5 통과(보안: path traversal·archive mtime·serve TLS/disconnect·PK-tar misroute 포함, `0debe38b`·`40a4a2f0`). | "문서만"에서 **구현 완료**로 전환 — Bun API가 dist-node 셰임으로 대체됨. | `packages/jwc/scripts/build-node.ts`, `packages/jwc/src/shims/`, devlog 100밴드 (`2e9efc59`…`fba5cd56`, closeout `fdb8d41d`) |
 
@@ -189,7 +189,7 @@ jwc CLI/package
 
 ## SDK Surface
 
-> cli-jaw 임베딩 관점의 단일 통로는 `jawcode/sdk`다. 현재 `jawcode/sdk`는 `@gajae-code/coding-agent/sdk`를 그대로 재수출한다.
+> cli-jaw 임베딩 관점의 단일 통로는 `jawcode/sdk`다. 현재 `jawcode/sdk`는 `@jawcode-dev/coding-agent/sdk`를 그대로 재수출한다.
 
 ### Public Boundary
 

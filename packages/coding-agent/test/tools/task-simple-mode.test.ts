@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "bun:test";
-import { toolWireSchema } from "@gajae-code/ai/utils/schema";
-import { validateToolArguments } from "@gajae-code/ai/utils/validation";
+import { toolWireSchema } from "@jawcode-dev/ai/utils/schema";
+import { validateToolArguments } from "@jawcode-dev/ai/utils/validation";
 import { AsyncJobManager, type AsyncJobRegisterOptions } from "../../src/async";
 import { Settings } from "../../src/config/settings";
 import { TaskTool } from "../../src/task";

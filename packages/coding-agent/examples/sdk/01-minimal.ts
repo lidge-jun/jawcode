@@ -4,7 +4,7 @@
  * Uses all defaults: discovers skills, hooks, tools, context files
  * from cwd and ~/.jwc/agent. Model chosen from settings or first available.
  */
-import { createAgentSession } from "@gajae-code/coding-agent";
+import { createAgentSession } from "@jawcode-dev/coding-agent";
 
 const { session } = await createAgentSession();
 

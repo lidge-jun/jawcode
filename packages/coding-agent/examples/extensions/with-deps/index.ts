@@ -4,7 +4,7 @@
  *
  * Requires: npm install in this directory
  */
-import type { ExtensionAPI } from "@gajae-code/coding-agent";
+import type { ExtensionAPI } from "@jawcode-dev/coding-agent";
 import ms from "ms";
 
 export default function (pi: ExtensionAPI) {

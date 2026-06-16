@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { AgentMessage } from "@gajae-code/agent-core";
-import { YieldQueue } from "@gajae-code/coding-agent/session/yield-queue";
+import type { AgentMessage } from "@jawcode-dev/agent-core";
+import { YieldQueue } from "@jawcode-dev/coding-agent/session/yield-queue";
 
 type Entry = {
 	id: string;

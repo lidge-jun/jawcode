@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { callWithCopilotModelRetry, isCopilotTransientModelError } from "@gajae-code/ai/utils/retry";
-import { isRetryableError } from "@gajae-code/utils";
+import { callWithCopilotModelRetry, isCopilotTransientModelError } from "@jawcode-dev/ai/utils/retry";
+import { isRetryableError } from "@jawcode-dev/utils";
 
 type ErrorShape = { status: number; code?: string; error?: { code?: string; message?: string }; message: string };
 

@@ -1,5 +1,5 @@
 /**
- * `@gajae-code/orchestration-token-benchmark`
+ * `@jawcode-dev/orchestration-token-benchmark`
  *
  * A deterministic, internal (NOT user-facing) benchmark for orchestration token
  * efficiency. It measures token metrics, prompt-prefix stability, and spawn-gate

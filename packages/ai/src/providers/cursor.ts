@@ -3,7 +3,7 @@ import * as fs from "node:fs/promises";
 import http2 from "node:http2";
 import { create, fromBinary, fromJson, type JsonValue, toBinary, toJson } from "@bufbuild/protobuf";
 import { ValueSchema } from "@bufbuild/protobuf/wkt";
-import { $env, APP_NAME, extractHttpStatusFromError, sanitizeText } from "@gajae-code/utils";
+import { $env, APP_NAME, extractHttpStatusFromError, sanitizeText } from "@jawcode-dev/utils";
 import { calculateCost } from "../models";
 import type {
 	Api,

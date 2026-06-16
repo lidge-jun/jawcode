@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { Effort, type Model } from "@gajae-code/ai";
+import { Effort, type Model } from "@jawcode-dev/ai";
 import {
 	expandRoleAlias,
 	findInitialModel,
@@ -12,8 +12,8 @@ import {
 	resolveModelRoleValue,
 	resolveModelScope,
 	restoreModelFromSession,
-} from "@gajae-code/coding-agent/config/model-resolver";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
+} from "@jawcode-dev/coding-agent/config/model-resolver";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
 
 // Mock models for testing
 const mockModels: Model<"anthropic-messages">[] = [

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import * as path from "node:path";
-import type { AgentTelemetryWarning, AgentTelemetryWarningCode } from "@gajae-code/agent-core";
+import type { AgentTelemetryWarning, AgentTelemetryWarningCode } from "@jawcode-dev/agent-core";
 
 /** Regression coverage for issue #264 dogfood failures. */
 describe("issue #264 — dogfood build and telemetry boundaries", () => {

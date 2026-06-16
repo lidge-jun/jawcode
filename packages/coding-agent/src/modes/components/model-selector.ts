@@ -1,5 +1,5 @@
-import { ThinkingLevel } from "@gajae-code/agent-core";
-import { clampThinkingLevelForModel, getSupportedEfforts, type Model, modelsAreEqual } from "@gajae-code/ai";
+import { ThinkingLevel } from "@jawcode-dev/agent-core";
+import { clampThinkingLevelForModel, getSupportedEfforts, type Model, modelsAreEqual } from "@jawcode-dev/ai";
 import {
 	Container,
 	fuzzyFilter,
@@ -11,7 +11,7 @@ import {
 	TabBar,
 	Text,
 	type TUI,
-} from "@gajae-code/tui";
+} from "@jawcode-dev/tui";
 import type { ModelProfileDefinition } from "../../config/model-profiles";
 import type { JwcModelSelectorTargetId, ModelRegistry } from "../../config/model-registry";
 import { JWC_MODEL_ASSIGNMENT_TARGET_IDS, JWC_MODEL_ASSIGNMENT_TARGETS } from "../../config/model-registry";

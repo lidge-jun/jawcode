@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { type FileEntry, migrateSessionEntries } from "@gajae-code/coding-agent/session/session-manager";
+import { type FileEntry, migrateSessionEntries } from "@jawcode-dev/coding-agent/session/session-manager";
 
 describe("migrateSessionEntries", () => {
 	it("should add id/parentId to v1 entries", () => {

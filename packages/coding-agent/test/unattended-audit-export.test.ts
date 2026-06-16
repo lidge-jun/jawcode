@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
-import { UnattendedAuditLog } from "@gajae-code/coding-agent/modes/shared/agent-wire/unattended-audit";
+import { UnattendedAuditLog } from "@jawcode-dev/coding-agent/modes/shared/agent-wire/unattended-audit";
 
 function seededLog(): { file: string; log: UnattendedAuditLog } {
 	const file = path.join(mkdtempSync(path.join(tmpdir(), "audit-export-")), "run.jsonl");

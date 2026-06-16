@@ -1,4 +1,4 @@
-import { $env, $inheritedEnv, extractHttpStatusFromError, structuredCloneJSON } from "@gajae-code/utils";
+import { $env, $inheritedEnv, extractHttpStatusFromError, structuredCloneJSON } from "@jawcode-dev/utils";
 import OpenAI from "openai";
 import type {
 	Tool as OpenAITool,

@@ -1,5 +1,5 @@
 {
-  "kind": "gajae-code-plugin",
+  "kind": "jawcode-plugin",
   "name": "combined-pack",
   "version": "1.0.0",
   "subskills": ["subskills/ralplan-design/SKILL.md", "subskills/executor-design/SKILL.md"],

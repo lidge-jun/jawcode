@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import type { RpcUnattendedDeclaration } from "@gajae-code/coding-agent/modes/rpc/rpc-types";
-import { approvalGate } from "@gajae-code/coding-agent/modes/shared/agent-wire/approval-gate";
-import { dispatchRpcCommand } from "@gajae-code/coding-agent/modes/shared/agent-wire/command-dispatch";
-import { UnattendedSessionControlPlane } from "@gajae-code/coding-agent/modes/shared/agent-wire/unattended-session";
+import type { RpcUnattendedDeclaration } from "@jawcode-dev/coding-agent/modes/rpc/rpc-types";
+import { approvalGate } from "@jawcode-dev/coding-agent/modes/shared/agent-wire/approval-gate";
+import { dispatchRpcCommand } from "@jawcode-dev/coding-agent/modes/shared/agent-wire/command-dispatch";
+import { UnattendedSessionControlPlane } from "@jawcode-dev/coding-agent/modes/shared/agent-wire/unattended-session";
 
 const declaration: RpcUnattendedDeclaration = {
 	actor: "redteam",

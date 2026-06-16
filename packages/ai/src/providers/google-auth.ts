@@ -15,7 +15,7 @@
 import { Buffer } from "node:buffer";
 import * as os from "node:os";
 import * as path from "node:path";
-import { $envpos, isEnoent, logger } from "@gajae-code/utils";
+import { $envpos, isEnoent, logger } from "@jawcode-dev/utils";
 import type { FetchImpl } from "../types";
 
 const OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token";

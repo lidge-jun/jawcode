@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
-import { AuthStorage } from "@gajae-code/coding-agent/session/auth-storage";
-import { hookFetch, Snowflake } from "@gajae-code/utils";
+import { ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
+import { AuthStorage } from "@jawcode-dev/coding-agent/session/auth-storage";
+import { hookFetch, Snowflake } from "@jawcode-dev/utils";
 
 describe("ModelRegistry LM Studio Fixes", () => {
 	let tempDir: string;

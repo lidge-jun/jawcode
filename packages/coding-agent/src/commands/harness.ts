@@ -1,6 +1,6 @@
 /**
  * `jwc harness <verb>` — AI-native stateless JSON CLI for the coding-harness
- * operations control plane (v1, gajae-code adapter).
+ * operations control plane (v1, jawcode adapter).
  *
  * Every verb emits the universal contract `{ ok, state, evidence, nextAllowedActions }`.
  * Foundation milestone (M1/M2) implements: start, observe, classify, events, retire,
@@ -12,8 +12,8 @@
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
-import { APP_NAME } from "@gajae-code/utils";
-import { Args, Command, Flags } from "@gajae-code/utils/cli";
+import { APP_NAME } from "@jawcode-dev/utils";
+import { Args, Command, Flags } from "@jawcode-dev/utils/cli";
 import { classifyRecovery } from "../harness-control-plane/classifier";
 import { callEndpoint, EndpointUnreachableError } from "../harness-control-plane/control-endpoint";
 import { type ResolvedOwner, RuntimeOwner, resolveOwner } from "../harness-control-plane/owner";
@@ -450,7 +450,7 @@ function requireSessionId(input: Record<string, unknown>, flagSession: string | 
 }
 
 export default class Harness extends Command {
-	static description = "Operate coding harnesses (v1: gajae-code) as a session/evidence/recovery/PR control plane";
+	static description = "Operate coding harnesses (v1: jawcode) as a session/evidence/recovery/PR control plane";
 	static strict = false;
 
 	static args = {
@@ -473,7 +473,7 @@ export default class Harness extends Command {
 	};
 
 	static examples = [
-		`${APP_NAME} harness start --input '{"harness":"gajae-code","workspace":".","branch":"feat/x"}'`,
+		`${APP_NAME} harness start --input '{"harness":"jawcode","workspace":".","branch":"feat/x"}'`,
 		`${APP_NAME} harness observe --session <id>`,
 		`${APP_NAME} harness classify --input '{"observation":{"ownerLive":false,"gitDelta":"dirty","risk":"vanished-dirty"}}'`,
 		`${APP_NAME} harness events --session <id> --follow`,
@@ -701,12 +701,12 @@ export default class Harness extends Command {
 	}
 
 	async #start(root: string, input: Record<string, unknown>): Promise<void> {
-		const harness = (typeof input.harness === "string" ? input.harness : "gajae-code") as HarnessKind;
-		if (harness !== "gajae-code") {
+		const harness = (typeof input.harness === "string" ? input.harness : "jawcode") as HarnessKind;
+		if (harness !== "jawcode") {
 			writeJson({
 				ok: false,
 				error: `harness_unsupported_in_v1:${harness}`,
-				evidence: { seam: true, supported: ["gajae-code"] },
+				evidence: { seam: true, supported: ["jawcode"] },
 			});
 			process.exitCode = 1;
 			return;
@@ -934,7 +934,7 @@ export default class Harness extends Command {
 			state: {
 				sessionId: "(none)",
 				lifecycle: full.lifecycle,
-				harness: "gajae-code",
+				harness: "jawcode",
 				ownerLive: full.ownerLive,
 				blockers: [],
 			},
@@ -1120,7 +1120,7 @@ export default class Harness extends Command {
 					schemaVersion: SESSION_SCHEMA_VERSION,
 					sessionId: "(none)",
 					lifecycle: "new",
-					harness: "gajae-code",
+					harness: "jawcode",
 					handle: {} as SessionHandle,
 					retries: {},
 					blockers: [],

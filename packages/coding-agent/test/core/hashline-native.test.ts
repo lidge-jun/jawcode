@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { formatHashLine } from "@gajae-code/coding-agent/hashline/hash";
+import { formatHashLine } from "@jawcode-dev/coding-agent/hashline/hash";
 import { h06FormatHashLines } from "../../../natives/native/index.js";
 
 function formatHashLinesTs(text: string, startLine = 1): string {

@@ -2,14 +2,14 @@ import { describe, expect, it } from "bun:test";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
-import type { RpcWorkflowGate } from "@gajae-code/coding-agent/modes/rpc/rpc-types";
+import type { RpcWorkflowGate } from "@jawcode-dev/coding-agent/modes/rpc/rpc-types";
 import {
 	FileGateStore,
 	type GateAuditEvent,
 	MemoryGateStore,
 	WorkflowGateBroker,
 	WorkflowGateBrokerError,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/workflow-gate-broker";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/workflow-gate-broker";
 
 function makeBroker(
 	extra: { audit?: (e: GateAuditEvent) => void; advance?: (g: RpcWorkflowGate, a: unknown) => void } = {},

@@ -7,11 +7,11 @@
  */
 import * as fs from "node:fs/promises";
 import path from "node:path";
-import type { AgentMessage } from "@gajae-code/agent-core";
-import type { ImageContent } from "@gajae-code/ai";
-import { glob } from "@gajae-code/natives";
-import { fuzzyMatch } from "@gajae-code/tui";
-import { formatAge, formatBytes, readImageMetadata } from "@gajae-code/utils";
+import type { AgentMessage } from "@jawcode-dev/agent-core";
+import type { ImageContent } from "@jawcode-dev/ai";
+import { glob } from "@jawcode-dev/natives";
+import { fuzzyMatch } from "@jawcode-dev/tui";
+import { formatAge, formatBytes, readImageMetadata } from "@jawcode-dev/utils";
 import { formatHashLines } from "../hashline/hash";
 import type { FileMentionMessage } from "../session/messages";
 import {

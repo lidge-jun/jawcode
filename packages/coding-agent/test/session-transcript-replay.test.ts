@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import type { AgentMessage } from "@gajae-code/agent-core";
-import type { Component, TUI } from "@gajae-code/tui";
+import type { AgentMessage } from "@jawcode-dev/agent-core";
+import type { Component, TUI } from "@jawcode-dev/tui";
 import { resetSettingsForTest, Settings } from "../src/config/settings";
 import { FullTranscriptOverlayComponent } from "../src/modes/components/full-transcript-overlay";
 import { initTheme } from "../src/modes/theme/theme";

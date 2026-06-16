@@ -1,6 +1,6 @@
 import * as os from "node:os";
 import * as path from "node:path";
-import { $flag, $which, logger } from "@gajae-code/utils";
+import { $flag, $which, logger } from "@jawcode-dev/utils";
 import { TOML } from "bun";
 
 /**

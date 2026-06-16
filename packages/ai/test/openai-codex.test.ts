@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { type RequestBody, transformRequestBody } from "@gajae-code/ai/providers/openai-codex/request-transformer";
-import { parseCodexError } from "@gajae-code/ai/providers/openai-codex/response-handler";
-import { convertOpenAICodexResponsesTools } from "@gajae-code/ai/providers/openai-codex-responses";
-import type { Tool } from "@gajae-code/ai/types";
+import { type RequestBody, transformRequestBody } from "@jawcode-dev/ai/providers/openai-codex/request-transformer";
+import { parseCodexError } from "@jawcode-dev/ai/providers/openai-codex/response-handler";
+import { convertOpenAICodexResponsesTools } from "@jawcode-dev/ai/providers/openai-codex-responses";
+import type { Tool } from "@jawcode-dev/ai/types";
 import { createCodexModel } from "./helpers";
 
 const DEFAULT_PROMPT_PREFIX =

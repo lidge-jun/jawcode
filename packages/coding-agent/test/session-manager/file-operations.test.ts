@@ -9,8 +9,8 @@ import {
 	resolveResumableSession,
 	type SessionHeader,
 	SessionManager,
-} from "@gajae-code/coding-agent/session/session-manager";
-import { getConfigRootDir, getSessionsDir, Snowflake, setAgentDir } from "@gajae-code/utils";
+} from "@jawcode-dev/coding-agent/session/session-manager";
+import { getConfigRootDir, getSessionsDir, Snowflake, setAgentDir } from "@jawcode-dev/utils";
 
 describe("loadEntriesFromFile", () => {
 	let tempDir: string;

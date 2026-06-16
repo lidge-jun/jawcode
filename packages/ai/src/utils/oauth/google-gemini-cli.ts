@@ -3,7 +3,7 @@
  * Standard Gemini models only (gemini-2.0-flash, gemini-2.5-*)
  */
 
-import { $env } from "@gajae-code/utils";
+import { $env } from "@jawcode-dev/utils";
 import { getGeminiCliHeaders } from "../../providers/google-gemini-headers";
 import { runGoogleOAuthLogin } from "./google-oauth-shared";
 import type { OAuthController, OAuthCredentials } from "./types";

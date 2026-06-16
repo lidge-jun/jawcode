@@ -10,7 +10,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { $flag, isBunTestRuntime, logger, Snowflake } from "@gajae-code/utils";
+import { $flag, isBunTestRuntime, logger, Snowflake } from "@jawcode-dev/utils";
 import type { Subprocess } from "bun";
 import { $ } from "bun";
 import { Settings } from "../../config/settings";

@@ -6,7 +6,7 @@
  * exposes one option-driven core plus thin dispatchers that pin the option set
  * for each target.
  */
-import { logger } from "@gajae-code/utils";
+import { logger } from "@jawcode-dev/utils";
 import { dereferenceJsonSchema } from "./dereference";
 import { upgradeJsonSchemaTo202012 } from "./draft";
 import { areJsonValuesEqual, mergePropertySchemas } from "./equality";

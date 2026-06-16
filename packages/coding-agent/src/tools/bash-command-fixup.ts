@@ -19,7 +19,7 @@
  * `pi_shell::fixup`, driven by the real `brush-parser` AST. This module is a
  * thin sync wrapper plus user-facing notice formatting.
  */
-import { applyBashFixups as nativeApplyBashFixups } from "@gajae-code/natives";
+import { applyBashFixups as nativeApplyBashFixups } from "@jawcode-dev/natives";
 
 export interface BashFixupResult {
 	/** Possibly-rewritten command. */

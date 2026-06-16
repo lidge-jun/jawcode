@@ -1,4 +1,4 @@
-import { isEnoent, logger, ptree, untilAborted } from "@gajae-code/utils";
+import { isEnoent, logger, ptree, untilAborted } from "@jawcode-dev/utils";
 import { formatCrashDiagnosticNotice, writeCrashReport } from "../debug/crash-diagnostics";
 import { ToolAbortError, throwIfAborted } from "../tools/tool-errors";
 import { applyWorkspaceEdit } from "./edits";

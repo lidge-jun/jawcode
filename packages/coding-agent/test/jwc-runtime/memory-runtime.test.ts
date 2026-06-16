@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { getSessionsDir } from "@gajae-code/utils";
+import { getSessionsDir } from "@jawcode-dev/utils";
 import { Settings } from "../../src/config/settings";
 import { runNativeChatCommand, runNativeMemoryCommand } from "../../src/jwc-runtime/memory-runtime";
 import { getDefaultSessionDirName } from "../../src/session/session-manager";

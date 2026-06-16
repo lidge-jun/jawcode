@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { setKeybindings } from "@gajae-code/tui";
+import { setKeybindings } from "@jawcode-dev/tui";
 import { KeybindingsManager } from "../src/config/keybindings";
 
 describe("KeybindingsManager.create", () => {

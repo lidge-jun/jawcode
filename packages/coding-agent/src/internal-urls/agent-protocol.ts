@@ -13,7 +13,7 @@
 import { createHash } from "node:crypto";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { isEnoent } from "@gajae-code/utils";
+import { isEnoent } from "@jawcode-dev/utils";
 import { applyQuery, pathToQuery } from "./json-query";
 import { authorizedArtifactsDirsFromContext } from "./registry-helpers";
 import type { InternalResource, InternalUrl, ProtocolHandler, ResolveContext } from "./types";

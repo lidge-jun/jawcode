@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, test, vi } from "bun:test";
-import type { AgentMessage, AgentTool } from "@gajae-code/agent-core";
-import { AUTO_HANDOFF_THRESHOLD_FOCUS, generateHandoff, renderHandoffPrompt } from "@gajae-code/agent-core/compaction";
-import type { AssistantMessage, Model, ToolCall } from "@gajae-code/ai";
-import * as ai from "@gajae-code/ai";
-import { Effort } from "@gajae-code/ai";
-import { getBundledModel } from "@gajae-code/ai/models";
+import type { AgentMessage, AgentTool } from "@jawcode-dev/agent-core";
+import { AUTO_HANDOFF_THRESHOLD_FOCUS, generateHandoff, renderHandoffPrompt } from "@jawcode-dev/agent-core/compaction";
+import type { AssistantMessage, Model, ToolCall } from "@jawcode-dev/ai";
+import * as ai from "@jawcode-dev/ai";
+import { Effort } from "@jawcode-dev/ai";
+import { getBundledModel } from "@jawcode-dev/ai/models";
 
 function createAssistantMessage(content: AssistantMessage["content"]): AssistantMessage {
 	return {

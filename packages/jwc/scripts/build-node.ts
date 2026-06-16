@@ -1,7 +1,7 @@
 /**
  * Node 22 SDK bundle skeleton (100.01). The contract output is
  * `packages/jwc/dist-node/sdk.js` — an ESM bundle of the single SDK surface
- * (`src/sdk.ts` → `@gajae-code/coding-agent/sdk`) for cli-jaw resident
+ * (`src/sdk.ts` → `@jawcode-dev/coding-agent/sdk`) for cli-jaw resident
  * embedding. This skeleton prioritizes a reproducible failure surface over
  * guaranteed success: Bun runtime references are expected until the 100.02+
  * shims land.
@@ -94,7 +94,7 @@ const result = await build({
 		"strip-ansi",
 		"json5",
 		"@silvia-odwyer/photon-node",
-		"@gajae-code/natives",
+		"@jawcode-dev/natives",
 		"markit-ai",
 	],
 	logLevel: "info",

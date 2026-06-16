@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { getBundledModel } from "@gajae-code/ai/models";
-import { convertMessages } from "@gajae-code/ai/providers/openai-completions";
-import type { AssistantMessage, Context, Model, OpenAICompat, ToolResultMessage, Usage } from "@gajae-code/ai/types";
+import { getBundledModel } from "@jawcode-dev/ai/models";
+import { convertMessages } from "@jawcode-dev/ai/providers/openai-completions";
+import type { AssistantMessage, Context, Model, OpenAICompat, ToolResultMessage, Usage } from "@jawcode-dev/ai/types";
 
 const emptyUsage: Usage = {
 	input: 0,

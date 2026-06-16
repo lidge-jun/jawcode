@@ -9,7 +9,7 @@ import {
 	Text,
 	truncateToWidth,
 	visibleWidth,
-} from "@gajae-code/tui";
+} from "@jawcode-dev/tui";
 import { getTabBarTheme } from "../shared";
 import { theme } from "../theme/theme";
 import { DynamicBorder } from "./dynamic-border";

@@ -13,8 +13,8 @@ import {
 	type AuthStorage,
 	getAntigravityUserAgent,
 	getGeminiCliHeaders,
-} from "@gajae-code/ai";
-import { fetchWithRetry } from "@gajae-code/utils";
+} from "@jawcode-dev/ai";
+import { fetchWithRetry } from "@jawcode-dev/utils";
 
 import type { SearchCitation, SearchResponse, SearchSource } from "../../../web/search/types";
 import { SearchProviderError } from "../../../web/search/types";
@@ -180,7 +180,7 @@ async function callGeminiSearch(
 				requestId: `agent-${crypto.randomUUID()}`,
 			}
 		: {
-				userAgent: "gajae-code",
+				userAgent: "jawcode",
 				requestId: `pi-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
 			};
 

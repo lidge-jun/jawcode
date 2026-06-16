@@ -14,17 +14,17 @@
  */
 import { afterEach, describe, expect, it, vi } from "bun:test";
 import * as path from "node:path";
-import { Agent } from "@gajae-code/agent-core";
-import type { AssistantMessage, TextContent } from "@gajae-code/ai";
-import { getBundledModel } from "@gajae-code/ai/models";
-import { ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { SecretObfuscator } from "@gajae-code/coding-agent/secrets/obfuscator";
-import { AgentSession, type AgentSessionEvent } from "@gajae-code/coding-agent/session/agent-session";
-import { AuthStorage } from "@gajae-code/coding-agent/session/auth-storage";
-import { SILENT_ABORT_MARKER } from "@gajae-code/coding-agent/session/messages";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { TempDir } from "@gajae-code/utils";
+import { Agent } from "@jawcode-dev/agent-core";
+import type { AssistantMessage, TextContent } from "@jawcode-dev/ai";
+import { getBundledModel } from "@jawcode-dev/ai/models";
+import { ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { SecretObfuscator } from "@jawcode-dev/coding-agent/secrets/obfuscator";
+import { AgentSession, type AgentSessionEvent } from "@jawcode-dev/coding-agent/session/agent-session";
+import { AuthStorage } from "@jawcode-dev/coding-agent/session/auth-storage";
+import { SILENT_ABORT_MARKER } from "@jawcode-dev/coding-agent/session/messages";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { TempDir } from "@jawcode-dev/utils";
 
 function makeAbortedAssistantMessage(text = "partial draft"): AssistantMessage {
 	return {

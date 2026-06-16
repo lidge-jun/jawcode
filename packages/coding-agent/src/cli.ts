@@ -3,14 +3,14 @@
 // import: later imports initialize the shared logger, which creates
 // `~/.jwc/logs` and would make the rename bail on "target exists".
 import "./migrate-config-dir-startup";
-import { installH2Fetch } from "@gajae-code/ai";
-import { APP_NAME, ENGINE_NAME, MIN_BUN_VERSION, procmgr, VERSION } from "@gajae-code/utils";
+import { installH2Fetch } from "@jawcode-dev/ai";
+import { APP_NAME, ENGINE_NAME, MIN_BUN_VERSION, procmgr, VERSION } from "@jawcode-dev/utils";
 
 // Activate HTTP/2 for all `fetch()` calls (provider streams, OAuth, model
 // discovery, web tools). Bun's HTTP/2 client is gated on a startup flag we
 // can't toggle from JS, so we patch globalThis.fetch to pass
 // `protocol: "http2"` per request, with transparent HTTP/1.1 fallback on
-// `HTTP2Unsupported`. See @gajae-code/ai/utils/h2-fetch for details.
+// `HTTP2Unsupported`. See @jawcode-dev/ai/utils/h2-fetch for details.
 installH2Fetch();
 
 // Strip macOS malloc-stack-logging env vars before any subprocess is spawned.
@@ -22,7 +22,7 @@ procmgr.scrubProcessEnv();
  * CLI entry point — registers all commands explicitly and delegates to the
  * lightweight CLI runner from pi-utils.
  */
-import { type CliConfig, type CommandEntry, run } from "@gajae-code/utils/cli";
+import { type CliConfig, type CommandEntry, run } from "@jawcode-dev/utils/cli";
 
 if (Bun.semver.order(Bun.version, MIN_BUN_VERSION) < 0) {
 	process.stderr.write(
@@ -80,7 +80,7 @@ function isJawBrandEnv(): boolean {
 const commands: CommandEntry[] = [...baseCommands, ...(isJawBrandEnv() ? jawOnlyCommands : [])];
 
 async function showHelp(config: CliConfig): Promise<void> {
-	const { renderRootHelp } = await import("@gajae-code/utils/cli");
+	const { renderRootHelp } = await import("@jawcode-dev/utils/cli");
 	const { getExtraHelpText } = await import("./cli/args");
 	renderRootHelp(config);
 	const extra = getExtraHelpText();
@@ -111,13 +111,13 @@ function isSubcommand(first: string | undefined): boolean {
  * installs all exercise it on every CI run.
  */
 async function runSmokeTest(): Promise<void> {
-	const { smokeTestSyncWorker } = await import("@gajae-code/stats");
+	const { smokeTestSyncWorker } = await import("@jawcode-dev/stats");
 	await smokeTestSyncWorker();
 	// Prove the embedded native addon extracts and the new perf exports resolve in
 	// the COMPILED single binary (dev runs only load the on-disk .node). Loading the
 	// natives module triggers loadNative()/embedded extraction; calling each new
 	// export confirms the symbols are present in the shipped binary.
-	const { h06FormatHashLines, h02ScoreSequenceFuzzy, h01FindBestFuzzyMatch } = await import("@gajae-code/natives");
+	const { h06FormatHashLines, h02ScoreSequenceFuzzy, h01FindBestFuzzyMatch } = await import("@jawcode-dev/natives");
 	const hashed = h06FormatHashLines("a\nb", 1);
 	if (hashed.split("\n").length !== 2) {
 		throw new Error(`smoke-test: h06FormatHashLines returned unexpected output: ${JSON.stringify(hashed)}`);

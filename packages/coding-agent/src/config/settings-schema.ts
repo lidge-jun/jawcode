@@ -1,5 +1,5 @@
-import { THINKING_EFFORTS } from "@gajae-code/ai/model-thinking";
-import { APP_NAME, ENGINE_NAME } from "@gajae-code/utils";
+import { THINKING_EFFORTS } from "@jawcode-dev/ai/model-thinking";
+import { APP_NAME, ENGINE_NAME } from "@jawcode-dev/utils";
 import { TASK_SIMPLE_MODES } from "../task/simple-mode";
 import { getThinkingLevelMetadata } from "../thinking";
 import { EDIT_MODES } from "../utils/edit-mode";

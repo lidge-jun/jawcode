@@ -1,4 +1,4 @@
-import { logger } from "@gajae-code/utils";
+import { logger } from "@jawcode-dev/utils";
 import { sliceLastTurnsByUserBoundary } from "../hindsight/content";
 import { extractMessages } from "../hindsight/transcript";
 import type { AgentSession } from "../session/agent-session";

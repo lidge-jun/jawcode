@@ -4,7 +4,7 @@ import * as os from "node:os";
 import path from "node:path";
 import type { AgentSideConnection, SessionNotification } from "@agentclientprotocol/sdk";
 import { zSessionNotification } from "@agentclientprotocol/sdk/dist/schema/zod.gen.js";
-import type { Model } from "@gajae-code/ai";
+import type { Model } from "@jawcode-dev/ai";
 import { AcpAgent } from "../src/modes/acp/acp-agent";
 import {
 	buildToolCallStartUpdate,

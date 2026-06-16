@@ -9,7 +9,7 @@
  * Transport security is delegated to the operator (Tailscale / Wireguard);
  * the server only checks a bearer token against an allow-list per request.
  */
-import { logger } from "@gajae-code/utils";
+import { logger } from "@jawcode-dev/utils";
 import type { AuthStorage } from "../auth-storage";
 import { parseBind } from "../utils/parse-bind";
 import { AuthBrokerRefresher, type AuthBrokerRefresherSchedule } from "./refresher";

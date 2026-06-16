@@ -4,13 +4,13 @@
  * configuration preview, grouped preset browser, then filtered models.
  */
 import { beforeAll, describe, expect, test, vi } from "bun:test";
-import type { Model } from "@gajae-code/ai";
-import type { ModelProfileDefinition } from "@gajae-code/coding-agent/config/model-profiles";
-import type { ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { ModelSelectorComponent } from "@gajae-code/coding-agent/modes/components/model-selector";
-import { getThemeByName, setThemeInstance, type Theme } from "@gajae-code/coding-agent/modes/theme/theme";
-import type { TUI } from "@gajae-code/tui";
+import type { Model } from "@jawcode-dev/ai";
+import type { ModelProfileDefinition } from "@jawcode-dev/coding-agent/config/model-profiles";
+import type { ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { ModelSelectorComponent } from "@jawcode-dev/coding-agent/modes/components/model-selector";
+import { getThemeByName, setThemeInstance, type Theme } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import type { TUI } from "@jawcode-dev/tui";
 
 function stripAnsi(text: string): string {
 	return text.replace(/\x1b\[[0-9;]*m/g, "");

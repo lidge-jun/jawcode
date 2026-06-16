@@ -1,8 +1,8 @@
 /**
  * Hook runner - executes hooks and manages their lifecycle.
  */
-import type { AgentMessage } from "@gajae-code/agent-core";
-import type { Model } from "@gajae-code/ai";
+import type { AgentMessage } from "@jawcode-dev/agent-core";
+import type { Model } from "@jawcode-dev/ai";
 import type { ModelRegistry } from "../../config/model-registry";
 import type { SessionManager } from "../../session/session-manager";
 import { createNoOpUIContext } from "../utils";
@@ -391,7 +391,7 @@ export class HookRunner {
 	 */
 	async emitBeforeAgentStart(
 		prompt: string,
-		images?: import("@gajae-code/ai").ImageContent[],
+		images?: import("@jawcode-dev/ai").ImageContent[],
 	): Promise<BeforeAgentStartEventResult | undefined> {
 		const ctx = this.#createContext();
 		let result: BeforeAgentStartEventResult | undefined;

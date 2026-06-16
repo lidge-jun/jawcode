@@ -1,5 +1,5 @@
 {
-	"$schema": "https://raw.githubusercontent.com/can1357/gajae-code/main/packages/coding-agent/theme-schema.json",
+	"$schema": "https://raw.githubusercontent.com/lidge-jun/jawcode/main/packages/coding-agent/theme-schema.json",
 	"name": "blue-crab",
 	"vars": {
 		"cyan": "#66e8ff",

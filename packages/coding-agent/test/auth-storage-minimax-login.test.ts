@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { AuthStorage } from "@gajae-code/coding-agent/session/auth-storage";
-import { hookFetch, Snowflake } from "@gajae-code/utils";
+import { AuthStorage } from "@jawcode-dev/coding-agent/session/auth-storage";
+import { hookFetch, Snowflake } from "@jawcode-dev/utils";
 
 describe("AuthStorage MiniMax login", () => {
 	let tempDir: string;

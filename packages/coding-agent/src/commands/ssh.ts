@@ -1,7 +1,7 @@
 /**
  * Manage SSH host configurations.
  */
-import { Args, Command, Flags } from "@gajae-code/utils/cli";
+import { Args, Command, Flags } from "@jawcode-dev/utils/cli";
 import { runSSHCommand, type SSHAction, type SSHCommandArgs } from "../cli/ssh-cli";
 import { initTheme } from "../modes/theme/theme";
 

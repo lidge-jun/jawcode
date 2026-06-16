@@ -1,5 +1,5 @@
 import * as path from "node:path";
-import { getAgentDir, isEnoent, parseFrontmatter } from "@gajae-code/utils";
+import { getAgentDir, isEnoent, parseFrontmatter } from "@jawcode-dev/utils";
 import { readMCPConfigFile, writeMCPConfigFile } from "../runtime-mcp/config-writer";
 import type { MCPConfigFile, MCPServerConfig } from "../runtime-mcp/types";
 import mcpDefaults from "./jwc/mcp-defaults.json" with { type: "json" };

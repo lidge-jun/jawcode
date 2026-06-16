@@ -19,23 +19,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { Agent } from "@gajae-code/agent-core";
-import { getBundledModel } from "@gajae-code/ai/models";
-import { ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { getEmbeddedDefaultJwcSkills } from "@gajae-code/coding-agent/defaults/jwc-defaults";
-import { resolveSkillSlashCommands, type Skill } from "@gajae-code/coding-agent/extensibility/skills";
-import { EventController } from "@gajae-code/coding-agent/modes/controllers/event-controller";
-import { InputController } from "@gajae-code/coding-agent/modes/controllers/input-controller";
-import { getThemeByName, setThemeInstance } from "@gajae-code/coding-agent/modes/theme/theme";
-import type { InteractiveModeContext } from "@gajae-code/coding-agent/modes/types";
-import { UiHelpers } from "@gajae-code/coding-agent/modes/utils/ui-helpers";
-import { AgentSession, type AgentSessionEvent } from "@gajae-code/coding-agent/session/agent-session";
-import { AuthStorage } from "@gajae-code/coding-agent/session/auth-storage";
-import { SKILL_PROMPT_MESSAGE_TYPE, type SkillPromptDetails } from "@gajae-code/coding-agent/session/messages";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { Container } from "@gajae-code/tui";
-import { TempDir } from "@gajae-code/utils";
+import { Agent } from "@jawcode-dev/agent-core";
+import { getBundledModel } from "@jawcode-dev/ai/models";
+import { ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { getEmbeddedDefaultJwcSkills } from "@jawcode-dev/coding-agent/defaults/jwc-defaults";
+import { resolveSkillSlashCommands, type Skill } from "@jawcode-dev/coding-agent/extensibility/skills";
+import { EventController } from "@jawcode-dev/coding-agent/modes/controllers/event-controller";
+import { InputController } from "@jawcode-dev/coding-agent/modes/controllers/input-controller";
+import { getThemeByName, setThemeInstance } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import type { InteractiveModeContext } from "@jawcode-dev/coding-agent/modes/types";
+import { UiHelpers } from "@jawcode-dev/coding-agent/modes/utils/ui-helpers";
+import { AgentSession, type AgentSessionEvent } from "@jawcode-dev/coding-agent/session/agent-session";
+import { AuthStorage } from "@jawcode-dev/coding-agent/session/auth-storage";
+import { SKILL_PROMPT_MESSAGE_TYPE, type SkillPromptDetails } from "@jawcode-dev/coding-agent/session/messages";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { Container } from "@jawcode-dev/tui";
+import { TempDir } from "@jawcode-dev/utils";
 
 // ============================================================================
 // Shared helpers

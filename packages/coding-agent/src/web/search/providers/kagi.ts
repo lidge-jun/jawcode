@@ -3,7 +3,7 @@
  *
  * Thin wrapper that adapts shared Kagi API utilities to SearchResponse shape.
  */
-import type { AuthStorage } from "@gajae-code/ai";
+import type { AuthStorage } from "@jawcode-dev/ai";
 import type { SearchResponse } from "../../../web/search/types";
 import { SearchProviderError } from "../../../web/search/types";
 import { KagiApiError, searchWithKagi } from "../../kagi";

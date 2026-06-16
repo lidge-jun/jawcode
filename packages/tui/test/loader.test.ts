@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { TUI } from "@gajae-code/tui";
-import { Loader } from "@gajae-code/tui/components/loader";
-import { visibleWidth } from "@gajae-code/tui/utils";
+import { TUI } from "@jawcode-dev/tui";
+import { Loader } from "@jawcode-dev/tui/components/loader";
+import { visibleWidth } from "@jawcode-dev/tui/utils";
 import { VirtualTerminal } from "./virtual-terminal";
 
 describe("Loader component", () => {

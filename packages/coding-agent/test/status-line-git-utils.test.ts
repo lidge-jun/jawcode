@@ -5,23 +5,23 @@ import {
 	isSamePrCacheContext,
 	parseDefaultBranch,
 	parseGitHubRepo,
-} from "@gajae-code/coding-agent/modes/components/status-line/git-utils";
+} from "@jawcode-dev/coding-agent/modes/components/status-line/git-utils";
 
 describe("parseGitHubRepo", () => {
 	test("parses HTTPS URL", () => {
-		expect(parseGitHubRepo("https://github.com/can1357/gajae-code.git")).toBe("can1357/gajae-code");
+		expect(parseGitHubRepo("https://github.com/lidge-jun/jawcode.git")).toBe("lidge-jun/jawcode");
 	});
 
 	test("parses HTTPS URL without .git suffix", () => {
-		expect(parseGitHubRepo("https://github.com/can1357/gajae-code")).toBe("can1357/gajae-code");
+		expect(parseGitHubRepo("https://github.com/lidge-jun/jawcode")).toBe("lidge-jun/jawcode");
 	});
 
 	test("parses SSH scp-style URL", () => {
-		expect(parseGitHubRepo("git@github.com:loftiskg/gajae-code.git")).toBe("loftiskg/gajae-code");
+		expect(parseGitHubRepo("git@github.com:loftiskg/jawcode.git")).toBe("loftiskg/jawcode");
 	});
 
 	test("parses SSH scp-style URL without .git suffix", () => {
-		expect(parseGitHubRepo("git@github.com:loftiskg/gajae-code")).toBe("loftiskg/gajae-code");
+		expect(parseGitHubRepo("git@github.com:loftiskg/jawcode")).toBe("loftiskg/jawcode");
 	});
 
 	test("parses ssh:// protocol URL", () => {

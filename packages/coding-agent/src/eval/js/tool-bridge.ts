@@ -1,4 +1,4 @@
-import type { AgentTool, AgentToolResult } from "@gajae-code/agent-core";
+import type { AgentTool, AgentToolResult } from "@jawcode-dev/agent-core";
 import type { ToolSession } from "../../tools";
 import { ToolError } from "../../tools/tool-errors";
 import type { JsStatusEvent } from "./shared/types";

@@ -1,5 +1,5 @@
 import * as path from "node:path";
-import { isEnoent } from "@gajae-code/utils";
+import { isEnoent } from "@jawcode-dev/utils";
 
 export type NotebookCellType = "code" | "markdown" | "raw";
 

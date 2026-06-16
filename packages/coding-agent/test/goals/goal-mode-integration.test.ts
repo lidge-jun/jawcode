@@ -1,18 +1,18 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
 import * as path from "node:path";
-import { Agent } from "@gajae-code/agent-core";
-import { ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
-import { resetSettingsForTest, Settings } from "@gajae-code/coding-agent/config/settings";
-import { GOAL_PLAN_PENDING_BRIEF } from "@gajae-code/coding-agent/goals/goal-planning-start";
-import { GoalTool } from "@gajae-code/coding-agent/goals/tools/goal-tool";
-import { readGoalPlan } from "@gajae-code/coding-agent/jwc-runtime/goal-engine";
-import { InteractiveMode } from "@gajae-code/coding-agent/modes/interactive-mode";
-import { initTheme } from "@gajae-code/coding-agent/modes/theme/theme";
-import { AgentSession } from "@gajae-code/coding-agent/session/agent-session";
-import { AuthStorage } from "@gajae-code/coding-agent/session/auth-storage";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { createTools, type Tool, type ToolSession } from "@gajae-code/coding-agent/tools";
-import { TempDir } from "@gajae-code/utils";
+import { Agent } from "@jawcode-dev/agent-core";
+import { ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
+import { resetSettingsForTest, Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { GOAL_PLAN_PENDING_BRIEF } from "@jawcode-dev/coding-agent/goals/goal-planning-start";
+import { GoalTool } from "@jawcode-dev/coding-agent/goals/tools/goal-tool";
+import { readGoalPlan } from "@jawcode-dev/coding-agent/jwc-runtime/goal-engine";
+import { InteractiveMode } from "@jawcode-dev/coding-agent/modes/interactive-mode";
+import { initTheme } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import { AgentSession } from "@jawcode-dev/coding-agent/session/agent-session";
+import { AuthStorage } from "@jawcode-dev/coding-agent/session/auth-storage";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { createTools, type Tool, type ToolSession } from "@jawcode-dev/coding-agent/tools";
+import { TempDir } from "@jawcode-dev/utils";
 
 function createToolSession(cwd: string, settings: Settings, overrides: Partial<ToolSession> = {}): ToolSession {
 	return {

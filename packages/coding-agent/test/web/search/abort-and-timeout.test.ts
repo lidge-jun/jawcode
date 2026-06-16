@@ -12,7 +12,7 @@
  * helper itself is exercised directly.
  */
 import { afterEach, describe, expect, it, vi } from "bun:test";
-import { hookFetch } from "@gajae-code/utils";
+import { hookFetch } from "@jawcode-dev/utils";
 import type { AgentStorage } from "../../../src/session/agent-storage";
 import type { ToolSession } from "../../../src/tools";
 import { ToolAbortError } from "../../../src/tools/tool-errors";

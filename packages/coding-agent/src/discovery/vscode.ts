@@ -4,7 +4,7 @@
  * Loads config from `.vscode` directory (project-only).
  * Supports MCP server discovery from `mcp.json` with nested `mcp.servers` structure.
  */
-import { tryParseJson } from "@gajae-code/utils";
+import { tryParseJson } from "@jawcode-dev/utils";
 import { registerProvider } from "../capability";
 import { readFile } from "../capability/fs";
 import { type MCPServer, mcpCapability } from "../capability/mcp";

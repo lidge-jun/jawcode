@@ -16,7 +16,7 @@
 import { describe, expect, it } from "bun:test";
 import * as os from "node:os";
 import * as path from "node:path";
-import { isEnoent } from "@gajae-code/utils";
+import { isEnoent } from "@jawcode-dev/utils";
 
 interface OpenAIResponsesUsage {
 	input_tokens: number;

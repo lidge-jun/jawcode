@@ -1,6 +1,6 @@
-import type { AgentTool, AgentToolResult, AgentToolUpdateCallback } from "@gajae-code/agent-core";
-import type { Static, TSchema } from "@gajae-code/ai";
-import { Snowflake } from "@gajae-code/utils";
+import type { AgentTool, AgentToolResult, AgentToolUpdateCallback } from "@jawcode-dev/agent-core";
+import type { Static, TSchema } from "@jawcode-dev/ai";
+import { Snowflake } from "@jawcode-dev/utils";
 import { applyToolProxy } from "../../../extensibility/tool-proxy";
 import type {
 	RpcHostToolCallRequest,

@@ -27,8 +27,8 @@ import {
 	RemoteAuthCredentialStore,
 	type SnapshotResponse,
 	startAuthGateway,
-} from "@gajae-code/ai";
-import { getConfigRootDir, isEnoent, VERSION } from "@gajae-code/utils";
+} from "@jawcode-dev/ai";
+import { getConfigRootDir, isEnoent, VERSION } from "@jawcode-dev/utils";
 import chalk from "chalk";
 import { type AuthBrokerClientConfig, resolveAuthBrokerConfig } from "../session/auth-broker-config";
 

@@ -2,15 +2,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { type SettingPath, Settings } from "@gajae-code/coding-agent/config/settings";
-import type { ToolSession } from "@gajae-code/coding-agent/tools";
-import { ReadTool } from "@gajae-code/coding-agent/tools/read";
-import * as imageResize from "@gajae-code/coding-agent/utils/image-resize";
-import * as toolsManager from "@gajae-code/coding-agent/utils/tools-manager";
-import * as scrapers from "@gajae-code/coding-agent/web/scrapers/types";
-import * as scraperUtils from "@gajae-code/coding-agent/web/scrapers/utils";
-import * as natives from "@gajae-code/natives";
-import { hookFetch, ptree, Snowflake } from "@gajae-code/utils";
+import { type SettingPath, Settings } from "@jawcode-dev/coding-agent/config/settings";
+import type { ToolSession } from "@jawcode-dev/coding-agent/tools";
+import { ReadTool } from "@jawcode-dev/coding-agent/tools/read";
+import * as imageResize from "@jawcode-dev/coding-agent/utils/image-resize";
+import * as toolsManager from "@jawcode-dev/coding-agent/utils/tools-manager";
+import * as scrapers from "@jawcode-dev/coding-agent/web/scrapers/types";
+import * as scraperUtils from "@jawcode-dev/coding-agent/web/scrapers/utils";
+import * as natives from "@jawcode-dev/natives";
+import { hookFetch, ptree, Snowflake } from "@jawcode-dev/utils";
 
 const withMissingSystemPython = () => {
 	const whichSpy = vi.spyOn(Bun, "which").mockImplementation(() => null);

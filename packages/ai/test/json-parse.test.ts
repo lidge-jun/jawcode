@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { parseJsonWithRepair, parseStreamingJson, repairJson } from "@gajae-code/ai/utils/json-parse";
+import { parseJsonWithRepair, parseStreamingJson, repairJson } from "@jawcode-dev/ai/utils/json-parse";
 
 describe("JSON repair", () => {
 	it("leaves valid string escapes unchanged", () => {

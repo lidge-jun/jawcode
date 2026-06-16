@@ -1,5 +1,5 @@
-import { resolveTokenizerFamily, type TokenizerFamily } from "@gajae-code/ai/utils/tokenizer-routing";
-import { Encoding } from "@gajae-code/natives";
+import { resolveTokenizerFamily, type TokenizerFamily } from "@jawcode-dev/ai/utils/tokenizer-routing";
+import { Encoding } from "@jawcode-dev/natives";
 import { triggerBackgroundDownload } from "./tokenizer-download";
 
 const FAMILY_TO_ENCODING: Record<TokenizerFamily, Encoding> = {

@@ -7,19 +7,19 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import { agentLoop, agentLoopDetailed } from "@gajae-code/agent-core/agent-loop";
+import { agentLoop, agentLoopDetailed } from "@jawcode-dev/agent-core/agent-loop";
 import {
 	type AgentRunSummary,
 	aggregateAgentRunCoverage,
 	aggregateAgentRunSummaries,
 	emptyAgentRunCoverage,
 	emptyAgentRunSummary,
-} from "@gajae-code/agent-core/run-collector";
-import { EXECUTE_TOOL_STATUS_ATTR, GenAIAttr, PiGenAIAggregateAttr } from "@gajae-code/agent-core/telemetry";
-import type { AgentEvent, AgentLoopConfig, AgentMessage, AgentTool } from "@gajae-code/agent-core/types";
-import type { AssistantMessage, Message } from "@gajae-code/ai";
-import { z } from "@gajae-code/ai";
-import { createMockModel } from "@gajae-code/ai/providers/mock";
+} from "@jawcode-dev/agent-core/run-collector";
+import { EXECUTE_TOOL_STATUS_ATTR, GenAIAttr, PiGenAIAggregateAttr } from "@jawcode-dev/agent-core/telemetry";
+import type { AgentEvent, AgentLoopConfig, AgentMessage, AgentTool } from "@jawcode-dev/agent-core/types";
+import type { AssistantMessage, Message } from "@jawcode-dev/ai";
+import { z } from "@jawcode-dev/ai";
+import { createMockModel } from "@jawcode-dev/ai/providers/mock";
 import type {
 	AttributeValue,
 	Context as OtelContext,

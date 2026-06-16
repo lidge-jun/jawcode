@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { SettingsList, type SettingsListTheme } from "@gajae-code/tui";
+import { SettingsList, type SettingsListTheme } from "@jawcode-dev/tui";
 
 // 260613 00:08 crash: an unset setting (default: undefined) leaked a
 // non-string currentValue into the list renderer and truncateToWidth threw

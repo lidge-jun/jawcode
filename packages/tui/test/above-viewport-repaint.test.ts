@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { type Component, type Terminal, TUI, ViewportFill } from "@gajae-code/tui";
+import { type Component, type Terminal, TUI, ViewportFill } from "@jawcode-dev/tui";
 import { VirtualTerminal } from "./virtual-terminal";
 
 /**

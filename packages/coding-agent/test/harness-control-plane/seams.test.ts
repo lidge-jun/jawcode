@@ -7,9 +7,9 @@ import {
 } from "../../src/harness-control-plane/seams";
 
 describe("v1 seams", () => {
-	it("only gajae-code is supported in v1", () => {
-		expect(SUPPORTED_HARNESSES).toEqual(["gajae-code"]);
-		expect(isHarnessSupported("gajae-code")).toBe(true);
+	it("only jawcode is supported in v1", () => {
+		expect(SUPPORTED_HARNESSES).toEqual(["jawcode"]);
+		expect(isHarnessSupported("jawcode")).toBe(true);
 		expect(isHarnessSupported("codex")).toBe(false);
 		expect(isHarnessSupported("omx")).toBe(false);
 	});
@@ -20,7 +20,7 @@ describe("v1 seams", () => {
 		expect(res.error).toBe("seam_unsupported_in_v1:codex-adapter");
 		expect(res.evidence.deferred).toContain("codex-adapter");
 		expect(res.evidence.deferred).toContain("remote-transport");
-		expect(res.evidence.supported).toEqual(["gajae-code"]);
+		expect(res.evidence.supported).toEqual(["jawcode"]);
 	});
 
 	it("documents the deferred (designed-not-built) surfaces", () => {

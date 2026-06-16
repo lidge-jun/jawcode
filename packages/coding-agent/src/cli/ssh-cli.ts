@@ -4,7 +4,7 @@
  * Handles `gjc ssh <command>` subcommands for SSH host configuration management.
  */
 
-import { getSSHConfigPath } from "@gajae-code/utils";
+import { getSSHConfigPath } from "@jawcode-dev/utils";
 import chalk from "chalk";
 import { addSSHHost, readSSHConfigFile, removeSSHHost, type SSHHostConfig } from "../ssh/config-writer";
 

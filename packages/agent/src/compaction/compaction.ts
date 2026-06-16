@@ -12,9 +12,9 @@ import {
 	type MessageAttribution,
 	type Model,
 	type Usage,
-} from "@gajae-code/ai";
-import { countTokens, type Encoding } from "@gajae-code/natives";
-import { logger, prompt } from "@gajae-code/utils";
+} from "@jawcode-dev/ai";
+import { countTokens, type Encoding } from "@jawcode-dev/natives";
+import { logger, prompt } from "@jawcode-dev/utils";
 import { type AgentTelemetry, instrumentedCompleteSimple } from "../telemetry";
 import type { AgentMessage, AgentTool } from "../types";
 import type { CompactionEntry, SessionEntry } from "./entries";

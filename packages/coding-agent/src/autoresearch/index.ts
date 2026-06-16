@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { AutocompleteItem } from "@gajae-code/tui";
-import { logger, prompt } from "@gajae-code/utils";
+import type { AutocompleteItem } from "@jawcode-dev/tui";
+import { logger, prompt } from "@jawcode-dev/utils";
 import type { ExtensionContext, ExtensionFactory } from "../extensibility/extensions";
 import * as git from "../utils/git";
 import commandResumeTemplate from "./command-resume.md" with { type: "text" };

@@ -1,10 +1,10 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
 import * as path from "node:path";
 import { stripVTControlCharacters } from "node:util";
-import { Agent } from "@gajae-code/agent-core";
-import { resetSettingsForTest, Settings } from "@gajae-code/coding-agent/config/settings";
-import { initTheme, theme } from "@gajae-code/coding-agent/modes/theme/theme";
-import { TempDir } from "@gajae-code/utils";
+import { Agent } from "@jawcode-dev/agent-core";
+import { resetSettingsForTest, Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { initTheme, theme } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import { TempDir } from "@jawcode-dev/utils";
 import { ModelRegistry } from "../src/config/model-registry";
 import { CustomEditor } from "../src/modes/components/custom-editor";
 import { InteractiveMode } from "../src/modes/interactive-mode";

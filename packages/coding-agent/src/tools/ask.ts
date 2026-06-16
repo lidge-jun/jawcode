@@ -15,7 +15,7 @@
  *   - Questions may time out and auto-select the recommended option (configurable, disabled in plan mode)
  */
 
-import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@gajae-code/agent-core";
+import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@jawcode-dev/agent-core";
 import {
 	type Component,
 	Container,
@@ -25,8 +25,8 @@ import {
 	Text,
 	visibleWidth,
 	wrapTextWithAnsi,
-} from "@gajae-code/tui";
-import { prompt, untilAborted } from "@gajae-code/utils";
+} from "@jawcode-dev/tui";
+import { prompt, untilAborted } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import type { RenderResultOptions } from "../extensibility/custom-tools/types";
 import {

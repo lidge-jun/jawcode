@@ -6,7 +6,7 @@
  * - Default (hook): Enter inserts newline, Ctrl+Enter submits, bordered popup
  * - Prompt-style (ask): Enter submits, Shift+Enter inserts newline, legacy ask chrome
  */
-import { Container, Editor, matchesKey, Spacer, Text, type TUI } from "@gajae-code/tui";
+import { Container, Editor, matchesKey, Spacer, Text, type TUI } from "@jawcode-dev/tui";
 import { getEditorTheme, theme } from "../../modes/theme/theme";
 import { matchesAppExternalEditor, matchesAppInterrupt } from "../../modes/utils/keybinding-matchers";
 import { getEditorCommand, openInEditor } from "../../utils/external-editor";

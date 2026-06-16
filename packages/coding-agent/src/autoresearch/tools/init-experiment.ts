@@ -1,6 +1,6 @@
 import * as path from "node:path";
 
-import { Text } from "@gajae-code/tui";
+import { Text } from "@jawcode-dev/tui";
 import * as z from "zod/v4";
 import type { ToolDefinition } from "../../extensibility/extensions";
 import type { Theme } from "../../modes/theme/theme";

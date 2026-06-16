@@ -1,6 +1,6 @@
 import * as path from "node:path";
 import { createInterface } from "node:readline/promises";
-import { $env, getProjectDir, isEnoent, prompt } from "@gajae-code/utils";
+import { $env, getProjectDir, isEnoent, prompt } from "@jawcode-dev/utils";
 import { applyChangelogProposals } from "../../commit/changelog";
 import { detectChangelogBoundaries } from "../../commit/changelog/detect";
 import { parseUnreleasedSection } from "../../commit/changelog/parse";

@@ -1,6 +1,6 @@
 # robojwc
 
-Self-hosted GitHub triage bot. Drives [`gjc --mode rpc`](https://github.com/can1357/gajae-code)
+Self-hosted GitHub triage bot. Drives [`gjc --mode rpc`](https://github.com/can1357/jawcode)
 as a subprocess against a per-issue git worktree, then writes back to GitHub
 through a sidecar that holds the PAT.
 
@@ -47,10 +47,10 @@ into the `tool_calls` table with credential-redacted args and results.
 ## Setup
 
 Requires Docker Compose v2 and a LiteLLM-style proxy on the host that your
-`~/.gjc/agent/models.container.yml` points at (mounted into the container as `models.yml`; kept under a separate filename on the host so the host gjc doesn't route through the gateway). robojwc lives inside the gajae-code
+`~/.gjc/agent/models.container.yml` points at (mounted into the container as `models.yml`; kept under a separate filename on the host so the host gjc doesn't route through the gateway). robojwc lives inside the jawcode
 monorepo at `python/robojwc/`; both the docker build context and the
 `/work/pi` bind mount default to the parent monorepo (`../..`). Override
-`PI_ROOT` only if you want a different gajae-code checkout backing the build
+`PI_ROOT` only if you want a different jawcode checkout backing the build
 and runtime.
 
 Bot account needs **Write** on every repo in `ROBJWC_REPO_ALLOWLIST`. A
@@ -63,7 +63,7 @@ $EDITOR .env
 openssl rand -hex 32              # ROBJWC_GH_PROXY_HMAC_KEY
 openssl rand -hex 32              # GITHUB_WEBHOOK_SECRET
 
-bun run pi:image                  # build gajae-code/pi:dev (one-time / on pi change)
+bun run pi:image                  # build jawcode/pi:dev (one-time / on pi change)
 bun run robojwc:build && bun run robojwc:up
 curl -fsS http://localhost:8080/healthz
 ```
@@ -75,7 +75,7 @@ comment out `ROBJWC_GH_PROXY_URL` / `ROBJWC_GH_PROXY_HMAC_KEY` and set
 rejects a `.env` setting both).
 
 Build invalidation is bounded: editing robojwc Python touches only the
-runtime layer; editing pi source rebuilds `gajae-code/pi:dev`, which
+runtime layer; editing pi source rebuilds `jawcode/pi:dev`, which
 robojwc's `Dockerfile.robojwc` extends via `FROM ${PI_BASE}`.
 
 ### Public URL
@@ -181,7 +181,7 @@ The integration test spawns a real `gjc --mode rpc` against an
 | Symptom | Check |
 |---|---|
 | `401 invalid signature` | `GITHUB_WEBHOOK_SECRET` mismatch with the repo webhook config. |
-| Container exits with `PI_ROOT … missing` | `/work/pi` mount empty inside the container; on the host either run `docker compose` from `python/robojwc/` so `PI_ROOT` defaults to `../..`, or export `PI_ROOT` to a valid gajae-code checkout. |
+| Container exits with `PI_ROOT … missing` | `/work/pi` mount empty inside the container; on the host either run `docker compose` from `python/robojwc/` so `PI_ROOT` defaults to `../..`, or export `PI_ROOT` to a valid jawcode checkout. |
 | `git push: Authentication required` | Bot PAT lacks push, or `ROBJWC_BOT_LOGIN` ≠ PAT's account. |
 | `refusing to push: commit author identity mismatch` | Some commit not authored as `ROBJWC_GIT_AUTHOR_*`. The error lists the offending shas; `git commit --amend --reset-author --no-edit`. |
 | `refusing to push: working tree is dirty` | Uncommitted agent edits. Or just call `gh_open_pr`, which auto-commits `bun run fix` output. |

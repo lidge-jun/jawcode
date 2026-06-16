@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { Message, Model } from "@gajae-code/ai";
+import type { Message, Model } from "@jawcode-dev/ai";
 import { AsyncJobManager } from "../src/async";
 import { Settings } from "../src/config/settings";
 import { readActorRegistry } from "../src/jwc-runtime/actor-registry";

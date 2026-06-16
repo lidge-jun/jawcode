@@ -1,4 +1,4 @@
-import { invalidateFsScanCache } from "@gajae-code/natives";
+import { invalidateFsScanCache } from "@jawcode-dev/natives";
 
 /**
  * Invalidate shared filesystem scan caches after a content write/update.

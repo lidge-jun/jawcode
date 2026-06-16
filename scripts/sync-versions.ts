@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 /**
- * Syncs ALL @gajae-code/* package dependency versions to match their current versions.
+ * Syncs ALL @jawcode-dev/* package dependency versions to match their current versions.
  * This ensures lockstep versioning across the monorepo.
  */
 
@@ -21,7 +21,7 @@ interface PackageInfo {
 	data: PackageJson;
 }
 
-const VERSION_LOCKSTEP_EXEMPT_PACKAGES = new Set(["gajae-code"]);
+const VERSION_LOCKSTEP_EXEMPT_PACKAGES = new Set(["jawcode"]);
 
 const packagesDir = join(process.cwd(), "packages");
 const packageDirs = readdirSync(packagesDir, { withFileTypes: true })

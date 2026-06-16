@@ -1,4 +1,4 @@
-# @gajae-code/stats
+# @jawcode-dev/stats
 
 Local observability dashboard for AI usage statistics.
 
@@ -41,7 +41,7 @@ gjc stats --json
 ### Programmatic
 
 ```typescript
-import { getDashboardStats, syncAllSessions } from "@gajae-code/stats";
+import { getDashboardStats, syncAllSessions } from "@jawcode-dev/stats";
 
 // Sync session logs to database
 const { processed, files } = await syncAllSessions();

@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { readWorkflowStateJson, runNativeStateCommand } from "@gajae-code/coding-agent/jwc-runtime/state-runtime";
+import { readWorkflowStateJson, runNativeStateCommand } from "@jawcode-dev/coding-agent/jwc-runtime/state-runtime";
 
 const tempRoots: string[] = [];
 let priorSessionId: string | undefined;

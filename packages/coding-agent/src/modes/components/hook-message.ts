@@ -1,5 +1,5 @@
-import type { Component } from "@gajae-code/tui";
-import { Box, Container, Spacer } from "@gajae-code/tui";
+import type { Component } from "@jawcode-dev/tui";
+import { Box, Container, Spacer } from "@jawcode-dev/tui";
 import type { HookMessageRenderer } from "../../extensibility/hooks/types";
 import { theme } from "../../modes/theme/theme";
 import type { HookMessage } from "../../session/messages";

@@ -17,16 +17,16 @@ import {
 	getCodexAccountId,
 	OPENAI_HEADER_VALUES,
 	OPENAI_HEADERS,
-} from "@gajae-code/ai/providers/openai-codex/constants";
-import { parseTextSignature } from "@gajae-code/ai/providers/openai-responses-shared";
-import { transformMessages } from "@gajae-code/ai/providers/transform-messages";
-import type { AssistantMessage, Message, Model } from "@gajae-code/ai/types";
+} from "@jawcode-dev/ai/providers/openai-codex/constants";
+import { parseTextSignature } from "@jawcode-dev/ai/providers/openai-responses-shared";
+import { transformMessages } from "@jawcode-dev/ai/providers/transform-messages";
+import type { AssistantMessage, Message, Model } from "@jawcode-dev/ai/types";
 import {
 	getOpenAIResponsesHistoryItems,
 	getOpenAIResponsesHistoryPayload,
 	normalizeResponsesToolCallId,
-} from "@gajae-code/ai/utils";
-import { $env, logger } from "@gajae-code/utils";
+} from "@jawcode-dev/ai/utils";
+import { $env, logger } from "@jawcode-dev/utils";
 
 const OPENAI_DEFAULT_BASE_URL = "https://api.openai.com/v1";
 

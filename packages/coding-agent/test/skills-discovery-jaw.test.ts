@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { loadSkills } from "@gajae-code/coding-agent/extensibility/skills";
+import { loadSkills } from "@jawcode-dev/coding-agent/extensibility/skills";
 import { cleanupTempHome } from "./helpers/temp-home-cleanup";
 
 function writeSkill(baseDir: string, name: string, description = `${name} test skill`): void {

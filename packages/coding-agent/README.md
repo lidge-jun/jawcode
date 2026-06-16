@@ -1,10 +1,10 @@
-# @gajae-code/coding-agent
+# @jawcode-dev/coding-agent
 
-Core implementation package for the `gjc` coding agent in the `gajae-code` monorepo.
+Core implementation package for the `gjc` coding agent in the `jawcode` monorepo.
 
 For installation, setup, provider configuration, model roles, slash commands, and full CLI reference, see:
 - [Monorepo README (local)](../../README.md)
-- [Monorepo README (GitHub)](https://github.com/can1357/gajae-code#readme)
+- [Monorepo README (GitHub)](https://github.com/lidge-jun/jawcode#readme)
 
 Package-specific references:
 - [CHANGELOG](./CHANGELOG.md)

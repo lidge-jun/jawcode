@@ -6,13 +6,13 @@ import {
 	truncateToWidth as nativeTruncateToWidth,
 	wrapTextWithAnsi as nativeWrapTextWithAnsi,
 	type SliceResult,
-} from "@gajae-code/natives";
-import { getDefaultTabWidth, getIndentation } from "@gajae-code/utils";
+} from "@jawcode-dev/natives";
+import { getDefaultTabWidth, getIndentation } from "@jawcode-dev/utils";
 import { renderMetrics } from "./metrics";
 
-export { Ellipsis } from "@gajae-code/natives";
+export { Ellipsis } from "@jawcode-dev/natives";
 
-export { getDefaultTabWidth, getIndentation } from "@gajae-code/utils";
+export { getDefaultTabWidth, getIndentation } from "@jawcode-dev/utils";
 
 function recordTextHelper<T>(name: string, fn: () => T): T {
 	if (!renderMetrics.enabled) return fn();

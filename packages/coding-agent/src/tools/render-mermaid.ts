@@ -1,5 +1,5 @@
-import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@gajae-code/agent-core";
-import { type MermaidAsciiRenderOptions, prompt, renderMermaidAscii } from "@gajae-code/utils";
+import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@jawcode-dev/agent-core";
+import { type MermaidAsciiRenderOptions, prompt, renderMermaidAscii } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import renderMermaidDescription from "../prompts/tools/render-mermaid.md" with { type: "text" };
 import type { ToolSession } from "./index";

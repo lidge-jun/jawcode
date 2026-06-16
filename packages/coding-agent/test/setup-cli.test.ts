@@ -148,7 +148,7 @@ describe("setup CLI parsing", () => {
 					"--profile",
 					"bot",
 					"--repo",
-					"gajae-code",
+					"jawcode",
 					"--session-command",
 					"gjc --model openai/gpt-5.5",
 					"--mutation",
@@ -160,7 +160,7 @@ describe("setup CLI parsing", () => {
 				flags: {
 					root: ["/tmp/repo"],
 					profile: "bot",
-					repo: "gajae-code",
+					repo: "jawcode",
 					sessionCommand: "gjc --model openai/gpt-5.5",
 					mutation: ["sessions,reports"],
 					json: true,

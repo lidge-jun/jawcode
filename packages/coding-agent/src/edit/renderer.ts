@@ -2,9 +2,9 @@
  * Edit tool renderer and LSP batching helpers.
  */
 
-import type { Component } from "@gajae-code/tui";
-import { Text, visibleWidth, wrapTextWithAnsi } from "@gajae-code/tui";
-import { sanitizeText } from "@gajae-code/utils";
+import type { Component } from "@jawcode-dev/tui";
+import { Text, visibleWidth, wrapTextWithAnsi } from "@jawcode-dev/tui";
+import { sanitizeText } from "@jawcode-dev/utils";
 import type { RenderResultOptions } from "../extensibility/custom-tools/types";
 import { HL_FILE_PREFIX } from "../hashline/hash";
 import type { FileDiagnosticsResult } from "../lsp";

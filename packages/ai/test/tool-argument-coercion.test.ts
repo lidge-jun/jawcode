@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { Tool, ToolCall } from "@gajae-code/ai/types";
-import { validateToolArguments } from "@gajae-code/ai/utils/validation";
+import type { Tool, ToolCall } from "@jawcode-dev/ai/types";
+import { validateToolArguments } from "@jawcode-dev/ai/utils/validation";
 import * as z from "zod/v4";
 
 describe("Tool argument coercion", () => {

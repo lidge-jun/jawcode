@@ -2,18 +2,18 @@ import { describe, expect, test } from "bun:test";
 import {
 	convertOpenAICodexResponsesTools as convertCodexTools,
 	normalizeCodexToolChoice,
-} from "@gajae-code/ai/providers/openai-codex-responses";
+} from "@jawcode-dev/ai/providers/openai-codex-responses";
 import {
 	convertTools,
 	mapOpenAIResponsesToolChoiceForTools,
 	supportsFreeformApplyPatch,
-} from "@gajae-code/ai/providers/openai-responses";
+} from "@jawcode-dev/ai/providers/openai-responses";
 import {
 	appendResponsesToolResultMessages,
 	convertResponsesAssistantMessage,
 	processResponsesStream,
-} from "@gajae-code/ai/providers/openai-responses-shared";
-import type { AssistantMessage, Model, Tool, ToolResultMessage } from "@gajae-code/ai/types";
+} from "@jawcode-dev/ai/providers/openai-responses-shared";
+import type { AssistantMessage, Model, Tool, ToolResultMessage } from "@jawcode-dev/ai/types";
 import type { ResponseStreamEvent } from "openai/resources/responses/responses";
 import * as z from "zod/v4";
 

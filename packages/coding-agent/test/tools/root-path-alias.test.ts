@@ -2,10 +2,10 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { ToolChoiceQueue } from "@gajae-code/coding-agent/session/tool-choice-queue";
-import { createTools, type ToolSession } from "@gajae-code/coding-agent/tools";
-import { resolveToCwd } from "@gajae-code/coding-agent/tools/path-utils";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { ToolChoiceQueue } from "@jawcode-dev/coding-agent/session/tool-choice-queue";
+import { createTools, type ToolSession } from "@jawcode-dev/coding-agent/tools";
+import { resolveToCwd } from "@jawcode-dev/coding-agent/tools/path-utils";
 
 function createTestSession(cwd: string, overrides: Partial<ToolSession> = {}): ToolSession {
 	return {

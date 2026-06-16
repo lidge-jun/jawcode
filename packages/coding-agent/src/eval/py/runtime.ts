@@ -6,7 +6,7 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { $env, $which, getPythonEnvDir } from "@gajae-code/utils";
+import { $env, $which, getPythonEnvDir } from "@jawcode-dev/utils";
 
 const DEFAULT_ENV_ALLOWLIST = new Set([
 	"PATH",

@@ -6,7 +6,7 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getAgentDir } from "@gajae-code/utils";
+import { getAgentDir } from "@jawcode-dev/utils";
 
 export interface CustomShareResult {
 	/** URL to display/open (optional - script may handle everything itself) */

@@ -10,7 +10,7 @@
 import { Database, type Statement } from "bun:sqlite";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { getAgentDbPath, logger } from "@gajae-code/utils";
+import { getAgentDbPath, logger } from "@jawcode-dev/utils";
 import { getEnvApiKey } from "./stream";
 import type { Provider } from "./types";
 import type {

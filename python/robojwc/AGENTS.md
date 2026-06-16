@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-`robojwc` is a self-hosted GitHub triage-and-fix bot that drives [`gjc --mode rpc`](https://github.com/can1357/gajae-code) as a subprocess. On every issue opened in an allowlisted repository it classifies the issue, applies labels, then branches into one of: reproduce → fix → PR (`bug` / `documentation`), single-comment answer (`question`), single thoughtful comment (`enhancement` / `proposal`), or brief comment (`invalid` / `duplicate`). Follow-up comments and PR review comments resume the same gjc session so the agent keeps its prior reasoning. If the orchestrator restarts mid-task, the dispatcher resumes the same session via `gjc --continue` from the per-issue `session_dir`, so an interrupted task re-enters its prior reasoning instead of restarting from scratch. The orchestrator runs as a single FastAPI process inside Docker with SQLite-backed durable event state.
+`robojwc` is a self-hosted GitHub triage-and-fix bot that drives [`gjc --mode rpc`](https://github.com/can1357/jawcode) as a subprocess. On every issue opened in an allowlisted repository it classifies the issue, applies labels, then branches into one of: reproduce → fix → PR (`bug` / `documentation`), single-comment answer (`question`), single thoughtful comment (`enhancement` / `proposal`), or brief comment (`invalid` / `duplicate`). Follow-up comments and PR review comments resume the same gjc session so the agent keeps its prior reasoning. If the orchestrator restarts mid-task, the dispatcher resumes the same session via `gjc --continue` from the per-issue `session_dir`, so an interrupted task re-enters its prior reasoning instead of restarting from scratch. The orchestrator runs as a single FastAPI process inside Docker with SQLite-backed durable event state.
 
 ## Architecture & Data Flow
 
@@ -23,7 +23,7 @@ Webhook → durable queue → async dispatcher → per-issue git worktree → gj
 - `src/prompts/` — Mustache-style `{{var}}` templates loaded by `persona.py` via `@cache` and `importlib.resources`. Shipped as package data (`pyproject.toml` `package-data`).
 - `tests/` — pytest suite. `test_worker_smoke.py` is gated on `ROBJWC_INTEGRATION=1`.
 - `data/` — runtime state (sqlite + WAL, `workspaces/`, `logs/`). Never committed.
-- `/Dockerfile` (pi root) — produces `gajae-code/pi:dev` (pi runtime image: python + bun + rustup + pi-natives + jwc_rpc + `/usr/local/bin/gjc` shim + the full pi source under `/pi`). Stages: `natives-builder` → `wheel-builder` → `pi-base` → `pi-runtime` (default). Built via `bun run pi:image`. Robogjc's image extends `pi-base` via `FROM ${PI_BASE}` in `/Dockerfile.robojwc`.
+- `/Dockerfile` (pi root) — produces `jawcode/pi:dev` (pi runtime image: python + bun + rustup + pi-natives + jwc_rpc + `/usr/local/bin/gjc` shim + the full pi source under `/pi`). Stages: `natives-builder` → `wheel-builder` → `pi-base` → `pi-runtime` (default). Built via `bun run pi:image`. Robogjc's image extends `pi-base` via `FROM ${PI_BASE}` in `/Dockerfile.robojwc`.
 
 ## Development Commands
 
@@ -38,8 +38,8 @@ bun run robojwc:serve              # python -m robojwc serve on the host
 Docker inner loop:
 
 ```
-bun run pi:image                  # build gajae-code/pi:dev (one-time / on pi change)
-bun run pi:run                    # docker run -it gajae-code/pi:dev (smoke-test the shim)
+bun run pi:image                  # build jawcode/pi:dev (one-time / on pi change)
+bun run pi:run                    # docker run -it jawcode/pi:dev (smoke-test the shim)
 bun run robojwc:build              # pi:image (if pi changed) + docker compose build
 bun run robojwc:dev                # build + up -d + follow logs
 bun run robojwc:up / robojwc:down / robojwc:restart / robojwc:logs
@@ -97,7 +97,7 @@ Lint + format: TypeScript via Biome (config in `biome.json`), Python via Ruff (c
 - `src/cli.py` — Click CLI (`serve`, `triage`, `replay`, `status`, `cleanup`).
 - `src/dashboard.py` — single-page HTML dashboard served from `/`.
 - `pyproject.toml` — packaging + pytest config (`asyncio_mode = "auto"`, `testpaths = ["tests"]`).
-- `/Dockerfile.robojwc` (pi root) — robojwc's image. `FROM ${PI_BASE}` (default `gajae-code/pi:dev`), adds the SolidJS dashboard bundle, the robojwc Python package, and the `robojwc-entrypoint` shim. Tini entrypoint, exposes `8080`, `VOLUME /data`. The toolchain (python + bun + rustup + pi-natives + jwc_rpc + `gjc` shim) comes from `pi-base` — no duplication in this file.
+- `/Dockerfile.robojwc` (pi root) — robojwc's image. `FROM ${PI_BASE}` (default `jawcode/pi:dev`), adds the SolidJS dashboard bundle, the robojwc Python package, and the `robojwc-entrypoint` shim. Tini entrypoint, exposes `8080`, `VOLUME /data`. The toolchain (python + bun + rustup + pi-natives + jwc_rpc + `gjc` shim) comes from `pi-base` — no duplication in this file.
 - `docker-compose.yml` — `build.args.PI_BASE`, mounts `$PI_ROOT:/work/pi:ro`, `./data:/data`, `~/.gjc/agent/models.container.yml:ro` (mapped to `models.yml` inside the container — kept separate from the host's `~/.gjc/agent/models.yml` so the host gjc doesn't pick up gateway routing intended only for the container), `extra_hosts: llm-gateway.internal:host-gateway`.
 - `entrypoint.sh` — validates `PI_ROOT`, creates `/data/{workspaces,logs}` + build caches.
 - `.env.example` — authoritative list of required runtime env vars.
@@ -110,7 +110,7 @@ Lint + format: TypeScript via Biome (config in `biome.json`), Python via Ruff (c
 - **Task runner**: `bun` (root `package.json` `scripts`). Always reach for an existing `bun run` recipe before invoking `docker compose` or `pytest` directly.
 - **Container runtime**: Docker Compose v2. The image embeds Bun 1.3.14 + a rustup launcher and exposes `gjc` via a `/usr/local/bin/gjc` shim; `ROBJWC_GJC_COMMAND=gjc` should not need changing.
 - **Required env** (set in `.env`, see `.env.example`): `GITHUB_WEBHOOK_SECRET`, `ROBJWC_BOT_LOGIN`, `ROBJWC_GIT_AUTHOR_NAME`, `ROBJWC_GIT_AUTHOR_EMAIL`, `ROBJWC_REPO_ALLOWLIST`, plus model knobs (`ROBJWC_MODEL`, `ROBJWC_THINKING`, optional `ROBJWC_PROVIDER`) and rate-limit / concurrency / timeout overrides. **GitHub auth is mode-exclusive**: either set `ROBJWC_GH_PROXY_URL` + `ROBJWC_GH_PROXY_HMAC_KEY` (gh-proxy mode; PAT lives only in the sidecar container — the bundled compose default), or set `GITHUB_TOKEN` directly (single-process PAT mode). `Settings._validate_proxy_or_pat` rejects a `.env` that sets both.
-- **PI_ROOT resolution**: robojwc lives inside the gajae-code monorepo at `python/robojwc/`. `bun run pi:image` builds the parent monorepo (`../..`) as its docker build context to produce `gajae-code/pi:dev`; `docker-compose.yml` extends that image via `PI_BASE` and mounts the same parent path read-only at `/work/pi` for the orchestrator to see live source. Override `PI_ROOT` only when pointing the build/mount at a different gajae-code checkout. Inside the container the path is always `/work/pi`. Build invalidation stays bounded: Python-only edits in robojwc never trigger a natives recompile.
+- **PI_ROOT resolution**: robojwc lives inside the jawcode monorepo at `python/robojwc/`. `bun run pi:image` builds the parent monorepo (`../..`) as its docker build context to produce `jawcode/pi:dev`; `docker-compose.yml` extends that image via `PI_BASE` and mounts the same parent path read-only at `/work/pi` for the orchestrator to see live source. Override `PI_ROOT` only when pointing the build/mount at a different jawcode checkout. Inside the container the path is always `/work/pi`. Build invalidation stays bounded: Python-only edits in robojwc never trigger a natives recompile.
 - **Forbidden**: no docker-in-docker, no extra service containers, no new background workers outside `WorkerPool`. The container itself is the isolation boundary; per-issue isolation is the git worktree.
 
 ## Testing & QA

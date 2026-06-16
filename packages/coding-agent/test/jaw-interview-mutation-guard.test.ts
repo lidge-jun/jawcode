@@ -2,13 +2,13 @@ import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { AgentTool } from "@gajae-code/agent-core";
+import type { AgentTool } from "@jawcode-dev/agent-core";
 import {
 	assertJawInterviewMutationRawPathsAllowed,
 	getJawInterviewMutationDecision,
 	JAW_INTERVIEW_MUTATION_BLOCK_MESSAGE,
-} from "@gajae-code/coding-agent/skill-state/jaw-interview-mutation-guard";
-import { ToolError } from "@gajae-code/coding-agent/tools/tool-errors";
+} from "@jawcode-dev/coding-agent/skill-state/jaw-interview-mutation-guard";
+import { ToolError } from "@jawcode-dev/coding-agent/tools/tool-errors";
 
 const tempRoots: string[] = [];
 

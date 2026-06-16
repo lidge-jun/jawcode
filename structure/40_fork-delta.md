@@ -1,6 +1,6 @@
 # fork-delta — lidge-jun/jawcode lineage delta index (체리픽 정본)
 
-> upstream lineage: `Yeachan-Heo/gajae-code` · public repo: `lidge-jun/jawcode`. 본 문서는 업스트림 계열 코드에서 Jawcode가 이탈한 파일의 **단일 카노니컬 인덱스**다 — 리베이스/체리픽 전 충돌 예상 분석의 첫 진입점. 설계 정본: `devlog/_plan/260614_cli_jaw_jwc_distribution_strategy/_legacy/260612_jawcode_fork/phase1/067.1_plan_structure_fork_delta.md`.
+> upstream lineage: `Yeachan-Heo/jawcode` · public repo: `lidge-jun/jawcode`. 본 문서는 업스트림 계열 코드에서 Jawcode가 이탈한 파일의 **단일 카노니컬 인덱스**다 — 리베이스/체리픽 전 충돌 예상 분석의 첫 진입점. 설계 정본: `devlog/_plan/260614_cli_jaw_jwc_distribution_strategy/_legacy/260612_jawcode_fork/phase1/067.1_plan_structure_fork_delta.md`.
 > 갱신 규칙: HARD-EDIT·INVERTED-GUARD·REMOVED·NEW 파일이 포함된 커밋은 본 문서를 **동행 갱신**한다 (SOFT-EDIT는 밴드 일괄 허용). 커밋 트레일러 `Fork-Delta: <종류> <경로>` 규약은 `structure/11_conventions.md` 참조.
 
 ## 종류 정의
@@ -23,7 +23,7 @@
 - ~~`CANONICAL_GJC_WORKFLOW_SKILLS` 등 심볼 변경 금지~~ → **플립 완료**: `CANONICAL_JWC_WORKFLOW_SKILLS`·`Jwc*`·`Jawcode*`
 - ~~receipt.owner 변경 금지~~ → **쓰기 `jwc-*` / 읽기 gjc-* 별칭 수용** (read-both 정규화 4사이트 — 퍼시스트 호환 유지)
 - `ENGINE_NAME = "gjc"`(`packages/utils/src/dirs.ts:20`) → **여전히 보존** (이중 브랜드 분모 — 플립 연기 명단, 05 §연기)
-- `@gajae-code/*` 내부 import 스코프 → 보존 (063.1 전략 B)
+- `@jawcode-dev/*` 내부 import 스코프 → 보존 (063.1 전략 B)
 - `.gjc/` 상태 경로 → **`.jwc` 전환 완료 (260612 Phase β 본 적용, 0b603b05+d34097b8)** — legacy는 migrate-config-dir 원타임 rename + sentinel. 예외: migrate-config-dir.*·beta-jwc-sweep.ts는 ".gjc" 리터럴 의도 보존
 
 ## 델타 인덱스 (260612 C1~C13 기준)
@@ -86,7 +86,7 @@
 
 | 경로 | 밴드 | 처리 |
 |---|---|---|
-| `packages/gajae-code/` (셸 패키지 4파일) | 085.5-M7 (C10) | upstream 갱신 시 **re-delete**. `packages/jwc`가 단일 진입점 |
+| `packages/jawcode/` (셸 패키지 4파일) | 085.5-M7 (C10) | upstream 갱신 시 **re-delete**. `packages/jwc`가 단일 진입점 |
 
 ### TUI·세션
 
@@ -160,7 +160,7 @@
 
 ---
 
-## Fork logic changelog (jawcode vs gajae-code upstream)
+## Fork logic changelog (jawcode vs jawcode upstream)
 
 > **정본**: upstream `269387ba` (`devlog/_upstream_gjc/`) 대비 worktree `d60b7822` (`dev`)의 **동작·계약·런타임** 변경. 파일 목록은 [fork-delta.md](./40_fork-delta.md), 밴드 스냅샷은 [struct_har/](../struct_har/README.md).
 > **99 잔여 갭**: `99.02` PR/CI 마감·`99.04` HUD·`99.07` 슬래시 패리티 등 — [status.md](./50_status.md) · [099_stabilization](../struct_har/jwc_patched/099_stabilization/02_logic_changes.md).
@@ -188,18 +188,18 @@
 ### 010 — 셸·브랜드·릴리스
 
 - `packages/jwc`: package `jawcode`, bin `jwc`, `jawcode/sdk` 재수출; `cli-entry` 번들 퍼블리시 (P12).
-- `packages/gajae-code` **삭제** — 더 이상 repo 내 `gjc` bin 없음.
+- `packages/jawcode` **삭제** — 더 이상 repo 내 `gjc` bin 없음.
 - `dirs.ts`: `APP_NAME` 기본 `jwc`, config `~/.jwc`; `ENGINE_NAME`/`gjc` 내부 식별자 보존.
 - `rebrand-inventory` / `verify-g002-gates`: 기대 bin·스킬 4종을 **jwc 어휘**로 확장·반전.
 - 커밋: `7d55513b` jwc shell, `bb6571a0` gjc bin 제거, `6c9b3c53` jwc publish, `59d10c66` ENGINE/APP split.
 
 ### 020 — 프롬프트·정체성
 
-- `system-prompt.md`: legacy gajae-code 산문 → Jaw/jwc 워크플로 표면; skill XML `jaw-interview`·`jwc` CLI 예시.
+- `system-prompt.md`: legacy jawcode 산문 → Jaw/jwc 워크플로 표면; skill XML `jaw-interview`·`jwc` CLI 예시.
 - `agent-identity.ts`: 설정 기반 이름/말투/언어 블록 (`identity.*` settings).
 - Role agents (`planner`/`architect`/`critic`): bash allowlist **jwc** 접두; ralplan state 쓰기만 허용.
 - Tools prompts (`bash`, `skill`, memory tools): 브랜드·경로 `.jwc` 정합.
-- `system-prompt-identity.test.ts` / `agent-identity-leak.test.ts`: TUI "너는 누구야" → Jaw, legacy gajae-code 비언급.
+- `system-prompt-identity.test.ts` / `agent-identity-leak.test.ts`: TUI "너는 누구야" → Jaw, legacy jawcode 비언급.
 - 커밋: `da701492`–`ff11c848` C7–C8, `db31d4bd` C12, `59043f77` identity settings.
 
 ### 030 — 스킬 디스커버리
@@ -320,7 +320,7 @@
 - **gjc→jwc 소스 플립** (`8e17a1ce`, F1–F5): 디렉터리(jwc-runtime/jwc-plugins/defaults/jwc 등)·심볼
   (Gjc→Jwc 88파일, GajaeCode→Jawcode)·receipt owner(jwc-* write, gjc-* read-both)·goals.json 필드
   (jwc* + 레거시 폴백)·ACP `_jwc/` 별칭(+`_gjc/` 유지)·기본 커맨드 `jwc`·테스트/픽스처 리네임. 내부
-  패키지 스코프 `@gajae-code/*`는 보존(D4). 상세: [_fin/260613_gjc_flip](../devlog/_fin/260613_gjc_flip/00_moc_flip.md), 인덱스 [fork-delta.md](./40_fork-delta.md).
+  패키지 스코프 `@jawcode-dev/*`는 보존(D4). 상세: [_fin/260613_gjc_flip](../devlog/_fin/260613_gjc_flip/00_moc_flip.md), 인덱스 [fork-delta.md](./40_fork-delta.md).
 - **99.20.08 `/help` 도킹 2-페인 카탈로그**: 모델-셀렉터 문법, builtin/skill/custom 탭 분할, enter로
   커맨드 삽입 — [extensibility.md](./21_extensibility.md).
 - **99.20.07 TUI 레이아웃 정규화 (P1–P4)**: OAuth 로그인 플로우→`LoginDialogComponent` 도킹
@@ -342,26 +342,26 @@
 
 ### 리베이스 시 주의
 
-- HARD-EDIT 파일에서 **동작** 우선: D4(`.jwc/`, `@gajae-code/*`, receipt owner) > upstream 문구.
+- HARD-EDIT 파일에서 **동작** 우선: D4(`.jwc/`, `@jawcode-dev/*`, receipt owner) > upstream 문구.
 - Phase β 이후 문서·스냅샷은 `.jwc/` 기준; AGENTS.md upstream 계약은 수정 금지.
 
-### 업스트림 계보 (omp → gajae-code → jawcode)
+### 업스트림 계보 (omp → jawcode → jawcode)
 
-> **Pi**(badlogic/pi-mono) → **oh-my-pi(omp)** → **gajae-code** → **jawcode(`jwc`)**.
-> jawcode는 gajae-code 0.4.4 포크; 공개 명령·상태는 `jwc`/`.jwc`, 내부 식별자(`@gajae-code/*`,
+> **Pi**(badlogic/pi-mono) → **oh-my-pi(omp)** → **jawcode** → **jawcode(`jwc`)**.
+> jawcode는 jawcode 0.4.4 포크; 공개 명령·상태는 `jwc`/`.jwc`, 내부 식별자(`@jawcode-dev/*`,
 > `GJC_*`)는 리베이스 보존 경계.
 
-| | omp | gajae-code(upstream) | jawcode(jwc) |
+| | omp | jawcode(upstream) | jawcode(jwc) |
 |---|---|---|---|
 | CLI bin | `omp` | `gjc` | **`jwc`** (단일 진입) |
-| npm scope | `@oh-my-pi/*` | `@gajae-code/*` | `@gajae-code/*` 유지 + `packages/jwc` |
+| npm scope | `@oh-my-pi/*` | `@jawcode-dev/*` | `@jawcode-dev/*` 유지 + `packages/jwc` |
 | interview | (스킬/`.omp`) | `deep-interview` | **`jaw-interview`** |
 | config dir | omp 관례 | `.gjc/`→`.jwc` 전환 | **`.jwc/`** |
 | 문서 SoT | README+docs | upstream docs | **AGENTS.md + structure/** + devlog |
 
-- gajae-code는 omp 계열 포크. jawcode 리베이스 1차 대상 = **gajae-code**; omp는 기능/아키텍처
+- jawcode는 omp 계열 포크. jawcode 리베이스 1차 대상 = **jawcode**; omp는 기능/아키텍처
   선행 참고. 스냅샷: [struct_har/omp_origin/](../struct_har/omp_origin/README.md).
-- 보존(리베이스 비용): `@gajae-code/*` 워크스페이스, `packages/coding-agent/` 코어(HARD-EDIT는
+- 보존(리베이스 비용): `@jawcode-dev/*` 워크스페이스, `packages/coding-agent/` 코어(HARD-EDIT는
   [fork-delta.md](./40_fork-delta.md) 추적), upstream baseline(`devlog/_upstream_gjc/`·`struct_har/gjc_origin/`).
 - 표면(jwc): bin·브랜딩·번들 스킬 slug(`jaw-interview`)·시스템 프롬프트 Jaw 아이덴티티·cli-jaw 정렬.
 - 동기화: `git fetch upstream`+rebase→`conventions.md`·`struct_har/gjc_origin/**`;

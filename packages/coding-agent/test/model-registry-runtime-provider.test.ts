@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { type AssistantMessageEventStream, clearCustomApis, Effort, getCustomApi } from "@gajae-code/ai";
-import { getOAuthProviders, unregisterOAuthProviders } from "@gajae-code/ai/utils/oauth";
-import type { OAuthCredentials } from "@gajae-code/ai/utils/oauth/types";
-import { ModelRegistry, type ProviderConfigInput } from "@gajae-code/coding-agent/config/model-registry";
-import { AuthStorage } from "@gajae-code/coding-agent/session/auth-storage";
-import { Snowflake } from "@gajae-code/utils";
+import { type AssistantMessageEventStream, clearCustomApis, Effort, getCustomApi } from "@jawcode-dev/ai";
+import { getOAuthProviders, unregisterOAuthProviders } from "@jawcode-dev/ai/utils/oauth";
+import type { OAuthCredentials } from "@jawcode-dev/ai/utils/oauth/types";
+import { ModelRegistry, type ProviderConfigInput } from "@jawcode-dev/coding-agent/config/model-registry";
+import { AuthStorage } from "@jawcode-dev/coding-agent/session/auth-storage";
+import { Snowflake } from "@jawcode-dev/utils";
 
 describe("ModelRegistry runtime provider registration", () => {
 	let tempDir: string;

@@ -1,8 +1,8 @@
-import { APP_NAME } from "@gajae-code/utils";
+import { APP_NAME } from "@jawcode-dev/utils";
 /**
  * Install GJC defaults or optional feature dependencies.
  */
-import { Args, Command, Flags } from "@gajae-code/utils/cli";
+import { Args, Command, Flags } from "@jawcode-dev/utils/cli";
 import { runSetupCommand, type SetupCommandArgs, type SetupComponent } from "../cli/setup-cli";
 import { initTheme } from "../modes/theme/theme";
 

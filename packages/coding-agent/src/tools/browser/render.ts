@@ -5,8 +5,8 @@
  * cell with status icon, optional output, and expand/collapse handling. `open`
  * and `close` actions render as compact status lines.
  */
-import type { Component } from "@gajae-code/tui";
-import { Text } from "@gajae-code/tui";
+import type { Component } from "@jawcode-dev/tui";
+import { Text } from "@jawcode-dev/tui";
 import type { RenderResultOptions } from "../../extensibility/custom-tools/types";
 import type { Theme } from "../../modes/theme/theme";
 import { Hasher, renderCodeCell, renderStatusLine } from "../../tui";

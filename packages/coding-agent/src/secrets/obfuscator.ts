@@ -1,4 +1,4 @@
-import type { Message, TextContent } from "@gajae-code/ai";
+import type { Message, TextContent } from "@jawcode-dev/ai";
 import type { SessionContext } from "../session/session-manager";
 import { compileSecretRegex } from "./regex";
 

@@ -1,14 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { ThinkingLevel } from "@gajae-code/agent-core";
-import { type GeneratedProvider, getBundledModel } from "@gajae-code/ai/models";
+import { ThinkingLevel } from "@jawcode-dev/agent-core";
+import { type GeneratedProvider, getBundledModel } from "@jawcode-dev/ai/models";
 import {
 	BUILTIN_MODEL_PROFILES,
 	type ModelProfileDefinition,
 	mergeModelProfiles,
 	resolveProfileBindings,
-} from "@gajae-code/coding-agent/config/model-profiles";
-import { parseModelString } from "@gajae-code/coding-agent/config/model-resolver";
-import { ProfileModelSelectorSchema } from "@gajae-code/coding-agent/config/models-config-schema";
+} from "@jawcode-dev/coding-agent/config/model-profiles";
+import { parseModelString } from "@jawcode-dev/coding-agent/config/model-resolver";
+import { ProfileModelSelectorSchema } from "@jawcode-dev/coding-agent/config/models-config-schema";
 
 type Role = "default" | "executor" | "architect" | "planner" | "critic";
 

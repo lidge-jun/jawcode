@@ -10,7 +10,7 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { createInterface } from "node:readline/promises";
-import type { ImageContent } from "@gajae-code/ai";
+import type { ImageContent } from "@jawcode-dev/ai";
 import {
 	$env,
 	$resolveEnv,
@@ -20,7 +20,7 @@ import {
 	postmortem,
 	setProjectDir,
 	VERSION,
-} from "@gajae-code/utils";
+} from "@jawcode-dev/utils";
 import chalk from "chalk";
 import type { Args } from "./cli/args";
 import { processFileArguments } from "./cli/file-processor";
@@ -66,7 +66,7 @@ async function checkForNewVersion(currentVersion: string): Promise<string | unde
 		return;
 	}
 	try {
-		const response = await fetch("https://registry.npmjs.org/@gajae-code/coding-agent/latest");
+		const response = await fetch("https://registry.npmjs.org/@jawcode-dev/coding-agent/latest");
 		if (!response.ok) return undefined;
 
 		const data = (await response.json()) as { version?: string };

@@ -1,9 +1,9 @@
-import { ThinkingLevel } from "@gajae-code/agent-core";
-import { getOAuthProviders } from "@gajae-code/ai/utils/oauth";
-import type { OAuthProvider } from "@gajae-code/ai/utils/oauth/types";
-import type { Component, OverlayHandle, SelectItem } from "@gajae-code/tui";
-import { Container, Input, Loader, SelectList, Spacer, Text } from "@gajae-code/tui";
-import { APP_NAME, getAgentDbPath, getProjectDir } from "@gajae-code/utils";
+import { ThinkingLevel } from "@jawcode-dev/agent-core";
+import { getOAuthProviders } from "@jawcode-dev/ai/utils/oauth";
+import type { OAuthProvider } from "@jawcode-dev/ai/utils/oauth/types";
+import type { Component, OverlayHandle, SelectItem } from "@jawcode-dev/tui";
+import { Container, Input, Loader, SelectList, Spacer, Text } from "@jawcode-dev/tui";
+import { APP_NAME, getAgentDbPath, getProjectDir } from "@jawcode-dev/utils";
 import { activateModelProfile } from "../../config/model-profile-activation";
 import { resolveOAuthProviderId } from "../../config/oauth-provider-aliases";
 import { settings } from "../../config/settings";

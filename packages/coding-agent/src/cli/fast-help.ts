@@ -1,4 +1,4 @@
-import { APP_NAME, CONFIG_DIR_NAME } from "@gajae-code/utils/dirs";
+import { APP_NAME, CONFIG_DIR_NAME } from "@jawcode-dev/utils/dirs";
 
 export function getExtraHelpText(): string {
 	return `Environment Variables:

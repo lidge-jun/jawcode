@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { recoverOrphanedBackups, SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { MemorySessionStorage } from "@gajae-code/coding-agent/session/session-storage";
+import { recoverOrphanedBackups, SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { MemorySessionStorage } from "@jawcode-dev/coding-agent/session/session-storage";
 
 class FsCodeError extends Error {
 	code: string;

@@ -1,14 +1,14 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
-import type { AssistantMessage, TextContent, UserMessage } from "@gajae-code/ai";
-import { resetSettingsForTest, Settings } from "@gajae-code/coding-agent/config/settings";
-import { ToolExecutionComponent } from "@gajae-code/coding-agent/modes/components/tool-execution";
-import { UserMessageComponent } from "@gajae-code/coding-agent/modes/components/user-message";
-import { EventController } from "@gajae-code/coding-agent/modes/controllers/event-controller";
-import { initTheme } from "@gajae-code/coding-agent/modes/theme/theme";
-import type { InteractiveModeContext } from "@gajae-code/coding-agent/modes/types";
-import { UiHelpers } from "@gajae-code/coding-agent/modes/utils/ui-helpers";
-import type { CustomMessage } from "@gajae-code/coding-agent/session/messages";
-import { Container } from "@gajae-code/tui";
+import type { AssistantMessage, TextContent, UserMessage } from "@jawcode-dev/ai";
+import { resetSettingsForTest, Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { ToolExecutionComponent } from "@jawcode-dev/coding-agent/modes/components/tool-execution";
+import { UserMessageComponent } from "@jawcode-dev/coding-agent/modes/components/user-message";
+import { EventController } from "@jawcode-dev/coding-agent/modes/controllers/event-controller";
+import { initTheme } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import type { InteractiveModeContext } from "@jawcode-dev/coding-agent/modes/types";
+import { UiHelpers } from "@jawcode-dev/coding-agent/modes/utils/ui-helpers";
+import type { CustomMessage } from "@jawcode-dev/coding-agent/session/messages";
+import { Container } from "@jawcode-dev/tui";
 
 beforeAll(async () => {
 	initTheme();

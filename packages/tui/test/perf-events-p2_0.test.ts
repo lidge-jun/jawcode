@@ -1,9 +1,9 @@
-// MUST be first: pins terminal-capability env before @gajae-code/tui evaluates.
+// MUST be first: pins terminal-capability env before @jawcode-dev/tui evaluates.
 import "./render-goldens-env";
 import { describe, expect, it } from "bun:test";
 import * as path from "node:path";
-import { Text, TUI } from "@gajae-code/tui";
-import { renderMetrics } from "@gajae-code/tui/metrics";
+import { Text, TUI } from "@jawcode-dev/tui";
+import { renderMetrics } from "@jawcode-dev/tui/metrics";
 import { VirtualTerminal } from "./virtual-terminal";
 
 function tempPath(name: string): string {

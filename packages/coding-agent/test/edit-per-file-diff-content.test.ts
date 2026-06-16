@@ -2,16 +2,16 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { resetSettingsForTest, Settings } from "@gajae-code/coding-agent/config/settings";
+import { resetSettingsForTest, Settings } from "@jawcode-dev/coding-agent/config/settings";
 import {
 	DEFAULT_FUZZY_THRESHOLD,
 	EditTool,
 	type EditToolDetails,
 	executePatchSingle,
 	executeReplaceSingle,
-} from "@gajae-code/coding-agent/edit";
-import { writethroughNoop } from "@gajae-code/coding-agent/lsp";
-import type { ToolSession } from "@gajae-code/coding-agent/tools";
+} from "@jawcode-dev/coding-agent/edit";
+import { writethroughNoop } from "@jawcode-dev/coding-agent/lsp";
+import type { ToolSession } from "@jawcode-dev/coding-agent/tools";
 
 // ─── Minimal ToolSession stub ────────────────────────────────────────────────
 

@@ -2,16 +2,16 @@ import { afterEach, describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { AuthStorage, type CredentialDisabledEvent } from "@gajae-code/ai";
-import * as oauthUtils from "@gajae-code/ai/utils/oauth";
-import { ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import type { Extension, ExtensionError, ExtensionFactory } from "@gajae-code/coding-agent/extensibility/extensions";
-import { ExtensionRunner } from "@gajae-code/coding-agent/extensibility/extensions";
-import { ExtensionRuntime } from "@gajae-code/coding-agent/extensibility/extensions/loader";
-import { createAgentSession } from "@gajae-code/coding-agent/sdk";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { Snowflake } from "@gajae-code/utils";
+import { AuthStorage, type CredentialDisabledEvent } from "@jawcode-dev/ai";
+import * as oauthUtils from "@jawcode-dev/ai/utils/oauth";
+import { ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import type { Extension, ExtensionError, ExtensionFactory } from "@jawcode-dev/coding-agent/extensibility/extensions";
+import { ExtensionRunner } from "@jawcode-dev/coding-agent/extensibility/extensions";
+import { ExtensionRuntime } from "@jawcode-dev/coding-agent/extensibility/extensions/loader";
+import { createAgentSession } from "@jawcode-dev/coding-agent/sdk";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { Snowflake } from "@jawcode-dev/utils";
 
 interface SessionDirs {
 	cwd: string;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { RpcUnattendedBudget, RpcUnattendedDeclaration } from "@gajae-code/coding-agent/modes/rpc/rpc-types";
+import type { RpcUnattendedBudget, RpcUnattendedDeclaration } from "@jawcode-dev/coding-agent/modes/rpc/rpc-types";
 import {
 	type NegotiateContext,
 	type UnattendedAbortHooks,
@@ -7,7 +7,7 @@ import {
 	UnattendedBudgetExceededError,
 	UnattendedNegotiationError,
 	UnattendedRunController,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/unattended-run-controller";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/unattended-run-controller";
 
 function budget(overrides: Partial<RpcUnattendedBudget> = {}): RpcUnattendedBudget {
 	return { max_tokens: 100, max_tool_calls: 2, max_wall_time_ms: 1_000, max_cost_usd: 1, ...overrides };

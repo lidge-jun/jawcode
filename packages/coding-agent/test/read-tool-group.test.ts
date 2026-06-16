@@ -119,7 +119,7 @@ describe("readArgsTargetInternalUrl", () => {
 		["jwc://docs/tools/read.md"],
 		["gjc://docs/tools/read.md"], // legacy alias (065.1 D)
 		["issue://123"],
-		["pr://can1357/gajae-code/456"],
+		["pr://lidge-jun/jawcode/456"],
 		["agent://abc"],
 		["artifact://abc"],
 		["memory://root"],

@@ -41,17 +41,17 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { Agent, type AgentMessage, type AgentTool } from "@gajae-code/agent-core";
-import { getBundledModel } from "@gajae-code/ai";
-import { createMockModel, type MockResponse } from "@gajae-code/ai/providers/mock";
-import { ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
-import { resetSettingsForTest, Settings } from "@gajae-code/coding-agent/config/settings";
-import { AgentSession } from "@gajae-code/coding-agent/session/agent-session";
-import { AuthStorage } from "@gajae-code/coding-agent/session/auth-storage";
-import { convertToLlm } from "@gajae-code/coding-agent/session/messages";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { BashTool, type ToolSession } from "@gajae-code/coding-agent/tools";
-import { Snowflake } from "@gajae-code/utils";
+import { Agent, type AgentMessage, type AgentTool } from "@jawcode-dev/agent-core";
+import { getBundledModel } from "@jawcode-dev/ai";
+import { createMockModel, type MockResponse } from "@jawcode-dev/ai/providers/mock";
+import { ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
+import { resetSettingsForTest, Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { AgentSession } from "@jawcode-dev/coding-agent/session/agent-session";
+import { AuthStorage } from "@jawcode-dev/coding-agent/session/auth-storage";
+import { convertToLlm } from "@jawcode-dev/coding-agent/session/messages";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { BashTool, type ToolSession } from "@jawcode-dev/coding-agent/tools";
+import { Snowflake } from "@jawcode-dev/utils";
 
 /** Scripted assistant turn that issues a single `bash` tool call. */
 function bashCall(command: string, callId: string): MockResponse {

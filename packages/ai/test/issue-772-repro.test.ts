@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { hookFetch } from "@gajae-code/utils";
+import { hookFetch } from "@jawcode-dev/utils";
 
 import { xiaomiModelManagerOptions } from "../src/provider-models/openai-compat";
 import { loginXiaomi } from "../src/utils/oauth/xiaomi";

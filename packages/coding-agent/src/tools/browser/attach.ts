@@ -1,5 +1,5 @@
 import * as net from "node:net";
-import { Process, ProcessStatus } from "@gajae-code/natives";
+import { Process, ProcessStatus } from "@jawcode-dev/natives";
 import type { Browser, Page } from "puppeteer-core";
 import { ToolError, throwIfAborted } from "../tool-errors";
 

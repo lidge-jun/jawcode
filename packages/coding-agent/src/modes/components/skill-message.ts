@@ -1,6 +1,6 @@
-import type { TextContent } from "@gajae-code/ai";
-import type { Component } from "@gajae-code/tui";
-import { Box, Container, Markdown, Spacer, Text } from "@gajae-code/tui";
+import type { TextContent } from "@jawcode-dev/ai";
+import type { Component } from "@jawcode-dev/tui";
+import { Box, Container, Markdown, Spacer, Text } from "@jawcode-dev/tui";
 import { getMarkdownTheme, theme } from "../../modes/theme/theme";
 import type { CustomMessage, SkillPromptDetails } from "../../session/messages";
 

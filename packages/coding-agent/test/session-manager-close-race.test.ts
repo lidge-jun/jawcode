@@ -24,13 +24,13 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import { getBundledModel } from "@gajae-code/ai/models";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
+import { getBundledModel } from "@jawcode-dev/ai/models";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
 import {
 	MemorySessionStorage,
 	type SessionStorage,
 	type SessionStorageWriter,
-} from "@gajae-code/coding-agent/session/session-storage";
+} from "@jawcode-dev/coding-agent/session/session-storage";
 
 class CloseHoldingStorage implements SessionStorage {
 	readonly #inner = new MemorySessionStorage();

@@ -1,10 +1,10 @@
 /**
  * Extension runner - executes extensions and manages their lifecycle.
  */
-import type { AgentMessage } from "@gajae-code/agent-core";
-import type { CredentialDisabledEvent, ImageContent, Model, ProviderResponseMetadata } from "@gajae-code/ai";
-import type { KeyId } from "@gajae-code/tui";
-import { logger } from "@gajae-code/utils";
+import type { AgentMessage } from "@jawcode-dev/agent-core";
+import type { CredentialDisabledEvent, ImageContent, Model, ProviderResponseMetadata } from "@jawcode-dev/ai";
+import type { KeyId } from "@jawcode-dev/tui";
+import { logger } from "@jawcode-dev/utils";
 import type { ModelRegistry } from "../../config/model-registry";
 import { type Theme, theme } from "../../modes/theme/theme";
 import type { SessionManager } from "../../session/session-manager";

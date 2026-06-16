@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { getBundledModel } from "@gajae-code/ai/models";
-import { streamOpenAICodexResponses } from "@gajae-code/ai/providers/openai-codex-responses";
-import { type OpenAIResponsesOptions, streamOpenAIResponses } from "@gajae-code/ai/providers/openai-responses";
-import type { Context, Model, ProviderSessionState } from "@gajae-code/ai/types";
+import { getBundledModel } from "@jawcode-dev/ai/models";
+import { streamOpenAICodexResponses } from "@jawcode-dev/ai/providers/openai-codex-responses";
+import { type OpenAIResponsesOptions, streamOpenAIResponses } from "@jawcode-dev/ai/providers/openai-responses";
+import type { Context, Model, ProviderSessionState } from "@jawcode-dev/ai/types";
 import { createOpenAIResponsesHistoryPayload, truncateResponseItemId } from "../src/utils";
 
 function createAbortedSignal(): AbortSignal {

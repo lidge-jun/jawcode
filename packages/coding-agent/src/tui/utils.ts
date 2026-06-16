@@ -1,11 +1,11 @@
 /**
  * Shared helpers for tool-rendered UI components.
  */
-import { padding, visibleWidth } from "@gajae-code/tui";
+import { padding, visibleWidth } from "@jawcode-dev/tui";
 import type { Theme, ThemeBg } from "../modes/theme/theme";
 import type { State } from "./types";
 
-export { Ellipsis, truncateToWidth } from "@gajae-code/tui";
+export { Ellipsis, truncateToWidth } from "@jawcode-dev/tui";
 
 /** Cached typed-array scratch space for hashing non-string primitives. */
 const hashBuf = new ArrayBuffer(8);

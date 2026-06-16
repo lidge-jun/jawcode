@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { resolveProfileBindings } from "@gajae-code/coding-agent/config/model-profiles";
-import { ModelsConfigSchema } from "@gajae-code/coding-agent/config/models-config-schema";
+import { resolveProfileBindings } from "@jawcode-dev/coding-agent/config/model-profiles";
+import { ModelsConfigSchema } from "@jawcode-dev/coding-agent/config/models-config-schema";
 
 function issuePaths(error: { issues: Array<{ path: PropertyKey[] }> }): string[] {
 	return error.issues.map(issue => issue.path.join("."));

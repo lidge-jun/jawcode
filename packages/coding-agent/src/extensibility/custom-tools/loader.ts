@@ -1,12 +1,12 @@
 /**
  * Custom tool loader - loads TypeScript tool modules using native Bun import.
  *
- * Dependencies (the zod-backed typebox shim and gajae-code) are injected via the
+ * Dependencies (the zod-backed typebox shim and jawcode) are injected via the
  * CustomToolAPI to avoid import resolution issues with custom tools loaded from user directories.
  */
 import * as path from "node:path";
-import type { AgentToolResult } from "@gajae-code/agent-core";
-import { logger } from "@gajae-code/utils";
+import type { AgentToolResult } from "@jawcode-dev/agent-core";
+import { logger } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import { toolCapability } from "../../capability/tool";
 import { type CustomTool, loadCapability } from "../../discovery";
@@ -86,7 +86,7 @@ export class CustomToolLoader {
 	#seenNames: Set<string>;
 
 	constructor(
-		pi: typeof import("@gajae-code/coding-agent"),
+		pi: typeof import("@jawcode-dev/coding-agent"),
 		cwd: string,
 		builtInToolNames: string[],
 		pushPendingAction?: (action: {
@@ -173,7 +173,7 @@ export async function loadCustomTools(
 	}) => void,
 ) {
 	const loader = new CustomToolLoader(
-		await import("@gajae-code/coding-agent"),
+		await import("@jawcode-dev/coding-agent"),
 		cwd,
 		builtInToolNames,
 		pushPendingAction,

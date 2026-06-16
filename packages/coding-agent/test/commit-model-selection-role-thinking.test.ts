@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { Effort, getBundledModel } from "@gajae-code/ai";
+import { Effort, getBundledModel } from "@jawcode-dev/ai";
 import { resolvePrimaryModel, resolveSecondaryCommitModel } from "../src/commit/model-selection";
 
 function getModelOrThrow(id: string) {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { type ContextFile, contextFileCapability } from "@gajae-code/coding-agent/capability/context-file";
+import { type ContextFile, contextFileCapability } from "@jawcode-dev/coding-agent/capability/context-file";
 
 function makeContextFile(overrides: Partial<ContextFile> & Pick<ContextFile, "path" | "level">): ContextFile {
 	return {

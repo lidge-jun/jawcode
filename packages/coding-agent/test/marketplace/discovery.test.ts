@@ -2,7 +2,7 @@
  * Discovery integration tests for GJC plugin registry reading.
  *
  * NOTE: listAnthropic modelPluginRoots() lives in discovery/helpers.ts which imports
- * @gajae-code/natives (native Rust addon via glob). We cannot call it here.
+ * @jawcode-dev/natives (native Rust addon via glob). We cannot call it here.
  *
  * Instead these tests validate the structural contract that listAnthropic modelPluginRoots
  * depends on:
@@ -19,18 +19,18 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { InstalledPluginEntry } from "@gajae-code/coding-agent/extensibility/plugins/marketplace";
+import type { InstalledPluginEntry } from "@jawcode-dev/coding-agent/extensibility/plugins/marketplace";
 import {
 	addInstalledPlugin,
 	buildPluginId,
 	readInstalledPluginsRegistry,
 	writeInstalledPluginsRegistry,
-} from "@gajae-code/coding-agent/extensibility/plugins/marketplace";
+} from "@jawcode-dev/coding-agent/extensibility/plugins/marketplace";
 
 // ── Inline validator ───────────────────────────────────────────────────────────
 //
 // Mirrors parseAnthropic modelPluginsRegistry() in discovery/helpers.ts exactly.
-// Kept here to avoid importing helpers.ts (which pulls in @gajae-code/natives).
+// Kept here to avoid importing helpers.ts (which pulls in @jawcode-dev/natives).
 function validateClaudeRegistryFormat(content: string): Record<string, unknown> | null {
 	let data: Record<string, unknown>;
 	try {
@@ -51,7 +51,7 @@ function validateClaudeRegistryFormat(content: string): Record<string, unknown> 
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-// Matches getConfigDirName() — single source of truth is in @gajae-code/utils,
+// Matches getConfigDirName() — single source of truth is in @jawcode-dev/utils,
 // but we know the value is ".jwc" and hardcoding it here keeps tests free of
 // native-addon transitive imports.
 const GJC_CONFIG_DIR = ".jwc";

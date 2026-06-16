@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "bun:test";
-import { resetContentCaptureEnvCacheForTest, resolveTelemetry } from "@gajae-code/agent-core/telemetry";
+import { resetContentCaptureEnvCacheForTest, resolveTelemetry } from "@jawcode-dev/agent-core/telemetry";
 
 describe("full content capture env warning", () => {
 	const envName = "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT";

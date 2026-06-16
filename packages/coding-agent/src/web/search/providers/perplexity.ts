@@ -7,8 +7,8 @@
  * - API key (`PERPLEXITY_API_KEY`) via `api.perplexity.ai/chat/completions`
  */
 
-import { type AuthStorage, getEnvApiKey } from "@gajae-code/ai";
-import { $env, readSseJson } from "@gajae-code/utils";
+import { type AuthStorage, getEnvApiKey } from "@jawcode-dev/ai";
+import { $env, readSseJson } from "@jawcode-dev/utils";
 import type {
 	PerplexityMessageOutput,
 	PerplexityRequest,

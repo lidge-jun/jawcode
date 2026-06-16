@@ -4,7 +4,7 @@
  * Note: command execution is async to avoid blocking the TUI.
  */
 
-import { executeShell } from "@gajae-code/natives";
+import { executeShell } from "@jawcode-dev/natives";
 
 /** Cache for successful shell command results (persists for process lifetime). */
 const commandResultCache = new Map<string, string>();

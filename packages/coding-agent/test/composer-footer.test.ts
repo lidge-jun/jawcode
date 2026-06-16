@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, it } from "bun:test";
-import { ComposerFooter } from "@gajae-code/coding-agent/modes/components/composer-footer";
-import { InputController } from "@gajae-code/coding-agent/modes/controllers/input-controller";
-import { getThemeByName, setThemeInstance } from "@gajae-code/coding-agent/modes/theme/theme";
-import type { InteractiveModeContext } from "@gajae-code/coding-agent/modes/types";
+import { ComposerFooter } from "@jawcode-dev/coding-agent/modes/components/composer-footer";
+import { InputController } from "@jawcode-dev/coding-agent/modes/controllers/input-controller";
+import { getThemeByName, setThemeInstance } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import type { InteractiveModeContext } from "@jawcode-dev/coding-agent/modes/types";
 
 beforeAll(async () => {
 	const theme = await getThemeByName("red-claw");

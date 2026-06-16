@@ -12,7 +12,7 @@
  */
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { $pickenv, readLines, Snowflake } from "@gajae-code/utils";
+import { $pickenv, readLines, Snowflake } from "@jawcode-dev/utils";
 import type {
 	ExtensionUIContext,
 	ExtensionUIDialogOptions,

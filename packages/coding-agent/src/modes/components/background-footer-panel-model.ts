@@ -1,4 +1,4 @@
-import type { SelectItem } from "@gajae-code/tui";
+import type { SelectItem } from "@jawcode-dev/tui";
 import { KEYBINDINGS } from "../../config/keybindings";
 import { isBackgroundAttention, sortBackgroundRows } from "../background-row-model";
 import type { BackgroundRowView, BackgroundWorkKind, JobsSnapshot } from "../jobs-observer";

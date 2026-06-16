@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { resetSettingsForTest, Settings, settings } from "@gajae-code/coding-agent/config/settings";
-import { buildSystemPrompt, renderIdentityBlock } from "@gajae-code/coding-agent/system-prompt";
+import { resetSettingsForTest, Settings, settings } from "@jawcode-dev/coding-agent/config/settings";
+import { buildSystemPrompt, renderIdentityBlock } from "@jawcode-dev/coding-agent/system-prompt";
 import { cleanupTempHome } from "./helpers/temp-home-cleanup";
 
 describe("identity block rendering", () => {

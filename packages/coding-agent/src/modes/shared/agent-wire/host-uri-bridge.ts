@@ -1,4 +1,4 @@
-import { Snowflake } from "@gajae-code/utils";
+import { Snowflake } from "@jawcode-dev/utils";
 import { InternalUrlRouter } from "../../../internal-urls";
 import type {
 	InternalResource,

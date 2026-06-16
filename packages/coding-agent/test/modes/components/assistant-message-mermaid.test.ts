@@ -1,11 +1,11 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
 import * as path from "node:path";
-import type { AssistantMessage } from "@gajae-code/ai";
-import { resetSettingsForTest, Settings } from "@gajae-code/coding-agent/config/settings";
-import { AssistantMessageComponent } from "@gajae-code/coding-agent/modes/components/assistant-message";
-import { clearMermaidCache } from "@gajae-code/coding-agent/modes/theme/mermaid-cache";
-import { initTheme } from "@gajae-code/coding-agent/modes/theme/theme";
-import { ImageProtocol, setTerminalImageProtocol, TERMINAL } from "@gajae-code/tui";
+import type { AssistantMessage } from "@jawcode-dev/ai";
+import { resetSettingsForTest, Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { AssistantMessageComponent } from "@jawcode-dev/coding-agent/modes/components/assistant-message";
+import { clearMermaidCache } from "@jawcode-dev/coding-agent/modes/theme/mermaid-cache";
+import { initTheme } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import { ImageProtocol, setTerminalImageProtocol, TERMINAL } from "@jawcode-dev/tui";
 
 const originalImageProtocol = TERMINAL.imageProtocol;
 

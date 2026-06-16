@@ -9,7 +9,7 @@ import {
 	Text,
 	truncateToWidth,
 	visibleWidth,
-} from "@gajae-code/tui";
+} from "@jawcode-dev/tui";
 import { theme } from "../../modes/theme/theme";
 import { matchesAppInterrupt } from "../../modes/utils/keybinding-matchers";
 import type { HistoryEntry, HistoryStorage } from "../../session/history-storage";

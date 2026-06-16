@@ -1,6 +1,6 @@
 # Extension Examples
 
-Example extensions for gajae-code.
+Example extensions for jawcode.
 
 ## Usage
 
@@ -49,7 +49,7 @@ cp packages/coding-agent/examples/extensions/pirate.ts .jwc/extensions/
 The examples below show the core extension patterns used by this directory.
 
 ```typescript
-import type { ExtensionAPI } from "@gajae-code/coding-agent";
+import type { ExtensionAPI } from "@jawcode-dev/coding-agent";
 
 export default function (pi: ExtensionAPI) {
 	const z = pi.zod;

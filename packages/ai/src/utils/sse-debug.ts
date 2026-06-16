@@ -1,4 +1,4 @@
-import type { ServerSentEvent } from "@gajae-code/utils";
+import type { ServerSentEvent } from "@jawcode-dev/utils";
 import type { RawSseEvent } from "../types";
 
 type FetchFunction = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
@@ -65,7 +65,7 @@ function decodeSseLine(buf: Uint8Array, start: number, end: number): string {
  * previous `body.tee()` + `readSseEvents` re-parse pipeline so the byte
  * stream is parsed exactly once when a debug observer is attached.
  *
- * Field parsing intentionally mirrors `readSseEvents` in `@gajae-code/utils`
+ * Field parsing intentionally mirrors `readSseEvents` in `@jawcode-dev/utils`
  * (only `event` and `data` are observed; `id`/`retry` ignored; CR stripped
  * before LF dispatch; leading space after `:` trimmed; `data:` lines join
  * with `\n`). Reusing `readSseEvents` directly would require a second stream

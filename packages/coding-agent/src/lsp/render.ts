@@ -7,9 +7,9 @@
  * - Grouped references and symbols
  * - Collapsible/expandable views
  */
-import type { RenderResultOptions } from "@gajae-code/agent-core";
-import { type HighlightColors, highlightCode as nativeHighlightCode, supportsLanguage } from "@gajae-code/natives";
-import { type Component, Text } from "@gajae-code/tui";
+import type { RenderResultOptions } from "@jawcode-dev/agent-core";
+import { type HighlightColors, highlightCode as nativeHighlightCode, supportsLanguage } from "@jawcode-dev/natives";
+import { type Component, Text } from "@jawcode-dev/tui";
 import { getLanguageFromPath, type Theme } from "../modes/theme/theme";
 import {
 	formatExpandHint,

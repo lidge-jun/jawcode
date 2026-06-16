@@ -1,5 +1,5 @@
-import type { Api, Model, ResolveToolChoiceResult, ToolChoice } from "@gajae-code/ai";
-import { resolveToolChoice } from "@gajae-code/ai";
+import type { Api, Model, ResolveToolChoiceResult, ToolChoice } from "@jawcode-dev/ai";
+import { resolveToolChoice } from "@jawcode-dev/ai";
 
 /**
  * Build a provider-aware tool choice that targets one specific tool when supported.

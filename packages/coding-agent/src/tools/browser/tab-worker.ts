@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { Snowflake, untilAborted } from "@gajae-code/utils";
+import { Snowflake, untilAborted } from "@jawcode-dev/utils";
 import type { HTMLElement } from "linkedom";
 import type {
 	Browser,

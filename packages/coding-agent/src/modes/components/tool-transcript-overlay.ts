@@ -1,4 +1,4 @@
-import { Container, matchesKey } from "@gajae-code/tui";
+import { Container, matchesKey } from "@jawcode-dev/tui";
 import { theme } from "../theme/theme";
 import type { ToolExecutionComponent } from "./tool-execution";
 

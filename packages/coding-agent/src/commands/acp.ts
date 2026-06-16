@@ -4,7 +4,7 @@
  * Thin wrapper around the launch flow that forces `mode: "acp"` unless the
  * ACP terminal-auth flag asks the same command to open the interactive TUI.
  */
-import { Command } from "@gajae-code/utils/cli";
+import { Command } from "@jawcode-dev/utils/cli";
 import { parseArgs } from "../cli/args";
 import { runRootCommand } from "../main";
 import { prepareAcpTerminalAuthArgs } from "../modes/acp/terminal-auth";

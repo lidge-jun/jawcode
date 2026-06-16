@@ -12,9 +12,9 @@
  * committed at test/fixtures/recorded-session.json and consumed by the gates.
  */
 import { performance } from "node:perf_hooks";
-import { TUI } from "@gajae-code/tui";
-import { Text } from "@gajae-code/tui/components/text";
-import { type RenderMetricsSnapshot, renderMetrics } from "@gajae-code/tui/metrics";
+import { TUI } from "@jawcode-dev/tui";
+import { Text } from "@jawcode-dev/tui/components/text";
+import { type RenderMetricsSnapshot, renderMetrics } from "@jawcode-dev/tui/metrics";
 import { VirtualTerminal } from "./virtual-terminal";
 
 export interface ReplayTurn {

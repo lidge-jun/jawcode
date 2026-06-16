@@ -1,10 +1,10 @@
-import { $env } from "@gajae-code/utils";
+import { $env } from "@jawcode-dev/utils";
 import type { ResponseInput } from "openai/resources/responses/responses";
 import type { CacheRetention, OpenAIResponsesHistoryPayload, ProviderPayload } from "./types";
 
 type OpenAIResponsesReplayItem = ResponseInput[number];
 
-export { isRecord } from "@gajae-code/utils";
+export { isRecord } from "@jawcode-dev/utils";
 export function normalizeSystemPrompts(systemPrompt: readonly string[] | string | undefined | null): string[] {
 	if (systemPrompt === undefined || systemPrompt === null) return [];
 	const prompts = Array.isArray(systemPrompt) ? systemPrompt : typeof systemPrompt === "string" ? [systemPrompt] : [];

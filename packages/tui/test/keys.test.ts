@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { extractPrintableText, matchesKey, parseKey, setKittyProtocolActive } from "@gajae-code/tui/keys";
+import { extractPrintableText, matchesKey, parseKey, setKittyProtocolActive } from "@jawcode-dev/tui/keys";
 
 describe("matchesKey", () => {
 	it("matches ctrl+letter sequences", () => {

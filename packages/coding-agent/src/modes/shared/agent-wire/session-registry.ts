@@ -9,7 +9,7 @@
  */
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { getAgentDir } from "@gajae-code/utils";
+import { getAgentDir } from "@jawcode-dev/utils";
 
 export type RpcSessionTransport = "stdio" | "bridge" | "socket";
 

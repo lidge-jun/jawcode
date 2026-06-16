@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import * as path from "node:path";
-import type { Message } from "@gajae-code/ai";
+import type { Message } from "@jawcode-dev/ai";
 import { CURRENT_SESSION_VERSION, SessionManager } from "../src/session/session-manager";
 import {
 	MemorySessionStorage,

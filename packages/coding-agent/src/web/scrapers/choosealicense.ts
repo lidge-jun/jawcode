@@ -1,4 +1,4 @@
-import { parseFrontmatter } from "@gajae-code/utils";
+import { parseFrontmatter } from "@jawcode-dev/utils";
 import type { RenderResult, SpecialHandler } from "./types";
 import { buildResult, loadPage } from "./types";
 import { asString } from "./utils";

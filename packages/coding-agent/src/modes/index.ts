@@ -1,5 +1,5 @@
-import { emergencyTerminalRestore } from "@gajae-code/tui";
-import { postmortem } from "@gajae-code/utils";
+import { emergencyTerminalRestore } from "@jawcode-dev/tui";
+import { postmortem } from "@jawcode-dev/utils";
 
 /**
  * Run modes for the coding agent.

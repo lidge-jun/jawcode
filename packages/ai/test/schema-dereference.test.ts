@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { dereferenceJsonSchema } from "@gajae-code/ai/utils/schema";
+import { dereferenceJsonSchema } from "@jawcode-dev/ai/utils/schema";
 
 describe("dereferenceJsonSchema", () => {
 	it("returns non-object input unchanged", () => {

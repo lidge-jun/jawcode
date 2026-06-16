@@ -2,12 +2,12 @@ import { describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { BUILTIN_SLASH_COMMANDS } from "@gajae-code/coding-agent/extensibility/slash-commands";
-import type { InteractiveModeContext } from "@gajae-code/coding-agent/modes/types";
+import { BUILTIN_SLASH_COMMANDS } from "@jawcode-dev/coding-agent/extensibility/slash-commands";
+import type { InteractiveModeContext } from "@jawcode-dev/coding-agent/modes/types";
 import {
 	BUILTIN_SLASH_COMMAND_DEFS,
 	executeBuiltinSlashCommand,
-} from "@gajae-code/coding-agent/slash-commands/builtin-registry";
+} from "@jawcode-dev/coding-agent/slash-commands/builtin-registry";
 
 const repoRoot = path.resolve(import.meta.dir, "..", "..", "..", "..");
 

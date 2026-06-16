@@ -30,7 +30,7 @@ const PR272_HUMAN_APPROVAL_EVIDENCE: DefaultReductionHumanApprovalEvidence = {
 	source: "github-pr",
 	prNumber: 272,
 	approver: "Yeachan-Heo",
-	reference: "https://github.com/Yeachan-Heo/gajae-code/pull/272#issue-272-human-signoff-requester",
+	reference: "https://github.com/lidge-jun/jawcode/pull/272#issue-272-human-signoff-requester",
 };
 
 export const APPLIED_DEFAULT_REDUCTIONS: ReadonlyArray<AppliedDefaultReduction> = [

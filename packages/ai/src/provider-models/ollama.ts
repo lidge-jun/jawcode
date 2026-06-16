@@ -1,4 +1,4 @@
-import { fetchWithRetry } from "@gajae-code/utils";
+import { fetchWithRetry } from "@jawcode-dev/utils";
 import type { ModelManagerOptions } from "../model-manager";
 import { Effort } from "../model-thinking";
 import type { ThinkingConfig } from "../types";

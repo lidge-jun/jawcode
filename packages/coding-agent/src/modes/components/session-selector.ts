@@ -10,8 +10,8 @@ import {
 	Text,
 	truncateToWidth,
 	visibleWidth,
-} from "@gajae-code/tui";
-import { formatBytes } from "@gajae-code/utils";
+} from "@jawcode-dev/tui";
+import { formatBytes } from "@jawcode-dev/utils";
 import { theme } from "../../modes/theme/theme";
 import { matchesAppInterrupt } from "../../modes/utils/keybinding-matchers";
 import type { SessionInfo } from "../../session/session-manager";

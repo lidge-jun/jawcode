@@ -1,4 +1,4 @@
-import type { AssistantMessage, Usage, UserMessage } from "@gajae-code/ai";
+import type { AssistantMessage, Usage, UserMessage } from "@jawcode-dev/ai";
 
 export function createUserMessage(text: string): UserMessage {
 	return { role: "user", content: text, timestamp: Date.now() };

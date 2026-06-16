@@ -16,7 +16,7 @@
  * Priority: 55 (tool-specific provider)
  */
 import * as path from "node:path";
-import { logger, parseFrontmatter, tryParseJson } from "@gajae-code/utils";
+import { logger, parseFrontmatter, tryParseJson } from "@jawcode-dev/utils";
 import { registerProvider } from "../capability";
 import { type ContextFile, contextFileCapability } from "../capability/context-file";
 import { type ExtensionModule, extensionModuleCapability } from "../capability/extension-module";

@@ -1,5 +1,5 @@
-import type { Effort } from "@gajae-code/ai";
-import { Container, type SelectItem, SelectList } from "@gajae-code/tui";
+import type { Effort } from "@jawcode-dev/ai";
+import { Container, type SelectItem, SelectList } from "@jawcode-dev/tui";
 import { getSelectListTheme } from "../../modes/theme/theme";
 import { getThinkingLevelMetadata } from "../../thinking";
 import { DynamicBorder } from "./dynamic-border";

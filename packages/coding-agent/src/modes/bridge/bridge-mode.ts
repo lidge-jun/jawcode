@@ -1,5 +1,5 @@
 import * as path from "node:path";
-import { $resolveEnv } from "@gajae-code/utils";
+import { $resolveEnv } from "@jawcode-dev/utils";
 import type { ExtensionUIContext } from "../../extensibility/extensions";
 import type { AgentSession } from "../../session/agent-session";
 import type { ClientBridgePermissionOutcome } from "../../session/client-bridge";

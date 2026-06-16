@@ -3,8 +3,8 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { ImageContent } from "@gajae-code/ai";
-import { getProjectDir, isEnoent, readImageMetadata } from "@gajae-code/utils";
+import type { ImageContent } from "@jawcode-dev/ai";
+import { getProjectDir, isEnoent, readImageMetadata } from "@jawcode-dev/utils";
 import chalk from "chalk";
 import { resolveReadPath } from "../tools/path-utils";
 import { formatBytes } from "../tools/render-utils";

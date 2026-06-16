@@ -6,8 +6,8 @@ import {
 	replaceTabs,
 	truncateToWidth,
 	visibleWidth,
-} from "@gajae-code/tui";
-import { sanitizeText } from "@gajae-code/utils";
+} from "@jawcode-dev/tui";
+import { sanitizeText } from "@jawcode-dev/utils";
 import { theme } from "../modes/theme/theme";
 import { copyToClipboard } from "../utils/clipboard";
 import {

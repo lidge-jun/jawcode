@@ -1,4 +1,4 @@
-import { isEnoent, logger } from "@gajae-code/utils";
+import { isEnoent, logger } from "@jawcode-dev/utils";
 import CHANGELOG_TEXT from "../../CHANGELOG.md" with { type: "text" };
 
 export interface ChangelogEntry {

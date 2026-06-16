@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { AsyncJobManager } from "@gajae-code/coding-agent/async/job-manager";
+import { AsyncJobManager } from "@jawcode-dev/coding-agent/async/job-manager";
 
 describe("AsyncJobManager", () => {
 	test("forwards progress updates and delivers completion", async () => {

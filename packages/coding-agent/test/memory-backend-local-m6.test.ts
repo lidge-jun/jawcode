@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { setAgentDir } from "@gajae-code/utils";
+import { setAgentDir } from "@jawcode-dev/utils";
 import { Settings } from "../src/config/settings";
 import { saveLocalMemoryManual } from "../src/memories/local-query";
 import { localBackend } from "../src/memory-backend/local-backend";

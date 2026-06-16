@@ -1,5 +1,5 @@
 import { benchRunMetadata } from "./_meta";
-import { readSseEvents, readSseJson } from "@gajae-code/utils/stream";
+import { readSseEvents, readSseJson } from "@jawcode-dev/utils/stream";
 
 const WARMUP_ITERATIONS = 5;
 const MEASURE_ITERATIONS = 30;
@@ -195,7 +195,7 @@ console.log(
 		{
 			schemaVersion: 1,
 			command: includeLarge ? "bun packages/ai/bench/sse.ts --large" : "bun packages/ai/bench/sse.ts",
-			package: "@gajae-code/ai",
+			package: "@jawcode-dev/ai",
 			bench: "sse",
 			fixture: includeLarge ? "10K-100K-1M-sse-byte-streams" : "10K-and-100K-sse-byte-streams",
 			fixtureDimensions: { fixtures, chunkSizes: [...CHUNK_SIZES], largeEnabled: includeLarge },

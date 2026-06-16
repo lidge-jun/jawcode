@@ -14,12 +14,12 @@
       },
     },
     "packages/agent": {
-      "name": "@gajae-code/agent-core",
+      "name": "@jawcode-dev/agent-core",
       "version": "1.0.0",
       "dependencies": {
-        "@gajae-code/ai": "catalog:",
-        "@gajae-code/natives": "catalog:",
-        "@gajae-code/utils": "catalog:",
+        "@jawcode-dev/ai": "catalog:",
+        "@jawcode-dev/natives": "catalog:",
+        "@jawcode-dev/utils": "catalog:",
         "@opentelemetry/api": "catalog:",
       },
       "devDependencies": {
@@ -29,7 +29,7 @@
       },
     },
     "packages/ai": {
-      "name": "@gajae-code/ai",
+      "name": "@jawcode-dev/ai",
       "version": "1.0.0",
       "bin": {
         "pi-ai": "./src/cli.ts",
@@ -37,7 +37,7 @@
       "dependencies": {
         "@anthropic-ai/sdk": "catalog:",
         "@bufbuild/protobuf": "catalog:",
-        "@gajae-code/utils": "catalog:",
+        "@jawcode-dev/utils": "catalog:",
         "openai": "catalog:",
         "partial-json": "catalog:",
         "zod": "catalog:",
@@ -47,14 +47,14 @@
       },
     },
     "packages/bridge-client": {
-      "name": "@gajae-code/bridge-client",
+      "name": "@jawcode-dev/bridge-client",
       "version": "1.0.0",
       "devDependencies": {
         "@types/bun": "catalog:",
       },
     },
     "packages/coding-agent": {
-      "name": "@gajae-code/coding-agent",
+      "name": "@jawcode-dev/coding-agent",
       "version": "1.0.0",
       "bin": {
         "gjc": "src/cli.ts",
@@ -62,12 +62,12 @@
       "dependencies": {
         "@agentclientprotocol/sdk": "catalog:",
         "@babel/parser": "catalog:",
-        "@gajae-code/agent-core": "catalog:",
-        "@gajae-code/ai": "catalog:",
-        "@gajae-code/natives": "catalog:",
-        "@gajae-code/stats": "catalog:",
-        "@gajae-code/tui": "catalog:",
-        "@gajae-code/utils": "catalog:",
+        "@jawcode-dev/agent-core": "catalog:",
+        "@jawcode-dev/ai": "catalog:",
+        "@jawcode-dev/natives": "catalog:",
+        "@jawcode-dev/stats": "catalog:",
+        "@jawcode-dev/tui": "catalog:",
+        "@jawcode-dev/utils": "catalog:",
         "@mozilla/readability": "catalog:",
         "@puppeteer/browsers": "catalog:",
         "@types/turndown": "catalog:",
@@ -105,13 +105,13 @@
       },
     },
     "packages/gajae-code": {
-      "name": "gajae-code",
+      "name": "jawcode-compat",
       "version": "0.4.5",
       "bin": {
         "gjc": "bin/gjc.js",
       },
       "dependencies": {
-        "@gajae-code/coding-agent": "catalog:",
+        "@jawcode-dev/coding-agent": "catalog:",
       },
     },
     "packages/jwc": {
@@ -121,7 +121,7 @@
         "jwc": "bin/jwc.js",
       },
       "dependencies": {
-        "@gajae-code/natives": "1.0.0",
+        "@jawcode-dev/natives": "1.0.0",
         "@silvia-odwyer/photon-node": "0.3.4",
         "better-sqlite3": "^11.10.0",
         "bun": "1.3.14",
@@ -130,7 +130,7 @@
         "strip-ansi": "^7.1.0",
       },
       "devDependencies": {
-        "@gajae-code/coding-agent": "1.0.0",
+        "@jawcode-dev/coding-agent": "1.0.0",
         "esbuild": "^0.25.0",
         "fflate": "0.8.2",
         "smol-toml": "^1.3.0",
@@ -138,7 +138,7 @@
       },
     },
     "packages/natives": {
-      "name": "@gajae-code/natives",
+      "name": "@jawcode-dev/natives",
       "version": "1.0.0",
       "devDependencies": {
         "@napi-rs/cli": "catalog:",
@@ -146,21 +146,21 @@
       },
     },
     "packages/orchestration-token-benchmark": {
-      "name": "@gajae-code/orchestration-token-benchmark",
+      "name": "@jawcode-dev/orchestration-token-benchmark",
       "version": "0.0.1",
       "devDependencies": {
         "@types/bun": "catalog:",
       },
     },
     "packages/stats": {
-      "name": "@gajae-code/stats",
+      "name": "@jawcode-dev/stats",
       "version": "1.0.0",
       "bin": {
         "gjc-stats": "./src/index.ts",
       },
       "dependencies": {
-        "@gajae-code/ai": "catalog:",
-        "@gajae-code/utils": "catalog:",
+        "@jawcode-dev/ai": "catalog:",
+        "@jawcode-dev/utils": "catalog:",
         "@tailwindcss/node": "catalog:",
         "chart.js": "catalog:",
         "date-fns": "catalog:",
@@ -178,11 +178,11 @@
       },
     },
     "packages/tui": {
-      "name": "@gajae-code/tui",
+      "name": "@jawcode-dev/tui",
       "version": "1.0.0",
       "dependencies": {
-        "@gajae-code/natives": "catalog:",
-        "@gajae-code/utils": "catalog:",
+        "@jawcode-dev/natives": "catalog:",
+        "@jawcode-dev/utils": "catalog:",
         "lru-cache": "catalog:",
         "marked": "catalog:",
       },
@@ -192,7 +192,7 @@
       },
     },
     "packages/typescript-edit-benchmark": {
-      "name": "@gajae-code/typescript-edit-benchmark",
+      "name": "@jawcode-dev/typescript-edit-benchmark",
       "version": "0.0.1",
       "bin": {
         "typescript-edit-benchmark": "src/index.ts",
@@ -202,11 +202,11 @@
         "@babel/parser": "catalog:",
         "@babel/traverse": "catalog:",
         "@babel/types": "catalog:",
-        "@gajae-code/agent-core": "catalog:",
-        "@gajae-code/ai": "catalog:",
-        "@gajae-code/coding-agent": "catalog:",
-        "@gajae-code/tui": "catalog:",
-        "@gajae-code/utils": "catalog:",
+        "@jawcode-dev/agent-core": "catalog:",
+        "@jawcode-dev/ai": "catalog:",
+        "@jawcode-dev/coding-agent": "catalog:",
+        "@jawcode-dev/tui": "catalog:",
+        "@jawcode-dev/utils": "catalog:",
         "diff": "catalog:",
         "prettier": "catalog:",
         "regexp-tree": "catalog:",
@@ -218,10 +218,10 @@
       },
     },
     "packages/utils": {
-      "name": "@gajae-code/utils",
+      "name": "@jawcode-dev/utils",
       "version": "1.0.0",
       "dependencies": {
-        "@gajae-code/natives": "catalog:",
+        "@jawcode-dev/natives": "catalog:",
         "beautiful-mermaid": "catalog:",
         "handlebars": "catalog:",
         "winston": "catalog:",
@@ -257,14 +257,14 @@
     "@biomejs/biome": "^2.4.14",
     "@bufbuild/protobuf": "^2.12.0",
     "@bufbuild/protoc-gen-es": "^2.12.0",
-    "@gajae-code/agent-core": "1.0.0",
-    "@gajae-code/ai": "1.0.0",
-    "@gajae-code/bridge-client": "1.0.0",
-    "@gajae-code/coding-agent": "1.0.0",
-    "@gajae-code/natives": "1.0.0",
-    "@gajae-code/stats": "1.0.0",
-    "@gajae-code/tui": "1.0.0",
-    "@gajae-code/utils": "1.0.0",
+    "@jawcode-dev/agent-core": "1.0.0",
+    "@jawcode-dev/ai": "1.0.0",
+    "@jawcode-dev/bridge-client": "1.0.0",
+    "@jawcode-dev/coding-agent": "1.0.0",
+    "@jawcode-dev/natives": "1.0.0",
+    "@jawcode-dev/stats": "1.0.0",
+    "@jawcode-dev/tui": "1.0.0",
+    "@jawcode-dev/utils": "1.0.0",
     "@mozilla/readability": "^0.6.0",
     "@napi-rs/cli": "3.6.2",
     "@opentelemetry/api": "^1.9.0",
@@ -441,26 +441,6 @@
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.25.12", "", { "os": "win32", "cpu": "x64" }, "sha512-alJC0uCZpTFrSL0CCDjcgleBXPnCrEAhTBILpeAp7M/OFgoqtAetfBzX0xM00MUsVVPpVjlPuMbREqnZCXaTnA=="],
 
-    "@gajae-code/agent-core": ["@gajae-code/agent-core@workspace:packages/agent"],
-
-    "@gajae-code/ai": ["@gajae-code/ai@workspace:packages/ai"],
-
-    "@gajae-code/bridge-client": ["@gajae-code/bridge-client@workspace:packages/bridge-client"],
-
-    "@gajae-code/coding-agent": ["@gajae-code/coding-agent@workspace:packages/coding-agent"],
-
-    "@gajae-code/natives": ["@gajae-code/natives@workspace:packages/natives"],
-
-    "@gajae-code/orchestration-token-benchmark": ["@gajae-code/orchestration-token-benchmark@workspace:packages/orchestration-token-benchmark"],
-
-    "@gajae-code/stats": ["@gajae-code/stats@workspace:packages/stats"],
-
-    "@gajae-code/tui": ["@gajae-code/tui@workspace:packages/tui"],
-
-    "@gajae-code/typescript-edit-benchmark": ["@gajae-code/typescript-edit-benchmark@workspace:packages/typescript-edit-benchmark"],
-
-    "@gajae-code/utils": ["@gajae-code/utils@workspace:packages/utils"],
-
     "@hono/node-server": ["@hono/node-server@1.19.14", "", { "peerDependencies": { "hono": "^4" } }, "sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw=="],
 
     "@inquirer/ansi": ["@inquirer/ansi@2.0.7", "", {}, "sha512-3eTuUO1vH2cZm2ZKHeQxnOqlTi9EfZDGgIe3BL3I4u+rJHocr9Fz86M4fjYABPvFnQG/gGK551HqDiIcETwU6Q=="],
@@ -494,6 +474,26 @@
     "@inquirer/select": ["@inquirer/select@5.2.1", "", { "dependencies": { "@inquirer/ansi": "^2.0.7", "@inquirer/core": "^11.2.1", "@inquirer/figures": "^2.0.7", "@inquirer/type": "^4.0.7" }, "peerDependencies": { "@types/node": ">=18" }, "optionalPeers": ["@types/node"] }, "sha512-FlDndEUww8m7BfukO2nJa25vhD+H5jxxCv4oGioKqzyWz3nPHhhw4LKdYRSlXuAx7DsdWia7iyaBPKKS95Evfw=="],
 
     "@inquirer/type": ["@inquirer/type@4.0.7", "", { "peerDependencies": { "@types/node": ">=18" }, "optionalPeers": ["@types/node"] }, "sha512-t28inv14nMQ1PhKpsJPY+kEs/c00qzeCOS2gTNRyTjG5d6qsVA2fItxW4hkvGZ5lvanGLdtCzVIx5dwdRpN1+g=="],
+
+    "@jawcode-dev/agent-core": ["@jawcode-dev/agent-core@workspace:packages/agent"],
+
+    "@jawcode-dev/ai": ["@jawcode-dev/ai@workspace:packages/ai"],
+
+    "@jawcode-dev/bridge-client": ["@jawcode-dev/bridge-client@workspace:packages/bridge-client"],
+
+    "@jawcode-dev/coding-agent": ["@jawcode-dev/coding-agent@workspace:packages/coding-agent"],
+
+    "@jawcode-dev/natives": ["@jawcode-dev/natives@workspace:packages/natives"],
+
+    "@jawcode-dev/orchestration-token-benchmark": ["@jawcode-dev/orchestration-token-benchmark@workspace:packages/orchestration-token-benchmark"],
+
+    "@jawcode-dev/stats": ["@jawcode-dev/stats@workspace:packages/stats"],
+
+    "@jawcode-dev/tui": ["@jawcode-dev/tui@workspace:packages/tui"],
+
+    "@jawcode-dev/typescript-edit-benchmark": ["@jawcode-dev/typescript-edit-benchmark@workspace:packages/typescript-edit-benchmark"],
+
+    "@jawcode-dev/utils": ["@jawcode-dev/utils@workspace:packages/utils"],
 
     "@jridgewell/gen-mapping": ["@jridgewell/gen-mapping@0.3.13", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA=="],
 
@@ -1101,8 +1101,6 @@
 
     "function-bind": ["function-bind@1.1.2", "", {}, "sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA=="],
 
-    "gajae-code": ["gajae-code@workspace:packages/gajae-code"],
-
     "gensync": ["gensync@1.0.0-beta.2", "", {}, "sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg=="],
 
     "get-caller-file": ["get-caller-file@2.0.5", "", {}, "sha512-DyFP3BM/3YHTQOCUL/w0OZHR0lpKeGrxotcHWcqNEdnltqFwXVfhEBQ94eIo34AfQpo0rGki4cyIiftY06h2Fg=="],
@@ -1170,6 +1168,8 @@
     "isexe": ["isexe@2.0.0", "", {}, "sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw=="],
 
     "jawcode": ["jawcode@workspace:packages/jwc"],
+
+    "jawcode-compat": ["jawcode-compat@workspace:packages/gajae-code"],
 
     "jawcode-cu-mcp-server": ["jawcode-cu-mcp-server@workspace:packages/cu-mcp-server"],
 

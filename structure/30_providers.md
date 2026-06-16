@@ -222,7 +222,7 @@ jwc -p --no-session --no-tools --model "xai/grok-composer-2.5-fast" --thinking h
 ## 해석 체인
 
 1. `packages/ai/src/utils/tokenizer-routing.ts` — `resolveTokenizerFamily(model)` (`29-85`).
-2. `packages/coding-agent/src/utils/tokenizer-encoding.ts` — `resolveModelEncoding` → `@gajae-code/natives` `Encoding`; lazy family는 `tokenizer-download` (`18-28`).
+2. `packages/coding-agent/src/utils/tokenizer-encoding.ts` — `resolveModelEncoding` → `@jawcode-dev/natives` `Encoding`; lazy family는 `tokenizer-download` (`18-28`).
 
 ## 소비처 (coding-agent)
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { AutocompleteItem, AutocompleteProvider } from "@gajae-code/tui/autocomplete";
-import { Editor } from "@gajae-code/tui/components/editor";
+import type { AutocompleteItem, AutocompleteProvider } from "@jawcode-dev/tui/autocomplete";
+import { Editor } from "@jawcode-dev/tui/components/editor";
 import { defaultEditorTheme } from "./test-themes";
 
 class HashActionProvider implements AutocompleteProvider {

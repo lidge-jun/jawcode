@@ -4,14 +4,14 @@
  * Run: bun packages/agent/bench/append-only-context.ts
  */
 import { benchRunMetadata, type BenchRunMetadata } from "./_meta";
-import { AppendOnlyContextManager, StablePrefix } from "@gajae-code/agent-core/append-only-context";
-import type { AgentContext } from "@gajae-code/agent-core/types";
-import type { Message, Tool } from "@gajae-code/ai";
+import { AppendOnlyContextManager, StablePrefix } from "@jawcode-dev/agent-core/append-only-context";
+import type { AgentContext } from "@jawcode-dev/agent-core/types";
+import type { Message, Tool } from "@jawcode-dev/ai";
 import * as z from "zod/v4";
 
 const WARMUP_ITERATIONS = 20;
 const MEASURE_ITERATIONS = 200;
-const PACKAGE_NAME = "@gajae-code/agent-core";
+const PACKAGE_NAME = "@jawcode-dev/agent-core";
 
 type Fixture = {
 	name: string;

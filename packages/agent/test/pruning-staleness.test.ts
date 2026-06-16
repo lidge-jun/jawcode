@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { ToolResultMessage } from "@gajae-code/ai";
+import type { ToolResultMessage } from "@jawcode-dev/ai";
 import type { SessionEntry, SessionMessageEntry } from "../src/compaction/entries";
 import { DEFAULT_PRUNE_CONFIG, type PruneConfig, pruneToolOutputs } from "../src/compaction/pruning";
 

@@ -1,4 +1,4 @@
-import type { AuthStorage } from "@gajae-code/ai";
+import type { AuthStorage } from "@jawcode-dev/ai";
 import type { SearchProviderId, SearchResponse } from "../types";
 
 /**

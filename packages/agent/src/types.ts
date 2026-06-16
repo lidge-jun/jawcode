@@ -14,7 +14,7 @@ import type {
 	ToolChoice,
 	ToolResultMessage,
 	TSchema,
-} from "@gajae-code/ai";
+} from "@jawcode-dev/ai";
 import type { AppendOnlyContextManager } from "./append-only-context";
 import type { HarmonyAuditEvent } from "./harmony-leak";
 import type { AgentRunCoverage, AgentRunSummary } from "./run-collector";
@@ -333,7 +333,7 @@ export interface AfterToolCallContext {
  *
  * @example
  * ```typescript
- * declare module "@gajae-code/agent" {
+ * declare module "@jawcode-dev/agent" {
  *   interface CustomAgentMessages {
  *     artifact: ArtifactMessage;
  *     notification: NotificationMessage;

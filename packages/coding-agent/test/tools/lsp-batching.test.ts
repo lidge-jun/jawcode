@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import * as path from "node:path";
-import { createLspWritethrough } from "@gajae-code/coding-agent/lsp";
-import * as lspConfig from "@gajae-code/coding-agent/lsp/config";
-import { TempDir } from "@gajae-code/utils";
+import { createLspWritethrough } from "@jawcode-dev/coding-agent/lsp";
+import * as lspConfig from "@jawcode-dev/coding-agent/lsp/config";
+import { TempDir } from "@jawcode-dev/utils";
 
 describe("createLspWritethrough batching", () => {
 	let tempDir: TempDir;

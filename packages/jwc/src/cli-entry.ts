@@ -7,4 +7,4 @@ import { version as jawcodePackageVersion } from "../package.json" with { type: 
 process.env.JWC_BRAND_NAME = "jwc";
 process.env.JWC_PACKAGE_VERSION ??= jawcodePackageVersion;
 // Internal workspace import: public package/bin/docs remain Jawcode/JWC.
-await import("@gajae-code/coding-agent/cli");
+await import("@jawcode-dev/coding-agent/cli");

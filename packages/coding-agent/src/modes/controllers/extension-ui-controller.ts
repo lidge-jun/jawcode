@@ -1,6 +1,6 @@
-import type { Component, OverlayHandle, TUI } from "@gajae-code/tui";
-import { Container, Spacer, Text } from "@gajae-code/tui";
-import { logger } from "@gajae-code/utils";
+import type { Component, OverlayHandle, TUI } from "@jawcode-dev/tui";
+import { Container, Spacer, Text } from "@jawcode-dev/tui";
+import { logger } from "@jawcode-dev/utils";
 import { KeybindingsManager } from "../../config/keybindings";
 import type {
 	CompactOptions,

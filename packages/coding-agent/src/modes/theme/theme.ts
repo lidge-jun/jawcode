@@ -1,16 +1,16 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { ThinkingLevel } from "@gajae-code/agent-core";
-import type { Effort } from "@gajae-code/ai";
+import type { ThinkingLevel } from "@jawcode-dev/agent-core";
+import type { Effort } from "@jawcode-dev/ai";
 import {
 	detectMacOSAppearance,
 	MacAppearanceObserver,
 	type HighlightColors as NativeHighlightColors,
 	highlightCode as nativeHighlightCode,
 	supportsLanguage as nativeSupportsLanguage,
-} from "@gajae-code/natives";
-import type { EditorTheme, MarkdownTheme, SelectListTheme, SymbolTheme } from "@gajae-code/tui";
-import { APP_NAME, adjustHsv, ENGINE_NAME, getCustomThemesDir, isEnoent, logger } from "@gajae-code/utils";
+} from "@jawcode-dev/natives";
+import type { EditorTheme, MarkdownTheme, SelectListTheme, SymbolTheme } from "@jawcode-dev/tui";
+import { APP_NAME, adjustHsv, ENGINE_NAME, getCustomThemesDir, isEnoent, logger } from "@jawcode-dev/utils";
 import chalk from "chalk";
 import * as z from "zod/v4";
 // Embed theme JSON files at build time
@@ -2461,7 +2461,7 @@ export function getEditorTheme(): EditorTheme {
 	};
 }
 
-export function getSettingsListTheme(): import("@gajae-code/tui").SettingsListTheme {
+export function getSettingsListTheme(): import("@jawcode-dev/tui").SettingsListTheme {
 	return {
 		label: (text: string, selected: boolean) => (selected ? theme.fg("accent", text) : text),
 		value: (text: string, selected: boolean) => (selected ? theme.fg("accent", text) : theme.fg("muted", text)),

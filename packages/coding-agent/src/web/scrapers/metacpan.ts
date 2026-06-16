@@ -1,4 +1,4 @@
-import { tryParseJson } from "@gajae-code/utils";
+import { tryParseJson } from "@jawcode-dev/utils";
 import type { RenderResult, SpecialHandler } from "./types";
 import { buildResult, formatIsoDate, loadPage } from "./types";
 

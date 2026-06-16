@@ -29,7 +29,7 @@ npx tsx examples/sdk/01-minimal.ts
 ## Quick Reference
 
 ```typescript
-import { getModel } from "@gajae-code/ai";
+import { getModel } from "@jawcode-dev/ai";
 import {
 	AuthStorage,
 	createAgentSession,
@@ -48,7 +48,7 @@ import {
 	HIDDEN_TOOLS,
 	createTools,
 	ResolveTool,
-} from "@gajae-code/coding-agent";
+} from "@jawcode-dev/coding-agent";
 
 // Auth and models setup
 const authStorage = discoverAuthStorage();

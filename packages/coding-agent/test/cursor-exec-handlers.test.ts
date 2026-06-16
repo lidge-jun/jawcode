@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from "bun:test";
 import { create } from "@bufbuild/protobuf";
-import type { AgentTool } from "@gajae-code/agent-core";
+import type { AgentTool } from "@jawcode-dev/agent-core";
 import {
 	DiagnosticsArgsSchema,
 	GrepArgsSchema,
@@ -16,7 +16,7 @@ import {
 	ReadArgsSchema,
 	ShellArgsSchema,
 	WriteArgsSchema,
-} from "@gajae-code/ai/providers/cursor/gen/agent_pb";
+} from "@jawcode-dev/ai/providers/cursor/gen/agent_pb";
 import { CursorExecHandlers } from "../src/cursor";
 
 function makeTool(name: string): AgentTool {

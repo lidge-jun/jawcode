@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { Component } from "@gajae-code/tui";
-import { Box } from "@gajae-code/tui/components/box";
+import type { Component } from "@jawcode-dev/tui";
+import { Box } from "@jawcode-dev/tui/components/box";
 
 type CountingChild = Component & {
 	invalidateCount(): number;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { RpcUnattendedDeclaration } from "@gajae-code/coding-agent/modes/rpc/rpc-types";
+import type { RpcUnattendedDeclaration } from "@jawcode-dev/coding-agent/modes/rpc/rpc-types";
 import {
 	type NegotiateContext,
 	UnattendedAccountingError,
@@ -7,7 +7,7 @@ import {
 	UnattendedBudgetExceededError,
 	UnattendedNegotiationError,
 	UnattendedRunController,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/unattended-run-controller";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/unattended-run-controller";
 
 function decl(overrides: Partial<RpcUnattendedDeclaration> = {}): RpcUnattendedDeclaration {
 	return {

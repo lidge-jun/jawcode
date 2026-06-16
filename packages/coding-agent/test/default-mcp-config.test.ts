@@ -6,7 +6,7 @@ import {
 	type DefaultMcpConfigInstallResult,
 	getManagedDefaultMcpServers,
 	installDefaultMcpConfig,
-} from "@gajae-code/coding-agent/defaults/jwc-defaults";
+} from "@jawcode-dev/coding-agent/defaults/jwc-defaults";
 import type { MCPConfigFile } from "../src/runtime-mcp/types";
 
 const tempRoots: string[] = [];

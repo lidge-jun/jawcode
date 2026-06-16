@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs/promises";
-import type { Component, OverlayHandle } from "@gajae-code/tui";
+import type { Component, OverlayHandle } from "@jawcode-dev/tui";
 import { resetSettingsForTest, Settings } from "../src/config/settings";
 import { BashExecutionComponent } from "../src/modes/components/bash-execution";
 import { EvalExecutionComponent } from "../src/modes/components/eval-execution";

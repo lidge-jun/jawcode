@@ -22,7 +22,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { performance } from "node:perf_hooks";
-import { getLogsDir } from "@gajae-code/utils";
+import { getLogsDir } from "@jawcode-dev/utils";
 
 /** Number of consecutive unexpected full redraws that constitute a "storm". */
 export const REPAINT_STORM_THRESHOLD = 3;

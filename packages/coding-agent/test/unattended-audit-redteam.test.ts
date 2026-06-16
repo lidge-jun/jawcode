@@ -8,7 +8,7 @@ import {
 	answerHash,
 	defaultAuditPath,
 	UnattendedAuditLog,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/unattended-audit";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/unattended-audit";
 
 function tempDir(prefix = "audit-redteam-"): string {
 	return mkdtempSync(path.join(tmpdir(), prefix));

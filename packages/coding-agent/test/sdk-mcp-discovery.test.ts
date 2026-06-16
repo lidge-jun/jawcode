@@ -2,14 +2,14 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { ThinkingLevel } from "@gajae-code/agent-core";
-import { AuthStorage, Effort, getBundledModel, type Model } from "@gajae-code/ai";
-import { ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import type { CustomTool } from "@gajae-code/coding-agent/extensibility/custom-tools/types";
-import { createAgentSession } from "@gajae-code/coding-agent/sdk";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { Snowflake } from "@gajae-code/utils";
+import { ThinkingLevel } from "@jawcode-dev/agent-core";
+import { AuthStorage, Effort, getBundledModel, type Model } from "@jawcode-dev/ai";
+import { ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import type { CustomTool } from "@jawcode-dev/coding-agent/extensibility/custom-tools/types";
+import { createAgentSession } from "@jawcode-dev/coding-agent/sdk";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { Snowflake } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 
 function createMcpCustomTool(name: string, serverName: string, mcpToolName: string): CustomTool {

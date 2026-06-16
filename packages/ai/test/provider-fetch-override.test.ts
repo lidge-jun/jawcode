@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
-import { $inheritedEnv } from "@gajae-code/utils";
+import { $inheritedEnv } from "@jawcode-dev/utils";
 import { getBundledModel } from "../src/models";
 import { streamOpenAICompletions } from "../src/providers/openai-completions";
 import { streamOpenAIResponses } from "../src/providers/openai-responses";

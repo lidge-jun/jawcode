@@ -10,7 +10,7 @@
  * touching the persisted settings file.
  */
 
-import { logger } from "@gajae-code/utils";
+import { logger } from "@jawcode-dev/utils";
 import type { Settings } from "../config/settings";
 
 export type HindsightScoping = "global" | "per-project" | "per-project-tagged";

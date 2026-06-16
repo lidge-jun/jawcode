@@ -4,7 +4,7 @@
  * Handles line endings, BOM, whitespace, and Unicode normalization.
  */
 
-import { padding } from "@gajae-code/tui";
+import { padding } from "@jawcode-dev/tui";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Line Ending Utilities

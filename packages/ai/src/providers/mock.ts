@@ -6,7 +6,7 @@
  *
  * Usage:
  *
- *   import { createMockModel, registerMockApi } from "@gajae-code/ai/providers/mock";
+ *   import { createMockModel, registerMockApi } from "@jawcode-dev/ai/providers/mock";
  *
  *   // 1. Array of responses, one per call.
  *   const mock = createMockModel({

@@ -2,14 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { createAgentSession } from "@gajae-code/coding-agent/sdk";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { createAgentSession } from "@jawcode-dev/coding-agent/sdk";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
 import {
 	buildSystemPrompt,
 	loadProjectContextFiles,
 	loadSystemPromptFiles,
-} from "@gajae-code/coding-agent/system-prompt";
+} from "@jawcode-dev/coding-agent/system-prompt";
 import { cleanupTempHome } from "./helpers/temp-home-cleanup";
 
 function escapeRegExp(text: string): string {

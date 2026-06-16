@@ -14,7 +14,7 @@
  *    message delta is a cache miss each turn.
  */
 
-import type { Context, Message, Tool } from "@gajae-code/ai";
+import type { Context, Message, Tool } from "@jawcode-dev/ai";
 import { normalizeTools } from "./agent-loop";
 import type { AgentContext } from "./types";
 

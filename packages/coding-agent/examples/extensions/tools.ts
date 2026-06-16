@@ -8,9 +8,9 @@
  * 1. Copy this file to ~/.jwc/agent/extensions/ (legacy: ~/.pi/agent/extensions/) or your project's .jwc/extensions/
  * 2. Use /tools to open the tool selector
  */
-import type { ExtensionAPI, ExtensionContext } from "@gajae-code/coding-agent";
-import { getSettingsListTheme } from "@gajae-code/coding-agent";
-import { Container, type SettingItem, SettingsList } from "@gajae-code/tui";
+import type { ExtensionAPI, ExtensionContext } from "@jawcode-dev/coding-agent";
+import { getSettingsListTheme } from "@jawcode-dev/coding-agent";
+import { Container, type SettingItem, SettingsList } from "@jawcode-dev/tui";
 
 // State persisted to session
 interface ToolsState {

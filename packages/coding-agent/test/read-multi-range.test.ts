@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { AgentToolResult } from "@gajae-code/agent-core";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import type { ClientBridge } from "@gajae-code/coding-agent/session/client-bridge";
-import type { ToolSession } from "@gajae-code/coding-agent/tools";
-import type { ReadToolDetails } from "@gajae-code/coding-agent/tools/read";
-import { ReadTool } from "@gajae-code/coding-agent/tools/read";
+import type { AgentToolResult } from "@jawcode-dev/agent-core";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import type { ClientBridge } from "@jawcode-dev/coding-agent/session/client-bridge";
+import type { ToolSession } from "@jawcode-dev/coding-agent/tools";
+import type { ReadToolDetails } from "@jawcode-dev/coding-agent/tools/read";
+import { ReadTool } from "@jawcode-dev/coding-agent/tools/read";
 
 function textOutput(result: AgentToolResult<ReadToolDetails>): string {
 	return result.content

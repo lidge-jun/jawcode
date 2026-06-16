@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { buildInsertHistorySequence, detectHistoryLaneMode } from "@gajae-code/tui";
+import { buildInsertHistorySequence, detectHistoryLaneMode } from "@jawcode-dev/tui";
 import { VirtualTerminal } from "./virtual-terminal";
 
 /**

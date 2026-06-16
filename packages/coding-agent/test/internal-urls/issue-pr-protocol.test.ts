@@ -9,9 +9,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { InternalUrlRouter } from "@gajae-code/coding-agent/internal-urls";
-import { resetForTests as resetCacheForTests } from "@gajae-code/coding-agent/tools/github-cache";
-import * as git from "@gajae-code/coding-agent/utils/git";
+import { InternalUrlRouter } from "@jawcode-dev/coding-agent/internal-urls";
+import { resetForTests as resetCacheForTests } from "@jawcode-dev/coding-agent/tools/github-cache";
+import * as git from "@jawcode-dev/coding-agent/utils/git";
 
 let tempDir: string;
 let originalEnv: string | undefined;

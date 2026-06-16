@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
-import { parseSessionEntries } from "@gajae-code/coding-agent";
-import { readLines } from "@gajae-code/utils";
+import { parseSessionEntries } from "@jawcode-dev/coding-agent";
+import { readLines } from "@jawcode-dev/utils";
 import { createHarnessCliEnv, type HarnessCliEnv } from "./harness-control-plane/cli-workspace-env";
 
 const repoRoot = path.resolve(import.meta.dir, "..", "..", "..");

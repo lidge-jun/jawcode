@@ -11,13 +11,13 @@ import {
 	readGoalPlan,
 	runNativeGoalEngineCommand,
 	startNextGoal,
-} from "@gajae-code/coding-agent/jwc-runtime/goal-engine";
+} from "@jawcode-dev/coding-agent/jwc-runtime/goal-engine";
 import {
 	assertCanCompleteCurrentGoal,
 	validateCompletionReceipt,
-} from "@gajae-code/coding-agent/jwc-runtime/goal-guard";
-import { reconcileWorkflowSkillState } from "@gajae-code/coding-agent/jwc-runtime/state-runtime";
-import { readVisibleSkillActiveState } from "@gajae-code/coding-agent/skill-state/active-state";
+} from "@jawcode-dev/coding-agent/jwc-runtime/goal-guard";
+import { reconcileWorkflowSkillState } from "@jawcode-dev/coding-agent/jwc-runtime/state-runtime";
+import { readVisibleSkillActiveState } from "@jawcode-dev/coding-agent/skill-state/active-state";
 
 const tempRoots: string[] = [];
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { Model } from "@gajae-code/ai";
+import type { Model } from "@jawcode-dev/ai";
 import { RawSseDebugBuffer, rawSseRecordLines, resolveRawSseDebugBuffer } from "../../src/debug/raw-sse-buffer";
 
 const model: Model<"anthropic-messages"> = {

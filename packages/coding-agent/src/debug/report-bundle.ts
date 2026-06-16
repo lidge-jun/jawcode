@@ -5,8 +5,8 @@
  */
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import type { WorkProfile } from "@gajae-code/natives";
-import { APP_NAME, getLogPath, getLogsDir, getReportsDir, isEnoent } from "@gajae-code/utils";
+import type { WorkProfile } from "@jawcode-dev/natives";
+import { APP_NAME, getLogPath, getLogsDir, getReportsDir, isEnoent } from "@jawcode-dev/utils";
 import type { CpuProfile, HeapSnapshot } from "./profiler";
 import { collectSystemInfo, sanitizeEnv } from "./system-info";
 

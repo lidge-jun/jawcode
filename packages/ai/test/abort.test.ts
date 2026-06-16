@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { getBundledModel } from "@gajae-code/ai/models";
-import { complete, stream } from "@gajae-code/ai/stream";
-import type { Api, Context, Model, OptionsForApi } from "@gajae-code/ai/types";
+import { getBundledModel } from "@jawcode-dev/ai/models";
+import { complete, stream } from "@jawcode-dev/ai/stream";
+import type { Api, Context, Model, OptionsForApi } from "@jawcode-dev/ai/types";
 import { e2eApiKey, resolveApiKey } from "./oauth";
 
 // Resolve OAuth tokens at module level (async, runs before tests)

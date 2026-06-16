@@ -14,7 +14,7 @@
  * containerized gjc deployments (e.g. robojwc slots) that route every LLM call
  * through a credential-holding sidecar so the slot itself stays credential-free.
  */
-import { readSseJson } from "@gajae-code/utils";
+import { readSseJson } from "@jawcode-dev/utils";
 import type {
 	Api,
 	AssistantMessage,

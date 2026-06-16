@@ -1,9 +1,9 @@
 import { beforeAll, describe, expect, it } from "bun:test";
-import { type HelpCatalogEntry, HelpSelectorComponent } from "@gajae-code/coding-agent/modes/components/help-selector";
-import { getThemeByName, setThemeInstance } from "@gajae-code/coding-agent/modes/theme/theme";
-import { buildHelpMarkdown } from "@gajae-code/coding-agent/modes/utils/help-markdown";
-import { BUILTIN_SLASH_COMMANDS_INTERNAL } from "@gajae-code/coding-agent/slash-commands/builtin-registry";
-import type { SlashCommandRuntime } from "@gajae-code/coding-agent/slash-commands/types";
+import { type HelpCatalogEntry, HelpSelectorComponent } from "@jawcode-dev/coding-agent/modes/components/help-selector";
+import { getThemeByName, setThemeInstance } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import { buildHelpMarkdown } from "@jawcode-dev/coding-agent/modes/utils/help-markdown";
+import { BUILTIN_SLASH_COMMANDS_INTERNAL } from "@jawcode-dev/coding-agent/slash-commands/builtin-registry";
+import type { SlashCommandRuntime } from "@jawcode-dev/coding-agent/slash-commands/types";
 
 beforeAll(async () => {
 	const theme = await getThemeByName("red-claw");

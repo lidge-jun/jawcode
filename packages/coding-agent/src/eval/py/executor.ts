@@ -1,4 +1,4 @@
-import { getProjectDir, logger } from "@gajae-code/utils";
+import { getProjectDir, logger } from "@jawcode-dev/utils";
 import { Settings } from "../../config/settings";
 import { formatCrashDiagnosticNotice, writeCrashReport } from "../../debug/crash-diagnostics";
 import { OutputSink } from "../../session/streaming-output";

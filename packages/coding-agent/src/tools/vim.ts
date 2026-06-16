@@ -1,7 +1,7 @@
-import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@gajae-code/agent-core";
-import type { Component } from "@gajae-code/tui";
-import { extractSegments, sliceWithWidth, Text } from "@gajae-code/tui";
-import { isEnoent, logger, prompt, untilAborted } from "@gajae-code/utils";
+import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@jawcode-dev/agent-core";
+import type { Component } from "@jawcode-dev/tui";
+import { extractSegments, sliceWithWidth, Text } from "@jawcode-dev/tui";
+import { isEnoent, logger, prompt, untilAborted } from "@jawcode-dev/utils";
 import * as Diff from "diff";
 import * as z from "zod/v4";
 import type { RenderResultOptions } from "../extensibility/custom-tools/types";

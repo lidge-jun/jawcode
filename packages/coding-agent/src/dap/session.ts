@@ -1,6 +1,6 @@
 import * as path from "node:path";
 import * as timers from "node:timers/promises";
-import { logger, ptree, untilAborted } from "@gajae-code/utils";
+import { logger, ptree, untilAborted } from "@jawcode-dev/utils";
 import { NON_INTERACTIVE_ENV } from "../exec/non-interactive-env";
 import { DapClient } from "./client";
 import type {

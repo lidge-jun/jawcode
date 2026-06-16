@@ -31,7 +31,7 @@
 
 ### Fixed
 
-- Separated a model's total context window from its safe input/prompt-packing budget in the compaction threshold. `effectiveReserveTokens`, `resolveThresholdTokens`, and `shouldCompact` now accept an optional `maxOutputTokens` and reserve at least that completion budget, so a large-output model (e.g. 400K context / 128K max output) caps input near 272K instead of 340K and cannot overflow the total window with reserved output ([#442](https://github.com/Yeachan-Heo/gajae-code/issues/442)).
+- Separated a model's total context window from its safe input/prompt-packing budget in the compaction threshold. `effectiveReserveTokens`, `resolveThresholdTokens`, and `shouldCompact` now accept an optional `maxOutputTokens` and reserve at least that completion budget, so a large-output model (e.g. 400K context / 128K max output) caps input near 272K instead of 340K and cannot overflow the total window with reserved output ([#442](https://github.com/lidge-jun/jawcode/issues/442)).
 
 ## [0.4.0] - 2026-06-06
 
@@ -43,7 +43,7 @@
 
 ### Fixed
 
-- Moved the env-driven full message content capture warning into agent-core telemetry resolution so direct `@gajae-code/agent-core` consumers receive `full_content_capture_env_active` when `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=full` is used without an explicit `captureMessageContent` override.
+- Moved the env-driven full message content capture warning into agent-core telemetry resolution so direct `@jawcode-dev/agent-core` consumers receive `full_content_capture_env_active` when `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=full` is used without an explicit `captureMessageContent` override.
 
 ### Changed
 
@@ -118,12 +118,12 @@
 ## [15.1.0] - 2026-05-15
 ### Breaking Changes
 
-- Removed the `@gajae-code/agent-core/compaction/handoff` exports from the package surface, including `extractHandoffDocument`, `createHandoffContext`, and `createHandoffFileName`
+- Removed the `@jawcode-dev/agent-core/compaction/handoff` exports from the package surface, including `extractHandoffDocument`, `createHandoffContext`, and `createHandoffFileName`
 - Removed legacy telemetry constants from the public enum surface (including `AGGREGATE_ATTR`, `GenAIAttr.System`, and old `gen_ai.*` extension keys such as `gen_ai.request.service_tier`/cost/tool status/handoff fields) and replaced them with `OpenAIAttr`, `PiGenAIAttr`, and `PiGenAIAggregateAttr`
 
 ### Added
 
-- Added `generateHandoff(messages, model, apiKey, options)` to `@gajae-code/agent-core/compaction` to generate a handoff document by calling the model directly, using live system/tool context and optional metadata
+- Added `generateHandoff(messages, model, apiKey, options)` to `@jawcode-dev/agent-core/compaction` to generate a handoff document by calling the model directly, using live system/tool context and optional metadata
 - Added generation filtering so the returned handoff document now includes only text content blocks from the model output
 - Added support for defining `AgentTool` schemas with Zod, with legacy TypeBox schemas still supported when generating tool schemas for model calls
 - Added `OpenAIAttr`, `PiGenAIAttr`, and `PiGenAIAggregateAttr` exports so consumers can reference the new `openai.*` and `pi.gen_ai.*` telemetry attribute keys directly
@@ -140,7 +140,7 @@
 - Added `AgentTelemetryConfig` hooks (`onSpanStart`, `onSpanEnd`, `costEstimator`), `agent` identity, `attributes` envelope merged onto every span, `captureMessageContent` toggle (defaults to the `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` env var) emitting OTEL-shaped `gen_ai.input.messages` / `gen_ai.output.messages` / `gen_ai.system_instructions` / `gen_ai.tool.call.arguments` / `gen_ai.tool.call.result`, and tracer/tracerName override surfaces.
 - Added `Agent#setTelemetry(config)` so consumers can swap or disable instrumentation between invocations.
 - Added `@opentelemetry/api` as a runtime dependency; SDK setup (exporters, samplers, processors) remains the host's responsibility per standard OTEL conventions. When no SDK is registered, helpers fall through to no-op spans with zero overhead.
-- Added compaction APIs under `@gajae-code/agent-core/compaction`, including context compaction, branch summarization, handoff prompt/context helpers, pruning, token budgeting, prompt templates, and OpenAI `/responses/compact` helpers.
+- Added compaction APIs under `@jawcode-dev/agent-core/compaction`, including context compaction, branch summarization, handoff prompt/context helpers, pruning, token budgeting, prompt templates, and OpenAI `/responses/compact` helpers.
 
 ### Changed
 
@@ -474,7 +474,7 @@
 
 ### Changed
 
-- Switched from local `@gajae-code/ai` to upstream `@gajae-code/ai` package
+- Switched from local `@jawcode-dev/ai` to upstream `@jawcode-dev/ai` package
 
 ### Added
 
@@ -521,11 +521,11 @@
 
 ### Changed
 
-- Forked to @gajae-code scope with unified versioning across all packages
+- Forked to @jawcode-dev scope with unified versioning across all packages
 
 ## [1.337.0] - 2026-01-02
 
-Initial release under @gajae-code scope. See previous releases at [badlogic/pi-mono](https://github.com/badlogic/pi-mono).
+Initial release under @jawcode-dev scope. See previous releases at [badlogic/pi-mono](https://github.com/badlogic/pi-mono).
 
 ## [0.31.0] - 2026-01-02
 
@@ -544,7 +544,7 @@ Initial release under @gajae-code scope. See previous releases at [badlogic/pi-m
 
 - **`UserMessageWithAttachments` and `Attachment` types removed**: Attachment handling is now the responsibility of the `convertToLlm` function.
 
-- **Agent loop moved from `@gajae-code/ai`**: The `agentLoop`, `agentLoopContinue`, and related types have moved to this package. Import from `@gajae-code/pi-agent` instead.
+- **Agent loop moved from `@jawcode-dev/ai`**: The `agentLoop`, `agentLoopContinue`, and related types have moved to this package. Import from `@jawcode-dev/pi-agent` instead.
 
 ### Added
 

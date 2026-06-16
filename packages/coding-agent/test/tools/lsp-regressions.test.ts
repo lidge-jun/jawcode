@@ -1,19 +1,19 @@
 import { afterEach, describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { RenderResultOptions } from "@gajae-code/agent-core";
-import { LspTool } from "@gajae-code/coding-agent/lsp";
-import * as lspClient from "@gajae-code/coding-agent/lsp/client";
-import * as lspConfig from "@gajae-code/coding-agent/lsp/config";
-import { getServersForFile, loadConfig } from "@gajae-code/coding-agent/lsp/config";
-import { renderCall, renderResult } from "@gajae-code/coding-agent/lsp/render";
+import type { RenderResultOptions } from "@jawcode-dev/agent-core";
+import { LspTool } from "@jawcode-dev/coding-agent/lsp";
+import * as lspClient from "@jawcode-dev/coding-agent/lsp/client";
+import * as lspConfig from "@jawcode-dev/coding-agent/lsp/config";
+import { getServersForFile, loadConfig } from "@jawcode-dev/coding-agent/lsp/config";
+import { renderCall, renderResult } from "@jawcode-dev/coding-agent/lsp/render";
 import type {
 	CodeAction,
 	Diagnostic,
 	LspClient,
 	ServerConfig,
 	SymbolInformation,
-} from "@gajae-code/coding-agent/lsp/types";
+} from "@jawcode-dev/coding-agent/lsp/types";
 import {
 	applyCodeAction,
 	collectGlobMatches,
@@ -24,12 +24,12 @@ import {
 	hasGlobPattern,
 	resolveDiagnosticTargets,
 	resolveSymbolColumn,
-} from "@gajae-code/coding-agent/lsp/utils";
-import { getThemeByName } from "@gajae-code/coding-agent/modes/theme/theme";
-import type { ToolSession } from "@gajae-code/coding-agent/tools";
-import { clampTimeout } from "@gajae-code/coding-agent/tools/tool-timeouts";
-import * as piUtils from "@gajae-code/utils";
-import { sanitizeText, TempDir } from "@gajae-code/utils";
+} from "@jawcode-dev/coding-agent/lsp/utils";
+import { getThemeByName } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import type { ToolSession } from "@jawcode-dev/coding-agent/tools";
+import { clampTimeout } from "@jawcode-dev/coding-agent/tools/tool-timeouts";
+import * as piUtils from "@jawcode-dev/utils";
+import { sanitizeText, TempDir } from "@jawcode-dev/utils";
 
 describe("lsp regressions", () => {
 	afterEach(() => {

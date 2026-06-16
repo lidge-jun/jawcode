@@ -1,4 +1,4 @@
-import { type Component, Container, Markdown, Spacer, Text } from "@gajae-code/tui";
+import { type Component, Container, Markdown, Spacer, Text } from "@jawcode-dev/tui";
 import { getMarkdownTheme, theme } from "../../modes/theme/theme";
 
 // OSC 133 shell integration: marks prompt zones for terminal multiplexers

@@ -1,4 +1,4 @@
-import { sanitizeText as currentSanitizeText } from "@gajae-code/utils/sanitize-text";
+import { sanitizeText as currentSanitizeText } from "@jawcode-dev/utils/sanitize-text";
 
 const STRIP_RE = new RegExp(
 	[

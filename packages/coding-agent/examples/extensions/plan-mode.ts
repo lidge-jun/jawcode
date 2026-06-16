@@ -18,8 +18,8 @@
  * 2. Use /plan to toggle plan mode on/off
  * 3. Or start in plan mode with --plan flag
  */
-import type { ExtensionAPI, ExtensionContext } from "@gajae-code/coding-agent";
-import { Key } from "@gajae-code/tui";
+import type { ExtensionAPI, ExtensionContext } from "@jawcode-dev/coding-agent";
+import { Key } from "@jawcode-dev/tui";
 
 // Read-only tools for plan mode
 const PLAN_MODE_TOOLS = ["read", "bash", "search", "find"];

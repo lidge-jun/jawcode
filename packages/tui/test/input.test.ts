@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { CURSOR_MARKER } from "@gajae-code/tui";
-import { Input } from "@gajae-code/tui/components/input";
-import { setKittyProtocolActive } from "@gajae-code/tui/keys";
-import { visibleWidth } from "@gajae-code/tui/utils";
-import { getIndentation } from "@gajae-code/utils";
+import { CURSOR_MARKER } from "@jawcode-dev/tui";
+import { Input } from "@jawcode-dev/tui/components/input";
+import { setKittyProtocolActive } from "@jawcode-dev/tui/keys";
+import { visibleWidth } from "@jawcode-dev/tui/utils";
+import { getIndentation } from "@jawcode-dev/utils";
 
 function renderedWidth(input: Input, width: number): number {
 	const [line] = input.render(width);

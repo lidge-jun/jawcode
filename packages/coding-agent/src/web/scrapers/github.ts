@@ -1,4 +1,4 @@
-import { $env, ptree } from "@gajae-code/utils";
+import { $env, ptree } from "@jawcode-dev/utils";
 import type { RenderResult, SpecialHandler } from "./types";
 import { buildResult, loadPage } from "./types";
 

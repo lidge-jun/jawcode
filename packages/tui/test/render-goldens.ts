@@ -1,6 +1,6 @@
-// MUST be first: pins terminal-capability env before @gajae-code/tui evaluates.
+// MUST be first: pins terminal-capability env before @jawcode-dev/tui evaluates.
 // (Bare side-effect import — biome keeps it as a chunk boundary, so it cannot
-// be re-sorted below the @gajae-code/tui imports.)
+// be re-sorted below the @jawcode-dev/tui imports.)
 import "./render-goldens-env";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -14,8 +14,8 @@ import {
 	Markdown,
 	Text,
 	TUI,
-} from "@gajae-code/tui";
-import { ImageProtocol } from "@gajae-code/tui/terminal-capabilities";
+} from "@jawcode-dev/tui";
+import { ImageProtocol } from "@jawcode-dev/tui/terminal-capabilities";
 import { GOLDEN_BASELINE_ENV } from "./render-goldens-env";
 import { defaultEditorTheme, defaultMarkdownTheme } from "./test-themes";
 import { VirtualTerminal } from "./virtual-terminal";
@@ -307,7 +307,7 @@ export const RENDER_GOLDEN_FIXTURES: GoldenFixture[] = [
 
 export async function captureRenderGolden(fixture: GoldenFixture): Promise<RenderGoldenCapture> {
 	const previousEnv = new Map<string, string | undefined>();
-	let terminalCapabilities: typeof import("@gajae-code/tui/terminal-capabilities") | null = null;
+	let terminalCapabilities: typeof import("@jawcode-dev/tui/terminal-capabilities") | null = null;
 	let previousImageProtocol: ImageProtocol | null | undefined;
 	let tui: TUI | null = null;
 	try {
@@ -319,7 +319,7 @@ export async function captureRenderGolden(fixture: GoldenFixture): Promise<Rende
 		}
 
 		terminalCapabilities =
-			fixture.imageProtocol === undefined ? null : await import("@gajae-code/tui/terminal-capabilities");
+			fixture.imageProtocol === undefined ? null : await import("@jawcode-dev/tui/terminal-capabilities");
 		previousImageProtocol = terminalCapabilities?.TERMINAL.imageProtocol;
 		if (terminalCapabilities && fixture.imageProtocol !== undefined) {
 			terminalCapabilities.setTerminalImageProtocol(fixture.imageProtocol);

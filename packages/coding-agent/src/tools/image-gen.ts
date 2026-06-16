@@ -1,13 +1,13 @@
 import * as os from "node:os";
 import * as path from "node:path";
-import { getAntigravityUserAgent, getEnvApiKey, type Model } from "@gajae-code/ai";
+import { getAntigravityUserAgent, getEnvApiKey, type Model } from "@jawcode-dev/ai";
 import {
 	CODEX_BASE_URL,
 	getCodexAccountId,
 	OPENAI_HEADER_VALUES,
 	OPENAI_HEADERS,
 	URL_PATHS,
-} from "@gajae-code/ai/providers/openai-codex/constants";
+} from "@jawcode-dev/ai/providers/openai-codex/constants";
 import {
 	$env,
 	isEnoent,
@@ -17,7 +17,7 @@ import {
 	readSseJson,
 	Snowflake,
 	untilAborted,
-} from "@gajae-code/utils";
+} from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import packageJson from "../../package.json" with { type: "json" };
 import { isAuthenticated, type ModelRegistry } from "../config/model-registry";

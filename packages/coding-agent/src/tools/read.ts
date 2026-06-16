@@ -1,12 +1,12 @@
 import { Database } from "bun:sqlite";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@gajae-code/agent-core";
-import type { ImageContent, TextContent } from "@gajae-code/ai";
-import { glob, type SummaryResult, summarizeCode } from "@gajae-code/natives";
-import type { Component } from "@gajae-code/tui";
-import { Text } from "@gajae-code/tui";
-import { getRemoteDir, logger, prompt, readImageMetadata, untilAborted } from "@gajae-code/utils";
+import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@jawcode-dev/agent-core";
+import type { ImageContent, TextContent } from "@jawcode-dev/ai";
+import { glob, type SummaryResult, summarizeCode } from "@jawcode-dev/natives";
+import type { Component } from "@jawcode-dev/tui";
+import { Text } from "@jawcode-dev/tui";
+import { getRemoteDir, logger, prompt, readImageMetadata, untilAborted } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import { getFileReadCache } from "../edit/file-read-cache";
 import { isNotebookPath, readEditableNotebookText } from "../edit/notebook";

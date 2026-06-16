@@ -1,4 +1,4 @@
-import type { AssistantMessage, ServiceTier, StopReason, Usage } from "@gajae-code/ai";
+import type { AssistantMessage, ServiceTier, StopReason, Usage } from "@jawcode-dev/ai";
 
 export * from "./shared-types";
 

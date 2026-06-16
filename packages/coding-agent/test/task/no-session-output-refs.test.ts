@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "bun:test";
-import type { Message } from "@gajae-code/ai";
+import type { Message } from "@jawcode-dev/ai";
 import { AsyncJobManager } from "../../src/async";
 import { Settings } from "../../src/config/settings";
 import type { CreateAgentSessionResult } from "../../src/sdk";

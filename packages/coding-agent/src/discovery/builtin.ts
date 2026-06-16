@@ -4,7 +4,7 @@
  * Primary provider for GJC native configs. Supports all capabilities.
  */
 import * as path from "node:path";
-import { logger, parseFrontmatter, tryParseJson } from "@gajae-code/utils";
+import { logger, parseFrontmatter, tryParseJson } from "@jawcode-dev/utils";
 import { YAML } from "bun";
 import { registerProvider } from "../capability";
 import { type ContextFile, contextFileCapability } from "../capability/context-file";

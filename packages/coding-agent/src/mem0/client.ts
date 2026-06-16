@@ -4,7 +4,7 @@
 
 import type { Mem0Config } from "./config";
 
-const USER_AGENT = "oh-my-gajae-code";
+const USER_AGENT = "oh-my-jawcode";
 
 export interface Mem0SearchHit {
 	id: string;

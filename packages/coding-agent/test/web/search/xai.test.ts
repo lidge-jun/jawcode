@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "bun:test";
-import type { AuthStorage } from "@gajae-code/ai";
-import { hookFetch } from "@gajae-code/utils";
+import type { AuthStorage } from "@jawcode-dev/ai";
+import { hookFetch } from "@jawcode-dev/utils";
 import { hasXaiSearch, parseXaiResponse, XaiProvider } from "../../../src/web/search/providers/xai";
 
 function authStub(opts: { oauth?: boolean; auth?: boolean; oauthToken?: string; apiKey?: string }): AuthStorage {

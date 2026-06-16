@@ -40,7 +40,7 @@ function collectWorkspacePackages(repoRoot: string): LinkedWorkspacePackage[] {
 		if (!entry.isDirectory()) continue;
 		const packageDir = path.join(packagesDir, entry.name);
 		const name = readPackageName(path.join(packageDir, "package.json"));
-		if (!name?.startsWith("@gajae-code/")) continue;
+		if (!name?.startsWith("@jawcode-dev/")) continue;
 		packages.push({ name, packageDir });
 	}
 	return packages;
@@ -50,7 +50,7 @@ function linkWorkspacePackages(scopeDir: string, packages: LinkedWorkspacePackag
 	fs.mkdirSync(scopeDir, { recursive: true });
 	const createdLinks: string[] = [];
 	for (const pkg of packages) {
-		const unscopedName = pkg.name.slice("@gajae-code/".length);
+		const unscopedName = pkg.name.slice("@jawcode-dev/".length);
 		const linkPath = path.join(scopeDir, unscopedName);
 		try {
 			fs.symlinkSync(pkg.packageDir, linkPath, "dir");
@@ -74,7 +74,7 @@ function readRepoLinkMarker(file: string): RepoLinkMarker | null {
 
 function createRepoNodeModulesLinks(repoRoot: string, packages: LinkedWorkspacePackage[]): () => void {
 	const nodeModulesDir = path.join(repoRoot, "node_modules");
-	const scopeDir = path.join(nodeModulesDir, "@gajae-code");
+	const scopeDir = path.join(nodeModulesDir, "@jawcode");
 	const markerDir = path.join(nodeModulesDir, ".jwc-harness-test-links");
 	const marker = path.join(markerDir, `${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}.json`);
 	fs.mkdirSync(markerDir, { recursive: true });
@@ -132,7 +132,7 @@ export function createHarnessCliEnv(repoRoot: string, baseEnv: NodeJS.ProcessEnv
 	const nodePathRoot = fs.mkdtempSync(path.join(os.tmpdir(), "gjc-harness-node-path-"));
 	const registryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "gjc-harness-root-registry-"));
 	const packages = collectWorkspacePackages(repoRoot);
-	linkWorkspacePackages(path.join(nodePathRoot, "@gajae-code"), packages);
+	linkWorkspacePackages(path.join(nodePathRoot, "@jawcode"), packages);
 	const cleanupRepoLinks = createRepoNodeModulesLinks(repoRoot, packages);
 
 	const existingNodePath = baseEnv.NODE_PATH;

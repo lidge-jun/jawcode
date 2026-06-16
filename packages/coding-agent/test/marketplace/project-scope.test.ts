@@ -4,7 +4,7 @@
  * resolveActiveProjectRegistryPath: walk-up, .git fallback, null return, canonical path.
  * listAnthropic modelPluginRoots: project entries shadow user entries for same plugin ID.
  *
- * Note: helpers.ts imports @gajae-code/natives (Rust addon via glob).
+ * Note: helpers.ts imports @jawcode-dev/natives (Rust addon via glob).
  * This file imports from helpers.ts directly — the native addon IS present in the
  * test environment (verified: `bun run import-helpers.ts` succeeds).
  */
@@ -12,13 +12,13 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { InstalledPluginEntry } from "@gajae-code/coding-agent/extensibility/plugins/marketplace";
+import type { InstalledPluginEntry } from "@jawcode-dev/coding-agent/extensibility/plugins/marketplace";
 import {
 	addInstalledPlugin,
 	buildPluginId,
 	readInstalledPluginsRegistry,
 	writeInstalledPluginsRegistry,
-} from "@gajae-code/coding-agent/extensibility/plugins/marketplace";
+} from "@jawcode-dev/coding-agent/extensibility/plugins/marketplace";
 import {
 	clearClaudePluginRootsCache,
 	listClaudePluginRoots,

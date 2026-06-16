@@ -1,4 +1,4 @@
-import { logger } from "@gajae-code/utils";
+import { logger } from "@jawcode-dev/utils";
 import { loadJwcPlugins } from "./loader";
 import { discoverJwcPluginRoots } from "./paths";
 import { JwcPluginLoadError, type LoadedJwcPlugin, type LoadedSubskillActivation } from "./types";

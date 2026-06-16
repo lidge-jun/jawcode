@@ -37,7 +37,7 @@
  * followed by a re-seed.
  */
 
-import { logger } from "@gajae-code/utils";
+import { logger } from "@jawcode-dev/utils";
 import type { BankScope } from "./bank";
 import type {
 	HindsightApi,

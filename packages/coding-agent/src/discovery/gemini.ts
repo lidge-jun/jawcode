@@ -16,7 +16,7 @@
  * - settings: From settings.json
  */
 import * as path from "node:path";
-import { tryParseJson } from "@gajae-code/utils";
+import { tryParseJson } from "@jawcode-dev/utils";
 import { registerProvider } from "../capability";
 import { type ContextFile, contextFileCapability } from "../capability/context-file";
 import { type Extension, type ExtensionManifest, extensionCapability } from "../capability/extension";

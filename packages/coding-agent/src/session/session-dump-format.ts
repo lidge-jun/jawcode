@@ -1,9 +1,9 @@
 /**
  * Plain-text / markdown session formatting (same shape as /dump clipboard export).
  */
-import type { AgentMessage, ThinkingLevel } from "@gajae-code/agent-core";
-import { INTENT_FIELD } from "@gajae-code/agent-core";
-import type { AssistantMessage, Model } from "@gajae-code/ai";
+import type { AgentMessage, ThinkingLevel } from "@jawcode-dev/agent-core";
+import { INTENT_FIELD } from "@jawcode-dev/agent-core";
+import type { AssistantMessage, Model } from "@jawcode-dev/ai";
 import {
 	type BashExecutionMessage,
 	type BranchSummaryMessage,

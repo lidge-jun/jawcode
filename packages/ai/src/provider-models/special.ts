@@ -1,4 +1,4 @@
-import { once } from "@gajae-code/utils";
+import { once } from "@jawcode-dev/utils";
 import type { ModelManagerOptions } from "../model-manager";
 import { fetchCodexModels } from "../utils/discovery/codex";
 

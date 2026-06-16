@@ -1,7 +1,7 @@
 /**
  * PubMed handler for web-fetch
  */
-import { tryParseJson } from "@gajae-code/utils";
+import { tryParseJson } from "@jawcode-dev/utils";
 import { buildResult, loadPage, type RenderResult, type SpecialHandler } from "./types";
 
 const NCBI_HEADERS = {

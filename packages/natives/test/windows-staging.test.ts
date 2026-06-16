@@ -1,7 +1,7 @@
 /**
  * Regression for the Windows `bun install -g` update path: when a `gjc`
  * process is running, bun cannot overwrite a locked
- * `node_modules/@gajae-code/natives/native/pi_natives.win32-x64.node` during
+ * `node_modules/@jawcode-dev/natives/native/pi_natives.win32-x64.node` during
  * package update and silently keeps the old binary next to the new ESM
  * wrapper. The next launch then throws `<sym> is not a function` deep inside
  * tool execution (see Discord report, 2026-05-14).
@@ -24,9 +24,9 @@ import * as path from "node:path";
 import { getAddonFilenames, resolveLoaderCandidates, shouldStageNodeModulesAddon } from "../native/loader-state.js";
 import packageJson from "../package.json" with { type: "json" };
 
-const winNodeModulesNativeDir = "C:\\Users\\Admin\\node_modules\\@gajae-code\\pi-natives\\native";
-const winWorkspaceNativeDir = "C:\\Users\\Admin\\dev\\gajae-code\\packages\\natives\\native";
-const posixNodeModulesNativeDir = "/home/u/proj/node_modules/@gajae-code/natives/native";
+const winNodeModulesNativeDir = "C:\\Users\\Admin\\node_modules\\@jawcode\\pi-natives\\native";
+const winWorkspaceNativeDir = "C:\\Users\\Admin\\dev\\jawcode\\packages\\natives\\native";
+const posixNodeModulesNativeDir = "/home/u/proj/node_modules/@jawcode-dev/natives/native";
 
 describe("windows native addon staging", () => {
 	it("stages only on Windows node_modules installs", () => {

@@ -1,7 +1,7 @@
 /**
- * gajae-code RPC adapter + single-flight acceptance.
+ * jawcode RPC adapter + single-flight acceptance.
  *
- * The gajae-code harness is driven via `gjc --mode rpc` (see docs/rpc.md). Acceptance
+ * The jawcode harness is driven via `gjc --mode rpc` (see docs/rpc.md). Acceptance
  * is a PROTOCOL FACT, not an echo: a prompt is `accepted` only when the RPC command is
  * acked AND the next `agent_start` event arrives after the pre-submit cursor within the
  * timeout, with an idle + empty-queue pre-state. Ack alone never means accepted.
@@ -20,7 +20,7 @@ export interface RpcStateSnapshot {
 	followupQueueDepth: number;
 }
 
-/** Abstract handle to a live gajae-code RPC session. */
+/** Abstract handle to a live jawcode RPC session. */
 export interface HarnessRpc {
 	getState(): Promise<RpcStateSnapshot>;
 	/** Send a prompt; resolves with the RPC command id and whether it was acked. Does NOT await agent_start. */

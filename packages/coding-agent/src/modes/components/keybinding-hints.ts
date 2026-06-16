@@ -1,7 +1,7 @@
 /**
  * Utilities for formatting keybinding hints in the UI.
  */
-import { getKeybindings, type Keybinding, type KeyId } from "@gajae-code/tui";
+import { getKeybindings, type Keybinding, type KeyId } from "@jawcode-dev/tui";
 import type { AppKeybinding, KeybindingsManager } from "../../config/keybindings";
 import { theme } from "../../modes/theme/theme";
 

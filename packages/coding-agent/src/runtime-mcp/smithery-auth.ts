@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { isEnoent, logger } from "@gajae-code/utils";
-import { getAgentDir } from "@gajae-code/utils/dirs";
+import { isEnoent, logger } from "@jawcode-dev/utils";
+import { getAgentDir } from "@jawcode-dev/utils/dirs";
 
 const SMITHERY_AUTH_FILENAME = "smithery.json";
 const SMITHERY_URL = process.env.SMITHERY_URL || "https://smithery.ai";

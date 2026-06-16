@@ -1,5 +1,5 @@
 import * as path from "node:path";
-import { getAgentDir, getConfigRootDir, getPluginsDir } from "@gajae-code/utils";
+import { getAgentDir, getConfigRootDir, getPluginsDir } from "@jawcode-dev/utils";
 
 // Drop every extension discovered from the user's machine so each test only
 // sees what it wrote into the per-test temp project dir. Production composes

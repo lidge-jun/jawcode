@@ -1,5 +1,5 @@
 import * as path from "node:path";
-import { isEnoent, logger } from "@gajae-code/utils";
+import { isEnoent, logger } from "@jawcode-dev/utils";
 import { YAML } from "bun";
 import type { SecretEntry } from "./obfuscator";
 import { compileSecretRegex } from "./regex";

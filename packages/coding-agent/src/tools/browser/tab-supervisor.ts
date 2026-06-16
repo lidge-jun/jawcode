@@ -1,4 +1,4 @@
-import { getPuppeteerDir, isCompiledBinary, logger, Snowflake } from "@gajae-code/utils";
+import { getPuppeteerDir, isCompiledBinary, logger, Snowflake } from "@jawcode-dev/utils";
 import type { Page, Target } from "puppeteer-core";
 import { callSessionTool } from "../../eval/js/tool-bridge";
 import type { ToolSession } from "../../sdk";

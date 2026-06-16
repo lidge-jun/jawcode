@@ -1,5 +1,5 @@
 /**
- * Centralized logger for gajae-code.
+ * Centralized logger for jawcode.
  *
  * Default: rotating `~/.jwc/logs/gjc.<DATE>.log`, no console output (writing
  * to stdout/stderr would corrupt the TUI). Long-running headless services

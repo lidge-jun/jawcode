@@ -5,7 +5,7 @@
  * at DEFAULT_MAX_OUTPUT_TOKENS_CAP (32k) — matching mapOptionsForApi.
  */
 import { describe, expect, it } from "bun:test";
-import { DEFAULT_MAX_OUTPUT_TOKENS_CAP, effectiveMaxOutputTokens } from "@gajae-code/ai";
+import { DEFAULT_MAX_OUTPUT_TOKENS_CAP, effectiveMaxOutputTokens } from "@jawcode-dev/ai";
 
 describe("effectiveMaxOutputTokens", () => {
 	it("caps catalog maxTokens above the default cap", () => {

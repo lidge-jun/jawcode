@@ -87,7 +87,7 @@
 ### Fixed
 
 - Fixed a persistent `monitor` notification flood where a cancelled or evicted monitor kept delivering queued `task-notification` follow-ups (surviving process death, log deletion, and `job cancel` returning not-found). Monitors now purge their queued notifications on cancel/terminal/eviction, retain a short tombstone so post-eviction `job cancel` still purges, coalesce rapid duplicate output to the latest state, and close a cancel/trailing-flush race.
-- Fixed `ultragoal` execution leaking across concurrent independent GJC sessions. The runtime `goal-mode-request.json` is now stamped with the producing session's `GJC_SESSION_ID`, and the consumer only activates a request that belongs to the current session (another session's request is left intact instead of being consumed/deleted). Legacy unscoped requests remain consumable for single-session compatibility ([#457](https://github.com/Yeachan-Heo/gajae-code/issues/457)).
+- Fixed `ultragoal` execution leaking across concurrent independent GJC sessions. The runtime `goal-mode-request.json` is now stamped with the producing session's `GJC_SESSION_ID`, and the consumer only activates a request that belongs to the current session (another session's request is left intact instead of being consumed/deleted). Legacy unscoped requests remain consumable for single-session compatibility ([#457](https://github.com/lidge-jun/jawcode/issues/457)).
 
 ## [0.4.2] - 2026-06-09
 
@@ -100,7 +100,7 @@
 
 - Failed stale coordinator turns quickly when their recorded tmux session is gone, clearing active-turn state instead of burning await timeouts.
 - Improved the grep limit-reached message to show the current limit value and suggest using `--limit` for more results.
-- Passed the active model's `maxTokens` (reserved completion budget) into the auto-compaction threshold and context-usage reserve so prompt packing reserves output for large-window models, keeping the safe input budget below the total context window (e.g. ~272K for a 400K/128K model) instead of filling the whole window ([#442](https://github.com/Yeachan-Heo/gajae-code/issues/442)).
+- Passed the active model's `maxTokens` (reserved completion budget) into the auto-compaction threshold and context-usage reserve so prompt packing reserves output for large-window models, keeping the safe input budget below the total context window (e.g. ~272K for a 400K/128K model) instead of filling the whole window ([#442](https://github.com/lidge-jun/jawcode/issues/442)).
 - Fixed a `gjc harness` recovery deadlock where a session created by `start` without `--detach` (persisted as `started` with no owner lease/endpoint) could never get a live owner: `recover` refused to spawn one because no prior endpoint existed, while `start` reported `session-already-exists`. `recover` now bootstraps a fresh owner for a never-started session (no lease, no endpoint, no owner-run evidence) without writing a misleading `vanish` receipt, reported via `bootstrappedOwner: true`. Bootstrap is independent of the vanish classifier's `ownerRequired` verdict (nothing has vanished), so a session started in a non-git workspace (git delta `unknown`) is recovered too, while a deleted worktree is still refused (#421).
 
 ## [0.4.1] - 2026-06-07
@@ -126,7 +126,7 @@
 
 ### Removed
 
-- Removed the optional `@gajae-code/swarm-extension` package and its `gjc-swarm` CLI. The YAML/DAG swarm orchestration extension was a standalone optional feature not imported by any other package; it is no longer built or published.
+- Removed the optional `@jawcode-dev/swarm-extension` package and its `gjc-swarm` CLI. The YAML/DAG swarm orchestration extension was a standalone optional feature not imported by any other package; it is no longer built or published.
 
 ### Fixed
 
@@ -146,7 +146,7 @@
 - Integrated `ai-slop-cleaner` as an internal Ultragoal sub-skill fragment that runs as the mandatory completion-gate cleanup sweep over a story's changed files, reporting blocking and advisory findings without editing code or mutating `.jwc/` state.
 ### Changed
 
-- Edit tool diff generation (`generateDiffString`) now uses the native `diffLines` from `@gajae-code/natives` (a byte-identical Rust port of jsdiff) instead of the pure-JS implementation, removing the multi-second Myers blowup on large-file edits (~16x faster on ~1MB files) with identical diff output.
+- Edit tool diff generation (`generateDiffString`) now uses the native `diffLines` from `@jawcode-dev/natives` (a byte-identical Rust port of jsdiff) instead of the pure-JS implementation, removing the multi-second Myers blowup on large-file edits (~16x faster on ~1MB files) with identical diff output.
 
 ### Fixed
 
@@ -205,17 +205,17 @@
 ### Added
 
 - Added the bundled `blue-crab` dark theme and a TUI-only `/theme` selector that persists the selected appearance slot while keeping `red-claw` as the default dark theme.
-- Added `retry.requestMaxRetries` and `retry.streamMaxRetries` settings plus docs for codex-cli-style provider retry budgets ([#157](https://github.com/Yeachan-Heo/gajae-code/pull/157)).
+- Added `retry.requestMaxRetries` and `retry.streamMaxRetries` settings plus docs for codex-cli-style provider retry budgets ([#157](https://github.com/lidge-jun/jawcode/pull/157)).
 
 ### Fixed
 
 - Forwarded a caller-provided `User-Agent` on non-Anthropic proxy base URLs so the anthropic-messages provider no longer strips it, fixing HTTP 403 "request was blocked" rejections from WAF-fronted proxy gateways.
-- Restored Settings theme live preview without persisting browse state so confirm/cancel governs the rendered theme and in-flight previews cannot overwrite an explicit choice ([#166](https://github.com/Yeachan-Heo/gajae-code/pull/166)).
-- Preserved the deep-interview session language so interviews continue in the language they started in ([#168](https://github.com/Yeachan-Heo/gajae-code/pull/168)).
-- Purged the inherited OMP/pi-mono history from the embedded coding-agent CHANGELOG so post-update notifications and `/changelog` only surface gajae-code releases ([#161](https://github.com/Yeachan-Heo/gajae-code/pull/161)).
-- Wired `goal` tool `drop`/`complete` semantics so completing or dropping a goal restores the pre-goal toolset in the same session, with refreshed ultragoal docs ([#152](https://github.com/Yeachan-Heo/gajae-code/pull/152)).
-- Added local-memory empty-payload guidance so the agent does not claim facts were saved or remembered when local memory has no confirmed payload/readback ([#165](https://github.com/Yeachan-Heo/gajae-code/pull/165)).
-- Fixed `gjc update` binary fallback downloads to use the current owner release repository and report actionable manual update commands for unsupported fallback targets ([#164](https://github.com/Yeachan-Heo/gajae-code/pull/164)).
+- Restored Settings theme live preview without persisting browse state so confirm/cancel governs the rendered theme and in-flight previews cannot overwrite an explicit choice ([#166](https://github.com/lidge-jun/jawcode/pull/166)).
+- Preserved the deep-interview session language so interviews continue in the language they started in ([#168](https://github.com/lidge-jun/jawcode/pull/168)).
+- Purged the inherited OMP/pi-mono history from the embedded coding-agent CHANGELOG so post-update notifications and `/changelog` only surface jawcode releases ([#161](https://github.com/lidge-jun/jawcode/pull/161)).
+- Wired `goal` tool `drop`/`complete` semantics so completing or dropping a goal restores the pre-goal toolset in the same session, with refreshed ultragoal docs ([#152](https://github.com/lidge-jun/jawcode/pull/152)).
+- Added local-memory empty-payload guidance so the agent does not claim facts were saved or remembered when local memory has no confirmed payload/readback ([#165](https://github.com/lidge-jun/jawcode/pull/165)).
+- Fixed `gjc update` binary fallback downloads to use the current owner release repository and report actionable manual update commands for unsupported fallback targets ([#164](https://github.com/lidge-jun/jawcode/pull/164)).
 
 ## [0.2.3] - 2026-06-01
 
@@ -225,15 +225,15 @@
 - Added a built-in `skill` tool so the agent can chain into another loaded skill on its next turn. Mirrors `/skill:<name>` typing and subagent `autoloadSkills` by dispatching the chained skill's SKILL.md as a user-attribution custom message; controlled by the new `skill.enabled` setting (default true).
 - Added explicit fork-context task subagents with sanitized bounded parent-history seeds, global `task.forkContext.enabled`, per-agent `forkContext: allowed`, per-task `inheritContext: true`, audit-visible seed metadata, and fresh provider transport state by default.
 - Defaulted the bundled `executor` and `architect` agents to `forkContext: allowed` so callers can opt them into a sanitized parent-context seed via `task({ inheritContext: true })`; per-task selection remains explicit (default false).
-- Added a `/context` slash command that surfaces the active session's token usage breakdown via `buildSessionContext` without forking prompt assembly, so users can see active context before sessions overflow ([#150](https://github.com/Yeachan-Heo/gajae-code/pull/150)).
-- Added multi-line focused-option rendering to the `ask` tool's `HookSelectorComponent` via an opt-in `wrapFocused` flag so long option labels stay readable in plan-mode and other shared consumers ([#148](https://github.com/Yeachan-Heo/gajae-code/pull/148)).
-- Added a sanctioned native deep-interview spec persistence bridge so deep-interview can save final specs under `.jwc/specs/` before deliberate ralplan chaining without caller-side `.jwc` writes ([#134](https://github.com/Yeachan-Heo/gajae-code/pull/134)).
-- Added the skill chaining lifecycle's `handoff` state verb with same-turn dispatch and atomic HUD-truth synchronization across callee mode-state, caller mode-state, session active-state, and root active-state ([#132](https://github.com/Yeachan-Heo/gajae-code/pull/132)).
+- Added a `/context` slash command that surfaces the active session's token usage breakdown via `buildSessionContext` without forking prompt assembly, so users can see active context before sessions overflow ([#150](https://github.com/lidge-jun/jawcode/pull/150)).
+- Added multi-line focused-option rendering to the `ask` tool's `HookSelectorComponent` via an opt-in `wrapFocused` flag so long option labels stay readable in plan-mode and other shared consumers ([#148](https://github.com/lidge-jun/jawcode/pull/148)).
+- Added a sanctioned native deep-interview spec persistence bridge so deep-interview can save final specs under `.jwc/specs/` before deliberate ralplan chaining without caller-side `.jwc` writes ([#134](https://github.com/lidge-jun/jawcode/pull/134)).
+- Added the skill chaining lifecycle's `handoff` state verb with same-turn dispatch and atomic HUD-truth synchronization across callee mode-state, caller mode-state, session active-state, and root active-state ([#132](https://github.com/lidge-jun/jawcode/pull/132)).
 
 ### Changed
 
-- Clarified the README to position team as optional and ultragoal as implementation-through-evidence, so docs readers see workflow handoffs without spelunking into skill sources ([#145](https://github.com/Yeachan-Heo/gajae-code/pull/145)).
-- Migrated CI to the gajae self-hosted Linux runner with fork-PR guards, idempotent `fd` symlink setup, and Node 24 pinning for self-hosted jobs ([#124](https://github.com/Yeachan-Heo/gajae-code/pull/124)).
+- Clarified the README to position team as optional and ultragoal as implementation-through-evidence, so docs readers see workflow handoffs without spelunking into skill sources ([#145](https://github.com/lidge-jun/jawcode/pull/145)).
+- Migrated CI to the gajae self-hosted Linux runner with fork-PR guards, idempotent `fd` symlink setup, and Node 24 pinning for self-hosted jobs ([#124](https://github.com/lidge-jun/jawcode/pull/124)).
 
 ### Fixed
 
@@ -243,39 +243,39 @@
 - Made startup CHANGELOG display deterministic by embedding `packages/coding-agent/CHANGELOG.md` into the binary so post-update launches show the shipped history regardless of cwd or `GJC_PACKAGE_DIR`/`PI_PACKAGE_DIR` overrides.
 - Registered `gjc update` as a public root subcommand so it invokes the bundled updater instead of routing into the interactive launcher.
 - Fixed local memory backend persistence so manual enqueue/rebuild starts maintenance immediately and prompt injection reads the active session's memory root.
-- Aligned release-bump CI tests with the highest bundled upstream Claude family and stopped cancelling TTSR retries when an aborted partial was not persisted, so dev PRs no longer regress on v0.2.2-style release assumptions ([#142](https://github.com/Yeachan-Heo/gajae-code/pull/142)).
-- Added a runtime guard in the built-in `skill` tool that rejects re-entry into the currently active skill via a typed active-skill bridge from agent sessions into tool sessions, preventing recursive skill handoffs that prompt-only guidance could not stop ([#129](https://github.com/Yeachan-Heo/gajae-code/pull/129)).
+- Aligned release-bump CI tests with the highest bundled upstream Claude family and stopped cancelling TTSR retries when an aborted partial was not persisted, so dev PRs no longer regress on v0.2.2-style release assumptions ([#142](https://github.com/lidge-jun/jawcode/pull/142)).
+- Added a runtime guard in the built-in `skill` tool that rejects re-entry into the currently active skill via a typed active-skill bridge from agent sessions into tool sessions, preventing recursive skill handoffs that prompt-only guidance could not stop ([#129](https://github.com/lidge-jun/jawcode/pull/129)).
 
 ## [0.2.2] - 2026-05-31
 
 ### Added
 
-- Added `gjc session` for listing, inspecting, removing, and attaching GJC-managed tmux sessions ([#105](https://github.com/Yeachan-Heo/gajae-code/pull/105)).
+- Added `gjc session` for listing, inspecting, removing, and attaching GJC-managed tmux sessions ([#105](https://github.com/lidge-jun/jawcode/pull/105)).
 - Added a managed tmux session surface so `gjc --tmux` and `gjc team` reuse a scoped GJC session instead of mutating the global tmux environment.
-- Added a detached contribution prep workflow surface ([#122](https://github.com/Yeachan-Heo/gajae-code/pull/122)).
-- Added stricter `models.yml` validation and docs for OpenAI-compatible proxy providers, bridge-command requirements, and team dry-run state behavior ([#121](https://github.com/Yeachan-Heo/gajae-code/pull/121)).
-- Added first-class Azure OpenAI and Amazon Bedrock providers ([#119](https://github.com/Yeachan-Heo/gajae-code/pull/119)).
-- Added workflow state receipt routing so skill state writes emit a structured `WorkflowStateReceipt` envelope and sync skill-active HUD chips under `.jwc/state/skill-active-state.json` ([#118](https://github.com/Yeachan-Heo/gajae-code/pull/118)).
-- Made `gjc state`, `gjc ralplan`, and `gjc deep-interview` work natively as documented in their SKILL.md files. `gjc state read|write|clear|contract` operates directly on `.jwc/state/` receipts (accepts `--input '<json>'` with `@file` shorthand, `--mode <skill>`, positional `<skill>`, `--session-id`, `--thread-id`, `--turn-id`, `--json`, `--replace`); writes emit a structured `WorkflowStateReceipt` envelope and sync skill-active HUD chips. `gjc ralplan` accepts the documented `--interactive`/`--deliberate`/`--architect`/`--critic` flags and the `--write --stage --stage_n --artifact` artifact persistence shape under `.jwc/plans/ralplan/<run-id>/`. `gjc deep-interview` accepts the documented `--quick`/`--standard`/`--deep` resolution flags ([#125](https://github.com/Yeachan-Heo/gajae-code/pull/125)).
-- Added a GJC dogfood skill template ([#114](https://github.com/Yeachan-Heo/gajae-code/pull/114)).
+- Added a detached contribution prep workflow surface ([#122](https://github.com/lidge-jun/jawcode/pull/122)).
+- Added stricter `models.yml` validation and docs for OpenAI-compatible proxy providers, bridge-command requirements, and team dry-run state behavior ([#121](https://github.com/lidge-jun/jawcode/pull/121)).
+- Added first-class Azure OpenAI and Amazon Bedrock providers ([#119](https://github.com/lidge-jun/jawcode/pull/119)).
+- Added workflow state receipt routing so skill state writes emit a structured `WorkflowStateReceipt` envelope and sync skill-active HUD chips under `.jwc/state/skill-active-state.json` ([#118](https://github.com/lidge-jun/jawcode/pull/118)).
+- Made `gjc state`, `gjc ralplan`, and `gjc deep-interview` work natively as documented in their SKILL.md files. `gjc state read|write|clear|contract` operates directly on `.jwc/state/` receipts (accepts `--input '<json>'` with `@file` shorthand, `--mode <skill>`, positional `<skill>`, `--session-id`, `--thread-id`, `--turn-id`, `--json`, `--replace`); writes emit a structured `WorkflowStateReceipt` envelope and sync skill-active HUD chips. `gjc ralplan` accepts the documented `--interactive`/`--deliberate`/`--architect`/`--critic` flags and the `--write --stage --stage_n --artifact` artifact persistence shape under `.jwc/plans/ralplan/<run-id>/`. `gjc deep-interview` accepts the documented `--quick`/`--standard`/`--deep` resolution flags ([#125](https://github.com/lidge-jun/jawcode/pull/125)).
+- Added a GJC dogfood skill template ([#114](https://github.com/lidge-jun/jawcode/pull/114)).
 
 ### Changed
 
 - Changed `gjc --tmux` startup to create a fresh GJC-managed tmux session instead of attaching to an existing default session.
-- Hardened team message delivery and worker enforcement ([#112](https://github.com/Yeachan-Heo/gajae-code/pull/112)).
-- Hardened team worker startup and evidence invariants ([#123](https://github.com/Yeachan-Heo/gajae-code/pull/123)).
-- Clarified team state while integration is pending ([#109](https://github.com/Yeachan-Heo/gajae-code/pull/109)).
-- Removed goal mode budget semantics ([#106](https://github.com/Yeachan-Heo/gajae-code/pull/106)).
+- Hardened team message delivery and worker enforcement ([#112](https://github.com/lidge-jun/jawcode/pull/112)).
+- Hardened team worker startup and evidence invariants ([#123](https://github.com/lidge-jun/jawcode/pull/123)).
+- Clarified team state while integration is pending ([#109](https://github.com/lidge-jun/jawcode/pull/109)).
+- Removed goal mode budget semantics ([#106](https://github.com/lidge-jun/jawcode/pull/106)).
 - Removed the unused `gjc question` CLI; the `ask` tool covers blocking-question prompts.
-- Dropped the obsolete `loop` and `orchestrate` skills and pinned GJC skills in autocomplete ([#126](https://github.com/Yeachan-Heo/gajae-code/pull/126)).
+- Dropped the obsolete `loop` and `orchestrate` skills and pinned GJC skills in autocomplete ([#126](https://github.com/lidge-jun/jawcode/pull/126)).
 - Enforced CLI-managed workflow artifacts so planning skills persist via `gjc state` and `gjc ralplan --write` instead of editing `.jwc/` files directly.
 
 ### Fixed
 
-- Fixed Anthropic extended-thinking replay recovery after aborted turns ([#115](https://github.com/Yeachan-Heo/gajae-code/pull/115)).
-- Fixed `gjc deep-interview` ambiguity threshold default so workflow gating matches the documented contract ([#116](https://github.com/Yeachan-Heo/gajae-code/pull/116)).
-- Fixed duplicate PR creation in the team integration path ([#117](https://github.com/Yeachan-Heo/gajae-code/pull/117)).
-- Fixed package asset resolution to prefer `GJC_PACKAGE_DIR` over the legacy `PI_PACKAGE_DIR`, preventing update-launch changelog displays from reading stale OMP package assets ([#111](https://github.com/Yeachan-Heo/gajae-code/pull/111)).
+- Fixed Anthropic extended-thinking replay recovery after aborted turns ([#115](https://github.com/lidge-jun/jawcode/pull/115)).
+- Fixed `gjc deep-interview` ambiguity threshold default so workflow gating matches the documented contract ([#116](https://github.com/lidge-jun/jawcode/pull/116)).
+- Fixed duplicate PR creation in the team integration path ([#117](https://github.com/lidge-jun/jawcode/pull/117)).
+- Fixed package asset resolution to prefer `GJC_PACKAGE_DIR` over the legacy `PI_PACKAGE_DIR`, preventing update-launch changelog displays from reading stale OMP package assets ([#111](https://github.com/lidge-jun/jawcode/pull/111)).
 ## [0.2.1] - 2026-05-30
 
 ### Fixed
@@ -365,7 +365,7 @@
 - Fixed `gjc ultragoal create-goals` native goal activation so live sessions receive a pending reconciliation request even when the session file already contains an active goal.
 - Made `gjc ultragoal` run natively, preserving active goal state across interrupted turns.
 - Fixed interactive Escape/interrupt recovery so abort cleanup is bounded and forces the session back to idle when a provider stream, tool, or post-turn task ignores cooperative cancellation.
-- Fixed root `gjc --worktree` / `gjc -w` startup so the launch command actually creates and enters the sibling `<repo>.gajae-code-worktrees/<branch-slug>` git worktree before starting the session, using collision-resistant branch slugs and avoiding worktree side effects for help/version launches.
+- Fixed root `gjc --worktree` / `gjc -w` startup so the launch command actually creates and enters the sibling `<repo>.jawcode-worktrees/<branch-slug>` git worktree before starting the session, using collision-resistant branch slugs and avoiding worktree side effects for help/version launches.
 - Fixed root `gjc --worktree <branch>` / `gjc -w <branch>` parsing so named branch worktrees create their own `<branch-slug>` directory instead of reusing the dirty detached worktree for the current branch.
 - Wired GJC native UserPromptSubmit/Stop skill-state hooks, including `gjc setup hooks`, so public workflow keywords activate `.jwc/state`, active skill state can block premature Stop events, and active Ultragoal sessions remind steering prompts to use `gjc ultragoal steer`.
 - Fixed `gjc ultragoal create-goals` to seed GJC goal mode runtime state automatically, avoiding a separate manual `/goal` setup step.

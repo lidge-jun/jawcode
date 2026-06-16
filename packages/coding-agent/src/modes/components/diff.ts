@@ -1,4 +1,4 @@
-import { getIndentation, sanitizeText } from "@gajae-code/utils";
+import { getIndentation, sanitizeText } from "@jawcode-dev/utils";
 import * as Diff from "diff";
 import { getLanguageFromPath, highlightCode, theme } from "../../modes/theme/theme";
 import { type CodeFrameMarker, formatCodeFrameLine, replaceTabs } from "../../tools/render-utils";

@@ -5,7 +5,7 @@
  * detail-formatting logic is unit-testable. The selector controller wires these
  * SelectItem lists into nested SelectLists (list -> detail -> confirm).
  */
-import type { SelectItem } from "@gajae-code/tui";
+import type { SelectItem } from "@jawcode-dev/tui";
 import type { JobsSnapshot } from "../jobs-observer";
 
 export type JobRefKind = "monitor" | "cron";

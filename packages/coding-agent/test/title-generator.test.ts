@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "bun:test";
-import * as ai from "@gajae-code/ai";
-import { type Api, getBundledModel, type Model } from "@gajae-code/ai";
+import * as ai from "@jawcode-dev/ai";
+import { type Api, getBundledModel, type Model } from "@jawcode-dev/ai";
 import { generateSessionTitle } from "../src/utils/title-generator";
 
 function getModelOrThrow(id: string): Model<Api> {

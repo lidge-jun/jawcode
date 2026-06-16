@@ -2,17 +2,17 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { loadCapability } from "@gajae-code/coding-agent/capability";
-import { clearCache as clearFsCache } from "@gajae-code/coding-agent/capability/fs";
+import { loadCapability } from "@jawcode-dev/coding-agent/capability";
+import { clearCache as clearFsCache } from "@jawcode-dev/coding-agent/capability/fs";
 import {
 	clearClaudePluginRootsCache,
 	listClaudePluginRoots,
 	parseClaudePluginsRegistry,
-} from "@gajae-code/coding-agent/discovery/helpers";
-import { discoverAgents } from "@gajae-code/coding-agent/task/discovery";
-import "@gajae-code/coding-agent/discovery/claude-plugins";
-import type { Skill } from "@gajae-code/coding-agent/capability/skill";
-import type { SlashCommand } from "@gajae-code/coding-agent/capability/slash-command";
+} from "@jawcode-dev/coding-agent/discovery/helpers";
+import { discoverAgents } from "@jawcode-dev/coding-agent/task/discovery";
+import "@jawcode-dev/coding-agent/discovery/claude-plugins";
+import type { Skill } from "@jawcode-dev/coding-agent/capability/skill";
+import type { SlashCommand } from "@jawcode-dev/coding-agent/capability/slash-command";
 
 describe("parseClaudePluginsRegistry", () => {
 	test("parses valid registry", () => {

@@ -2,12 +2,12 @@ import { afterEach, describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { getBundledModel } from "@gajae-code/ai";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { createAgentSession, type ExtensionFactory } from "@gajae-code/coding-agent/sdk";
-import { AuthStorage } from "@gajae-code/coding-agent/session/auth-storage";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { Snowflake } from "@gajae-code/utils";
+import { getBundledModel } from "@jawcode-dev/ai";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { createAgentSession, type ExtensionFactory } from "@jawcode-dev/coding-agent/sdk";
+import { AuthStorage } from "@jawcode-dev/coding-agent/session/auth-storage";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { Snowflake } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 
 const toolActivationExtension: ExtensionFactory = pi => {

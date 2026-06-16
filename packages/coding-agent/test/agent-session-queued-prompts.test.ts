@@ -1,15 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import * as path from "node:path";
-import type { AgentMessage } from "@gajae-code/agent-core";
-import { Agent } from "@gajae-code/agent-core";
-import { getBundledModel, type TextContent } from "@gajae-code/ai";
-import { createMockModel, type MockHandler } from "@gajae-code/ai/providers/mock";
-import { ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { AgentSession } from "@gajae-code/coding-agent/session/agent-session";
-import { AuthStorage } from "@gajae-code/coding-agent/session/auth-storage";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { TempDir } from "@gajae-code/utils";
+import type { AgentMessage } from "@jawcode-dev/agent-core";
+import { Agent } from "@jawcode-dev/agent-core";
+import { getBundledModel, type TextContent } from "@jawcode-dev/ai";
+import { createMockModel, type MockHandler } from "@jawcode-dev/ai/providers/mock";
+import { ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { AgentSession } from "@jawcode-dev/coding-agent/session/agent-session";
+import { AuthStorage } from "@jawcode-dev/coding-agent/session/auth-storage";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { TempDir } from "@jawcode-dev/utils";
 
 /**
  * Issue #434 — queued prompts while the agent is busy.

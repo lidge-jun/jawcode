@@ -3,10 +3,10 @@
  *
  * Converts MCP tool definitions to CustomTool format for the agent.
  */
-import type { AgentToolUpdateCallback } from "@gajae-code/agent-core";
-import type { TSchema } from "@gajae-code/ai";
-import { normalizeSchemaForMCP } from "@gajae-code/ai/utils/schema";
-import { untilAborted } from "@gajae-code/utils";
+import type { AgentToolUpdateCallback } from "@jawcode-dev/agent-core";
+import type { TSchema } from "@jawcode-dev/ai";
+import { normalizeSchemaForMCP } from "@jawcode-dev/ai/utils/schema";
+import { untilAborted } from "@jawcode-dev/utils";
 import type { SourceMeta } from "../capability/types";
 import type {
 	CustomTool,

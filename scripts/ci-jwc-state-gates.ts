@@ -32,7 +32,7 @@ const boundedGateCommands = [
 	["bun", "test", "packages/coding-agent/test/jwc-runtime/state-schema.test.ts"],
 	["bun", "test", "packages/coding-agent/test/jwc-runtime/state-migrations.test.ts"],
 	// NOTE: state-writer-drift.test.ts imports recordSkillActivation (hooks) and
-	// persistJwcTeamModeStateSummary (team-runtime), which load the @gajae-code/natives
+	// persistJwcTeamModeStateSummary (team-runtime), which load the @jawcode-dev/natives
 	// addon transitively, so it runs in the heavier "Affected path validation" job, not
 	// this native-free gate.
 	["bun", "test", "packages/coding-agent/test/jwc-runtime/state-schema-corpus.test.ts"],
@@ -47,7 +47,7 @@ const boundedGateCommands = [
 	// Lane H read-only doctor: imports only the native-free state-runtime module.
 	["bun", "test", "packages/coding-agent/test/jwc-runtime/state-doctor.test.ts"],
 	// NOTE: deep-interview-mutation-guard, gjc-skill-state-hooks, and skill-active-state
-	// load the @gajae-code/natives addon transitively via the tool/hook runtime, so they
+	// load the @jawcode-dev/natives addon transitively via the tool/hook runtime, so they
 	// run in the heavier "Affected path validation" job rather than this native-free gate.
 ];
 

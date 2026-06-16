@@ -1,4 +1,4 @@
-import type { CustomToolFactory } from "@gajae-code/coding-agent/extensibility/custom-tools/types";
+import type { CustomToolFactory } from "@jawcode-dev/coding-agent/extensibility/custom-tools/types";
 
 const factory: CustomToolFactory = pi => ({
 	name: "domain_note",

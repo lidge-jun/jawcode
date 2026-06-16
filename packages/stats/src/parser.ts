@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { type AssistantMessage, getPriorityPremiumRequests, type ServiceTier } from "@gajae-code/ai";
-import { getSessionsDir, isEnoent } from "@gajae-code/utils";
+import { type AssistantMessage, getPriorityPremiumRequests, type ServiceTier } from "@jawcode-dev/ai";
+import { getSessionsDir, isEnoent } from "@jawcode-dev/utils";
 import type {
 	MessageStats,
 	SessionEntry,

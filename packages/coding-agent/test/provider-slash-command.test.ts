@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { getAgentDir, setAgentDir } from "@gajae-code/utils";
+import { getAgentDir, setAgentDir } from "@jawcode-dev/utils";
 import { YAML } from "bun";
 import { BUILTIN_SLASH_COMMANDS_INTERNAL, executeBuiltinSlashCommand } from "../src/slash-commands/builtin-registry";
 import type { SlashCommandRuntime } from "../src/slash-commands/types";

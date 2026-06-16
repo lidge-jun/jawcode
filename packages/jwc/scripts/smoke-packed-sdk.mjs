@@ -186,7 +186,7 @@ async function runNativeProbes() {
 		probe,
 		[
 			'import assert from "node:assert/strict";',
-			'const natives = await import("@gajae-code/natives");',
+			'const natives = await import("@jawcode-dev/natives");',
 			'assert.equal(typeof natives, "object");',
 			'const Database = (await import("better-sqlite3")).default;',
 			'const db = new Database(":memory:");',

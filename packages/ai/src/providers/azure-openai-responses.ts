@@ -1,4 +1,4 @@
-import { $env, extractHttpStatusFromError } from "@gajae-code/utils";
+import { $env, extractHttpStatusFromError } from "@jawcode-dev/utils";
 import { AzureOpenAI } from "openai";
 import type {
 	Tool as OpenAITool,

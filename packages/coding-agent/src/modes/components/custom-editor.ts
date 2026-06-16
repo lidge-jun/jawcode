@@ -1,5 +1,5 @@
-import { Editor, isKittyProtocolActive, type KeyId, matchesKey, parseKittySequence } from "@gajae-code/tui";
-import { BracketedPasteHandler } from "@gajae-code/tui/bracketed-paste";
+import { Editor, isKittyProtocolActive, type KeyId, matchesKey, parseKittySequence } from "@jawcode-dev/tui";
+import { BracketedPasteHandler } from "@jawcode-dev/tui/bracketed-paste";
 import type { AppKeybinding } from "../../config/keybindings";
 
 type ConfigurableEditorAction = Extract<

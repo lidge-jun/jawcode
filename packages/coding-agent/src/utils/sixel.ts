@@ -1,4 +1,4 @@
-import { $env, $flag } from "@gajae-code/utils";
+import { $env, $flag } from "@jawcode-dev/utils";
 
 const SIXEL_START_REGEX = /\x1bP(?:[0-9;]*)q/u;
 const SIXEL_END_SEQUENCE = "\x1b\\";

@@ -10,7 +10,7 @@
 
 import { createHash, randomUUID } from "node:crypto";
 import { hostname, userInfo } from "node:os";
-import { $env, fetchWithRetry } from "@gajae-code/utils";
+import { $env, fetchWithRetry } from "@jawcode-dev/utils";
 import type {
 	AssistantMessage,
 	Context,

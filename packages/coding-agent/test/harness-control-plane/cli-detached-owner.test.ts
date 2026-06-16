@@ -123,7 +123,7 @@ describe("gjc harness start --detach (detached owner lifecycle, B1)", () => {
 		const started = await runHarness([
 			"start",
 			"--input",
-			JSON.stringify({ harness: "gajae-code", workspace, sessionId: SID, detach: true }),
+			JSON.stringify({ harness: "jawcode", workspace, sessionId: SID, detach: true }),
 		]);
 		expect(started.code).toBe(0);
 		const evidence = started.json?.evidence as Record<string, unknown>;
@@ -175,7 +175,7 @@ describe("gjc harness start --detach (detached owner lifecycle, B1)", () => {
 		const started = await runHarness([
 			"start",
 			"--input",
-			JSON.stringify({ harness: "gajae-code", workspace, sessionId: SID, detach: true }),
+			JSON.stringify({ harness: "jawcode", workspace, sessionId: SID, detach: true }),
 		]);
 		expect(started.code).toBe(0);
 		const evidence = started.json?.evidence as Record<string, unknown>;
@@ -196,7 +196,7 @@ describe("gjc harness start --detach (detached owner lifecycle, B1)", () => {
 			const started = await runHarness([
 				"start",
 				"--input",
-				JSON.stringify({ harness: "gajae-code", workspace, sessionId: SID, detach: true }),
+				JSON.stringify({ harness: "jawcode", workspace, sessionId: SID, detach: true }),
 			]);
 			expect(started.code).toBe(1);
 			expect(started.json?.ok).toBe(false);
@@ -228,7 +228,7 @@ describe("gjc harness start --detach (detached owner lifecycle, B1)", () => {
 		const started = await runHarness([
 			"start",
 			"--input",
-			JSON.stringify({ harness: "gajae-code", workspace, sessionId: SID, detach: true }),
+			JSON.stringify({ harness: "jawcode", workspace, sessionId: SID, detach: true }),
 		]);
 		expect(started.code).toBe(0);
 		const evidence = started.json?.evidence as Record<string, unknown>;
@@ -245,7 +245,7 @@ describe("gjc harness start --detach (detached owner lifecycle, B1)", () => {
 		const started = await runHarness([
 			"start",
 			"--input",
-			JSON.stringify({ harness: "gajae-code", workspace, sessionId: SID }),
+			JSON.stringify({ harness: "jawcode", workspace, sessionId: SID }),
 		]);
 		expect(started.code).toBe(0);
 		expect((started.json?.state as Record<string, unknown>).lifecycle).toBe("started");
@@ -271,7 +271,7 @@ describe("gjc harness start --detach (detached owner lifecycle, B1)", () => {
 		const started = await runHarness([
 			"start",
 			"--input",
-			JSON.stringify({ harness: "gajae-code", workspace, sessionId: SID }),
+			JSON.stringify({ harness: "jawcode", workspace, sessionId: SID }),
 		]);
 		expect(started.code).toBe(0);
 		expect((started.json?.state as Record<string, unknown>).lifecycle).toBe("started");
@@ -299,7 +299,7 @@ describe("gjc harness start --detach (detached owner lifecycle, B1)", () => {
 		const started = await runHarness([
 			"start",
 			"--input",
-			JSON.stringify({ harness: "gajae-code", workspace, sessionId: SID }),
+			JSON.stringify({ harness: "jawcode", workspace, sessionId: SID }),
 		]);
 		expect(started.code).toBe(0);
 		expect((started.json?.state as Record<string, unknown>).lifecycle).toBe("started");

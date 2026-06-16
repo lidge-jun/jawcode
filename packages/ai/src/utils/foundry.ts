@@ -1,4 +1,4 @@
-import { $env } from "@gajae-code/utils";
+import { $env } from "@jawcode-dev/utils";
 
 export function isFoundryEnabled(): boolean {
 	const value = $env.CLAUDE_CODE_USE_FOUNDRY;

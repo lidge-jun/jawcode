@@ -8,9 +8,9 @@
  * the first N lines when not expanded; extension messages render in full.
  */
 
-import type { TextContent } from "@gajae-code/ai";
-import type { Box, Component } from "@gajae-code/tui";
-import { Markdown, Spacer, Text } from "@gajae-code/tui";
+import type { TextContent } from "@jawcode-dev/ai";
+import type { Box, Component } from "@jawcode-dev/tui";
+import { Markdown, Spacer, Text } from "@jawcode-dev/tui";
 import { getMarkdownTheme, type Theme, theme } from "../../modes/theme/theme";
 
 /** Message shape consumed by the shared frame. */

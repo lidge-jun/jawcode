@@ -4,7 +4,7 @@
  * Loads plugin roots from GJC plugin registries and explicit plugin-dir roots.
  */
 import * as path from "node:path";
-import { logger } from "@gajae-code/utils";
+import { logger } from "@jawcode-dev/utils";
 import { registerProvider } from "../capability";
 import { readFile } from "../capability/fs";
 import { type Hook, hookCapability } from "../capability/hook";
@@ -102,7 +102,7 @@ async function listNonJwcPluginRoots(
 
 	for (const root of roots) {
 		if (await rootContainsJwcManifest(root.path)) {
-			filteredWarnings.push(`[claude-plugins] Skipping gajae-code plugin root (binding-only): ${root.path}`);
+			filteredWarnings.push(`[claude-plugins] Skipping jawcode plugin root (binding-only): ${root.path}`);
 			continue;
 		}
 		filteredRoots.push(root);

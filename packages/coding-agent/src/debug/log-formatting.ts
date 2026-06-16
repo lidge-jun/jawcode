@@ -1,4 +1,4 @@
-import { sanitizeText } from "@gajae-code/utils";
+import { sanitizeText } from "@jawcode-dev/utils";
 import { replaceTabs, truncateToWidth, wrapTextWithAnsi } from "../tools/render-utils";
 
 export function formatDebugLogLine(line: string, maxWidth: number): string {

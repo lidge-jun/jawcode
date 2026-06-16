@@ -5,19 +5,19 @@ import * as path from "node:path";
 import {
 	JWC_MODEL_ASSIGNMENT_TARGET_IDS,
 	JWC_MODEL_ASSIGNMENT_TARGETS,
-} from "@gajae-code/coding-agent/config/model-registry";
+} from "@jawcode-dev/coding-agent/config/model-registry";
 import {
 	DEFAULT_JWC_DEFINITION_NAMES,
 	getDefaultJwcDefinitions,
 	getEmbeddedDefaultJwcSkillFragments,
 	getEmbeddedDefaultJwcSkills,
 	installDefaultJwcDefinitions,
-} from "@gajae-code/coding-agent/defaults/jwc-defaults";
-import { loadSkills, resetActiveSkillsForTests, setActiveSkills } from "@gajae-code/coding-agent/extensibility/skills";
-import { parseInternalUrl } from "@gajae-code/coding-agent/internal-urls/parse";
-import { SkillProtocolHandler } from "@gajae-code/coding-agent/internal-urls/skill-protocol";
-import { getBundledAgent } from "@gajae-code/coding-agent/task/agents";
-import { discoverAgents } from "@gajae-code/coding-agent/task/discovery";
+} from "@jawcode-dev/coding-agent/defaults/jwc-defaults";
+import { loadSkills, resetActiveSkillsForTests, setActiveSkills } from "@jawcode-dev/coding-agent/extensibility/skills";
+import { parseInternalUrl } from "@jawcode-dev/coding-agent/internal-urls/parse";
+import { SkillProtocolHandler } from "@jawcode-dev/coding-agent/internal-urls/skill-protocol";
+import { getBundledAgent } from "@jawcode-dev/coding-agent/task/agents";
+import { discoverAgents } from "@jawcode-dev/coding-agent/task/discovery";
 
 const tempRoots: string[] = [];
 const roleAgentNames = ["architect", "critic", "executor", "executor_ext", "planner"] as const;
@@ -386,8 +386,8 @@ Project executor override body.
 			"state_write",
 			"state_read",
 			"Skill(",
-			"gajae-code:",
-			"/gajae-code",
+			"jawcode:",
+			"/jawcode",
 			"`gjc ",
 		]) {
 			expect(content).not.toContain(forbidden);

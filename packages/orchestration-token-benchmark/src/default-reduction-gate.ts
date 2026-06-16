@@ -80,7 +80,7 @@ function validateHumanApprovalEvidence(evidence: DefaultReductionEvidence, reaso
 	if (!hasText(approval.approver)) {
 		reasons.push("human approval approver is required");
 	}
-	if (!approval.reference.startsWith("https://github.com/Yeachan-Heo/gajae-code/pull/272")) {
+	if (!approval.reference.startsWith("https://github.com/lidge-jun/jawcode/pull/272")) {
 		reasons.push("human approval reference must point at PR #272");
 	}
 }

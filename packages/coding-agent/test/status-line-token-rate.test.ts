@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { AssistantMessage } from "@gajae-code/ai";
-import { calculateTokensPerSecond } from "@gajae-code/coding-agent/modes/components/status-line/token-rate";
+import type { AssistantMessage } from "@jawcode-dev/ai";
+import { calculateTokensPerSecond } from "@jawcode-dev/coding-agent/modes/components/status-line/token-rate";
 
 function assistantMessage(overrides?: Partial<AssistantMessage>): AssistantMessage {
 	return {

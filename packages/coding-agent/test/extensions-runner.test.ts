@@ -5,16 +5,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
-import { discoverAndLoadExtensions } from "@gajae-code/coding-agent/extensibility/extensions/loader";
+import { ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
+import { discoverAndLoadExtensions } from "@jawcode-dev/coding-agent/extensibility/extensions/loader";
 import {
 	EXTENSION_HANDLER_TIMEOUT_MS,
 	ExtensionRunner,
 	testSetExtensionHandlerTimeoutMs,
-} from "@gajae-code/coding-agent/extensibility/extensions/runner";
-import { AuthStorage } from "@gajae-code/coding-agent/session/auth-storage";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { getProjectAgentDir, logger, TempDir } from "@gajae-code/utils";
+} from "@jawcode-dev/coding-agent/extensibility/extensions/runner";
+import { AuthStorage } from "@jawcode-dev/coding-agent/session/auth-storage";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { getProjectAgentDir, logger, TempDir } from "@jawcode-dev/utils";
 
 describe("ExtensionRunner", () => {
 	let tempDir: TempDir;

@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { runNativePlanWriterCommand } from "@gajae-code/coding-agent/jwc-runtime/plan-writer";
-import { GJC_RESTRICTED_ROLE_AGENT_BASH_ENV } from "@gajae-code/coding-agent/jwc-runtime/restricted-role-agent-bash";
+import { runNativePlanWriterCommand } from "@jawcode-dev/coding-agent/jwc-runtime/plan-writer";
+import { GJC_RESTRICTED_ROLE_AGENT_BASH_ENV } from "@jawcode-dev/coding-agent/jwc-runtime/restricted-role-agent-bash";
 
 const tempRoots: string[] = [];
 

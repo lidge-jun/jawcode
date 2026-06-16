@@ -1,4 +1,4 @@
-import { extractHttpStatusFromError, fetchWithRetry } from "@gajae-code/utils";
+import { extractHttpStatusFromError, fetchWithRetry } from "@jawcode-dev/utils";
 import { getEnvApiKey } from "../stream";
 import type {
 	Api,

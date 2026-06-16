@@ -39,7 +39,7 @@
 
 | 항목 | 현재 구조 | 근거 |
 |---|---|---|
-| 구현 위치 | credential storage types와 `AuthStorage`는 `@gajae-code/ai`에서 재수출된다. | `/Users/jun/Developer/new/700_projects/jawcode/packages/coding-agent/src/session/auth-storage.ts:1`, `/Users/jun/Developer/new/700_projects/jawcode/packages/coding-agent/src/session/auth-storage.ts:17` |
+| 구현 위치 | credential storage types와 `AuthStorage`는 `@jawcode-dev/ai`에서 재수출된다. | `/Users/jun/Developer/new/700_projects/jawcode/packages/coding-agent/src/session/auth-storage.ts:1`, `/Users/jun/Developer/new/700_projects/jawcode/packages/coding-agent/src/session/auth-storage.ts:17` |
 | SDK discovery | broker config가 있으면 `RemoteAuthCredentialStore`, 아니면 local SQLite `AuthStorage.create(dbPath)`를 사용한다. | `/Users/jun/Developer/new/700_projects/jawcode/packages/coding-agent/src/sdk.ts:409`, `/Users/jun/Developer/new/700_projects/jawcode/packages/coding-agent/src/sdk.ts:415`, `/Users/jun/Developer/new/700_projects/jawcode/packages/coding-agent/src/sdk.ts:425` |
 | D7 연결 | 기존 로컬 로그인 토큰을 jwc AuthStorage에 시딩하는 결정. | `/Users/jun/Developer/new/700_projects/jawcode/devlog/_plan/260614_cli_jaw_jwc_distribution_strategy/_legacy/260612_jawcode_fork/phase1/05_interview_conclusions.md:16` |
 

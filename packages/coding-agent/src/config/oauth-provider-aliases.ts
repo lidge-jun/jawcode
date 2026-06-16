@@ -1,4 +1,4 @@
-import { getOAuthProviders } from "@gajae-code/ai/utils/oauth";
+import { getOAuthProviders } from "@jawcode-dev/ai/utils/oauth";
 
 const OAUTH_PROVIDER_ALIASES: Record<string, string> = {
 	claude: "anthropic",

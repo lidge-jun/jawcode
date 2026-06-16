@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { type ContextFile, contextFileCapability } from "@gajae-code/coding-agent/capability/context-file";
-import { resetSettingsForTest, Settings } from "@gajae-code/coding-agent/config/settings";
-import { initializeWithSettings, loadCapability } from "@gajae-code/coding-agent/discovery";
+import { type ContextFile, contextFileCapability } from "@jawcode-dev/coding-agent/capability/context-file";
+import { resetSettingsForTest, Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { initializeWithSettings, loadCapability } from "@jawcode-dev/coding-agent/discovery";
 
 describe("disabledExtensions runtime filtering", () => {
 	let tempDir = "";

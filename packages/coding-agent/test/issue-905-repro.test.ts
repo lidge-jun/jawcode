@@ -16,7 +16,7 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { AuthStorage } from "@gajae-code/ai";
+import { AuthStorage } from "@jawcode-dev/ai";
 import { runListModelsCommand } from "../src/cli/list-models";
 import { ModelRegistry } from "../src/config/model-registry";
 

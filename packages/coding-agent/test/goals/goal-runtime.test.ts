@@ -6,8 +6,8 @@ import {
 	goalTokenDelta,
 	renderGoalPrompt,
 	renderTrustedObjective,
-} from "@gajae-code/coding-agent/goals/runtime";
-import type { Goal, GoalModeState, GoalRuntimeEvent, GoalTokenUsage } from "@gajae-code/coding-agent/goals/state";
+} from "@jawcode-dev/coding-agent/goals/runtime";
+import type { Goal, GoalModeState, GoalRuntimeEvent, GoalTokenUsage } from "@jawcode-dev/coding-agent/goals/state";
 
 function createUsage(overrides: Partial<GoalTokenUsage> = {}): GoalTokenUsage {
 	return {

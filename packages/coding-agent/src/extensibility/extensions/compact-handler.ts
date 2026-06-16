@@ -5,7 +5,7 @@
  * takes two positional arguments `(instructions, options)`. This helper splits the
  * union so the same adapter can be reused by print-mode, rpc-mode, and the executor.
  */
-import type { Model } from "@gajae-code/ai";
+import type { Model } from "@jawcode-dev/ai";
 import type { CompactOptions } from "./types";
 
 interface CompactableSession {

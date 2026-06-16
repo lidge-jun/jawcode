@@ -3,7 +3,7 @@
  *
  * Handles /ssh subcommands for managing SSH host configurations.
  */
-import { getProjectDir, getSSHConfigPath } from "@gajae-code/utils";
+import { getProjectDir, getSSHConfigPath } from "@jawcode-dev/utils";
 import { type SSHHost, sshCapability } from "../../capability/ssh";
 import { loadCapability } from "../../discovery";
 import { addSSHHost, readSSHConfigFile, removeSSHHost, type SSHHostConfig } from "../../ssh/config-writer";

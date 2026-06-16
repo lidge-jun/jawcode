@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import * as path from "node:path";
 
 /**
- * Regression for https://github.com/can1357/gajae-code/issues/1011
+ * Regression for https://github.com/lidge-jun/jawcode/issues/1011
  *
  * In v14.5.13 `spawnTabWorker` (in `src/tools/browser/tab-supervisor.ts`)
  * resolved the worker entry as `new URL("./tab-worker-entry.ts", import.meta.url)`

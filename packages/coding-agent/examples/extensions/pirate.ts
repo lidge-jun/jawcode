@@ -9,7 +9,7 @@
  * 2. Use /pirate to toggle pirate mode
  * 3. When enabled, the agent will respond like a pirate
  */
-import type { ExtensionAPI } from "@gajae-code/coding-agent";
+import type { ExtensionAPI } from "@jawcode-dev/coding-agent";
 
 export default function pirateExtension(pi: ExtensionAPI) {
 	let pirateMode = false;

@@ -11,10 +11,10 @@ import {
 	type SimpleStreamOptions,
 	type StopReason,
 	type ToolCall,
-} from "@gajae-code/ai";
-import { calculateCost } from "@gajae-code/ai/models";
-import { parseStreamingJson } from "@gajae-code/ai/utils/json-parse";
-import { readSseJson } from "@gajae-code/utils";
+} from "@jawcode-dev/ai";
+import { calculateCost } from "@jawcode-dev/ai/models";
+import { parseStreamingJson } from "@jawcode-dev/ai/utils/json-parse";
+import { readSseJson } from "@jawcode-dev/utils";
 
 // Create stream class matching ProxyMessageEventStream
 class ProxyMessageEventStream extends EventStream<AssistantMessageEvent, AssistantMessage> {

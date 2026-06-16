@@ -56,7 +56,7 @@
 
 ### Fixed
 
-- Fixed `gjc stats` crashing on first session sync in published `gjc-{linux,darwin,windows}-*` binaries with `BuildMessage: ModuleNotFound resolving "./packages/stats/src/sync-worker.ts"`; the release build script now lists the stats sync, browser tab, and JS eval workers as explicit `--compile` entrypoints so Bun emits them into bunfs, matching the dev build script and the AGENTS.md worker spawn contract. ([#1150](https://github.com/can1357/gajae-code/issues/1150))
+- Fixed `gjc stats` crashing on first session sync in published `gjc-{linux,darwin,windows}-*` binaries with `BuildMessage: ModuleNotFound resolving "./packages/stats/src/sync-worker.ts"`; the release build script now lists the stats sync, browser tab, and JS eval workers as explicit `--compile` entrypoints so Bun emits them into bunfs, matching the dev build script and the AGENTS.md worker spawn contract. ([#1150](https://github.com/lidge-jun/jawcode/issues/1150))
 
 ## [15.1.0] - 2026-05-15
 
@@ -138,4 +138,4 @@
 ## [13.6.0] - 2026-03-03
 ### Fixed
 
-- Include subtask session files in usage stats ([#250](https://github.com/can1357/gajae-code/issues/250))
+- Include subtask session files in usage stats ([#250](https://github.com/lidge-jun/jawcode/issues/250))

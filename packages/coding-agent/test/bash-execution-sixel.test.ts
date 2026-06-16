@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { BashExecutionComponent } from "@gajae-code/coding-agent/modes/components/bash-execution";
-import { getThemeByName, setThemeInstance } from "@gajae-code/coding-agent/modes/theme/theme";
-import { sanitizeWithOptionalSixelPassthrough } from "@gajae-code/coding-agent/utils/sixel";
-import type { TUI } from "@gajae-code/tui";
-import { sanitizeText } from "@gajae-code/utils";
+import { BashExecutionComponent } from "@jawcode-dev/coding-agent/modes/components/bash-execution";
+import { getThemeByName, setThemeInstance } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import { sanitizeWithOptionalSixelPassthrough } from "@jawcode-dev/coding-agent/utils/sixel";
+import type { TUI } from "@jawcode-dev/tui";
+import { sanitizeText } from "@jawcode-dev/utils";
 
 const SIXEL = "\x1bPqabc\x1b\\";
 

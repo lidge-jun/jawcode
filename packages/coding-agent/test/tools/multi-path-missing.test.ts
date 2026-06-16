@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { createTools, type ToolSession } from "@gajae-code/coding-agent/tools";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { createTools, type ToolSession } from "@jawcode-dev/coding-agent/tools";
 
 // Regression for tool reports #208 (find) and #209 (search): a multi-path call
 // that includes an entry which does not exist on disk must not abort the whole

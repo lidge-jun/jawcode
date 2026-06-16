@@ -2,7 +2,7 @@ import { afterEach, beforeAll, describe, expect, it } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { getProjectDir, setProjectDir } from "@gajae-code/utils";
+import { getProjectDir, setProjectDir } from "@jawcode-dev/utils";
 import type { SegmentContext } from "../src/modes/components/status-line/segments";
 import { renderSegment } from "../src/modes/components/status-line/segments";
 import { EMPTY_JOBS_SNAPSHOT } from "../src/modes/jobs-observer";

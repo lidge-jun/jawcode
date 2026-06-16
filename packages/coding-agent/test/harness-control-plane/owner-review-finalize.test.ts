@@ -60,10 +60,10 @@ function seedReview(workspace: string): SessionState {
 		schemaVersion: SESSION_SCHEMA_VERSION,
 		sessionId: SID,
 		lifecycle: "finalizing",
-		harness: "gajae-code",
+		harness: "jawcode",
 		handle: {
 			sessionId: SID,
-			harness: "gajae-code",
+			harness: "jawcode",
 			workspace,
 			mode: "review",
 			issueOrPr: "PR-414",

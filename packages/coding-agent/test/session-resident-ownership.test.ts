@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import type { Message } from "@gajae-code/ai";
-import { ResidentBlobMissingError } from "@gajae-code/coding-agent/session/blob-store";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { MemorySessionStorage } from "@gajae-code/coding-agent/session/session-storage";
+import type { Message } from "@jawcode-dev/ai";
+import { ResidentBlobMissingError } from "@jawcode-dev/coding-agent/session/blob-store";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { MemorySessionStorage } from "@jawcode-dev/coding-agent/session/session-storage";
 
 const RESIDENT_BLOB_SENTINEL_KEY = "__gjcResidentBlob";
 const MISSING_REF = `blob:sha256:${"a".repeat(64)}`;

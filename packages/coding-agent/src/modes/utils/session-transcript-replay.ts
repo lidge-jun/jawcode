@@ -1,6 +1,6 @@
-import type { AgentMessage, AgentTool } from "@gajae-code/agent-core";
-import type { AssistantMessage, ImageContent } from "@gajae-code/ai";
-import { type Component, Spacer, Text, type TUI } from "@gajae-code/tui";
+import type { AgentMessage, AgentTool } from "@jawcode-dev/agent-core";
+import type { AssistantMessage, ImageContent } from "@jawcode-dev/ai";
+import { type Component, Spacer, Text, type TUI } from "@jawcode-dev/tui";
 import type { MessageRenderer } from "../../extensibility/extensions/types";
 import {
 	type BashExecutionMessage,

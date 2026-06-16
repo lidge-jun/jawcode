@@ -322,7 +322,7 @@ function configPathForTarget(spec: CoordinatorSetupSpec): string | null {
 
 function operatorPathForTarget(spec: CoordinatorSetupSpec): string | null {
 	if (spec.installTarget?.kind !== "profile-dir") return null;
-	return path.join(spec.installTarget.path, "skills", "autonomous-ai-agents", "gajae-code", "SKILL.md");
+	return path.join(spec.installTarget.path, "skills", "autonomous-ai-agents", "jawcode", "SKILL.md");
 }
 
 async function installConfig(spec: CoordinatorSetupSpec, force: boolean): Promise<string[]> {

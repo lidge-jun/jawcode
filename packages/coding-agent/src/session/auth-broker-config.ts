@@ -16,7 +16,7 @@
  * boot without forcing a startup reorder.
  */
 import * as path from "node:path";
-import { $resolveEnv, getAgentDir, getConfigRootDir, isEnoent, logger } from "@gajae-code/utils";
+import { $resolveEnv, getAgentDir, getConfigRootDir, isEnoent, logger } from "@jawcode-dev/utils";
 import { YAML } from "bun";
 import { resolveConfigValue } from "../config/resolve-config-value";
 

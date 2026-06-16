@@ -16,7 +16,7 @@
  */
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { getWorktreesDir, isEnoent } from "@gajae-code/utils";
+import { getWorktreesDir, isEnoent } from "@jawcode-dev/utils";
 import chalk from "chalk";
 import * as git from "../utils/git";
 

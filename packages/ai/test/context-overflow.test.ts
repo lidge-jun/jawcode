@@ -14,11 +14,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import type { ChildProcess } from "node:child_process";
 import { execSync, spawn } from "node:child_process";
-import { getBundledModel } from "@gajae-code/ai/models";
-import { complete } from "@gajae-code/ai/stream";
-import type { AssistantMessage, Context, Model, Usage } from "@gajae-code/ai/types";
-import { isContextOverflow } from "@gajae-code/ai/utils/overflow";
-import { $which } from "@gajae-code/utils";
+import { getBundledModel } from "@jawcode-dev/ai/models";
+import { complete } from "@jawcode-dev/ai/stream";
+import type { AssistantMessage, Context, Model, Usage } from "@jawcode-dev/ai/types";
+import { isContextOverflow } from "@jawcode-dev/ai/utils/overflow";
+import { $which } from "@jawcode-dev/utils";
 import { e2eApiKey, resolveApiKey } from "./oauth";
 
 // Resolve OAuth tokens at module level (async, runs before tests)

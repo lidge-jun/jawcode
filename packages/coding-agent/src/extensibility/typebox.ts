@@ -21,7 +21,7 @@
  * `@sinclair/typebox` directly in their own package.
  */
 
-import { areJsonValuesEqual, zodToWireSchema } from "@gajae-code/ai/utils/schema";
+import { areJsonValuesEqual, zodToWireSchema } from "@jawcode-dev/ai/utils/schema";
 import {
 	type ZodArray,
 	type ZodEnum,

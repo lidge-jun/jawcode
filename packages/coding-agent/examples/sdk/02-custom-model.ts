@@ -3,9 +3,9 @@
  *
  * Shows how to select a specific model and thinking level.
  */
-import { ThinkingLevel } from "@gajae-code/agent-core";
-import { getModel } from "@gajae-code/ai";
-import { createAgentSession, discoverAuthStorage, discoverModels } from "@gajae-code/coding-agent";
+import { ThinkingLevel } from "@jawcode-dev/agent-core";
+import { getModel } from "@jawcode-dev/ai";
+import { createAgentSession, discoverAuthStorage, discoverModels } from "@jawcode-dev/coding-agent";
 
 // Set up auth storage and model registry
 const authStorage = await discoverAuthStorage();

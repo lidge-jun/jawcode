@@ -5,7 +5,7 @@
  * These features are now exposed directly on the ExtensionAPI, matching
  * the CustomToolAPI interface.
  */
-import type { ExtensionAPI } from "@gajae-code/coding-agent";
+import type { ExtensionAPI } from "@jawcode-dev/coding-agent";
 
 export default function (pi: ExtensionAPI) {
 	const { z } = pi.zod;

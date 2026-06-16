@@ -1,5 +1,5 @@
-import { encodeSixel } from "@gajae-code/natives";
-import { $env } from "@gajae-code/utils";
+import { encodeSixel } from "@jawcode-dev/natives";
+import { $env } from "@jawcode-dev/utils";
 
 export enum ImageProtocol {
 	Kitty = "\x1b_G",

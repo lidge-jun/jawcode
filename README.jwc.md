@@ -1,6 +1,6 @@
 # Jawcode (jwc)
 
-> [`gajae-code`](https://github.com/Yeachan-Heo/gajae-code) 포크. cli-jaw의 네이티브 에이전트 런타임. Jawcode/JWC 표면을 기준으로 패키징되는 빌드. 내부 `@gajae-code/*` 패키지 네임스페이스는 업스트림에서 유래.
+> [`gajae-code`](https://github.com/Yeachan-Heo/gajae-code) 포크. cli-jaw의 네이티브 에이전트 런타임. Jawcode/JWC 표면을 기준으로 패키징되는 빌드. 내부 `@jawcode-dev/*` 패키지 네임스페이스는 업스트림에서 유래.
 
 ## 관계
 

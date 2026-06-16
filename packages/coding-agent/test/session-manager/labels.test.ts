@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { type LabelEntry, SessionManager } from "@gajae-code/coding-agent/session/session-manager";
+import { type LabelEntry, SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
 
 describe("SessionManager labels", () => {
 	it("sets and gets labels", () => {

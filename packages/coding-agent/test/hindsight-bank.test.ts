@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "bun:test";
-import { computeBankScope, deriveBankId, ensureBankMission } from "@gajae-code/coding-agent/hindsight/bank";
-import { HindsightApi } from "@gajae-code/coding-agent/hindsight/client";
-import type { HindsightConfig } from "@gajae-code/coding-agent/hindsight/config";
+import { computeBankScope, deriveBankId, ensureBankMission } from "@jawcode-dev/coding-agent/hindsight/bank";
+import { HindsightApi } from "@jawcode-dev/coding-agent/hindsight/client";
+import type { HindsightConfig } from "@jawcode-dev/coding-agent/hindsight/config";
 
 const baseConfig = (overrides: Partial<HindsightConfig> = {}): HindsightConfig => ({
 	hindsightApiUrl: "http://localhost:8888",

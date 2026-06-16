@@ -2,15 +2,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { getBundledModel } from "@gajae-code/ai";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import * as pythonExecutor from "@gajae-code/coding-agent/eval/py/executor";
-import type { PythonKernel as PythonKernelInstance } from "@gajae-code/coding-agent/eval/py/kernel";
-import * as pythonKernel from "@gajae-code/coding-agent/eval/py/kernel";
-import { AgentRegistry } from "@gajae-code/coding-agent/registry/agent-registry";
-import { createAgentSession, type ExtensionFactory, type WorkspaceTree } from "@gajae-code/coding-agent/sdk";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { Snowflake } from "@gajae-code/utils";
+import { getBundledModel } from "@jawcode-dev/ai";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import * as pythonExecutor from "@jawcode-dev/coding-agent/eval/py/executor";
+import type { PythonKernel as PythonKernelInstance } from "@jawcode-dev/coding-agent/eval/py/kernel";
+import * as pythonKernel from "@jawcode-dev/coding-agent/eval/py/kernel";
+import { AgentRegistry } from "@jawcode-dev/coding-agent/registry/agent-registry";
+import { createAgentSession, type ExtensionFactory, type WorkspaceTree } from "@jawcode-dev/coding-agent/sdk";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { Snowflake } from "@jawcode-dev/utils";
 
 const OK_EXECUTION = { status: "ok", cancelled: false, timedOut: false, stdinRequested: false } as const;
 

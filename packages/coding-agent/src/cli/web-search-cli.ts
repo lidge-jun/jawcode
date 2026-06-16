@@ -4,7 +4,7 @@
  * Handles `gjc q`/`gjc web-search` subcommands for testing web search providers.
  */
 
-import { APP_NAME } from "@gajae-code/utils";
+import { APP_NAME } from "@jawcode-dev/utils";
 import chalk from "chalk";
 import { initTheme, theme } from "../modes/theme/theme";
 import { runSearchQuery, type SearchQueryParams } from "../web/search/index";

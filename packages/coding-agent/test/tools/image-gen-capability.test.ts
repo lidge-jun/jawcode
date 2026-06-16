@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { Api, Model } from "@gajae-code/ai";
-import { isOpenAIHostedImageModel } from "@gajae-code/coding-agent/tools/image-gen";
+import type { Api, Model } from "@jawcode-dev/ai";
+import { isOpenAIHostedImageModel } from "@jawcode-dev/coding-agent/tools/image-gen";
 
 function model<TApi extends Api>(
 	overrides: Partial<Model<TApi>> & Pick<Model<TApi>, "id" | "api" | "provider">,

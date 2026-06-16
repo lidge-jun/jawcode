@@ -4,7 +4,7 @@
  * Implements JSON-RPC 2.0 over HTTP POST with optional SSE streaming.
  * Based on MCP spec 2025-03-26.
  */
-import { logger, readSseJson, Snowflake } from "@gajae-code/utils";
+import { logger, readSseJson, Snowflake } from "@jawcode-dev/utils";
 import type {
 	JsonRpcError,
 	JsonRpcMessage,

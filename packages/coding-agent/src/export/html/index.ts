@@ -1,6 +1,6 @@
 import * as path from "node:path";
-import type { AgentState } from "@gajae-code/agent-core";
-import { APP_NAME, isEnoent } from "@gajae-code/utils";
+import type { AgentState } from "@jawcode-dev/agent-core";
+import { APP_NAME, isEnoent } from "@jawcode-dev/utils";
 import { getResolvedThemeColors, getThemeExportColors } from "../../modes/theme/theme";
 import { type SessionEntry, type SessionHeader, SessionManager } from "../../session/session-manager";
 // Pre-generated template (created by scripts/generate-template.ts at publish time)

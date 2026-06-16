@@ -1,7 +1,7 @@
 import * as path from "node:path";
-import type { ThinkingLevel } from "@gajae-code/agent-core";
-import type { Api, Model } from "@gajae-code/ai";
-import { logger } from "@gajae-code/utils";
+import type { ThinkingLevel } from "@jawcode-dev/agent-core";
+import type { Api, Model } from "@jawcode-dev/ai";
+import { logger } from "@jawcode-dev/utils";
 import { CHANGELOG_CATEGORIES } from "../../commit/types";
 import * as git from "../../utils/git";
 import { detectChangelogBoundaries } from "./detect";

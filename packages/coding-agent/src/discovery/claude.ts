@@ -6,7 +6,7 @@
  * into GJC sessions.
  */
 import * as path from "node:path";
-import { hasFsCode, tryParseJson } from "@gajae-code/utils";
+import { hasFsCode, tryParseJson } from "@jawcode-dev/utils";
 import { registerProvider } from "../capability";
 import { type ContextFile, contextFileCapability } from "../capability/context-file";
 import { type ExtensionModule, extensionModuleCapability } from "../capability/extension-module";

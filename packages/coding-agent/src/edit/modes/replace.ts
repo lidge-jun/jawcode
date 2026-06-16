@@ -4,7 +4,7 @@
  * Provides both character-level and line-level fuzzy matching with progressive
  * fallback strategies for finding text in files.
  */
-import type { AgentToolResult } from "@gajae-code/agent-core";
+import type { AgentToolResult } from "@jawcode-dev/agent-core";
 import * as z from "zod/v4";
 import type { WritethroughCallback, WritethroughDeferredHandle } from "../../lsp";
 import type { ToolSession } from "../../tools";

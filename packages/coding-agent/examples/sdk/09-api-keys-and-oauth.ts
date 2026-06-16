@@ -10,7 +10,7 @@ import {
 	discoverModels,
 	ModelRegistry,
 	SessionManager,
-} from "@gajae-code/coding-agent";
+} from "@jawcode-dev/coding-agent";
 
 // Default: discoverAuthStorage() uses ~/.jwc/agent/agent.db
 // discoverModels() loads built-in + custom models from ~/.jwc/agent/models.json

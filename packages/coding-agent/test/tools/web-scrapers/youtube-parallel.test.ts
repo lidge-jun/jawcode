@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
-import { hookFetch } from "@gajae-code/utils";
+import { hookFetch } from "@jawcode-dev/utils";
 import { resetSettingsForTest, Settings } from "../../../src/config/settings";
 import * as toolsManager from "../../../src/utils/tools-manager";
 import { handleYouTube } from "../../../src/web/scrapers/youtube";

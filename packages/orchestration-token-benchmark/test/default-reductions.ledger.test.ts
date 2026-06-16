@@ -104,7 +104,7 @@ describe("default reduction evidence ledger", () => {
 				approver: "Yeachan-Heo",
 			});
 			expect(entry.evidence.humanApprovalEvidence?.reference).toStartWith(
-				"https://github.com/Yeachan-Heo/gajae-code/pull/272",
+				"https://github.com/lidge-jun/jawcode/pull/272",
 			);
 		}
 	});

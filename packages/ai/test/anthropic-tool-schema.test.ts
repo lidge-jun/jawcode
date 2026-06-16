@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { normalizeAnthropicToolSchema } from "@gajae-code/ai/providers/anthropic";
+import { normalizeAnthropicToolSchema } from "@jawcode-dev/ai/providers/anthropic";
 
 describe("normalizeAnthropicToolSchema — SDK whitelist", () => {
 	describe("number / integer nodes", () => {

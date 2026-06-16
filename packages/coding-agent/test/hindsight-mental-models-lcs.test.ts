@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { diffMentalModelContent } from "@gajae-code/coding-agent/hindsight/mental-models";
+import { diffMentalModelContent } from "@jawcode-dev/coding-agent/hindsight/mental-models";
 
 function legacyDiffMentalModelContent(previous: string | null, current: string, maxLines = 200): string {
 	const prev = previous ? previous.split("\n").slice(0, 1_000) : [];

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
-import { CountdownTimer } from "@gajae-code/coding-agent/modes/components/countdown-timer";
+import { CountdownTimer } from "@jawcode-dev/coding-agent/modes/components/countdown-timer";
 
 describe("CountdownTimer", () => {
 	beforeEach(() => {

@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
-import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@gajae-code/agent-core";
-import { logger, prompt } from "@gajae-code/utils";
+import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@jawcode-dev/agent-core";
+import { logger, prompt } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import { AsyncJobManager, isBackgroundJobSupportEnabled } from "../async";
 import cronDescription from "../prompts/tools/cron.md" with { type: "text" };

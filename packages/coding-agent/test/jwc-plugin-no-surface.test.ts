@@ -102,7 +102,7 @@ describe("GJC plugin roots never surface through legacy claude plugin providers"
 		expect(tools.items).toHaveLength(0);
 		expect(mcps.items).toHaveLength(0);
 		for (const result of [skills, commands, hooks, tools, mcps]) {
-			expect(result.warnings.join("\n")).toContain("Skipping gajae-code plugin root");
+			expect(result.warnings.join("\n")).toContain("Skipping jawcode plugin root");
 		}
 	});
 
@@ -129,7 +129,7 @@ describe("GJC plugin roots never surface through legacy claude plugin providers"
 		try {
 			parseManifest(
 				{
-					kind: "gajae-code-plugin",
+					kind: "jawcode-plugin",
 					name: "forbidden-agents",
 					version: "1.0.0",
 					subskills: [],

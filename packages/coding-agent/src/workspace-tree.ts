@@ -1,6 +1,6 @@
 import * as path from "node:path";
-import { FileType, type GlobMatch, listWorkspace } from "@gajae-code/natives";
-import { formatAge, formatBytes } from "@gajae-code/utils";
+import { FileType, type GlobMatch, listWorkspace } from "@jawcode-dev/natives";
+import { formatAge, formatBytes } from "@jawcode-dev/utils";
 
 /** Defaults for the workspace tree shown in the system prompt. */
 const WORKSPACE_DEFAULTS = {

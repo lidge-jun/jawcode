@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import * as os from "node:os";
 import * as path from "node:path";
-import { getPackageDir } from "@gajae-code/coding-agent/config";
+import { getPackageDir } from "@jawcode-dev/coding-agent/config";
 
 const ORIGINAL_GJC_PACKAGE_DIR = process.env.GJC_PACKAGE_DIR;
 const ORIGINAL_PI_PACKAGE_DIR = process.env.PI_PACKAGE_DIR;

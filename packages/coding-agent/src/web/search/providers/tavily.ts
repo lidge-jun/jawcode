@@ -4,7 +4,7 @@
  * Uses Tavily's agent-focused search API to return structured results with an
  * optional synthesized answer.
  */
-import { type AuthStorage, getEnvApiKey } from "@gajae-code/ai";
+import { type AuthStorage, getEnvApiKey } from "@jawcode-dev/ai";
 import type { SearchResponse, SearchSource } from "../../../web/search/types";
 import { SearchProviderError } from "../../../web/search/types";
 import { clampNumResults, dateToAgeSeconds } from "../utils";

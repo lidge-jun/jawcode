@@ -1,10 +1,10 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import type { AgentToolResult } from "@gajae-code/agent-core";
-import type { ImageContent, TextContent } from "@gajae-code/ai";
-import { htmlToMarkdown } from "@gajae-code/natives";
-import { type Component, Text } from "@gajae-code/tui";
-import { $which, ptree, truncate } from "@gajae-code/utils";
+import type { AgentToolResult } from "@jawcode-dev/agent-core";
+import type { ImageContent, TextContent } from "@jawcode-dev/ai";
+import { htmlToMarkdown } from "@jawcode-dev/natives";
+import { type Component, Text } from "@jawcode-dev/tui";
+import { $which, ptree, truncate } from "@jawcode-dev/utils";
 import { parseHTML } from "linkedom";
 import type { Settings } from "../config/settings";
 import type { RenderResultOptions } from "../extensibility/custom-tools/types";

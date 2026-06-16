@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { Model } from "@gajae-code/ai";
-import { mergeDiscoveredModel } from "@gajae-code/coding-agent/config/model-registry";
+import type { Model } from "@jawcode-dev/ai";
+import { mergeDiscoveredModel } from "@jawcode-dev/coding-agent/config/model-registry";
 
 /**
  * Regression for v15.2.4 tp- key bug: when Xiaomi `tp-` token-plan keys hit

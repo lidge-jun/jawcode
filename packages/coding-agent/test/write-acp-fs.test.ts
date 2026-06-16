@@ -2,10 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import type { ClientBridge } from "@gajae-code/coding-agent/session/client-bridge";
-import type { ToolSession } from "@gajae-code/coding-agent/tools";
-import { WriteTool } from "@gajae-code/coding-agent/tools/write";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import type { ClientBridge } from "@jawcode-dev/coding-agent/session/client-bridge";
+import type { ToolSession } from "@jawcode-dev/coding-agent/tools";
+import { WriteTool } from "@jawcode-dev/coding-agent/tools/write";
 
 const FILE_CONTENT = "bridge write content\n";
 

@@ -6,7 +6,7 @@ import {
 	type SchemaCompatibilityResult,
 	validateSchemaCompatibility,
 	validateStrictSchemaEnforcement,
-} from "@gajae-code/ai/utils/schema";
+} from "@jawcode-dev/ai/utils/schema";
 
 function hasRule(result: SchemaCompatibilityResult, rule: string): boolean {
 	return result.violations.some(violation => violation.rule === rule);

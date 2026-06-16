@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { ThinkingLevel } from "@gajae-code/agent-core";
-import type { Model } from "@gajae-code/ai";
+import { ThinkingLevel } from "@jawcode-dev/agent-core";
+import type { Model } from "@jawcode-dev/ai";
 import {
 	activateModelProfile,
 	applyPreparedModelProfileActivation,

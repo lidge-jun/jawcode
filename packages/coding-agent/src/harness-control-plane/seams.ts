@@ -1,11 +1,11 @@
 /**
  * v1 seams (M11). The control plane is harness-agnostic by design, but v1 ships ONLY the
- * gajae-code adapter. Other harnesses and transports are explicit, designed-not-built seams
+ * jawcode adapter. Other harnesses and transports are explicit, designed-not-built seams
  * that fail closed with a clear `seam_unsupported_in_v1` signal rather than silently degrading.
  */
 import type { Harness } from "./types";
 
-export const SUPPORTED_HARNESSES: readonly Harness[] = ["gajae-code"];
+export const SUPPORTED_HARNESSES: readonly Harness[] = ["jawcode"];
 
 export const DEFERRED_SEAMS = [
 	"codex-adapter",

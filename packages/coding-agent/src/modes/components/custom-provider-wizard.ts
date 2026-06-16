@@ -1,4 +1,4 @@
-import { Container, Input, matchesKey, Spacer, Text, TruncatedText } from "@gajae-code/tui";
+import { Container, Input, matchesKey, Spacer, Text, TruncatedText } from "@jawcode-dev/tui";
 import type { ProviderCompatibility, ProviderSetupInput } from "../../setup/provider-onboarding";
 import { theme } from "../theme/theme";
 import { matchesAppInterrupt } from "../utils/keybinding-matchers";

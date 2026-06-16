@@ -257,7 +257,7 @@ export class RuntimeOwner {
 			: {
 					sessionId: this.#opts.sessionId,
 					lifecycle: "started" as const,
-					harness: "gajae-code" as const,
+					harness: "jawcode" as const,
 					ownerLive: true,
 					blockers: [],
 				};

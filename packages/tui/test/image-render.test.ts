@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { Image } from "@gajae-code/tui/components/image";
+import { Image } from "@jawcode-dev/tui/components/image";
 import {
 	type CellDimensions,
 	getCellDimensions,
@@ -8,7 +8,7 @@ import {
 	renderImage,
 	setCellDimensions,
 	TERMINAL,
-} from "@gajae-code/tui/terminal-capabilities";
+} from "@jawcode-dev/tui/terminal-capabilities";
 
 type MutableTerminalInfo = {
 	imageProtocol: ImageProtocol | null;

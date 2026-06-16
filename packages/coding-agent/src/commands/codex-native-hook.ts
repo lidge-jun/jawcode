@@ -1,5 +1,5 @@
-import { APP_NAME } from "@gajae-code/utils";
-import { Command } from "@gajae-code/utils/cli";
+import { APP_NAME } from "@jawcode-dev/utils";
+import { Command } from "@jawcode-dev/utils/cli";
 import { runJwcNativeSkillHookCli } from "../hooks/native-skill-hook";
 
 export default class CodexNativeHook extends Command {

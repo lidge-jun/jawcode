@@ -7,7 +7,7 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { isEnoent, logger } from "@gajae-code/utils";
+import { isEnoent, logger } from "@jawcode-dev/utils";
 import * as git from "../../../utils/git";
 
 import type { MarketplaceCatalog, MarketplaceSourceType } from "./types";

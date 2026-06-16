@@ -1,4 +1,4 @@
-import { logger } from "@gajae-code/utils";
+import { logger } from "@jawcode-dev/utils";
 
 export class EventBus {
 	readonly #listeners = new Map<string, Set<(data: unknown) => void>>();

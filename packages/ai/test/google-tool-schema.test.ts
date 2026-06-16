@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { convertTools } from "@gajae-code/ai/providers/google-shared";
-import type { Model, TJsonSchema, Tool } from "@gajae-code/ai/types";
-import { normalizeSchemaForCCA, normalizeSchemaForGoogle } from "@gajae-code/ai/utils/schema";
+import { convertTools } from "@jawcode-dev/ai/providers/google-shared";
+import type { Model, TJsonSchema, Tool } from "@jawcode-dev/ai/types";
+import { normalizeSchemaForCCA, normalizeSchemaForGoogle } from "@jawcode-dev/ai/utils/schema";
 
 function createModel(id: string): Model<"google-gemini-cli"> {
 	return {

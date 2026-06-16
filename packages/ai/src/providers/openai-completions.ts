@@ -1,4 +1,4 @@
-import { $env, $inheritedEnv, extractHttpStatusFromError } from "@gajae-code/utils";
+import { $env, $inheritedEnv, extractHttpStatusFromError } from "@jawcode-dev/utils";
 import OpenAI from "openai";
 import type {
 	ChatCompletionAssistantMessageParam,

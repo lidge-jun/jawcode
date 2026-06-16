@@ -4,12 +4,12 @@ import {
 	gateAnswerToResult,
 	JawInterviewGateError,
 	questionToGate,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/jaw-interview-gate";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/jaw-interview-gate";
 import {
 	MemoryGateStore,
 	WorkflowGateBroker,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/workflow-gate-broker";
-import { schemaHash } from "@gajae-code/coding-agent/modes/shared/agent-wire/workflow-gate-schema";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/workflow-gate-broker";
+import { schemaHash } from "@jawcode-dev/coding-agent/modes/shared/agent-wire/workflow-gate-schema";
 
 const singleQ: AskGateQuestion = {
 	id: "single-auth",

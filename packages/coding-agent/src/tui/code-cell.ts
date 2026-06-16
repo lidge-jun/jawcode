@@ -1,7 +1,7 @@
 /**
  * Render a code or markdown cell with optional output section.
  */
-import { Markdown } from "@gajae-code/tui";
+import { Markdown } from "@jawcode-dev/tui";
 import { getMarkdownTheme, highlightCode, type Theme } from "../modes/theme/theme";
 import {
 	formatDuration,

@@ -6,8 +6,8 @@ import type {
 	ProviderPayload,
 	TextContent,
 	ToolResultMessage,
-} from "@gajae-code/ai";
-import { prompt } from "@gajae-code/utils";
+} from "@jawcode-dev/ai";
+import { prompt } from "@jawcode-dev/utils";
 import type { AgentMessage } from "../types";
 import branchSummaryContextPrompt from "./prompts/branch-summary-context.md" with { type: "text" };
 import compactionSummaryContextPrompt from "./prompts/compaction-summary-context.md" with { type: "text" };

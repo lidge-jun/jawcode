@@ -1,10 +1,10 @@
 import { beforeAll, describe, expect, it, vi } from "bun:test";
-import type { AgentToolContext } from "@gajae-code/agent-core";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { getThemeByName, initTheme } from "@gajae-code/coding-agent/modes/theme/theme";
-import type { ToolSession } from "@gajae-code/coding-agent/tools";
-import { AskTool, askToolRenderer } from "@gajae-code/coding-agent/tools/ask";
-import { ToolAbortError } from "@gajae-code/coding-agent/tools/tool-errors";
+import type { AgentToolContext } from "@jawcode-dev/agent-core";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { getThemeByName, initTheme } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import type { ToolSession } from "@jawcode-dev/coding-agent/tools";
+import { AskTool, askToolRenderer } from "@jawcode-dev/coding-agent/tools/ask";
+import { ToolAbortError } from "@jawcode-dev/coding-agent/tools/tool-errors";
 
 function createSession(overrides: Partial<ToolSession> = {}): ToolSession {
 	return {

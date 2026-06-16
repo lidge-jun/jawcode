@@ -1,5 +1,5 @@
-import { type Component, padding, TERMINAL, truncateToWidth, visibleWidth } from "@gajae-code/tui";
-import { APP_NAME, ENGINE_NAME } from "@gajae-code/utils";
+import { type Component, padding, TERMINAL, truncateToWidth, visibleWidth } from "@jawcode-dev/tui";
+import { APP_NAME, ENGINE_NAME } from "@jawcode-dev/utils";
 import { type ThemeColor, theme } from "../../modes/theme/theme";
 
 export interface RecentSession {

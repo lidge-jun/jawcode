@@ -1,7 +1,7 @@
 /**
  * Reusable countdown timer for dialog components.
  */
-import type { TUI } from "@gajae-code/tui";
+import type { TUI } from "@jawcode-dev/tui";
 
 export class CountdownTimer {
 	#intervalId: NodeJS.Timeout | undefined;

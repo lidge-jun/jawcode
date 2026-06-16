@@ -1,5 +1,5 @@
-import type { AgentToolContext, AgentToolResult } from "@gajae-code/agent-core";
-import { logger } from "@gajae-code/utils";
+import type { AgentToolContext, AgentToolResult } from "@jawcode-dev/agent-core";
+import { logger } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import { AsyncJobManager } from "../async";
 import { truncateTail } from "../session/streaming-output";
@@ -248,8 +248,8 @@ export class MonitorTool {
 		params: MonitorParams,
 		_signal?: AbortSignal,
 		_onUpdate?: unknown,
-		context?: import("@gajae-code/agent-core").AgentToolContext,
-	): Promise<import("@gajae-code/agent-core").AgentToolResult<MonitorToolDetails>> {
+		context?: import("@jawcode-dev/agent-core").AgentToolContext,
+	): Promise<import("@jawcode-dev/agent-core").AgentToolResult<MonitorToolDetails>> {
 		return executeMonitor(this.session, params, context);
 	}
 }

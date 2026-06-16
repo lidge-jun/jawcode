@@ -4,8 +4,8 @@
  * Uses brush-core via native bindings for shell execution.
  */
 import * as fs from "node:fs/promises";
-import { executeShell, type MinimizerOptions, Shell } from "@gajae-code/natives";
-import { postmortem } from "@gajae-code/utils";
+import { executeShell, type MinimizerOptions, Shell } from "@jawcode-dev/natives";
+import { postmortem } from "@jawcode-dev/utils";
 import { Settings, type ShellMinimizerSettings } from "../config/settings";
 import { formatCrashDiagnosticNotice, writeCrashReport } from "../debug/crash-diagnostics";
 import { OutputSink } from "../session/streaming-output";

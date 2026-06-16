@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
 
 describe("SessionManager usage statistics", () => {
 	it("accumulates premium requests from assistant messages and task tool results", () => {

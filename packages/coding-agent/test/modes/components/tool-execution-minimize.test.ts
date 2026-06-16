@@ -1,9 +1,9 @@
 import { beforeAll, describe, expect, it } from "bun:test";
-import { resetSettingsForTest, Settings } from "@gajae-code/coding-agent/config/settings";
-import { ToolExecutionComponent } from "@gajae-code/coding-agent/modes/components/tool-execution";
-import { ToolTranscriptOverlayComponent } from "@gajae-code/coding-agent/modes/components/tool-transcript-overlay";
-import * as themeModule from "@gajae-code/coding-agent/modes/theme/theme";
-import type { TUI } from "@gajae-code/tui";
+import { resetSettingsForTest, Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { ToolExecutionComponent } from "@jawcode-dev/coding-agent/modes/components/tool-execution";
+import { ToolTranscriptOverlayComponent } from "@jawcode-dev/coding-agent/modes/components/tool-transcript-overlay";
+import * as themeModule from "@jawcode-dev/coding-agent/modes/theme/theme";
+import type { TUI } from "@jawcode-dev/tui";
 
 beforeAll(async () => {
 	resetSettingsForTest();

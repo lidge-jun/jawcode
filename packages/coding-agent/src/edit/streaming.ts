@@ -13,7 +13,7 @@
  * the injected `editMode` rather than probing argument shape.
  */
 
-import { sanitizeText } from "@gajae-code/utils";
+import { sanitizeText } from "@jawcode-dev/utils";
 import {
 	ABORT_MARKER,
 	BEGIN_PATCH_MARKER,

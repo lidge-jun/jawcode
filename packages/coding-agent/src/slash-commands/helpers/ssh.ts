@@ -1,4 +1,4 @@
-import { getSSHConfigPath } from "@gajae-code/utils";
+import { getSSHConfigPath } from "@jawcode-dev/utils";
 import { addSSHHost, readSSHConfigFile, removeSSHHost, type SSHHostConfig } from "../../ssh/config-writer";
 import { parseCommandArgs } from "../../utils/command-args";
 import type { ParsedSlashCommand, SlashCommandResult, SlashCommandRuntime } from "../types";

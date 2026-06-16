@@ -5,7 +5,7 @@ import { spawn } from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { $env, Snowflake } from "@gajae-code/utils";
+import { $env, Snowflake } from "@jawcode-dev/utils";
 
 /** Returns the user's preferred editor command, or undefined if not configured. */
 export function getEditorCommand(): string | undefined {

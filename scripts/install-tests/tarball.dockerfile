@@ -39,7 +39,7 @@ uplinks:
   npmjs:
     url: https://registry.npmjs.org/
 packages:
-  '@gajae-code/*':
+  '@jawcode-dev/*':
     access: $all
     publish: $all
     unpublish: $all
@@ -119,7 +119,7 @@ for pkg in "${PACKAGES[@]}"; do
     
     # Show what we're publishing
     echo "Dependencies:"
-    jq '.dependencies | to_entries[] | select((.value | type) == "string" and (.value | test("^(@gajae-code|workspace|catalog)")))' package.json 2>/dev/null || true
+    jq '.dependencies | to_entries[] | select((.value | type) == "string" and (.value | test("^(@jawcode|workspace|catalog)")))' package.json 2>/dev/null || true
     
     # Publish
     npm publish --registry "$REGISTRY"

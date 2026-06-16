@@ -1,11 +1,11 @@
 import { beforeAll, describe, expect, test, vi } from "bun:test";
-import { ThinkingLevel } from "@gajae-code/agent-core";
-import { Effort, getBundledModel, type Model } from "@gajae-code/ai";
-import type { JwcModelSelectorTargetId, ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { ModelSelectorComponent } from "@gajae-code/coding-agent/modes/components/model-selector";
-import { getThemeByName, setThemeInstance } from "@gajae-code/coding-agent/modes/theme/theme";
-import type { TUI } from "@gajae-code/tui";
+import { ThinkingLevel } from "@jawcode-dev/agent-core";
+import { Effort, getBundledModel, type Model } from "@jawcode-dev/ai";
+import type { JwcModelSelectorTargetId, ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { ModelSelectorComponent } from "@jawcode-dev/coding-agent/modes/components/model-selector";
+import { getThemeByName, setThemeInstance } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import type { TUI } from "@jawcode-dev/tui";
 
 function normalizeRenderedText(text: string): string {
 	return (

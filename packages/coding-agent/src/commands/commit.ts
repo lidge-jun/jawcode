@@ -1,8 +1,8 @@
 /**
  * Generate and optionally push a commit with changelog updates.
  */
-import { postmortem } from "@gajae-code/utils";
-import { Command, Flags } from "@gajae-code/utils/cli";
+import { postmortem } from "@jawcode-dev/utils";
+import { Command, Flags } from "@jawcode-dev/utils/cli";
 import { runCommitCommand } from "../commit";
 import type { CommitCommandArgs } from "../commit/types";
 import { initTheme } from "../modes/theme/theme";

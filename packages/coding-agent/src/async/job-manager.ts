@@ -1,4 +1,4 @@
-import { logger } from "@gajae-code/utils";
+import { logger } from "@jawcode-dev/utils";
 import type { AgentProgress, AgentSource } from "../task/types";
 
 const DELIVERY_RETRY_BASE_MS = 500;

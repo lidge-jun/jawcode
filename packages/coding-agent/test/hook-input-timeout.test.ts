@@ -1,8 +1,8 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
 
-import { HookInputComponent } from "@gajae-code/coding-agent/modes/components/hook-input";
-import { getThemeByName, setThemeInstance } from "@gajae-code/coding-agent/modes/theme/theme";
-import type { TUI } from "@gajae-code/tui";
+import { HookInputComponent } from "@jawcode-dev/coding-agent/modes/components/hook-input";
+import { getThemeByName, setThemeInstance } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import type { TUI } from "@jawcode-dev/tui";
 
 beforeAll(async () => {
 	const theme = await getThemeByName("red-claw");

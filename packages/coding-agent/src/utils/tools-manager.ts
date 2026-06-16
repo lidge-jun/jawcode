@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { $which, ENGINE_NAME as APP_NAME, getToolsDir, logger, ptree, TempDir } from "@gajae-code/utils";
+import { $which, ENGINE_NAME as APP_NAME, getToolsDir, logger, ptree, TempDir } from "@jawcode-dev/utils";
 
 const TOOLS_DIR = getToolsDir();
 const TOOL_DOWNLOAD_TIMEOUT_MS = 120_000;

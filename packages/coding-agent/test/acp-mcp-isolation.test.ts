@@ -16,7 +16,7 @@ import { describe, expect, it } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { Snowflake } from "@gajae-code/utils";
+import { Snowflake } from "@jawcode-dev/utils";
 import { ModelRegistry } from "../src/config/model-registry";
 import { Settings } from "../src/config/settings";
 import { createAcpSessionFactory } from "../src/main";

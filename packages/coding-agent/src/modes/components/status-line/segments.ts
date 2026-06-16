@@ -1,7 +1,7 @@
 import * as os from "node:os";
 import * as path from "node:path";
-import { ThinkingLevel } from "@gajae-code/agent-core";
-import { TERMINAL } from "@gajae-code/tui";
+import { ThinkingLevel } from "@jawcode-dev/agent-core";
+import { TERMINAL } from "@jawcode-dev/tui";
 import {
 	APP_NAME,
 	formatDuration,
@@ -9,7 +9,7 @@ import {
 	getProjectDir,
 	pathIsWithin,
 	relativePathWithinRoot,
-} from "@gajae-code/utils";
+} from "@jawcode-dev/utils";
 import { type ThemeColor, theme } from "../../../modes/theme/theme";
 import { shortenPath } from "../../../tools/render-utils";
 import { colorPabcdLabel } from "../pabcd-border";

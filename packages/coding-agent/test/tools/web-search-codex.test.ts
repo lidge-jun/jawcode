@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "bun:test";
-import type { AuthStorage } from "@gajae-code/ai";
-import { hookFetch } from "@gajae-code/utils";
+import type { AuthStorage } from "@jawcode-dev/ai";
+import { hookFetch } from "@jawcode-dev/utils";
 import type { SearchParams } from "../../src/web/search/providers/base";
 import { searchCodex } from "../../src/web/search/providers/codex";
 

@@ -7,18 +7,18 @@
 
 import * as os from "node:os";
 import * as path from "node:path";
-import type { ToolCallContext } from "@gajae-code/agent-core";
-import type { Ellipsis } from "@gajae-code/natives";
-import type { Component } from "@gajae-code/tui";
-import { replaceTabs, truncateToWidth } from "@gajae-code/tui";
-import { pluralize } from "@gajae-code/utils";
+import type { ToolCallContext } from "@jawcode-dev/agent-core";
+import type { Ellipsis } from "@jawcode-dev/natives";
+import type { Component } from "@jawcode-dev/tui";
+import { replaceTabs, truncateToWidth } from "@jawcode-dev/tui";
+import { pluralize } from "@jawcode-dev/utils";
 import { settings } from "../config/settings";
 import type { Theme } from "../modes/theme/theme";
 import { Hasher } from "../tui/utils";
 import { formatDimensionNote, type ResizedImage } from "../utils/image-resize";
 
-export { Ellipsis } from "@gajae-code/natives";
-export { replaceTabs, truncateToWidth, wrapTextWithAnsi } from "@gajae-code/tui";
+export { Ellipsis } from "@jawcode-dev/natives";
+export { replaceTabs, truncateToWidth, wrapTextWithAnsi } from "@jawcode-dev/tui";
 
 // =============================================================================
 // Standardized Display Constants
@@ -110,7 +110,7 @@ export function getDomain(url: string): string {
 // Formatting Utilities
 // =============================================================================
 
-export { formatAge, formatBytes, formatCount, formatDuration, pluralize } from "@gajae-code/utils";
+export { formatAge, formatBytes, formatCount, formatDuration, pluralize } from "@jawcode-dev/utils";
 
 // =============================================================================
 // Theme Helper Utilities

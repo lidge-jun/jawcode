@@ -3,10 +3,10 @@
  *
  * Spawns the agent in RPC mode and provides a typed API for all operations.
  */
-import type { AgentEvent, AgentMessage, AgentToolResult, ThinkingLevel } from "@gajae-code/agent-core";
-import type { CompactionResult } from "@gajae-code/agent-core/compaction";
-import type { ImageContent, Model } from "@gajae-code/ai";
-import { isRecord, ptree, readJsonl } from "@gajae-code/utils";
+import type { AgentEvent, AgentMessage, AgentToolResult, ThinkingLevel } from "@jawcode-dev/agent-core";
+import type { CompactionResult } from "@jawcode-dev/agent-core/compaction";
+import type { ImageContent, Model } from "@jawcode-dev/ai";
+import { isRecord, ptree, readJsonl } from "@jawcode-dev/utils";
 import type { BashResult } from "../../exec/bash-executor";
 import type { SessionStats } from "../../session/agent-session";
 import type {

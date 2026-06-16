@@ -8,7 +8,7 @@ import {
 	discoverPromptTemplates,
 	type PromptTemplate,
 	SessionManager,
-} from "@gajae-code/coding-agent";
+} from "@jawcode-dev/coding-agent";
 
 // Discover templates from cwd/.pi/prompts/ and ~/.pi/agent/prompts/
 const discovered = await discoverPromptTemplates();

@@ -1,4 +1,4 @@
-import { extractSegments } from "@gajae-code/tui";
+import { extractSegments } from "@jawcode-dev/tui";
 import { formatCodeFrameLine, truncateToWidth } from "../tools/render-utils";
 import type {
 	VimErrorLocation,

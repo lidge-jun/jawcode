@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { Agent } from "@gajae-code/agent-core";
-import { getBundledModel } from "@gajae-code/ai";
+import { Agent } from "@jawcode-dev/agent-core";
+import { getBundledModel } from "@jawcode-dev/ai";
 import { ModelRegistry } from "../src/config/model-registry";
 import { Settings } from "../src/config/settings";
 import { AgentSession } from "../src/session/agent-session";

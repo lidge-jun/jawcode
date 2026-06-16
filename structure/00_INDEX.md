@@ -1,6 +1,6 @@
 # Jawcode Structure Index
 
-> jawcode(gajae-code 0.4.4 lineage)의 코드 지도 **단일 허브**. JWC standalone 개발·cli-jaw 임베딩 때 근거
+> jawcode(jawcode 0.4.4 lineage)의 코드 지도 **단일 허브**. JWC standalone 개발·cli-jaw 임베딩 때 근거
 > 파일을 빠르게 찾는 진입점. 여기서 시작하세요.
 > public repo root commit `d60b7822` · upstream 클론 `devlog/_upstream_gjc` @ `269387ba` (갱신 시 cite).
 
@@ -12,7 +12,7 @@
 | **양축 대조** | [struct_har/](../struct_har/README.md) | `gjc_origin` ↔ `jwc_patched` 밴드별 code facts |
 | **OMP 참조** | [struct_har/omp_origin/](../struct_har/omp_origin/README.md) | oh-my-pi(상류) 13 밴드 — fork diff 아님 |
 
-업스트림 클론(gitignored): `devlog/_upstream_gjc/` @ `269387ba`(gajae-code) · `devlog/_upstream_omp/` @ `e13ad3805`(oh-my-pi).
+업스트림 클론(gitignored): `devlog/_upstream_gjc/` @ `269387ba`(jawcode) · `devlog/_upstream_omp/` @ `e13ad3805`(oh-my-pi).
 cite: gjc_origin=`devlog/_upstream_gjc/<path>:<line>` · jwc_patched=`700_projects/jawcode/<path>:<line>` · omp_origin=`devlog/_upstream_omp/<path>:<line>`.
 
 ## 10개 정본 문서 (티어)
@@ -34,7 +34,7 @@ cite: gjc_origin=`devlog/_upstream_gjc/<path>:<line>` · jwc_patched=`700_projec
 | 결정 | 요약 | 반영 |
 |---|---|---|
 | D1 | jwc 런타임 코어 분리 → cli-jaw 임베딩 | [architecture.md](./10_architecture.md) |
-| D4 | 공개 표면 `jwc`/`.jwc/`; 내부 `@gajae-code/*` 보존 | [conventions.md](./11_conventions.md) |
+| D4 | 공개 표면 `jwc`/`.jwc/`; 내부 `@jawcode-dev/*` 보존 | [conventions.md](./11_conventions.md) |
 | D5 | 스킬 정본 `~/.cli-jaw/skills` 우선 | [extensibility.md](./21_extensibility.md) |
 | D6 | TUI/Web 세션 비공유, 스킬+OAuth 공유 | [session_storage.md](./22_session_storage.md) |
 | D8 | M2 = Node 포팅 상주 | [architecture.md](./10_architecture.md) |

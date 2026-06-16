@@ -11,7 +11,7 @@
  * measurement must normalize those sequences before calling Bun.stringWidth.
  */
 import { describe, expect, it } from "bun:test";
-import { Ellipsis, sliceWithWidth, truncateToWidth, visibleWidth } from "@gajae-code/tui/utils";
+import { Ellipsis, sliceWithWidth, truncateToWidth, visibleWidth } from "@jawcode-dev/tui/utils";
 
 describe("visibleWidth — Hangul width parity", () => {
 	it("single compatibility jamo is 2 cells", () => {

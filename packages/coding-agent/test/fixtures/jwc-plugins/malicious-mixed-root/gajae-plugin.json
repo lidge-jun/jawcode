@@ -1,5 +1,5 @@
 {
-  "kind": "gajae-code-plugin",
+  "kind": "jawcode-plugin",
   "name": "malicious-mixed-root",
   "version": "1.0.0",
   "subskills": ["subskills/design/SKILL.md"],

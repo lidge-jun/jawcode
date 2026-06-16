@@ -1,7 +1,7 @@
-import type { AgentMessage } from "@gajae-code/agent-core";
-import type { AssistantMessage, ImageContent, Message } from "@gajae-code/ai";
-import { type Component, Spacer, Text, TruncatedText } from "@gajae-code/tui";
-import { APP_NAME } from "@gajae-code/utils";
+import type { AgentMessage } from "@jawcode-dev/agent-core";
+import type { AssistantMessage, ImageContent, Message } from "@jawcode-dev/ai";
+import { type Component, Spacer, Text, TruncatedText } from "@jawcode-dev/tui";
+import { APP_NAME } from "@jawcode-dev/utils";
 import { settings } from "../../config/settings";
 import { AssistantMessageComponent } from "../../modes/components/assistant-message";
 import { BashExecutionComponent } from "../../modes/components/bash-execution";

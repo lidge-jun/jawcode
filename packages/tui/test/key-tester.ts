@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
-import { matchesKey } from "@gajae-code/tui/keys";
-import { ProcessTerminal } from "@gajae-code/tui/terminal";
-import { type Component, TUI } from "@gajae-code/tui/tui";
+import { matchesKey } from "@jawcode-dev/tui/keys";
+import { ProcessTerminal } from "@jawcode-dev/tui/terminal";
+import { type Component, TUI } from "@jawcode-dev/tui/tui";
 
 /**
  * Simple key code logger component

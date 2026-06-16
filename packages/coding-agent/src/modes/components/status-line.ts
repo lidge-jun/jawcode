@@ -1,8 +1,8 @@
 import * as fs from "node:fs";
-import type { AgentMessage } from "@gajae-code/agent-core";
-import { countMessageTokensNative, estimateTokens } from "@gajae-code/agent-core/compaction";
-import { type Component, truncateToWidth, visibleWidth } from "@gajae-code/tui";
-import { formatCount, getProjectDir } from "@gajae-code/utils";
+import type { AgentMessage } from "@jawcode-dev/agent-core";
+import { countMessageTokensNative, estimateTokens } from "@jawcode-dev/agent-core/compaction";
+import { type Component, truncateToWidth, visibleWidth } from "@jawcode-dev/tui";
+import { formatCount, getProjectDir } from "@jawcode-dev/utils";
 import { $ } from "bun";
 import { settings } from "../../config/settings";
 import type { StatusLinePreset, StatusLineSegmentId, StatusLineSeparatorStyle } from "../../config/settings-schema";
@@ -133,7 +133,7 @@ function messageFingerprint(msg: AgentMessage): string {
  * The caller MUST skip caching for the last message during streaming —
  * it may still be growing and its tokens belong recomputed each refresh.
  */
-function tokensForMessage(msg: AgentMessage, encoding?: import("@gajae-code/natives").Encoding): number {
+function tokensForMessage(msg: AgentMessage, encoding?: import("@jawcode-dev/natives").Encoding): number {
 	const fp = messageFingerprint(msg);
 	const tagged = msg as TaggedMessage;
 	const cached = tagged[kTokenCache];

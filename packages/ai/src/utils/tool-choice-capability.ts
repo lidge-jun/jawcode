@@ -1,5 +1,5 @@
-import { extractHttpStatusFromError } from "@gajae-code/utils/fetch-retry";
-import * as logger from "@gajae-code/utils/logger";
+import { extractHttpStatusFromError } from "@jawcode-dev/utils/fetch-retry";
+import * as logger from "@jawcode-dev/utils/logger";
 import type { Api, Model, ToolChoice, ToolChoiceCompat, ToolChoiceSupport, ToolChoiceSupportSource } from "../types";
 
 const supportRank: Record<ToolChoiceSupport, number> = {

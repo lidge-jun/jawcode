@@ -1,7 +1,7 @@
 /**
  * `gjc auth-gateway` — run a forward proxy that injects auth from the broker.
  */
-import { Args, Command, Flags, renderCommandHelp } from "@gajae-code/utils/cli";
+import { Args, Command, Flags, renderCommandHelp } from "@jawcode-dev/utils/cli";
 import {
 	AUTH_GATEWAY_ACTIONS,
 	type AuthGatewayAction,

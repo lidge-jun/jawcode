@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { Agent, type StreamFn } from "@gajae-code/agent-core";
-import type { CursorExecHandlers, SimpleStreamOptions } from "@gajae-code/ai";
-import { createMockModel } from "@gajae-code/ai/providers/mock";
-import { AssistantMessageEventStream } from "@gajae-code/ai/utils/event-stream";
+import { Agent, type StreamFn } from "@jawcode-dev/agent-core";
+import type { CursorExecHandlers, SimpleStreamOptions } from "@jawcode-dev/ai";
+import { createMockModel } from "@jawcode-dev/ai/providers/mock";
+import { AssistantMessageEventStream } from "@jawcode-dev/ai/utils/event-stream";
 import { createAssistantMessage } from "./helpers";
 
 async function waitForStreaming(agent: Agent): Promise<void> {

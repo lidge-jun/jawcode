@@ -1,7 +1,7 @@
 /**
  * Manage plugins (install, uninstall, list, etc.).
  */
-import { Args, Command, Flags } from "@gajae-code/utils/cli";
+import { Args, Command, Flags } from "@jawcode-dev/utils/cli";
 import { type PluginAction, type PluginCommandArgs, runPluginCommand } from "../cli/plugin-cli";
 import { initTheme } from "../modes/theme/theme";
 

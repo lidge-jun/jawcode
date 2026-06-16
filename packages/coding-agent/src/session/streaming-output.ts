@@ -1,5 +1,5 @@
-import type { AgentToolUpdateCallback } from "@gajae-code/agent-core";
-import { sanitizeText } from "@gajae-code/utils";
+import type { AgentToolUpdateCallback } from "@jawcode-dev/agent-core";
+import { sanitizeText } from "@jawcode-dev/utils";
 import { formatBytes } from "../tools/render-utils";
 import { sanitizeWithOptionalSixelPassthrough } from "../utils/sixel";
 

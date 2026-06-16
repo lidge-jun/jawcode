@@ -5,7 +5,7 @@
  */
 import * as path from "node:path";
 import * as url from "node:url";
-import { getProjectDir, logger, withTimeout } from "@gajae-code/utils";
+import { getProjectDir, logger, withTimeout } from "@jawcode-dev/utils";
 import { createHttpTransport } from "./transports/http";
 import { createStdioTransport } from "./transports/stdio";
 import type {

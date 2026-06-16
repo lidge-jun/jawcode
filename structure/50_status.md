@@ -70,7 +70,7 @@ readiness 기준선 고정. OSS 표면: [LICENSE](../LICENSE)(MIT 계보), [READ
 
 | 축 | 경로 |
 |---|---|
-| upstream gajae-code | `struct_har/gjc_origin/<band>/` |
+| upstream jawcode | `struct_har/gjc_origin/<band>/` |
 | jaw fork | `struct_har/jwc_patched/<band>/` |
 | omp 상류(참조) | `struct_har/omp_origin/<band>/` |
 | chase(갭) | `struct_har/chase/` (`10_*`·`20_*`) |

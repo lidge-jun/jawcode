@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { type AuthBrokerServerHandle, AuthStorage, SqliteAuthCredentialStore, startAuthBroker } from "@gajae-code/ai";
-import { getAgentDbPath, setAgentDir } from "@gajae-code/utils";
+import { type AuthBrokerServerHandle, AuthStorage, SqliteAuthCredentialStore, startAuthBroker } from "@jawcode-dev/ai";
+import { getAgentDbPath, setAgentDir } from "@jawcode-dev/utils";
 import { runAuthBrokerCommand } from "../src/cli/auth-broker-cli";
 
 const ORIGINAL_STDOUT_WRITE = process.stdout.write.bind(process.stdout);

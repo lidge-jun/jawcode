@@ -1,14 +1,14 @@
 import { describe, expect, it } from "bun:test";
-import type { RpcUnattendedActionClass, RpcUnattendedDeclaration } from "@gajae-code/coding-agent/modes/rpc/rpc-types";
+import type { RpcUnattendedActionClass, RpcUnattendedDeclaration } from "@jawcode-dev/coding-agent/modes/rpc/rpc-types";
 import {
 	actionClassForScope,
 	classifyBashAction,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/unattended-action-policy";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/unattended-action-policy";
 import {
 	ActionDeniedError,
 	ScopeDeniedError,
 	UnattendedRunController,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/unattended-run-controller";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/unattended-run-controller";
 
 function controller(actions: string[], scopes: string[] = ["bash", "prompt"]) {
 	const decl: RpcUnattendedDeclaration = {

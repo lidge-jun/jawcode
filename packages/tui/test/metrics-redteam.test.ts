@@ -7,7 +7,7 @@ import {
 	MAX_PERF_EVENTS,
 	REPAINT_STORM_THRESHOLD,
 	RenderMetrics,
-} from "@gajae-code/tui/metrics";
+} from "@jawcode-dev/tui/metrics";
 import { makeRecordedSession, runReplay } from "./replay-harness";
 
 function recordUnexpectedRender(metrics: RenderMetrics, cause = "extraLines > height"): void {

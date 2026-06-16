@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { type Component, CURSOR_MARKER, TUI } from "@gajae-code/tui";
+import { type Component, CURSOR_MARKER, TUI } from "@jawcode-dev/tui";
 import { VirtualTerminal } from "./virtual-terminal";
 
 class LineComponent implements Component {

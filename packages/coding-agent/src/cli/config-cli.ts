@@ -5,7 +5,7 @@
  * Uses the settings schema as the source of truth for available settings.
  */
 
-import { APP_NAME, getAgentDir } from "@gajae-code/utils";
+import { APP_NAME, getAgentDir } from "@jawcode-dev/utils";
 import chalk from "chalk";
 import {
 	getDefault,

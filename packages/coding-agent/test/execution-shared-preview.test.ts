@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { createCollapsedPreview } from "@gajae-code/coding-agent/modes/components/execution-shared";
-import { truncateToVisualLines } from "@gajae-code/coding-agent/modes/components/visual-truncate";
+import { createCollapsedPreview } from "@jawcode-dev/coding-agent/modes/components/execution-shared";
+import { truncateToVisualLines } from "@jawcode-dev/coding-agent/modes/components/visual-truncate";
 
 describe("createCollapsedPreview", () => {
 	it("keeps same-width cached output stable", () => {

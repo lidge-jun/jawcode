@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { Model } from "@gajae-code/ai";
+import type { Model } from "@jawcode-dev/ai";
 import { SETTINGS_SCHEMA } from "../../src/config/settings-schema";
 import { resolveForkContextMaxTokens } from "../../src/task";
 

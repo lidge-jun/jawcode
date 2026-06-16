@@ -2,8 +2,8 @@ import type { Dirent } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import * as natives from "@gajae-code/natives";
-import { getWorktreeDir, hashPath, logger, Snowflake } from "@gajae-code/utils";
+import * as natives from "@jawcode-dev/natives";
+import { getWorktreeDir, hashPath, logger, Snowflake } from "@jawcode-dev/utils";
 import * as git from "../utils/git";
 
 const { IsoBackendKind } = natives;

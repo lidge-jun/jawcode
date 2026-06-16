@@ -1,8 +1,8 @@
 import * as fs from "node:fs";
-import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@gajae-code/agent-core";
-import type { Component } from "@gajae-code/tui";
-import { ImageProtocol, TERMINAL, Text } from "@gajae-code/tui";
-import { getProjectDir, isEnoent, logger, prompt } from "@gajae-code/utils";
+import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@jawcode-dev/agent-core";
+import type { Component } from "@jawcode-dev/tui";
+import { ImageProtocol, TERMINAL, Text } from "@jawcode-dev/tui";
+import { getProjectDir, isEnoent, logger, prompt } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import { AsyncJobManager } from "../async";
 import { type BashResult, executeBash } from "../exec/bash-executor";

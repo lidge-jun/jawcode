@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import type { ImageContent, Message, TextContent } from "@gajae-code/ai";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { MemorySessionStorage } from "@gajae-code/coding-agent/session/session-storage";
+import type { ImageContent, Message, TextContent } from "@jawcode-dev/ai";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { MemorySessionStorage } from "@jawcode-dev/coding-agent/session/session-storage";
 
 const LARGE_TEXT = `${"resident text ".repeat(60_000)}TEXT_TAIL`;
 const LARGE_IMAGE = Buffer.from("resident image bytes".repeat(20_000)).toString("base64");

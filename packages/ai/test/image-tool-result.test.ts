@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import type { Api, Context, Model, Tool, ToolResultMessage } from "@gajae-code/ai";
-import { complete, getBundledModel } from "@gajae-code/ai";
-import type { OptionsForApi } from "@gajae-code/ai/types";
+import type { Api, Context, Model, Tool, ToolResultMessage } from "@jawcode-dev/ai";
+import { complete, getBundledModel } from "@jawcode-dev/ai";
+import type { OptionsForApi } from "@jawcode-dev/ai/types";
 import * as z from "zod/v4";
 import { e2eApiKey, resolveApiKey } from "./oauth";
 

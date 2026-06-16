@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { RpcJsonSchema } from "@gajae-code/coding-agent/modes/rpc/rpc-types";
+import type { RpcJsonSchema } from "@jawcode-dev/coding-agent/modes/rpc/rpc-types";
 import {
 	assertSupportedGateSchema,
 	compileGateSchema,
@@ -7,7 +7,7 @@ import {
 	schemaHash,
 	validateGateAnswer,
 	WorkflowGateSchemaError,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/workflow-gate-schema";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/workflow-gate-schema";
 
 describe("workflow-gate-schema", () => {
 	it("rejects unsupported keywords at construction", () => {

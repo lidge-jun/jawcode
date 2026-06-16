@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { generateFileMentionMessages } from "@gajae-code/coding-agent/utils/file-mentions";
+import { generateFileMentionMessages } from "@jawcode-dev/coding-agent/utils/file-mentions";
 
 const tempDirs: string[] = [];
 

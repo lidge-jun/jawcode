@@ -1,12 +1,12 @@
 /**
- * Repro for https://github.com/can1357/gajae-code/issues/892
+ * Repro for https://github.com/lidge-jun/jawcode/issues/892
  *
  * The old CommonJS fix depended on Bun's CJS-to-ESM analyzer statically
  * scanning `module.exports.<Name> = …` assignments. The loader is now ESM,
  * so named exports must be real `export const` declarations instead of CJS
  * assignments that Bun happens to detect.
  *
- * The contract this test pins down: ESM consumers of `@gajae-code/natives`
+ * The contract this test pins down: ESM consumers of `@jawcode-dev/natives`
  * resolve to `native/index.js`, and that file declares every public symbol
  * from `native/index.d.ts` as a real ESM named export.
  */

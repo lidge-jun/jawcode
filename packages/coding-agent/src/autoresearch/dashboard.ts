@@ -1,4 +1,4 @@
-import { matchesKey, replaceTabs, Text, truncateToWidth, visibleWidth } from "@gajae-code/tui";
+import { matchesKey, replaceTabs, Text, truncateToWidth, visibleWidth } from "@jawcode-dev/tui";
 import type { Theme } from "../modes/theme/theme";
 import { formatElapsed, formatNum, isBetter } from "./helpers";
 import { currentResults, findBaselineMetric, findBaselineRunNumber, findBaselineSecondary } from "./state";

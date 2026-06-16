@@ -37,7 +37,7 @@ const steps: Step[] = [
 		args: [
 			"node",
 			"-e",
-			`const jwc = require('./packages/jwc/package.json'); const natives = require('./packages/natives/package.json'); const codingAgent = require('./packages/coding-agent/package.json'); const checks = [['@gajae-code/natives', jwc.dependencies?.['@gajae-code/natives'], natives.version], ['@gajae-code/coding-agent', jwc.devDependencies?.['@gajae-code/coding-agent'], codingAgent.version]]; let ok = true; for (const [name, dep, ws] of checks) { if (dep && dep !== ws) { console.error('MISMATCH: ' + name + ' dep=' + dep + ' workspace=' + ws); ok = false; } } if (!ok) process.exit(1); console.log('internal dep versions match workspace');`,
+			`const jwc = require('./packages/jwc/package.json'); const natives = require('./packages/natives/package.json'); const codingAgent = require('./packages/coding-agent/package.json'); const checks = [['@jawcode-dev/natives', jwc.dependencies?.['@jawcode-dev/natives'], natives.version], ['@jawcode-dev/coding-agent', jwc.devDependencies?.['@jawcode-dev/coding-agent'], codingAgent.version]]; let ok = true; for (const [name, dep, ws] of checks) { if (dep && dep !== ws) { console.error('MISMATCH: ' + name + ' dep=' + dep + ' workspace=' + ws); ok = false; } } if (!ok) process.exit(1); console.log('internal dep versions match workspace');`,
 		],
 	},
 ];

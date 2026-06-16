@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { MemorySessionStorage } from "@gajae-code/coding-agent/session/session-storage";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { MemorySessionStorage } from "@jawcode-dev/coding-agent/session/session-storage";
 
 const LARGE_TEXT = `${"materialized ".repeat(80_000)}TAIL`;
 

@@ -10,7 +10,7 @@
  * wired into the main streaming path. It provides the infrastructure for lazy
  * loading that can be integrated when stream.ts is refactored.
  */
-import { logger } from "@gajae-code/utils";
+import { logger } from "@jawcode-dev/utils";
 import type {
 	Api,
 	AssistantMessage,

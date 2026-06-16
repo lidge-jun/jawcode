@@ -4,8 +4,8 @@
  */
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { type Agent, type AgentMessage, type AgentToolResult, ThinkingLevel } from "@gajae-code/agent-core";
-import type { CompactionOutcome } from "@gajae-code/agent-core/compaction";
+import { type Agent, type AgentMessage, type AgentToolResult, ThinkingLevel } from "@jawcode-dev/agent-core";
+import type { CompactionOutcome } from "@jawcode-dev/agent-core/compaction";
 import {
 	type AssistantMessage,
 	type ImageContent,
@@ -13,8 +13,8 @@ import {
 	type Model,
 	modelsAreEqual,
 	type UsageReport,
-} from "@gajae-code/ai";
-import type { Component, EditorTheme, SlashCommand } from "@gajae-code/tui";
+} from "@jawcode-dev/ai";
+import type { Component, EditorTheme, SlashCommand } from "@jawcode-dev/tui";
 import {
 	Container,
 	clearRenderCache,
@@ -26,7 +26,7 @@ import {
 	TUI,
 	ViewportFill,
 	visibleWidth,
-} from "@gajae-code/tui";
+} from "@jawcode-dev/tui";
 import {
 	$flag,
 	APP_NAME,
@@ -37,7 +37,7 @@ import {
 	logger,
 	postmortem,
 	prompt,
-} from "@gajae-code/utils";
+} from "@jawcode-dev/utils";
 import chalk from "chalk";
 import { AsyncJobManager } from "../async";
 import { KeybindingsManager } from "../config/keybindings";

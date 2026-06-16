@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { resetSettingsForTest, Settings } from "@gajae-code/coding-agent/config/settings";
-import { getDefaultTabWidth, getIndentation, Snowflake, setDefaultTabWidth } from "@gajae-code/utils";
+import { resetSettingsForTest, Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { getDefaultTabWidth, getIndentation, Snowflake, setDefaultTabWidth } from "@jawcode-dev/utils";
 
 describe("indentation resolver", () => {
 	let tempDir = "";

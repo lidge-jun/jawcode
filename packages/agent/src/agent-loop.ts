@@ -13,8 +13,8 @@ import {
 	type TSchema,
 	validateToolArguments,
 	zodToWireSchema,
-} from "@gajae-code/ai";
-import { sanitizeText } from "@gajae-code/utils";
+} from "@jawcode-dev/ai";
+import { sanitizeText } from "@jawcode-dev/utils";
 import {
 	createHarmonyAuditEvent,
 	type HarmonyDetection,

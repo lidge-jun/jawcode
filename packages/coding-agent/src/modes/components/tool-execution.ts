@@ -1,4 +1,4 @@
-import type { AgentTool } from "@gajae-code/agent-core";
+import type { AgentTool } from "@jawcode-dev/agent-core";
 import {
 	Box,
 	type Component,
@@ -11,8 +11,8 @@ import {
 	TERMINAL,
 	Text,
 	type TUI,
-} from "@gajae-code/tui";
-import { getProjectDir, logger, sanitizeText } from "@gajae-code/utils";
+} from "@jawcode-dev/tui";
+import { getProjectDir, logger, sanitizeText } from "@jawcode-dev/utils";
 import { EDIT_MODE_STRATEGIES, type EditMode, type PerFileDiffPreview } from "../../edit";
 import type { Theme } from "../../modes/theme/theme";
 import { theme } from "../../modes/theme/theme";

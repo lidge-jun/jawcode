@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { hookFetch } from "@gajae-code/utils";
+import { hookFetch } from "@jawcode-dev/utils";
 import { resetSettingsForTest, Settings } from "../../src/config/settings";
 import { searchSearXNG } from "../../src/web/search/providers/searxng";
 

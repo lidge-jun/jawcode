@@ -90,7 +90,7 @@ async function main(): Promise<void> {
 	const command = args[0];
 
 	if (!command || command === "help" || command === "--help" || command === "-h") {
-		console.log(`Usage: bunx @gajae-code/ai <command> [provider]
+		console.log(`Usage: bunx @jawcode-dev/ai <command> [provider]
 
 Commands:
   login [provider]  Login to a provider
@@ -119,11 +119,11 @@ Providers:
   ollama-cloud      Ollama Cloud
 
 Examples:
-  bunx @gajae-code/ai login              # interactive provider selection
-  bunx @gajae-code/ai login anthropic    # login to specific provider
-  bunx @gajae-code/ai logout anthropic   # logout from specific provider
-  bunx @gajae-code/ai status             # show logged-in providers
-  bunx @gajae-code/ai list               # list providers
+  bunx @jawcode-dev/ai login              # interactive provider selection
+  bunx @jawcode-dev/ai login anthropic    # login to specific provider
+  bunx @jawcode-dev/ai logout anthropic   # logout from specific provider
+  bunx @jawcode-dev/ai status             # show logged-in providers
+  bunx @jawcode-dev/ai list               # list providers
 `);
 		return;
 	}
@@ -134,7 +134,7 @@ Examples:
 			const providers = storage.listProviders();
 			if (providers.length === 0) {
 				console.log("No credentials stored.");
-				console.log(`Use 'bunx @gajae-code/ai login' to authenticate.`);
+				console.log(`Use 'bunx @jawcode-dev/ai login' to authenticate.`);
 			} else {
 				console.log("Logged-in providers:\n");
 				for (const provider of providers) {
@@ -243,7 +243,7 @@ Examples:
 
 		if (!PROVIDERS.some(p => p.id === provider)) {
 			console.error(`Unknown provider: ${provider}`);
-			console.error(`Use 'bunx @gajae-code/ai list' to see available providers`);
+			console.error(`Use 'bunx @jawcode-dev/ai list' to see available providers`);
 			process.exit(1);
 		}
 
@@ -253,7 +253,7 @@ Examples:
 	}
 
 	console.error(`Unknown command: ${command}`);
-	console.error(`Use 'bunx @gajae-code/ai --help' for usage`);
+	console.error(`Use 'bunx @jawcode-dev/ai --help' for usage`);
 	process.exit(1);
 }
 

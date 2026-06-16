@@ -2,8 +2,8 @@ import { describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { RpcClient } from "@gajae-code/coding-agent/modes/rpc/rpc-client";
-import type { RpcExtensionUIRequest, RpcWorkflowGate } from "@gajae-code/coding-agent/modes/rpc/rpc-types";
+import { RpcClient } from "@jawcode-dev/coding-agent/modes/rpc/rpc-client";
+import type { RpcExtensionUIRequest, RpcWorkflowGate } from "@jawcode-dev/coding-agent/modes/rpc/rpc-types";
 
 const gate: RpcWorkflowGate = {
 	type: "workflow_gate",

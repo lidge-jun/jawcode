@@ -9,7 +9,7 @@ import {
 	logger,
 	readSseJson,
 	structuredCloneJSON,
-} from "@gajae-code/utils";
+} from "@jawcode-dev/utils";
 import type OpenAI from "openai";
 import type {
 	ResponseCustomToolCall,

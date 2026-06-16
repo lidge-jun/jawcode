@@ -3,14 +3,14 @@ import * as crypto from "node:crypto";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { Args } from "@gajae-code/coding-agent/cli/args";
-import { buildDefaultTmuxLaunchPlan } from "@gajae-code/coding-agent/jwc-runtime/launch-tmux";
+import type { Args } from "@jawcode-dev/coding-agent/cli/args";
+import { buildDefaultTmuxLaunchPlan } from "@jawcode-dev/coding-agent/jwc-runtime/launch-tmux";
 import {
 	ensureLaunchWorktree,
 	parseLaunchWorktreeMode,
 	planLaunchWorktree,
 	prepareLaunchWorktree,
-} from "@gajae-code/coding-agent/jwc-runtime/launch-worktree";
+} from "@jawcode-dev/coding-agent/jwc-runtime/launch-worktree";
 
 const cleanupRoots: string[] = [];
 
@@ -45,7 +45,7 @@ async function createRepo(prefix: string): Promise<string> {
 
 afterEach(async () => {
 	for (const root of cleanupRoots.splice(0)) {
-		const bucket = path.join(path.dirname(root), `${path.basename(root)}.gajae-code-worktrees`);
+		const bucket = path.join(path.dirname(root), `${path.basename(root)}.jawcode-worktrees`);
 		const branchSlug = testSlug(run("git", ["branch", "--show-current"], root));
 		Bun.spawnSync(["git", "worktree", "remove", "--force", path.join(bucket, branchSlug)], {
 			cwd: root,
@@ -101,7 +101,7 @@ describe("default launch worktrees", () => {
 
 		const first = prepareLaunchWorktree(repo, ["--worktree", "--", "hello"]);
 		const branchSlug = testSlug(run("git", ["branch", "--show-current"], repo));
-		const expectedPath = path.join(path.dirname(repo), `${path.basename(repo)}.gajae-code-worktrees`, branchSlug);
+		const expectedPath = path.join(path.dirname(repo), `${path.basename(repo)}.jawcode-worktrees`, branchSlug);
 
 		expect(await fs.realpath(first.cwd)).toBe(await fs.realpath(expectedPath));
 		expect(first.args).toEqual(["hello"]);
@@ -152,7 +152,7 @@ describe("default launch worktrees", () => {
 		const named = prepareLaunchWorktree(repo, ["--worktree", "feat/hud-ui-alignment"]);
 		const expectedPath = path.join(
 			path.dirname(repo),
-			`${path.basename(repo)}.gajae-code-worktrees`,
+			`${path.basename(repo)}.jawcode-worktrees`,
 			testSlug("feat/hud-ui-alignment"),
 		);
 
@@ -167,7 +167,7 @@ describe("default launch worktrees", () => {
 		const ensured = ensureLaunchWorktree(planned);
 		const expectedPath = path.join(
 			path.dirname(repo),
-			`${path.basename(repo)}.gajae-code-worktrees`,
+			`${path.basename(repo)}.jawcode-worktrees`,
 			testSlug("feature/demo"),
 		);
 

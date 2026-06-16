@@ -20,8 +20,8 @@ describe("release publish contract", () => {
 	test("release dependency normalization collapses repeated file prefixes", () => {
 		expect(normalizeFileDependencySpec("file:../packages/ai")).toBe("file:../packages/ai");
 		expect(normalizeFileDependencySpec("file:file:../packages/ai")).toBe("file:../packages/ai");
-		expect(normalizeFileDependencySpec("file:file:file:///tmp/gajae-code/packages/ai")).toBe(
-			"file:///tmp/gajae-code/packages/ai",
+		expect(normalizeFileDependencySpec("file:file:file:///tmp/jawcode/packages/ai")).toBe(
+			"file:///tmp/jawcode/packages/ai",
 		);
 		expect(normalizeFileDependencySpec("catalog:")).toBe("catalog:");
 	});

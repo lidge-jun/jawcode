@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "bun:test";
-import type { Component } from "@gajae-code/tui";
+import type { Component } from "@jawcode-dev/tui";
 import { resetSettingsForTest, Settings } from "../src/config/settings";
 import { AssistantMessageComponent } from "../src/modes/components/assistant-message";
 import { FullTranscriptOverlayComponent } from "../src/modes/components/full-transcript-overlay";

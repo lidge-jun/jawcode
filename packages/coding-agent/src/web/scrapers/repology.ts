@@ -1,4 +1,4 @@
-import { tryParseJson } from "@gajae-code/utils";
+import { tryParseJson } from "@jawcode-dev/utils";
 import { buildResult, loadPage, type RenderResult, type SpecialHandler } from "./types";
 
 interface RepologyPackage {

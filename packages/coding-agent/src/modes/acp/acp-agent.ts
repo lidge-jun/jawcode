@@ -42,8 +42,8 @@ import {
 	type SetSessionModeResponse,
 	type Usage,
 } from "@agentclientprotocol/sdk";
-import type { AssistantMessage, Model } from "@gajae-code/ai";
-import { APP_NAME, logger, VERSION } from "@gajae-code/utils";
+import type { AssistantMessage, Model } from "@jawcode-dev/ai";
+import { APP_NAME, logger, VERSION } from "@jawcode-dev/utils";
 import { disableProvider, enableProvider, reset as resetCapabilities } from "../../capability";
 import { Settings } from "../../config/settings";
 import { clearPluginRootsAndCaches, resolveActiveProjectRegistryPath } from "../../discovery/helpers";
@@ -412,7 +412,7 @@ export class AcpAgent implements Agent {
 		return {
 			protocolVersion: PROTOCOL_VERSION,
 			agentInfo: {
-				name: "gajae-code",
+				name: "jawcode",
 				title: "Jawcode",
 				version: VERSION,
 			},

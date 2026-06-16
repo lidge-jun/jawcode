@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { RenderResultOptions } from "@gajae-code/agent-core";
-import { getThemeByName, setThemeInstance } from "@gajae-code/coding-agent/modes/theme/theme";
-import { bashToolRenderer } from "@gajae-code/coding-agent/tools/bash";
-import { ImageProtocol, TERMINAL } from "@gajae-code/tui";
-import { sanitizeText } from "@gajae-code/utils";
+import type { RenderResultOptions } from "@jawcode-dev/agent-core";
+import { getThemeByName, setThemeInstance } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import { bashToolRenderer } from "@jawcode-dev/coding-agent/tools/bash";
+import { ImageProtocol, TERMINAL } from "@jawcode-dev/tui";
+import { sanitizeText } from "@jawcode-dev/utils";
 
 type MutableTerminalInfo = {
 	imageProtocol: ImageProtocol | null;

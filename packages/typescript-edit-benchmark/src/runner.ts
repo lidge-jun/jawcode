@@ -7,10 +7,10 @@
 /// <reference types="./bun-imports.d.ts" />
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { AgentMessage, ResolvedThinkingLevel, ThinkingLevel } from "@gajae-code/agent-core";
-import type { Model } from "@gajae-code/ai";
-import { computeLineHash, formatSessionDumpText, RpcClient } from "@gajae-code/coding-agent";
-import { prompt } from "@gajae-code/utils";
+import type { AgentMessage, ResolvedThinkingLevel, ThinkingLevel } from "@jawcode-dev/agent-core";
+import type { Model } from "@jawcode-dev/ai";
+import { computeLineHash, formatSessionDumpText, RpcClient } from "@jawcode-dev/coding-agent";
+import { prompt } from "@jawcode-dev/utils";
 import { diffLines } from "diff";
 import { formatDirectory } from "./formatter";
 import { discoverSharedInfra, InProcessClient, type SharedInfra } from "./in-process-client";
@@ -23,7 +23,7 @@ import { verifyExpectedFileSubset, verifyExpectedFiles } from "./verify";
 const REPO_ROOT = path.resolve(import.meta.dir, "..", "..", "..");
 const RUNS_DIR = path.join(REPO_ROOT, "runs");
 const TMP = path.join(RUNS_DIR, `rb-${Math.random().toString(36).slice(2, 10)}`);
-const CLI_PATH = Bun.fileURLToPath(import.meta.resolve("@gajae-code/coding-agent/cli"));
+const CLI_PATH = Bun.fileURLToPath(import.meta.resolve("@jawcode-dev/coding-agent/cli"));
 
 function formatLogPath(logFile: string): string {
 	const relativePath = path.relative(REPO_ROOT, logFile);
@@ -42,7 +42,7 @@ type ConversationDumpSessionState = {
 /** Common interface for both RPC and in-process clients */
 interface BenchmarkClient {
 	start(): Promise<void>;
-	setThinkingLevel(level: import("@gajae-code/agent-core").ResolvedThinkingLevel): Promise<void>;
+	setThinkingLevel(level: import("@jawcode-dev/agent-core").ResolvedThinkingLevel): Promise<void>;
 	onEvent(listener: (event: { type: string; [key: string]: unknown }) => void): () => void;
 	prompt(text: string): Promise<void>;
 	followUp(text: string): Promise<void>;

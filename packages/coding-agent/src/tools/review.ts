@@ -8,10 +8,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import path from "node:path";
-import type { AgentTool } from "@gajae-code/agent-core";
-import type { Component } from "@gajae-code/tui";
-import { Container, Text } from "@gajae-code/tui";
-import { isRecord } from "@gajae-code/utils";
+import type { AgentTool } from "@jawcode-dev/agent-core";
+import type { Component } from "@jawcode-dev/tui";
+import { Container, Text } from "@jawcode-dev/tui";
+import { isRecord } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import type { Theme, ThemeColor } from "../modes/theme/theme";
 import { subprocessToolRegistry } from "../task/subprocess-tool-registry";

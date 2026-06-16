@@ -1,6 +1,6 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { Snowflake } from "@gajae-code/utils";
+import { Snowflake } from "@jawcode-dev/utils";
 import { type Goal, type GoalModeState, normalizeGoal } from "../goals/state";
 import {
 	buildSessionContext,

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import * as nodeFs from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { VERSION } from "@gajae-code/utils/dirs";
+import { VERSION } from "@jawcode-dev/utils/dirs";
 import {
 	COORDINATOR_MCP_PROTOCOL_VERSION,
 	COORDINATOR_MCP_SERVER_NAME,

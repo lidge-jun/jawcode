@@ -15,7 +15,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
-import { getConfigRootDir, getPluginsDir, isEnoent, logger, tryParseJson } from "@gajae-code/utils";
+import { getConfigRootDir, getPluginsDir, isEnoent, logger, tryParseJson } from "@jawcode-dev/utils";
 
 import type {
 	InstalledPluginEntry,

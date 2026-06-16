@@ -1,7 +1,7 @@
 /**
  * Interactive shell console.
  */
-import { Command, Flags } from "@gajae-code/utils/cli";
+import { Command, Flags } from "@jawcode-dev/utils/cli";
 import { runShellCommand, type ShellCommandArgs } from "../cli/shell-cli";
 import { initTheme } from "../modes/theme/theme";
 

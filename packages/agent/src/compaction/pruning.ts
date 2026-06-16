@@ -2,8 +2,8 @@
  * Tool output pruning utilities for compaction.
  */
 
-import type { ToolResultMessage } from "@gajae-code/ai";
-import type { Encoding } from "@gajae-code/natives";
+import type { ToolResultMessage } from "@jawcode-dev/ai";
+import type { Encoding } from "@jawcode-dev/natives";
 import type { AgentMessage } from "../types";
 import { countMessageTokensNative, estimateTokens } from "./compaction";
 import type { SessionEntry, SessionMessageEntry } from "./entries";

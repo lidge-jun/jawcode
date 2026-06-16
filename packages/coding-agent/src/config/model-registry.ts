@@ -23,15 +23,15 @@ import {
 	UNK_CONTEXT_WINDOW,
 	UNK_MAX_TOKENS,
 	unregisterCustomApis,
-} from "@gajae-code/ai";
+} from "@jawcode-dev/ai";
 
 // Sentinel for local-only OAuth token (LM Studio, vLLM) — declared inline to avoid loading
 // any provider module at startup. Must match `DEFAULT_LOCAL_TOKEN` in oauth/lm-studio.ts.
 const DEFAULT_LOCAL_TOKEN = "lm-studio-local";
 
-import { registerOAuthProvider, unregisterOAuthProviders } from "@gajae-code/ai/utils/oauth";
-import type { OAuthCredentials, OAuthLoginCallbacks } from "@gajae-code/ai/utils/oauth/types";
-import { $pickenv, isRecord, logger } from "@gajae-code/utils";
+import { registerOAuthProvider, unregisterOAuthProviders } from "@jawcode-dev/ai/utils/oauth";
+import type { OAuthCredentials, OAuthLoginCallbacks } from "@jawcode-dev/ai/utils/oauth/types";
+import { $pickenv, isRecord, logger } from "@jawcode-dev/utils";
 import { parseModelString, resolveProviderModelReference } from "../config/model-resolver";
 import { isValidThemeColor, type ThemeColor } from "../modes/theme/theme";
 import type { AuthStorage, OAuthCredential } from "../session/auth-storage";
@@ -2412,7 +2412,7 @@ export class ModelRegistry {
 	/**
 	 * Check whether auth is configured for a model's provider.
 	 *
-	 * Mirrors the upstream `@mariozechner/gajae-code` API surface so that
+	 * Mirrors the upstream `@mariozechner/jawcode` API surface so that
 	 * external plugins/extensions and downstream wrappers (e.g. subagent launch
 	 * paths that pre-flight auth before model resolution) can probe a model
 	 * without resolving an API key. Returns true for keyless providers as well

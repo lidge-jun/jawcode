@@ -1,8 +1,8 @@
 import * as os from "node:os";
 import * as path from "node:path";
-import { enrichModelThinking } from "@gajae-code/ai/model-thinking";
-import type { Model } from "@gajae-code/ai/types";
-import { isEnoent } from "@gajae-code/utils";
+import { enrichModelThinking } from "@jawcode-dev/ai/model-thinking";
+import type { Model } from "@jawcode-dev/ai/types";
+import { isEnoent } from "@jawcode-dev/utils";
 
 export async function withEnv(
 	overrides: Record<string, string | undefined>,

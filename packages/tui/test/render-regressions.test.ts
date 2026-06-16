@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
-import { type Component, TUI } from "@gajae-code/tui";
-import { visibleWidth } from "@gajae-code/tui/utils";
+import { type Component, TUI } from "@jawcode-dev/tui";
+import { visibleWidth } from "@jawcode-dev/tui/utils";
 import { VirtualTerminal } from "./virtual-terminal";
 
 class MutableLinesComponent implements Component {

@@ -1,4 +1,4 @@
-import { ThinkingLevel } from "@gajae-code/agent-core";
+import { ThinkingLevel } from "@jawcode-dev/agent-core";
 import {
 	type Component,
 	Container,
@@ -9,7 +9,7 @@ import {
 	Text,
 	TruncatedText,
 	truncateToWidth,
-} from "@gajae-code/tui";
+} from "@jawcode-dev/tui";
 import type { TreeFilterMode } from "../../config/settings-schema";
 import { theme } from "../../modes/theme/theme";
 import { matchesAppInterrupt } from "../../modes/utils/keybinding-matchers";

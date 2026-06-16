@@ -1,8 +1,8 @@
-// MUST be first: pins terminal-capability env before @gajae-code/tui evaluates.
+// MUST be first: pins terminal-capability env before @jawcode-dev/tui evaluates.
 import "./render-goldens-env";
 import { describe, expect, it } from "bun:test";
-import { type Component, TUI, ViewportFill } from "@gajae-code/tui";
-import { type PerfCounterEvent, renderMetrics } from "@gajae-code/tui/metrics";
+import { type Component, TUI, ViewportFill } from "@jawcode-dev/tui";
+import { type PerfCounterEvent, renderMetrics } from "@jawcode-dev/tui/metrics";
 import { VirtualTerminal } from "./virtual-terminal";
 
 class StaticLines implements Component {

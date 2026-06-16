@@ -15,11 +15,11 @@
  *         `errorMessage` is NOT set (TTSR existing behavior unchanged).
  */
 import { describe, expect, it, vi } from "bun:test";
-import type { AssistantMessage } from "@gajae-code/ai";
-import { EventController } from "@gajae-code/coding-agent/modes/controllers/event-controller";
-import type { InteractiveModeContext } from "@gajae-code/coding-agent/modes/types";
-import type { AgentSessionEvent } from "@gajae-code/coding-agent/session/agent-session";
-import { SILENT_ABORT_MARKER } from "@gajae-code/coding-agent/session/messages";
+import type { AssistantMessage } from "@jawcode-dev/ai";
+import { EventController } from "@jawcode-dev/coding-agent/modes/controllers/event-controller";
+import type { InteractiveModeContext } from "@jawcode-dev/coding-agent/modes/types";
+import type { AgentSessionEvent } from "@jawcode-dev/coding-agent/session/agent-session";
+import { SILENT_ABORT_MARKER } from "@jawcode-dev/coding-agent/session/messages";
 
 function makeAssistantMessage(overrides: Partial<AssistantMessage> = {}): AssistantMessage {
 	return {

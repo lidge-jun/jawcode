@@ -1,18 +1,18 @@
-# @gajae-code/agent-core
+# @jawcode-dev/agent-core
 
-Stateful agent with tool execution and event streaming. Built on `@gajae-code/ai`.
+Stateful agent with tool execution and event streaming. Built on `@jawcode-dev/ai`.
 
 ## Installation
 
 ```bash
-npm install @gajae-code/agent-core
+npm install @jawcode-dev/agent-core
 ```
 
 ## Quick Start
 
 ```typescript
-import { Agent } from "@gajae-code/agent-core";
-import { getModel } from "@gajae-code/ai";
+import { Agent } from "@jawcode-dev/agent-core";
+import { getModel } from "@jawcode-dev/ai";
 
 const agent = new Agent({
 	initialState: {
@@ -255,7 +255,7 @@ steering until the current turn completes.
 Extend `AgentMessage` via declaration merging:
 
 ```typescript
-declare module "@gajae-code/agent-core" {
+declare module "@jawcode-dev/agent-core" {
 	interface CustomAgentMessages {
 		notification: { role: "notification"; text: string; timestamp: number };
 	}
@@ -279,10 +279,10 @@ const agent = new Agent({
 
 ## Tools
 
-Define tools using `AgentTool` with a Zod parameter schema (via `z` from `@gajae-code/ai`).
+Define tools using `AgentTool` with a Zod parameter schema (via `z` from `@jawcode-dev/ai`).
 
 ```typescript
-import { z } from "@gajae-code/ai";
+import { z } from "@jawcode-dev/ai";
 
 const readFileTool: AgentTool = {
 	name: "read_file",
@@ -328,7 +328,7 @@ Thrown errors are caught by the agent and reported to the LLM as tool errors wit
 For browser apps that proxy through a backend:
 
 ```typescript
-import { Agent, streamProxy } from "@gajae-code/agent-core";
+import { Agent, streamProxy } from "@jawcode-dev/agent-core";
 
 const agent = new Agent({
 	streamFn: (model, context, options) =>
@@ -345,7 +345,7 @@ const agent = new Agent({
 For direct control without the Agent class:
 
 ```typescript
-import { agentLoop, agentLoopContinue } from "@gajae-code/agent-core";
+import { agentLoop, agentLoopContinue } from "@jawcode-dev/agent-core";
 
 const context: AgentContext = {
 	systemPrompt: ["You are helpful."],
@@ -445,7 +445,7 @@ fold N summaries with `aggregateAgentRunSummaries` / `aggregateAgentRunCoverage`
 import {
 	aggregateAgentRunSummaries,
 	aggregateAgentRunCoverage,
-} from "@gajae-code/agent-core";
+} from "@jawcode-dev/agent-core";
 
 const summaries: AgentRunSummary[] = [];
 const coverages: AgentRunCoverage[] = [];

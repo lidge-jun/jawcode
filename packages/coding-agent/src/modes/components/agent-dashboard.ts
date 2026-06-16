@@ -16,7 +16,7 @@
  */
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import type { AgentMessage } from "@gajae-code/agent-core";
+import type { AgentMessage } from "@jawcode-dev/agent-core";
 import {
 	type Component,
 	Container,
@@ -30,8 +30,8 @@ import {
 	truncateToWidth,
 	visibleWidth,
 	wrapTextWithAnsi,
-} from "@gajae-code/tui";
-import { isEnoent, prompt } from "@gajae-code/utils";
+} from "@jawcode-dev/tui";
+import { isEnoent, prompt } from "@jawcode-dev/utils";
 import { YAML } from "bun";
 import { getConfigDirs } from "../../config";
 import type { ModelRegistry } from "../../config/model-registry";

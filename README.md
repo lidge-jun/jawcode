@@ -334,7 +334,7 @@ Jawcode currently starts as a single-maintainer project by [lidge-jun](https://g
 
 ## Lineage
 
-Jawcode is a fork of [`gajae-code`](https://github.com/Yeachan-Heo/gajae-code). The internal `@gajae-code/*` package namespace originates from that upstream repo.
+Jawcode is a fork of [`gajae-code`](https://github.com/Yeachan-Heo/gajae-code). The internal `@jawcode-dev/*` package namespace originates from that upstream repo.
 
 - [`gajae-code`](https://github.com/Yeachan-Heo/gajae-code) — **direct upstream** fork source.
 - [`oh-my-pi`](https://github.com/can1357/oh-my-pi) — upstream implementation DNA.

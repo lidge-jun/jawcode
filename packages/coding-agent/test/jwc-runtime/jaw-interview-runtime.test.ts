@@ -5,10 +5,10 @@ import * as url from "node:url";
 import {
 	retireJawInterviewStateForWorkflowExit,
 	runNativeJawInterviewCommand,
-} from "@gajae-code/coding-agent/jwc-runtime/jaw-interview-runtime";
-import { runNativePlanWriterCommand } from "@gajae-code/coding-agent/jwc-runtime/plan-writer";
+} from "@jawcode-dev/coding-agent/jwc-runtime/jaw-interview-runtime";
+import { runNativePlanWriterCommand } from "@jawcode-dev/coding-agent/jwc-runtime/plan-writer";
 
-import { getConfigRootDir, setAgentDir } from "@gajae-code/utils";
+import { getConfigRootDir, setAgentDir } from "@jawcode-dev/utils";
 import { resetSettingsForTest } from "../../src/config/settings";
 
 const tempRoots: string[] = [];

@@ -25,7 +25,7 @@
 
 ### Fixed
 
-- Treated `gpt-5.5` as a 400K-context model wherever context caps / auto-promote thresholds are resolved, so a ~272K session is no longer considered over-cap and no longer demotes to `gpt-5.4`. Pinned the OpenAI Codex `gpt-5.5` context window to 400K and removed its `gpt-5.4` promotion target (the smaller window made it a demotion) ([#428](https://github.com/Yeachan-Heo/gajae-code/issues/428)).
+- Treated `gpt-5.5` as a 400K-context model wherever context caps / auto-promote thresholds are resolved, so a ~272K session is no longer considered over-cap and no longer demotes to `gpt-5.4`. Pinned the OpenAI Codex `gpt-5.5` context window to 400K and removed its `gpt-5.4` promotion target (the smaller window made it a demotion) ([#428](https://github.com/lidge-jun/jawcode/issues/428)).
 
 ## [0.4.0] - 2026-06-06
 
@@ -57,7 +57,7 @@
 
 ### Fixed
 
-- Fixed Anthropic extended-thinking replay after aborted turns by dropping partial `thinking`/`redacted_thinking` blocks before the next request, preserving/synthesizing matching tool results, and retrying once with repaired latest-assistant thinking when Anthropic rejects a replay with the immutable-thinking HTTP 400 ([#107](https://github.com/Yeachan-Heo/gajae-code/issues/107)).
+- Fixed Anthropic extended-thinking replay after aborted turns by dropping partial `thinking`/`redacted_thinking` blocks before the next request, preserving/synthesizing matching tool results, and retrying once with repaired latest-assistant thinking when Anthropic rejects a replay with the immutable-thinking HTTP 400 ([#107](https://github.com/lidge-jun/jawcode/issues/107)).
 - Fixed first-class `azure-openai` catalog models so normal provider auth resolution reads `AZURE_OPENAI_API_KEY` when streaming `azure-openai/gpt-*` models.
 
 ## [0.2.1] - 2026-05-30
@@ -107,8 +107,8 @@
 
 - Fixed expired OAuth handling so provider-level paths no longer attempt direct token refresh calls for expired credentials and instead rely on `AuthStorage` for rotation
 - Fixed `google-gemini-cli` / `google-antigravity` aborting heavy reasoning runs with "Provider stream timed out while waiting for the first event" before the upstream had a chance to emit its first SSE frame. Cloud Code Assist routinely takes >100s on Gemini 3.x Pro at high thinking levels; the lazy-stream wrapper now floors the first-event watchdog at 5 minutes for these two providers when neither `StreamOptions.streamFirstEventTimeoutMs` nor `PI_STREAM_FIRST_EVENT_TIMEOUT_MS` pins a value. Other providers keep the 100s default. Internally, `getStreamIdleTimeoutMs` and `getStreamFirstEventTimeoutMs` now accept an optional per-provider `fallbackMs` so other slow-first-token providers can opt into the same widening without leaking through to the global default.
-- Fixed Anthropic model Opus 4.7 on Amazon Bedrock streaming no reasoning output (and appearing to hang on long reasoning runs) because Anthropic silently switched the adaptive-thinking display default to `"omitted"`. The Bedrock provider now sends `thinking.display = "summarized"` by default on Opus 4.7+ adaptive models and on budget-based Anthropic model models, mirroring the existing direct-Anthropic behavior. `BedrockOptions.thinkingDisplay` (`"summarized" | "omitted"`) is exposed for callers that want to opt out, and `hideThinkingSummary` now wires through to the Bedrock case ([#1373](https://github.com/can1357/gajae-code/issues/1373)).
-- Fixed Cursor Composer resume/tool-continuation turns failing with `Cannot send empty user message to Cursor API`. Empty current user turns now use Cursor's `resumeAction` instead of constructing an invalid `userMessageAction` ([#1376](https://github.com/can1357/gajae-code/issues/1376)).
+- Fixed Anthropic model Opus 4.7 on Amazon Bedrock streaming no reasoning output (and appearing to hang on long reasoning runs) because Anthropic silently switched the adaptive-thinking display default to `"omitted"`. The Bedrock provider now sends `thinking.display = "summarized"` by default on Opus 4.7+ adaptive models and on budget-based Anthropic model models, mirroring the existing direct-Anthropic behavior. `BedrockOptions.thinkingDisplay` (`"summarized" | "omitted"`) is exposed for callers that want to opt out, and `hideThinkingSummary` now wires through to the Bedrock case ([#1373](https://github.com/lidge-jun/jawcode/issues/1373)).
+- Fixed Cursor Composer resume/tool-continuation turns failing with `Cannot send empty user message to Cursor API`. Empty current user turns now use Cursor's `resumeAction` instead of constructing an invalid `userMessageAction` ([#1376](https://github.com/lidge-jun/jawcode/issues/1376)).
 
 ## [15.3.2] - 2026-05-25
 ### Added
@@ -134,24 +134,24 @@
 
 ### Fixed
 
-- Fixed `openai-responses` requests intermittently 400ing with `No tool call found for function call output with call_id …` after an aborted turn or a locally-rejected tool call (e.g. argument-validation failure). `convertConversationMessages` now folds orphan `function_call_output` / `custom_tool_call_output` items — those whose matching `function_call` was wiped by an earlier `dt: false` snapshot splice or never landed in any persisted provider payload — into assistant text notes, preserving the payload while keeping the request grammatically valid ([#1351](https://github.com/can1357/gajae-code/issues/1351)).
+- Fixed `openai-responses` requests intermittently 400ing with `No tool call found for function call output with call_id …` after an aborted turn or a locally-rejected tool call (e.g. argument-validation failure). `convertConversationMessages` now folds orphan `function_call_output` / `custom_tool_call_output` items — those whose matching `function_call` was wiped by an earlier `dt: false` snapshot splice or never landed in any persisted provider payload — into assistant text notes, preserving the payload while keeping the request grammatically valid ([#1351](https://github.com/lidge-jun/jawcode/issues/1351)).
 
 ## [15.2.4] - 2026-05-22
 
 ### Fixed
 
-- Fixed ChatGPT Plus/Pro (OpenAI code) OAuth login returning `Token exchange failed: 403` on Windows. When port 1455 was in use, the callback server silently fell back to a random port; OpenAI's authorization endpoint accepts any localhost redirect URI (loose validation), so the browser callback succeeds and shows "Authentication Successful", but the token endpoint rejects the non-registered port with 403. The `OpenAIOpenAI codeOAuthFlow` now enforces a fixed `redirectUri` option so a busy port immediately surfaces as "port unavailable" instead of producing a confusing 403 ([#1277](https://github.com/can1357/gajae-code/issues/1277)).
+- Fixed ChatGPT Plus/Pro (OpenAI code) OAuth login returning `Token exchange failed: 403` on Windows. When port 1455 was in use, the callback server silently fell back to a random port; OpenAI's authorization endpoint accepts any localhost redirect URI (loose validation), so the browser callback succeeds and shows "Authentication Successful", but the token endpoint rejects the non-registered port with 403. The `OpenAIOpenAI codeOAuthFlow` now enforces a fixed `redirectUri` option so a busy port immediately surfaces as "port unavailable" instead of producing a confusing 403 ([#1277](https://github.com/lidge-jun/jawcode/issues/1277)).
 - Improved `exchangeCodeForToken` error diagnostics: the 403 response body (`error` / `error_description` fields) is now included in the thrown message, matching the existing `refreshOpenAIOpenAI codeToken` behaviour.
 
 ### Added
 
-- Added `ChatGPT Plus/Pro (OpenAI code, headless/device)` (`openai-code-device`) as an alternative login method for the OpenAI code provider. Uses OpenAI's device-code flow (`/api/accounts/deviceauth/usercode` → poll `/api/accounts/deviceauth/token`), which avoids a local callback server and port 1455 entirely. Credentials are stored under the existing `openai-code` provider key so all models and tooling continue to work without reconfiguration ([#1277](https://github.com/can1357/gajae-code/issues/1277)).
+- Added `ChatGPT Plus/Pro (OpenAI code, headless/device)` (`openai-code-device`) as an alternative login method for the OpenAI code provider. Uses OpenAI's device-code flow (`/api/accounts/deviceauth/usercode` → poll `/api/accounts/deviceauth/token`), which avoids a local callback server and port 1455 entirely. Credentials are stored under the existing `openai-code` provider key so all models and tooling continue to work without reconfiguration ([#1277](https://github.com/lidge-jun/jawcode/issues/1277)).
 
 ## [15.2.2] - 2026-05-22
 
 ### Fixed
 
-- Fixed `gemini-3.1-pro-high` and `gemini-3.1-pro-low` on the `google-antigravity` provider always returning HTTP 400 from Cloud Code Assist. The `ANTIGRAVITY_SYSTEM_INSTRUCTION` identity header was not injected for these models because the internal check matched the string `"gemini-3-pro-high"` (hyphen) instead of the versioned `"gemini-3.1-pro-..."` form. The guard now matches all `gemini-3` model variants ([#1274](https://github.com/can1357/gajae-code/issues/1274)).
+- Fixed `gemini-3.1-pro-high` and `gemini-3.1-pro-low` on the `google-antigravity` provider always returning HTTP 400 from Cloud Code Assist. The `ANTIGRAVITY_SYSTEM_INSTRUCTION` identity header was not injected for these models because the internal check matched the string `"gemini-3-pro-high"` (hyphen) instead of the versioned `"gemini-3.1-pro-..."` form. The guard now matches all `gemini-3` model variants ([#1274](https://github.com/lidge-jun/jawcode/issues/1274)).
 
 ## [15.2.0] - 2026-05-21
 
@@ -163,8 +163,8 @@
 
 ### Fixed
 
-- Fixed Ollama named tool forcing to send only the requested tool when the caller passes a named `toolChoice`, preserving `tool_choice: "required"` while preventing local models from selecting a different tool. ([#1236](https://github.com/can1357/gajae-code/issues/1236))
-- Fixed `/btw` (and IRC background replies) returning a `BedrockException` 400 (`The toolConfig field must be defined when using toolUse and toolResult content blocks.`) on LiteLLM → Bedrock once the session has tool-call history. Two source fixes in `buildParams`: (1) `if (context.tools)` → `if (context.tools?.length)` so an explicit `context.tools = []` (the /btw opt-out) never routes through `convertTools` and never emits an empty `"tools"` array; (2) `else if (hasToolHistory(...))` → `else if (context.tools === undefined && hasToolHistory(...))` so the Anthropic-proxy sentinel that injects `tools: []` for tool-history turns is suppressed when the caller explicitly opted out, preventing it from re-introducing the empty array. As defence-in-depth, `tool_choice: "none"` is also dropped when the resolved tools list is missing or empty. ([#1227](https://github.com/can1357/gajae-code/issues/1227))
+- Fixed Ollama named tool forcing to send only the requested tool when the caller passes a named `toolChoice`, preserving `tool_choice: "required"` while preventing local models from selecting a different tool. ([#1236](https://github.com/lidge-jun/jawcode/issues/1236))
+- Fixed `/btw` (and IRC background replies) returning a `BedrockException` 400 (`The toolConfig field must be defined when using toolUse and toolResult content blocks.`) on LiteLLM → Bedrock once the session has tool-call history. Two source fixes in `buildParams`: (1) `if (context.tools)` → `if (context.tools?.length)` so an explicit `context.tools = []` (the /btw opt-out) never routes through `convertTools` and never emits an empty `"tools"` array; (2) `else if (hasToolHistory(...))` → `else if (context.tools === undefined && hasToolHistory(...))` so the Anthropic-proxy sentinel that injects `tools: []` for tool-history turns is suppressed when the caller explicitly opted out, preventing it from re-introducing the empty array. As defence-in-depth, `tool_choice: "none"` is also dropped when the resolved tools list is missing or empty. ([#1227](https://github.com/lidge-jun/jawcode/issues/1227))
 
 ## [15.1.8] - 2026-05-20
 ### Added
@@ -173,8 +173,8 @@
 
 ### Fixed
 
-- Fixed DeepSeek V4 direct API requests with tools to keep documented thinking mode instead of dropping reasoning: lower GJC efforts now map to DeepSeek's supported `high`, `tool_choice` is omitted, `thinking: { type: "enabled" }` and `max_tokens` are sent, and partial user `reasoningEffortMap` overrides merge with DeepSeek defaults. ([#1207](https://github.com/can1357/gajae-code/issues/1207))
-- Fixed model cache schema v2 databases so offline refreshes preserve cached provider discoveries after upgrading to schema v3 and subsequent online refreshes can overwrite the cache. ([#1219](https://github.com/can1357/gajae-code/issues/1219))
+- Fixed DeepSeek V4 direct API requests with tools to keep documented thinking mode instead of dropping reasoning: lower GJC efforts now map to DeepSeek's supported `high`, `tool_choice` is omitted, `thinking: { type: "enabled" }` and `max_tokens` are sent, and partial user `reasoningEffortMap` overrides merge with DeepSeek defaults. ([#1207](https://github.com/lidge-jun/jawcode/issues/1207))
+- Fixed model cache schema v2 databases so offline refreshes preserve cached provider discoveries after upgrading to schema v3 and subsequent online refreshes can overwrite the cache. ([#1219](https://github.com/lidge-jun/jawcode/issues/1219))
 - Fixed Perplexity OAuth credentials being treated as expired one hour after login. `getJwtExpiry` was fabricating `expires = now + 1h` whenever the JWT had no `exp` claim (the common case — Perplexity sessions are server-side). Once the hour elapsed, `getOAuthApiKey` would mark the cred expired and the search provider's loader would silently skip it, surfacing as "logged out". Logins with no `exp` now persist a far-future sentinel; `getOAuthApiKey` also normalizes any stale `expires` written by older builds.
 
 ## [15.1.7] - 2026-05-19
@@ -186,13 +186,13 @@
 ### Fixed
 
 - Fixed Anthropic fast mode (`serviceTier: "priority"`) looping on 429 `rate_limit_error: "Extra usage is required for fast mode."` for accounts without the extra-usage entitlement. `isAnthropicFastModeUnsupportedError` now matches the 429 phrasing in addition to the 400 `invalid_request_error` "does not support the `speed` parameter" case, so the provider drops `speed: "fast"` on the in-turn retry, sets `providerSessionState.fastModeDisabled` for the remainder of the session, and surfaces `disabledFeatures: ["priority"]` to the caller instead of retrying with the same payload until `PROVIDER_MAX_RETRIES` is exhausted.
-- Fixed MiniMax Coding Plan CN streaming `<think>...</think>` reasoning as visible assistant text. The OpenAI-compatible stream parser now enables the existing MiniMax tag parser for both `minimax-code` and `minimax-code-cn`, so CN responses become structured `thinking` blocks instead of raw text. ([#1203](https://github.com/can1357/gajae-code/issues/1203))
+- Fixed MiniMax Coding Plan CN streaming `<think>...</think>` reasoning as visible assistant text. The OpenAI-compatible stream parser now enables the existing MiniMax tag parser for both `minimax-code` and `minimax-code-cn`, so CN responses become structured `thinking` blocks instead of raw text. ([#1203](https://github.com/lidge-jun/jawcode/issues/1203))
 
 ## [15.1.6] - 2026-05-19
 
 ### Fixed
 
-- Fixed `{}` (empty JSON Schema, the wire representation of `z.unknown()`) being passed verbatim to grammar-constrained samplers (llama.cpp, etc.) in `additionalProperties`, `items`, and other schema-valued positions across **every provider** (OpenAI, Anthropic, Google, Ollama, Bedrock, Cursor). Grammar builders treat `{}` as "generate an empty object" rather than "any JSON value", causing open-typed fields (e.g. `extra.title` from `z.record(z.string(), z.unknown())`) to always emit `{}` instead of the intended string/number/etc. `toolWireSchema` now applies a new `normalizeEmptySchemas` pass (exported) to both the Zod and TypeBox/raw-JSON-Schema branches, converting `{}` → `true` (semantically identical per JSON Schema draft 2020-12 §4.3.1) in all schema-valued positions. Strict-mode opt-out is preserved across all providers: OpenAI's `hasUnrepresentableStrictObjectMap` hits the `=== true` branch instead of the `isJsonObject({})` branch (same result); Anthropic's `normalizeAnthropicStrictSchemaNode` opts out via `additionalProperties !== false` (still true for `true`); Google's `normalizeSchemaForGoogle` strips `additionalProperties` regardless (pre-existing). ([#1179](https://github.com/can1357/gajae-code/issues/1179))
+- Fixed `{}` (empty JSON Schema, the wire representation of `z.unknown()`) being passed verbatim to grammar-constrained samplers (llama.cpp, etc.) in `additionalProperties`, `items`, and other schema-valued positions across **every provider** (OpenAI, Anthropic, Google, Ollama, Bedrock, Cursor). Grammar builders treat `{}` as "generate an empty object" rather than "any JSON value", causing open-typed fields (e.g. `extra.title` from `z.record(z.string(), z.unknown())`) to always emit `{}` instead of the intended string/number/etc. `toolWireSchema` now applies a new `normalizeEmptySchemas` pass (exported) to both the Zod and TypeBox/raw-JSON-Schema branches, converting `{}` → `true` (semantically identical per JSON Schema draft 2020-12 §4.3.1) in all schema-valued positions. Strict-mode opt-out is preserved across all providers: OpenAI's `hasUnrepresentableStrictObjectMap` hits the `=== true` branch instead of the `isJsonObject({})` branch (same result); Anthropic's `normalizeAnthropicStrictSchemaNode` opts out via `additionalProperties !== false` (still true for `true`); Google's `normalizeSchemaForGoogle` strips `additionalProperties` regardless (pre-existing). ([#1179](https://github.com/lidge-jun/jawcode/issues/1179))
 - Fixed `pi-ai login <provider>` crashing with `Unknown provider` for providers that only the `auth-storage` `login()` switch knew about (perplexity, alibaba-coding-plan, gitlab-duo, huggingface, opencode-zen/go, lm-studio, ollama, cerebras, fireworks, qianfan, synthetic, venice, litellm, moonshot, together, cloudflare/vercel ai gateways, vllm, qwen-portal, nvidia, xiaomi, and any custom OAuth provider). The CLI now delegates to `SqliteAuthCredentialStore.login()` instead of duplicating a smaller switch, so the auth-broker `gjc auth-broker login <provider>` flow works for every registered OAuth provider.
 
 ## [15.1.4] - 2026-05-19
@@ -202,19 +202,19 @@
 
 ### Fixed
 
-- Fixed OpenCode-Go and OpenCode-Zen chat-completions replay to omit stored reasoning fields on Kimi assistant tool-call messages, avoiding provider 400s for rejected `messages[].reasoning` payloads. ([#1157](https://github.com/can1357/gajae-code/issues/1157))
-- Fixed OpenAI Responses and OpenAI code tool schema normalization to emit `properties: {}` for no-argument object schemas without rewriting literal payloads. ([#1147](https://github.com/can1357/gajae-code/issues/1147))
+- Fixed OpenCode-Go and OpenCode-Zen chat-completions replay to omit stored reasoning fields on Kimi assistant tool-call messages, avoiding provider 400s for rejected `messages[].reasoning` payloads. ([#1157](https://github.com/lidge-jun/jawcode/issues/1157))
+- Fixed OpenAI Responses and OpenAI code tool schema normalization to emit `properties: {}` for no-argument object schemas without rewriting literal payloads. ([#1147](https://github.com/lidge-jun/jawcode/issues/1147))
 - Fixed Anthropic 400 (`unexpected tool_use_id found in tool_result blocks ... Each tool_result block must have a corresponding tool_use block in the previous message`) when handoff/compaction folds an assistant `tool_use` into the handoff summary string but leaves the matching user-side `tool_result` message in the history. `transformMessages` now indexes every `tool_use` id surviving the first pass and drops orphan `tool_result` messages whose originator was compacted away, preserving the text payload as a user-level `<stale-tool-result>` note so the model still sees what the tool returned. The note is emitted with `role: "user"` rather than `role: "developer"` so providers that elevate developer-role messages (Ollama: `developer` → `system`; OpenAI chat-completions reasoning models: `developer` → `developer`) cannot lift stale tool output to an instruction-priority tier above the surrounding user/developer messages.
 - Fixed streaming authentication retry to trigger when a provider emits a 401 `error` event after a `start` event but before any replay-unsafe content is emitted
-- Added `credential_process` support to the Bedrock provider's AWS credential resolver so profiles delegating to external brokers (`aws-vault`, `granted`, in-house tools) resolve instead of falling through to `Unable to resolve AWS credentials`. Parses the AWS SDK `Version: 1` JSON envelope, honors `Expiration` in the per-profile cache, propagates `AbortSignal` to the spawned helper, routes Windows `.cmd`/`.bat` helpers through `cmd.exe /c`, and ships a POSIX-shell-style tokenizer that preserves backslashes inside double quotes so Windows paths survive ([#1142](https://github.com/can1357/gajae-code/issues/1142))
+- Added `credential_process` support to the Bedrock provider's AWS credential resolver so profiles delegating to external brokers (`aws-vault`, `granted`, in-house tools) resolve instead of falling through to `Unable to resolve AWS credentials`. Parses the AWS SDK `Version: 1` JSON envelope, honors `Expiration` in the per-profile cache, propagates `AbortSignal` to the spawned helper, routes Windows `.cmd`/`.bat` helpers through `cmd.exe /c`, and ships a POSIX-shell-style tokenizer that preserves backslashes inside double quotes so Windows paths survive ([#1142](https://github.com/lidge-jun/jawcode/issues/1142))
 
 ## [15.1.3] - 2026-05-17
 ### Breaking Changes
 
 - Changed `AuthBrokerClient.fetchSnapshot()` to return status-based results (`200` or `304`) instead of always returning a raw snapshot body, so callers now need to branch on `status`
-- Renamed public schema utilities in `@gajae-code/ai/utils/schema` by replacing `sanitizeSchemaForGoogle`, `sanitizeSchemaForCCA`, `prepareSchemaForCCA`, and `sanitizeSchemaForMCP` with `normalizeSchemaForGoogle`, `normalizeSchemaForCCA`, and `normalizeSchemaForMCP`
+- Renamed public schema utilities in `@jawcode-dev/ai/utils/schema` by replacing `sanitizeSchemaForGoogle`, `sanitizeSchemaForCCA`, `prepareSchemaForCCA`, and `sanitizeSchemaForMCP` with `normalizeSchemaForGoogle`, `normalizeSchemaForCCA`, and `normalizeSchemaForMCP`
 - Added MCP schema normalization via `normalizeSchemaForMCP` for compatibility checks
-- Removed the `StringEnum` helper from `@gajae-code/ai/utils/schema`. Use `z.enum([...])` directly; Zod's emitted JSON Schema is already wire-compatible with Google and other providers.
+- Removed the `StringEnum` helper from `@jawcode-dev/ai/utils/schema`. Use `z.enum([...])` directly; Zod's emitted JSON Schema is already wire-compatible with Google and other providers.
 - Renamed the concrete SQLite credential store class from `AuthCredentialStore` to `SqliteAuthCredentialStore`. `AuthCredentialStore` is now the persistence interface implemented by both the SQLite store and the new `RemoteAuthCredentialStore`. Update `new AuthCredentialStore(db)` / `AuthCredentialStore.open(...)` call-sites to `SqliteAuthCredentialStore`; type-position uses (`store: AuthCredentialStore`) continue to work unchanged.
 
 ### Added
@@ -231,7 +231,7 @@
 - Added per-model `additional_rate_limits` parsing to `openaiOpenAI codeUsageProvider`. The OpenAI code `wham/usage` endpoint surfaces a separate `GPT-5.3-OpenAI code-Spark` rate limit (`metered_feature: openai-code_bengalfox`) on Pro accounts; these now emit dedicated `openai-code:spark:{primary,secondary}` `UsageLimit` entries with `scope.tier = "spark"`, mirroring how Anthropic exposes `anthropic:7d:sonnet` separately from the umbrella `anthropic:7d` bucket. The osx-widgets client already keyed spark detection off `limit.id.includes("spark")`; this populates that contract end-to-end.
 - Added `GET /v1/usage` to the auth-broker API to expose aggregated usage reports from `AuthStorage.fetchUsageReports`
 - Added auth-broker usage polling response handling that returns normalized usage reports plus generation timestamp for clients (5-min per-credential cache via `AuthStorage`)
-- Added the auth-broker subsystem (`@gajae-code/ai/auth-broker`) for sharing OAuth credentials across machines without leaking refresh tokens.
+- Added the auth-broker subsystem (`@jawcode-dev/ai/auth-broker`) for sharing OAuth credentials across machines without leaking refresh tokens.
 - `startAuthBroker(...)` boots a `Bun.serve` HTTP server exposing `GET /v1/healthz`, `GET /v1/snapshot`, `POST /v1/credential` (upsert), `POST /v1/credential/:id/refresh`, and `POST /v1/credential/:id/disable`.
 - `AuthBrokerClient` is the matching HTTP client used by remote clients.
 - `RemoteAuthCredentialStore` is a client-side `AuthCredentialStore` that mirrors a broker snapshot in memory; mutating methods (`replace*`, `upsert*`, `delete*ForProvider`) throw because writes are server-side only.
@@ -240,14 +240,14 @@
 - Added `AuthStorageOptions.refreshOAuthCredential` override so a remote-store client can route every OAuth refresh through the broker instead of the local OAuth endpoint.
 - Added `REMOTE_REFRESH_SENTINEL` (`"__remote__"`) — the wire placeholder substituted for OAuth refresh tokens in broker snapshots; clients never see the real refresh token.
 - Exposed the OAuth provider catalog (`getOAuthProviders`, `OAuthProvider`, `OAuthProviderInfo`) and `refreshOAuthToken` through the package barrel so the coding-agent CLI can target them without reaching into `utils/oauth`.
-- Added the auth-gateway subsystem (`@gajae-code/ai/auth-gateway`) — a forward-proxy that sits between unauthenticated clients (the macOS usage widget, llm-git, robogjc containers, …) and the broker. Clients send standard provider-format requests; the gateway parses them into gjc's canonical `Context`, dispatches through pi-ai's `streamSimple()`, and translates the canonical event stream back to the matching wire format. `Authorization` is injected server-side so access tokens never leave the gateway host. Wire surface:
+- Added the auth-gateway subsystem (`@jawcode-dev/ai/auth-gateway`) — a forward-proxy that sits between unauthenticated clients (the macOS usage widget, llm-git, robogjc containers, …) and the broker. Clients send standard provider-format requests; the gateway parses them into gjc's canonical `Context`, dispatches through pi-ai's `streamSimple()`, and translates the canonical event stream back to the matching wire format. `Authorization` is injected server-side so access tokens never leave the gateway host. Wire surface:
 - `GET  /healthz` — unauth liveness.
 - `GET  /v1/usage` — aggregated provider usage; 5-min per-credential cache via `AuthStorage.fetchUsageReports`.
 - `GET  /v1/models` — model catalog (scoped to providers with credentials).
 - `POST /v1/chat/completions` — OpenAI chat-completions in/out.
 - `POST /v1/messages` — Anthropic messages in/out (text + thinking + tool_use blocks, SSE event taxonomy preserved).
 - `POST /v1/responses` — OpenAI Responses in/out (reasoning items + function_call output items, SSE pass-through).
-- Added exports from `@gajae-code/ai/auth-gateway`: `startAuthGateway`, `AuthGatewayServerOptions`, `AuthGatewayBootOptions`, `AuthGatewayServerHandle`, `ModelResolver`, `DEFAULT_AUTH_GATEWAY_BIND`. Per-format `parseRequest` / `encodeResponse` / `encodeStream` triples are reachable via the `./providers/*` subpath as `openai-chat-server`, `anthropic-messages-server`, and `openai-responses-server`.
+- Added exports from `@jawcode-dev/ai/auth-gateway`: `startAuthGateway`, `AuthGatewayServerOptions`, `AuthGatewayBootOptions`, `AuthGatewayServerHandle`, `ModelResolver`, `DEFAULT_AUTH_GATEWAY_BIND`. Per-format `parseRequest` / `encodeResponse` / `encodeStream` triples are reachable via the `./providers/*` subpath as `openai-chat-server`, `anthropic-messages-server`, and `openai-responses-server`.
 - Added `listProvidersWithEnvKey()` to enumerate every provider with an env-var fallback (used by the new migrate command in coding-agent).
 
 ### Changed
@@ -315,14 +315,14 @@
 - Fixed validation of plain JSON Schema tool arguments that omitted a `$schema` URI so draft-07-shaped schemas now pass validation instead of being rejected
 - Fixed tuple-array validation for legacy JSON Schema tool schemas to enforce `additionalItems: false` and per-position constraints after automatic draft upgrade
 - Fixed Anthropic tool schema normalization to recurse into `prefixItems` so unsupported constraints inside tuple items are stripped in the generated input schema
-- Fixed Anthropic tool-schema normalization stripping the body of explicit open `additionalProperties` (e.g. Zod's `z.record(z.string(), z.unknown())` compiling to `additionalProperties: {}`) by unconditionally overwriting it with `false`, which closed record-style fields and prevented models from supplying any key. The coding-agent's `resolve` tool exposes plan-approval titles via such a field, so Kimi K2 (and any other Anthropic-shaped provider) could not pass `extra: { title }`, blocking plan mode entirely ([#1104](https://github.com/can1357/gajae-code/issues/1104))
+- Fixed Anthropic tool-schema normalization stripping the body of explicit open `additionalProperties` (e.g. Zod's `z.record(z.string(), z.unknown())` compiling to `additionalProperties: {}`) by unconditionally overwriting it with `false`, which closed record-style fields and prevented models from supplying any key. The coding-agent's `resolve` tool exposes plan-approval titles via such a field, so Kimi K2 (and any other Anthropic-shaped provider) could not pass `extra: { title }`, blocking plan mode entirely ([#1104](https://github.com/lidge-jun/jawcode/issues/1104))
 - Fixed Anthropic strict tool planning to leave tools with open `additionalProperties` maps non-strict instead of sending schemas Anthropic rejects.
 
 ## [15.1.0] - 2026-05-15
 
 ### Breaking Changes
 
-- Removed TypeBox root exports (`Type`, `Static`, and `TSchema`) from the package entrypoint, so callers importing those symbols from `@gajae-code/ai` must migrate to `zod` or `@gajae-code/ai/types`
+- Removed TypeBox root exports (`Type`, `Static`, and `TSchema`) from the package entrypoint, so callers importing those symbols from `@jawcode-dev/ai` must migrate to `zod` or `@jawcode-dev/ai/types`
 
 ### Added
 
@@ -348,7 +348,7 @@
 - Fixed Cloud Code Assist schema preparation to strip unsupported `propertyNames` and fall back to a minimal tool schema when schema meta-validation detects malformed keywords
 - Fixed OpenAI Completions streaming to avoid treating non-output chunks (including role-only preambles) as progress events so idle-timeout watchdog behavior no longer hangs on no-op streamed chunks
 - Fixed Cloud Code Assist schema compatibility checks by replacing strict AJV meta-schema validation with structural JSON Schema validation to avoid rejecting structurally valid tool schemas
-- Fixed lazy built-in provider streams (`anthropic-messages`, `bedrock-converse-stream`, `cursor-agent`, `google-*`, `ollama-chat`, `openai-*`) prematurely aborting slow first-token responses with `Provider stream stalled while waiting for the next event`. The lazy-stream watchdog wrapper was treating the synthetic `start` event (yielded immediately by every provider before the model emits any tokens) as the first real item, which caused the watchdog to drop from `firstItemTimeoutMs` (100s) to `idleTimeoutMs` (30s) before the upstream model had produced anything. The shared `iterateWithIdleTimeout` now keeps `awaitingFirstItem` true until a real progress item arrives, and the lazy-stream wrapper marks `start` as a non-progress keepalive ([#1073](https://github.com/can1357/gajae-code/pull/1073) regression).
+- Fixed lazy built-in provider streams (`anthropic-messages`, `bedrock-converse-stream`, `cursor-agent`, `google-*`, `ollama-chat`, `openai-*`) prematurely aborting slow first-token responses with `Provider stream stalled while waiting for the next event`. The lazy-stream watchdog wrapper was treating the synthetic `start` event (yielded immediately by every provider before the model emits any tokens) as the first real item, which caused the watchdog to drop from `firstItemTimeoutMs` (100s) to `idleTimeoutMs` (30s) before the upstream model had produced anything. The shared `iterateWithIdleTimeout` now keeps `awaitingFirstItem` true until a real progress item arrives, and the lazy-stream wrapper marks `start` as a non-progress keepalive ([#1073](https://github.com/lidge-jun/jawcode/pull/1073) regression).
 - Heal leaked Kimi K2 chat-template tool-call tokens (`<|tool_calls_section_begin|>` … `<|tool_call_argument_begin|>` … `<|tool_calls_section_end|>`) that some hosts (native `kimi-code` API, OpenRouter, Fireworks, etc.) emit into `delta.content` instead of structured `tool_calls`. The OpenAI-completions stream consumer now strips the markers from visible text, reconstructs the embedded calls as proper `toolCall` content blocks (stream-aware, token-boundary-safe), and promotes `finish_reason: stop` to `toolUse` when calls were healed.
 - Fixed OpenAI-completions Kimi K2 healed-call promotion clobbering non-stop terminal finish reasons (`error`, `length`, `aborted`); promotion now only fires when the prior stop reason is the natural-completion `stop`
 - Fixed OpenAI-completions duplicate Kimi tool calls when a single chunk delivers both leaked markers and a structured `delta.tool_calls`; the healer now strips visible markers but discards its synthesized calls so structured payloads remain the single source of truth
@@ -365,7 +365,7 @@
 ### Fixed
 
 - Fixed `StreamOptions.fetch` typing to accept fetch-compatible override functions that do not expose `preconnect`, allowing custom fetch implementations to be used without type errors across runtimes
-- Fixed Moonshot Kimi K2.6 forced tool calls to send `thinking: { type: "disabled" }`, avoiding `tool_choice 'specified' is incompatible with thinking enabled` 400s while preserving the requested named tool ([#1077](https://github.com/can1357/gajae-code/issues/1077)).
+- Fixed Moonshot Kimi K2.6 forced tool calls to send `thinking: { type: "disabled" }`, avoiding `tool_choice 'specified' is incompatible with thinking enabled` 400s while preserving the requested named tool ([#1077](https://github.com/lidge-jun/jawcode/issues/1077)).
 
 ## [15.0.1] - 2026-05-14
 ### Breaking Changes
@@ -403,7 +403,7 @@
 ### Added
 
 ### Fixed
-- Fixed silent forwarding of image content (for example Python plot output rendered in the terminal) to models without vision support, which produced opaque 404 errors from upstream. Image blocks are now stripped and replaced with a `[image omitted: model does not support vision]` placeholder for non-vision models, including tool-result payloads ([#967](https://github.com/can1357/gajae-code/issues/967), [#968](https://github.com/can1357/gajae-code/issues/968)).
+- Fixed silent forwarding of image content (for example Python plot output rendered in the terminal) to models without vision support, which produced opaque 404 errors from upstream. Image blocks are now stripped and replaced with a `[image omitted: model does not support vision]` placeholder for non-vision models, including tool-result payloads ([#967](https://github.com/lidge-jun/jawcode/issues/967), [#968](https://github.com/lidge-jun/jawcode/issues/968)).
 
 - Added `AuthStorage` `onCredentialDisabled` callback (sync or async) so embedders can react when a credential is automatically disabled (e.g. OAuth refresh fails with `invalid_grant`) — useful for surfacing a banner or auto-launching a re-login flow instead of letting the credential silently disappear. Sync throws and async rejections are both caught and logged so a misbehaving subscriber cannot break the disable path.
 - Added Anthropic OAuth `account.uuid` and `account.email_address` extraction from the `/v1/oauth/token` exchange and refresh responses; both `AnthropicOAuthFlow.exchangeToken()` and `refreshAnthropicToken()` now populate `OAuthCredentials.{accountId, email}` so downstream consumers can attribute requests to the authenticated account without a separate `/api/oauth/profile` round-trip.
@@ -421,7 +421,7 @@
 ### Fixed
 - Fixed Gemini 3 Pro thinking metadata so `medium` effort is rejected with the expected error instead of being silently accepted: `ThinkingConfig` now carries an optional explicit `levels` list that survives `expandEffortRange`, letting non-contiguous supported sets (e.g. `[low, high]`) round-trip through enrichment.
 - Fixed Kimi Code OAuth expiry handling to refresh access tokens 5 minutes before server expiry, avoiding daily 401s from using tokens right up to the cutoff.
-- Fixed OpenAI Responses custom tool replay to preserve custom tool call item IDs with the `ctc_` prefix instead of rewriting them as `fc_` function-call IDs ([#977](https://github.com/can1357/gajae-code/issues/977)).
+- Fixed OpenAI Responses custom tool replay to preserve custom tool call item IDs with the `ctc_` prefix instead of rewriting them as `fc_` function-call IDs ([#977](https://github.com/lidge-jun/jawcode/issues/977)).
 
 ## [14.7.6] - 2026-05-07
 
@@ -440,15 +440,15 @@
 
 ### Fixed
 
-- Fixed strict-template OpenAI-compatible hosts (e.g. Qwen 3.5+ via vLLM, MiniMax) rejecting follow-up `system`/`developer` messages by coalescing ordered system prompts into a single block joined by `\n\n` when `compat.supportsMultipleSystemMessages` is false. Canonical hosts continue to receive separate blocks so KV-cache reuse stays effective when only the trailing prompt changes ([#958](https://github.com/can1357/gajae-code/issues/958)).
+- Fixed strict-template OpenAI-compatible hosts (e.g. Qwen 3.5+ via vLLM, MiniMax) rejecting follow-up `system`/`developer` messages by coalescing ordered system prompts into a single block joined by `\n\n` when `compat.supportsMultipleSystemMessages` is false. Canonical hosts continue to receive separate blocks so KV-cache reuse stays effective when only the trailing prompt changes ([#958](https://github.com/lidge-jun/jawcode/issues/958)).
 
 ## [14.7.2] - 2026-05-06
 
 ### Fixed
 
 - Fixed VLLM model discovery to use `max_model_len` as the context window when the endpoint reports it.
-- Fixed custom Ollama Cloud/local-proxy model aliases (for example `deepseek-v4-pro:cloud`) to inherit bundled cache-pricing metadata when the upstream model is known ([#937](https://github.com/can1357/gajae-code/issues/937)).
-- Fixed local Ollama model discovery to apply `/api/show` thinking and vision capabilities in addition to native context windows ([#928](https://github.com/can1357/gajae-code/issues/928)).
+- Fixed custom Ollama Cloud/local-proxy model aliases (for example `deepseek-v4-pro:cloud`) to inherit bundled cache-pricing metadata when the upstream model is known ([#937](https://github.com/lidge-jun/jawcode/issues/937)).
+- Fixed local Ollama model discovery to apply `/api/show` thinking and vision capabilities in addition to native context windows ([#928](https://github.com/lidge-jun/jawcode/issues/928)).
 
 ## [14.7.0] - 2026-05-04
 ### Breaking Changes
@@ -488,7 +488,7 @@
 
 ### Fixed
 
-- Fixed OpenAI Responses tool schema conversion to rewrite non-strict `oneOf` unions to `anyOf` before sending tools to the Responses API ([#920](https://github.com/can1357/gajae-code/issues/920))
+- Fixed OpenAI Responses tool schema conversion to rewrite non-strict `oneOf` unions to `anyOf` before sending tools to the Responses API ([#920](https://github.com/lidge-jun/jawcode/issues/920))
 
 ## [14.6.0] - 2026-05-02
 
@@ -591,7 +591,7 @@
 
 ### Fixed
 
-- Fixed NVIDIA NIM DeepSeek-V4 models leaking chat-template tool-call markers (e.g. `<｜DSML｜tool_calls｜>`) into visible response text by stripping the special tokens from streamed `delta.content` ([#798](https://github.com/can1357/gajae-code/issues/798))
+- Fixed NVIDIA NIM DeepSeek-V4 models leaking chat-template tool-call markers (e.g. `<｜DSML｜tool_calls｜>`) into visible response text by stripping the special tokens from streamed `delta.content` ([#798](https://github.com/lidge-jun/jawcode/issues/798))
 
 ## [14.4.0] - 2026-04-26
 
@@ -618,14 +618,14 @@
 
 ### Added
 
-- Added support for Anthropic model Opus 4.7 (`anthropic-model-opus-4-7`) model ([#726](https://github.com/can1357/gajae-code/issues/726))
+- Added support for Anthropic model Opus 4.7 (`anthropic-model-opus-4-7`) model ([#726](https://github.com/lidge-jun/jawcode/issues/726))
   - Suppresses sampling parameters (temperature/top_p/top_k) that Opus 4.7 rejects
   - Enables `display: "summarized"` for adaptive thinking to restore visible thinking content
 
 ### Fixed
 
 - Fixed Cursor provider losing conversation history on follow-up turns (model responding "this appears to be the start of our session") by populating `ConversationStateStructure.rootPromptMessagesJson` with JSON blob IDs for the system prompt plus prior user/assistant/tool-result messages. Cursor's server builds the model prompt from `rootPromptMessagesJson`, not from the protobuf `turns[]` tree, so sending only the system prompt there caused prior turns to be dropped
-- Fixed Cursor provider multi-turn conversations failing with `Connect error internal: Blob not found` on the second message by storing `ConversationStateStructure.turns`, `AgentConversationTurnStructure.user_message`, and `AgentConversationTurnStructure.steps` as content-addressed blob IDs in the KV store (matching the existing handling for `rootPromptMessagesJson`) rather than sending the raw serialized bytes inline ([#678](https://github.com/can1357/gajae-code/issues/678))
+- Fixed Cursor provider multi-turn conversations failing with `Connect error internal: Blob not found` on the second message by storing `ConversationStateStructure.turns`, `AgentConversationTurnStructure.user_message`, and `AgentConversationTurnStructure.steps` as content-addressed blob IDs in the KV store (matching the existing handling for `rootPromptMessagesJson`) rather than sending the raw serialized bytes inline ([#678](https://github.com/lidge-jun/jawcode/issues/678))
 
 ## [14.2.1] - 2026-04-24
 
@@ -679,9 +679,9 @@
 - Fixed OpenAI Completions handling for providers that reject mixed `strict` flags by automatically retrying with non-strict tool schemas when an initial all-strict tool request fails with strict-format 400/422 errors
 - Fixed OpenAI-completions error reporting by including captured JSON error body details such as type, param, and code when a request fails without a body in the thrown SDK error
 - Fixed shell execution failure responses to preserve all result fields when sanitizing, preventing truncated metadata in stream results
-- Fixed context overflow detection to recognize `model_context_window_exceeded` from z.ai / GLM providers, preventing infinite retry loops when context window is exceeded ([#638](https://github.com/can1357/gajae-code/issues/638))
+- Fixed context overflow detection to recognize `model_context_window_exceeded` from z.ai / GLM providers, preventing infinite retry loops when context window is exceeded ([#638](https://github.com/lidge-jun/jawcode/issues/638))
 - Fixed strict tool schema enforcement to preserve `additionalProperties: false` and required keys for reused nested object schemas, preventing invalid `todo_write` function schemas in OpenAI code/OpenAI requests
-- Fixed GitHub Copilot reasoning regressions by preserving GPT-5.x / Anthropic model 4.x reasoning controls instead of stripping them from requests ([#773](https://github.com/can1357/gajae-code/issues/773))
+- Fixed GitHub Copilot reasoning regressions by preserving GPT-5.x / Anthropic model 4.x reasoning controls instead of stripping them from requests ([#773](https://github.com/lidge-jun/jawcode/issues/773))
 
 ## [14.1.0] - 2026-04-11
 
@@ -769,7 +769,7 @@
 
 ### Fixed
 
-- Fixed OpenAI-family first-event timeouts to preserve provider-specific timeout errors for retry classification instead of flattening them to generic aborts ([#591](https://github.com/can1357/gajae-code/issues/591))
+- Fixed OpenAI-family first-event timeouts to preserve provider-specific timeout errors for retry classification instead of flattening them to generic aborts ([#591](https://github.com/lidge-jun/jawcode/issues/591))
 
 ## [13.17.1] - 2026-04-01
 
@@ -881,7 +881,7 @@
 
 ### Fixed
 
-- Fixed resumed OpenAI Responses sessions to avoid replaying stale same-provider native history on the first follow-up after process restart ([#488](https://github.com/can1357/gajae-code/issues/488))
+- Fixed resumed OpenAI Responses sessions to avoid replaying stale same-provider native history on the first follow-up after process restart ([#488](https://github.com/lidge-jun/jawcode/issues/488))
 
 ### Added
 
@@ -913,7 +913,7 @@
 
 ### Fixed
 
-- Fixed `openai-responses` manual history replay to strip replay-only item IDs and preserve normalized tool `call_id` values for GitHub Copilot follow-up turns ([#457](https://github.com/can1357/gajae-code/issues/457))
+- Fixed `openai-responses` manual history replay to strip replay-only item IDs and preserve normalized tool `call_id` values for GitHub Copilot follow-up turns ([#457](https://github.com/lidge-jun/jawcode/issues/457))
 
 ## [13.12.0] - 2026-03-14
 
@@ -1369,7 +1369,7 @@
 
 - Added `tryEnforceStrictSchema` function that gracefully downgrades to non-strict mode when schema enforcement fails, enabling better compatibility with malformed or circular schemas
 - Added `sanitizeSchemaForStrictMode` function to normalize JSON schemas by stripping non-structural keywords, converting `const` to `enum`, and expanding type arrays into `anyOf` variants
-- Added Kilo Gateway provider support with OpenAI-compatible model discovery, OAuth `/login kilo`, and `KILO_API_KEY` environment variable support ([#193](https://github.com/can1357/gajae-code/issues/193))
+- Added Kilo Gateway provider support with OpenAI-compatible model discovery, OAuth `/login kilo`, and `KILO_API_KEY` environment variable support ([#193](https://github.com/lidge-jun/jawcode/issues/193))
 
 ### Changed
 
@@ -1429,7 +1429,7 @@
 ### Changed
 
 - Enhanced `getModelMapping()` to support both GitLab Duo alias IDs (e.g., `duo-chat-gpt-5-openai-code`) and canonical model IDs (e.g., `gpt-5-openai-code`) for improved model resolution flexibility
-- Migrated `AuthCredentialStore` and `AuthStorage` into `@gajae-code/ai` as shared credential primitives for downstream packages
+- Migrated `AuthCredentialStore` and `AuthStorage` into `@jawcode-dev/ai` as shared credential primitives for downstream packages
 - Moved Anthropic auth helpers (`findAnthropicAuth`, `isOAuthToken`, `buildAnthropicSearchHeaders`, `buildAnthropicUrl`) into shared AI utilities for reuse across providers
 - Replaced `CliAuthStorage` with `AuthCredentialStore` for improved credential management with multiple credentials per provider
 - Updated models.json pricing for Anthropic model 3.5 Sonnet (input: 0.23→0.45, output: 3→2.2, added cache read: 0.225) and Anthropic model 3 Opus (input: 0.3→0.95)
@@ -1528,7 +1528,7 @@
 
 ### Added
 
-- Added NanoGPT provider support with API-key login, dynamic model discovery from `https://nano-gpt.com/api/v1/models`, and text-model filtering for catalog/runtime discovery ([#111](https://github.com/can1357/gajae-code/issues/111))
+- Added NanoGPT provider support with API-key login, dynamic model discovery from `https://nano-gpt.com/api/v1/models`, and text-model filtering for catalog/runtime discovery ([#111](https://github.com/lidge-jun/jawcode/issues/111))
 
 ## [12.12.3] - 2026-02-19
 
@@ -1758,11 +1758,11 @@
 - Removed GLM-5 model from Z.ai provider
 - Removed Trinity Large Preview Free model from OpenCode provider
 - Removed MiniMax M2.1 Free model from OpenCode provider
-- Removed deprecated Anthropic model entries: `anthropic-model-3-5-haiku-latest`, `anthropic-model-3-5-haiku-20241022`, `anthropic-model-3-7-sonnet-20250219`, `anthropic-model-3-7-sonnet-latest`, `anthropic-model-3-opus-20240229`, `anthropic-model-3-sonnet-20240229` ([#33](https://github.com/can1357/gajae-code/issues/33))
+- Removed deprecated Anthropic model entries: `anthropic-model-3-5-haiku-latest`, `anthropic-model-3-5-haiku-20241022`, `anthropic-model-3-7-sonnet-20250219`, `anthropic-model-3-7-sonnet-latest`, `anthropic-model-3-opus-20240229`, `anthropic-model-3-sonnet-20240229` ([#33](https://github.com/lidge-jun/jawcode/issues/33))
 
 ### Fixed
 
-- Added deprecation filter in model generation script to prevent re-adding deprecated Anthropic models ([#33](https://github.com/can1357/gajae-code/issues/33))
+- Added deprecation filter in model generation script to prevent re-adding deprecated Anthropic models ([#33](https://github.com/lidge-jun/jawcode/issues/33))
 
 ## [11.14.1] - 2026-02-12
 
@@ -1965,7 +1965,7 @@
 
 ### Changed
 
-- Replaced direct `Bun.env` access with `getEnv()` utility from `@gajae-code/utils` for consistent environment variable handling across all providers
+- Replaced direct `Bun.env` access with `getEnv()` utility from `@jawcode-dev/utils` for consistent environment variable handling across all providers
 - Updated environment variable names from `GJC_*` prefix to `PI_*` prefix for consistency (e.g., `GJC_CODING_AGENT_DIR` → `PI_CODING_AGENT_DIR`)
 
 ### Removed
@@ -2541,7 +2541,7 @@
 
 ### Breaking Changes
 
-- **Agent API moved**: All agent functionality (`agentLoop`, `agentLoopContinue`, `AgentContext`, `AgentEvent`, `AgentTool`, `AgentToolResult`, etc.) has moved to `@mariozechner/pi-agent-core`. Import from that package instead of `@gajae-code/ai`.
+- **Agent API moved**: All agent functionality (`agentLoop`, `agentLoopContinue`, `AgentContext`, `AgentEvent`, `AgentTool`, `AgentToolResult`, etc.) has moved to `@mariozechner/pi-agent-core`. Import from that package instead of `@jawcode-dev/ai`.
 
 ### Added
 

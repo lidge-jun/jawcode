@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { prompt } from "@gajae-code/utils";
+import { prompt } from "@jawcode-dev/utils";
 import { AgentProtocolHandler } from "../../src/internal-urls/agent-protocol";
 import taskSummaryTemplate from "../../src/prompts/tools/task-summary.md" with { type: "text" };
 import {

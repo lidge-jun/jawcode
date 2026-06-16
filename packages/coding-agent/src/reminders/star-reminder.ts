@@ -14,12 +14,12 @@
 import { randomUUID } from "node:crypto";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import type { ImageContent, MessageAttribution } from "@gajae-code/ai";
-import { getConfigRootDir, isEnoent } from "@gajae-code/utils";
+import type { ImageContent, MessageAttribution } from "@jawcode-dev/ai";
+import { getConfigRootDir, isEnoent } from "@jawcode-dev/utils";
 import { withFileLock } from "../config/file-lock";
 import type { CustomMessage } from "../session/messages";
 
-export const STAR_REMINDER_REPO = "Yeachan-Heo/gajae-code";
+export const STAR_REMINDER_REPO = "lidge-jun/jawcode";
 export const STAR_REMINDER_CUSTOM_TYPE = "star-reminder";
 export const STARRED_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 

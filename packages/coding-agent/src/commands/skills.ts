@@ -1,8 +1,8 @@
-import { APP_NAME } from "@gajae-code/utils";
+import { APP_NAME } from "@jawcode-dev/utils";
 /**
  * Inspect bundled workflow skills.
  */
-import { Args, Command, Flags, renderCommandHelp } from "@gajae-code/utils/cli";
+import { Args, Command, Flags, renderCommandHelp } from "@jawcode-dev/utils/cli";
 import { runSkillsCommand, type SkillsAction, type SkillsCommandArgs } from "../cli/skills-cli";
 
 const ACTIONS: SkillsAction[] = ["list", "read"];

@@ -7,7 +7,7 @@ import {
 	normalizePlanTitle,
 	renameApprovedPlanFile,
 	resolvePlanTitle,
-} from "@gajae-code/coding-agent/plan-mode/approved-plan";
+} from "@jawcode-dev/coding-agent/plan-mode/approved-plan";
 
 describe("renameApprovedPlanFile", () => {
 	let tmpDir: string;

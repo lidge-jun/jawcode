@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { Model } from "@gajae-code/ai";
-import { getMemoriesDir } from "@gajae-code/utils";
+import type { Model } from "@jawcode-dev/ai";
+import { getMemoriesDir } from "@jawcode-dev/utils";
 import type { ModelRegistry } from "../config/model-registry";
 import { formatModelString, resolveModelRoleValue } from "../config/model-resolver";
 import type { Settings } from "../config/settings";

@@ -9,7 +9,7 @@ import {
 	type StarReminderPromptUI,
 	scheduleLaunchStarReminderAfterFirstRender,
 	starReminderLaunchGate,
-} from "@gajae-code/coding-agent/reminders/star-reminder";
+} from "@jawcode-dev/coding-agent/reminders/star-reminder";
 
 const tempDirs: string[] = [];
 

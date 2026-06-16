@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import * as path from "node:path";
-import { RpcClient } from "@gajae-code/coding-agent/modes/rpc/rpc-client";
+import { RpcClient } from "@jawcode-dev/coding-agent/modes/rpc/rpc-client";
 
 describe("RpcClient.start", () => {
 	test("rejects when RPC process exits immediately", async () => {

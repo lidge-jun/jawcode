@@ -1,15 +1,15 @@
-import type { AgentMessage } from "@gajae-code/agent-core";
-import type { CompactionSettings } from "@gajae-code/agent-core/compaction";
+import type { AgentMessage } from "@jawcode-dev/agent-core";
+import type { CompactionSettings } from "@jawcode-dev/agent-core/compaction";
 import {
 	countMessageTokensNative,
 	effectiveReserveTokens,
 	estimateTokens,
 	resolveThresholdTokens,
-} from "@gajae-code/agent-core/compaction";
-import { effectiveMaxOutputTokens, type Model } from "@gajae-code/ai";
-import { toolWireSchema } from "@gajae-code/ai/utils/schema";
-import { countTokens, type Encoding } from "@gajae-code/natives";
-import { formatNumber } from "@gajae-code/utils";
+} from "@jawcode-dev/agent-core/compaction";
+import { effectiveMaxOutputTokens, type Model } from "@jawcode-dev/ai";
+import { toolWireSchema } from "@jawcode-dev/ai/utils/schema";
+import { countTokens, type Encoding } from "@jawcode-dev/natives";
+import { formatNumber } from "@jawcode-dev/utils";
 import type { Skill } from "../../extensibility/skills";
 import type { AgentSession } from "../../session/agent-session";
 import type { Tool } from "../../tools";

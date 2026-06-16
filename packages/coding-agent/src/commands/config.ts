@@ -1,7 +1,7 @@
 /**
  * Manage configuration settings.
  */
-import { Args, Command, Flags } from "@gajae-code/utils/cli";
+import { Args, Command, Flags } from "@jawcode-dev/utils/cli";
 import { type ConfigAction, type ConfigCommandArgs, runConfigCommand } from "../cli/config-cli";
 import { initTheme } from "../modes/theme/theme";
 

@@ -1,9 +1,9 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { type AgentMessage, ThinkingLevel } from "@gajae-code/agent-core";
-import type { Message } from "@gajae-code/ai";
-import type { AutocompleteProvider, OverlayHandle, SlashCommand } from "@gajae-code/tui";
-import { $env, sanitizeText } from "@gajae-code/utils";
+import { type AgentMessage, ThinkingLevel } from "@jawcode-dev/agent-core";
+import type { Message } from "@jawcode-dev/ai";
+import type { AutocompleteProvider, OverlayHandle, SlashCommand } from "@jawcode-dev/tui";
+import { $env, sanitizeText } from "@jawcode-dev/utils";
 import { isSettingsInitialized, settings } from "../../config/settings";
 import { resolveSubskillActivationForSkillInvocation } from "../../extensibility/jwc-plugins";
 import { buildSkillPromptMessage, parseSkillInvocations } from "../../extensibility/skills";

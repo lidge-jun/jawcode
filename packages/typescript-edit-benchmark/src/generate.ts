@@ -21,7 +21,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { parseArgs } from "node:util";
-import { TempDir } from "@gajae-code/utils";
+import { TempDir } from "@jawcode-dev/utils";
 import { $ } from "bun";
 import { diffLines } from "diff";
 import { formatContent } from "./formatter";

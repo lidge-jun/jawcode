@@ -80,7 +80,7 @@ function resolveNativeDiffLines(): DiffLinesFn | undefined {
 	}
 
 	try {
-		const natives = require("@gajae-code/natives") as { diffLines?: unknown };
+		const natives = require("@jawcode-dev/natives") as { diffLines?: unknown };
 		cachedNativeDiffLines = typeof natives.diffLines === "function" ? (natives.diffLines as DiffLinesFn) : null;
 	} catch {
 		cachedNativeDiffLines = null;

@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { estimateTokens } from "@gajae-code/agent-core/compaction/compaction";
-import type { SessionEntry, SessionMessageEntry } from "@gajae-code/agent-core/compaction/entries";
-import { type PruneConfig, pruneToolOutputs } from "@gajae-code/agent-core/compaction/pruning";
-import type { ToolResultMessage } from "@gajae-code/ai/types";
+import { estimateTokens } from "@jawcode-dev/agent-core/compaction/compaction";
+import type { SessionEntry, SessionMessageEntry } from "@jawcode-dev/agent-core/compaction/entries";
+import { type PruneConfig, pruneToolOutputs } from "@jawcode-dev/agent-core/compaction/pruning";
+import type { ToolResultMessage } from "@jawcode-dev/ai/types";
 
 const timestamp = "2026-06-11T00:00:00.000Z";
 

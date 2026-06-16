@@ -20,7 +20,7 @@ import {
 	Text,
 	truncateToWidth,
 	visibleWidth,
-} from "@gajae-code/tui";
+} from "@jawcode-dev/tui";
 import { Settings } from "../../../config/settings";
 import { DynamicBorder } from "../../../modes/components/dynamic-border";
 import { theme } from "../../../modes/theme/theme";

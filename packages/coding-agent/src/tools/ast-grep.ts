@@ -1,9 +1,9 @@
 import * as path from "node:path";
-import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@gajae-code/agent-core";
-import { type AstFindMatch, astGrep } from "@gajae-code/natives";
-import type { Component } from "@gajae-code/tui";
-import { Text } from "@gajae-code/tui";
-import { prompt, untilAborted } from "@gajae-code/utils";
+import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@jawcode-dev/agent-core";
+import { type AstFindMatch, astGrep } from "@jawcode-dev/natives";
+import type { Component } from "@jawcode-dev/tui";
+import { Text } from "@jawcode-dev/tui";
+import { prompt, untilAborted } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import type { RenderResultOptions } from "../extensibility/custom-tools/types";
 import type { Theme } from "../modes/theme/theme";

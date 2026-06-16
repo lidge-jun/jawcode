@@ -1,17 +1,17 @@
 import { beforeAll, describe, expect, it } from "bun:test";
-import type { AssistantMessage } from "@gajae-code/ai";
-import { resetSettingsForTest, Settings } from "@gajae-code/coding-agent/config/settings";
-import { AssistantMessageComponent } from "@gajae-code/coding-agent/modes/components/assistant-message";
-import { BashExecutionComponent } from "@gajae-code/coding-agent/modes/components/bash-execution";
-import { CustomEditor } from "@gajae-code/coding-agent/modes/components/custom-editor";
-import { EvalExecutionComponent } from "@gajae-code/coding-agent/modes/components/eval-execution";
-import { FooterComponent } from "@gajae-code/coding-agent/modes/components/footer";
-import { STATUS_LINE_PRESETS } from "@gajae-code/coding-agent/modes/components/status-line/presets";
-import { UserMessageComponent } from "@gajae-code/coding-agent/modes/components/user-message";
-import { WelcomeComponent } from "@gajae-code/coding-agent/modes/components/welcome";
-import { getEditorTheme, initTheme } from "@gajae-code/coding-agent/modes/theme/theme";
-import type { AgentSession } from "@gajae-code/coding-agent/session/agent-session";
-import { type TUI, visibleWidth } from "@gajae-code/tui";
+import type { AssistantMessage } from "@jawcode-dev/ai";
+import { resetSettingsForTest, Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { AssistantMessageComponent } from "@jawcode-dev/coding-agent/modes/components/assistant-message";
+import { BashExecutionComponent } from "@jawcode-dev/coding-agent/modes/components/bash-execution";
+import { CustomEditor } from "@jawcode-dev/coding-agent/modes/components/custom-editor";
+import { EvalExecutionComponent } from "@jawcode-dev/coding-agent/modes/components/eval-execution";
+import { FooterComponent } from "@jawcode-dev/coding-agent/modes/components/footer";
+import { STATUS_LINE_PRESETS } from "@jawcode-dev/coding-agent/modes/components/status-line/presets";
+import { UserMessageComponent } from "@jawcode-dev/coding-agent/modes/components/user-message";
+import { WelcomeComponent } from "@jawcode-dev/coding-agent/modes/components/welcome";
+import { getEditorTheme, initTheme } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import type { AgentSession } from "@jawcode-dev/coding-agent/session/agent-session";
+import { type TUI, visibleWidth } from "@jawcode-dev/tui";
 import { StatusLineComponent } from "../../../src/modes/components/status-line";
 
 function createFooterSession(): AgentSession {

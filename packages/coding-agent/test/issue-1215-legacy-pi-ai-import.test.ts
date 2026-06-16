@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { loadExtensions } from "@gajae-code/coding-agent/extensibility/extensions/loader";
-import { TempDir } from "@gajae-code/utils";
+import { loadExtensions } from "@jawcode-dev/coding-agent/extensibility/extensions/loader";
+import { TempDir } from "@jawcode-dev/utils";
 
 // Tool name registered by the synthetic extension below.
 const TOOL_NAME = "schedule_prompt_test";
@@ -19,7 +19,7 @@ describe("issue #1215: legacy @mariozechner/pi-ai imports survive getResolvedSpe
 
 		// Mirrors the import pattern used by pi-schedule-prompt@0.3.0, which was
 		// the reporter's failing plugin. z is a runtime value re-exported from
-		// @gajae-code/ai so using it forces the import to be resolved at load time.
+		// @jawcode-dev/ai so using it forces the import to be resolved at load time.
 		fs.writeFileSync(
 			extensionPath,
 			[

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { convertAnthropicMessages } from "@gajae-code/ai/providers/anthropic";
-import type { AssistantMessage, Model, ToolResultMessage, UserMessage } from "@gajae-code/ai/types";
+import { convertAnthropicMessages } from "@jawcode-dev/ai/providers/anthropic";
+import type { AssistantMessage, Model, ToolResultMessage, UserMessage } from "@jawcode-dev/ai/types";
 
 const model: Model<"anthropic-messages"> = {
 	api: "anthropic-messages",

@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { Process, ProcessStatus } from "@gajae-code/natives";
+import { Process, ProcessStatus } from "@jawcode-dev/natives";
 import type { Subprocess } from "bun";
 import { $env, filterProcessEnv } from "./env";
 import { $which } from "./which";

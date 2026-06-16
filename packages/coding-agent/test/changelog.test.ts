@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { VERSION } from "@gajae-code/utils";
+import { VERSION } from "@jawcode-dev/utils";
 import { getDisplayChangelogEntries, parseChangelogContent } from "../src/utils/changelog";
 
 const tempDirs: string[] = [];

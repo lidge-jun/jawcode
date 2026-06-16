@@ -4,7 +4,7 @@
  * Precedence: MEM0_* env vars override settings schema defaults.
  */
 
-import { logger } from "@gajae-code/utils";
+import { logger } from "@jawcode-dev/utils";
 import type { Settings } from "../config/settings";
 
 export type Mem0Scoping = "global" | "per-project" | "per-project-tagged";

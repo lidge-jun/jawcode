@@ -1,21 +1,21 @@
 import { describe, expect, it } from "bun:test";
-import { createBridgeFetchHandler } from "@gajae-code/coding-agent/modes/bridge/bridge-mode";
-import { approvalGate } from "@gajae-code/coding-agent/modes/shared/agent-wire/approval-gate";
+import { createBridgeFetchHandler } from "@jawcode-dev/coding-agent/modes/bridge/bridge-mode";
+import { approvalGate } from "@jawcode-dev/coding-agent/modes/shared/agent-wire/approval-gate";
 import {
 	BridgeFrameSequencer,
 	toBridgeWorkflowGateFrame,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/event-envelope";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/event-envelope";
 import {
 	type BridgeHandshakeAccepted,
 	type BridgeHandshakeRequest,
 	isBridgeHandshakeRequest,
 	isUnattendedDeclarationShape,
 	negotiateBridgeHandshake,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/handshake";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/handshake";
 import {
 	MemoryGateStore,
 	WorkflowGateBroker,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/workflow-gate-broker";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/workflow-gate-broker";
 
 const decl = {
 	actor: "hermes",

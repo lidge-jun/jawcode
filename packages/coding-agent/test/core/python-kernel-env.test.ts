@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { filterEnv } from "@gajae-code/coding-agent/eval/py/runtime";
+import { filterEnv } from "@jawcode-dev/coding-agent/eval/py/runtime";
 
 describe("Python gateway environment filtering", () => {
 	it("filters sensitive and unknown variables from shell env", () => {

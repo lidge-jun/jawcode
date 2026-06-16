@@ -1,6 +1,6 @@
 import * as crypto from "node:crypto";
 import * as path from "node:path";
-import { APP_NAME } from "@gajae-code/utils";
+import { APP_NAME } from "@jawcode-dev/utils";
 import type { WorkflowHudSummary } from "../skill-state/active-state";
 import { buildGoalHudSummary as buildWorkflowGoalHudSummary } from "../skill-state/workflow-hud";
 import { renderCliWriteReceipt } from "./cli-write-receipt";

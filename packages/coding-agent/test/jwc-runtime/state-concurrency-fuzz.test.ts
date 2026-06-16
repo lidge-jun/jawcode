@@ -7,8 +7,8 @@ import {
 	createJsonNoClobber,
 	rebuildActiveSnapshot,
 	writeActiveEntry,
-} from "@gajae-code/coding-agent/jwc-runtime/state-writer";
-import type { SkillActiveState } from "@gajae-code/coding-agent/skill-state/active-state";
+} from "@jawcode-dev/coding-agent/jwc-runtime/state-writer";
+import type { SkillActiveState } from "@jawcode-dev/coding-agent/skill-state/active-state";
 
 const tempRoots: string[] = [];
 const WORKER_COUNT = 8;

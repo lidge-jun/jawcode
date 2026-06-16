@@ -1,4 +1,4 @@
-import { replaceTabs, truncateToWidth, visibleWidth } from "@gajae-code/tui";
+import { replaceTabs, truncateToWidth, visibleWidth } from "@jawcode-dev/tui";
 import type { CompactionProgressUpdate } from "../../extensibility/extensions/types";
 
 const BAR_FILL = "█";

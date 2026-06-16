@@ -3,7 +3,7 @@
  *
  * These provide rich visualization for tool calls and results in the TUI.
  */
-import type { Component } from "@gajae-code/tui";
+import type { Component } from "@jawcode-dev/tui";
 import { editToolRenderer } from "../edit/renderer";
 import type { RenderResultOptions } from "../extensibility/custom-tools/types";
 import { goalToolRenderer } from "../goals/tools/goal-tool";

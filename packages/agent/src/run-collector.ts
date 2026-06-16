@@ -15,7 +15,7 @@
  * produced a result message).
  */
 
-import type { AssistantMessage, Model, StopReason } from "@gajae-code/ai";
+import type { AssistantMessage, Model, StopReason } from "@jawcode-dev/ai";
 import type { Span } from "@opentelemetry/api";
 
 /** Terminal status reported by an `execute_tool` span. */

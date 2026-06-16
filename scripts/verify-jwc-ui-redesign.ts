@@ -144,9 +144,9 @@ async function verifyExportBranding(): Promise<GateResult> {
 		name: "HTML export GJC branding",
 		passed:
 			templateHtml.includes("GJC Session Export") &&
-			templateHtml.includes('content="gajae-code"') &&
-			templateJs.includes("gajae-code · red-claw transcript") &&
-			templateJs.includes("GJC / gajae-code") &&
+			templateHtml.includes('content="jawcode"') &&
+			templateJs.includes("jawcode · red-claw transcript") &&
+			templateJs.includes("GJC / jawcode") &&
 			templateJs.includes('meta[name="gjc-url-params"]') &&
 			templateJs.includes('meta[name="gjc-share-base-url"]') &&
 			templateJs.includes("gjc-share:v1:sidebar-width") &&
@@ -156,8 +156,8 @@ async function verifyExportBranding(): Promise<GateResult> {
 			generated.includes("GJC Session Export") &&
 			generated.includes("tool-output"),
 		details: [
-			`title/meta branded: ${templateHtml.includes("GJC Session Export") && templateHtml.includes('content="gajae-code"')}`,
-			`header product branded: ${templateJs.includes("GJC / gajae-code")}`,
+			`title/meta branded: ${templateHtml.includes("GJC Session Export") && templateHtml.includes('content="jawcode"')}`,
+			`header product branded: ${templateJs.includes("GJC / jawcode")}`,
 			`GJC metadata/storage keys present: ${templateJs.includes('meta[name="gjc-url-params"]') && templateJs.includes('meta[name="gjc-share-base-url"]') && templateJs.includes("gjc-share:v1:sidebar-width")}`,
 			`legacy metadata/storage fallback retained: ${templateJs.includes('meta[name="pi-url-params"]') && templateJs.includes('meta[name="pi-share-base-url"]') && templateJs.includes("pi-share:v1:sidebar-width")}`,
 			`generated template refreshed: ${generated.includes("GJC Session Export")}`,

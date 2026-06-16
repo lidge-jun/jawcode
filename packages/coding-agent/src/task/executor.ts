@@ -7,10 +7,10 @@
 import { createHash } from "node:crypto";
 import * as fs from "node:fs/promises";
 import path from "node:path";
-import type { AgentEvent, AgentIdentity, AgentTelemetryConfig, ThinkingLevel } from "@gajae-code/agent-core";
-import { recordHandoff, resolveTelemetry } from "@gajae-code/agent-core";
-import { type JsonSchemaValidationIssue, validateJsonSchemaValue } from "@gajae-code/ai/utils/schema";
-import { logger, prompt, untilAborted } from "@gajae-code/utils";
+import type { AgentEvent, AgentIdentity, AgentTelemetryConfig, ThinkingLevel } from "@jawcode-dev/agent-core";
+import { recordHandoff, resolveTelemetry } from "@jawcode-dev/agent-core";
+import { type JsonSchemaValidationIssue, validateJsonSchemaValue } from "@jawcode-dev/ai/utils/schema";
+import { logger, prompt, untilAborted } from "@jawcode-dev/utils";
 import { AsyncJobManager } from "../async";
 import { ModelRegistry } from "../config/model-registry";
 import { resolveModelOverrideWithAuthFallback } from "../config/model-resolver";

@@ -5,7 +5,7 @@
  * by code generation tools (protoc, sqlc, buf, swagger, etc.).
  */
 import * as path from "node:path";
-import { isEnoent, peekFile } from "@gajae-code/utils";
+import { isEnoent, peekFile } from "@jawcode-dev/utils";
 import { LRUCache } from "lru-cache/raw";
 import { settings } from "../config/settings";
 import { ToolError } from "./tool-errors";

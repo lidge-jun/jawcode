@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { extractRetryHint } from "@gajae-code/utils";
+import { extractRetryHint } from "@jawcode-dev/utils";
 
 // The fail-fast regex used inside the provider to distinguish "known quota errors" (throw immediately)
 // from "ambiguous 429s" (retry up to RATE_LIMIT_BUDGET_MS).

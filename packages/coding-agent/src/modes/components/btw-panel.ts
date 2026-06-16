@@ -1,4 +1,4 @@
-import { type Component, Container, Markdown, Spacer, Text, type TUI } from "@gajae-code/tui";
+import { type Component, Container, Markdown, Spacer, Text, type TUI } from "@jawcode-dev/tui";
 import { replaceTabs } from "../../tools/render-utils";
 import { getMarkdownTheme, theme } from "../theme/theme";
 import { DynamicBorder } from "./dynamic-border";

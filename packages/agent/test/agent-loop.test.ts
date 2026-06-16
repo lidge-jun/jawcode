@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { agentLoop, agentLoopContinue, INTENT_FIELD } from "@gajae-code/agent-core/agent-loop";
+import { agentLoop, agentLoopContinue, INTENT_FIELD } from "@jawcode-dev/agent-core/agent-loop";
 import type {
 	AgentContext,
 	AgentEvent,
@@ -8,10 +8,10 @@ import type {
 	AgentTool,
 	AgentToolContext,
 	ToolCallContext,
-} from "@gajae-code/agent-core/types";
-import type { AssistantMessage, Message, ToolResultMessage } from "@gajae-code/ai";
-import { createMockModel } from "@gajae-code/ai/providers/mock";
-import { AssistantMessageEventStream } from "@gajae-code/ai/utils/event-stream";
+} from "@jawcode-dev/agent-core/types";
+import type { AssistantMessage, Message, ToolResultMessage } from "@jawcode-dev/ai";
+import { createMockModel } from "@jawcode-dev/ai/providers/mock";
+import { AssistantMessageEventStream } from "@jawcode-dev/ai/utils/event-stream";
 import * as z from "zod/v4";
 import { createAssistantMessage, createUserMessage } from "./helpers";
 

@@ -16,8 +16,8 @@ import {
 	SettingsList,
 	Spacer,
 	Text,
-} from "@gajae-code/tui";
-import { APP_NAME } from "@gajae-code/utils";
+} from "@jawcode-dev/tui";
+import { APP_NAME } from "@jawcode-dev/utils";
 import { PluginManager } from "../../extensibility/plugins/manager";
 import type { InstalledPlugin, PluginSettingSchema } from "../../extensibility/plugins/types";
 import { getSelectListTheme, getSettingsListTheme, theme } from "../../modes/theme/theme";

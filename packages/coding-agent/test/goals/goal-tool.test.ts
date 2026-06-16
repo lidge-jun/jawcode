@@ -2,11 +2,11 @@ import { describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { GoalRuntime } from "@gajae-code/coding-agent/goals/runtime";
-import type { Goal, GoalModeState, GoalTokenUsage } from "@gajae-code/coding-agent/goals/state";
-import { GoalTool } from "@gajae-code/coding-agent/goals/tools/goal-tool";
-import { createGoalPlan, startNextGoal } from "@gajae-code/coding-agent/jwc-runtime/goal-engine";
-import type { ToolSession } from "@gajae-code/coding-agent/tools";
+import { GoalRuntime } from "@jawcode-dev/coding-agent/goals/runtime";
+import type { Goal, GoalModeState, GoalTokenUsage } from "@jawcode-dev/coding-agent/goals/state";
+import { GoalTool } from "@jawcode-dev/coding-agent/goals/tools/goal-tool";
+import { createGoalPlan, startNextGoal } from "@jawcode-dev/coding-agent/jwc-runtime/goal-engine";
+import type { ToolSession } from "@jawcode-dev/coding-agent/tools";
 
 function createUsage(overrides: Partial<GoalTokenUsage> = {}): GoalTokenUsage {
 	return {

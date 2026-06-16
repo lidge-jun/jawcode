@@ -20,8 +20,8 @@ import {
 	type ThinkingBudgets,
 	type ToolChoice,
 	type ToolResultMessage,
-} from "@gajae-code/ai";
-import { prewarmOpenAICodexResponsesContent } from "@gajae-code/ai/providers/openai-codex-responses";
+} from "@jawcode-dev/ai";
+import { prewarmOpenAICodexResponsesContent } from "@jawcode-dev/ai/providers/openai-codex-responses";
 import { agentLoop, agentLoopContinue, normalizeMessagesForProvider, normalizeTools } from "./agent-loop";
 import type { AppendOnlyContextManager } from "./append-only-context";
 import type { HarmonyAuditEvent } from "./harmony-leak";

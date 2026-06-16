@@ -1,5 +1,5 @@
-import type { ThinkingLevel } from "@gajae-code/agent-core";
-import type { Effort } from "@gajae-code/ai";
+import type { ThinkingLevel } from "@jawcode-dev/agent-core";
+import type { Effort } from "@jawcode-dev/ai";
 import {
 	Container,
 	Input,
@@ -12,7 +12,7 @@ import {
 	type Tab,
 	TabBar,
 	Text,
-} from "@gajae-code/tui";
+} from "@jawcode-dev/tui";
 import { type SettingPath, settings } from "../../config/settings";
 import type {
 	SettingTab,

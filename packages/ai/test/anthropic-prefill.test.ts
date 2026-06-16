@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { convertAnthropicMessages } from "@gajae-code/ai/providers/anthropic";
-import { transformMessages } from "@gajae-code/ai/providers/transform-messages";
-import type { AssistantMessage, Model, UserMessage } from "@gajae-code/ai/types";
+import { convertAnthropicMessages } from "@jawcode-dev/ai/providers/anthropic";
+import { transformMessages } from "@jawcode-dev/ai/providers/transform-messages";
+import type { AssistantMessage, Model, UserMessage } from "@jawcode-dev/ai/types";
 
 /**
  * Regression: some Anthropic-routed models reject "assistant prefill" requests

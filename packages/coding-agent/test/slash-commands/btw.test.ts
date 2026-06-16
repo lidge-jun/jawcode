@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "bun:test";
-import type { InteractiveModeContext } from "@gajae-code/coding-agent/modes/types";
-import { executeBuiltinSlashCommand } from "@gajae-code/coding-agent/slash-commands/builtin-registry";
+import type { InteractiveModeContext } from "@jawcode-dev/coding-agent/modes/types";
+import { executeBuiltinSlashCommand } from "@jawcode-dev/coding-agent/slash-commands/builtin-registry";
 
 function createRuntime() {
 	const handleBtwCommand = vi.fn(async () => {});

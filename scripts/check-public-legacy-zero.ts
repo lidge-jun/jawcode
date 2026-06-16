@@ -13,14 +13,14 @@ const repoRoot = process.cwd();
 const cliJawRoot = process.env.CLI_JAW_REPO ?? path.resolve(repoRoot, "../cli-jaw");
 
 const forbidden = [
-	"gajae-code",
+	"jawcode",
 	"Gajae-Code",
 	"Gajae forge",
-	"@gajae-code",
+	"@jawcode",
 	"gaebal-gajae",
-	"gajae-ai/gajae-code",
-	"can1357/gajae-code",
-	"Yeachan-Heo/gajae-code",
+	"lidge-jun/jawcode",
+	"lidge-jun/jawcode",
+	"lidge-jun/jawcode",
 	"GJC_BRAND_NAME",
 	"GJC_COORDINATOR",
 	"GJC_HARNESS",
@@ -98,12 +98,12 @@ function scanPublicFile(root: string, relativePath: string, prefix: string): Fin
 		}
 	}
 	return findings.filter(finding => {
-		// Allow @gajae-code imports in jwc package entrypoints
+		// Allow @jawcode imports in jwc package entrypoints
 		if (
 			prefix === "jawcode" &&
 			(finding.path.endsWith("packages/jwc/bin/jwc.js") ||
 				finding.path.endsWith("packages/jwc/src/cli-entry.ts")) &&
-			(finding.token === "@gajae-code" || finding.token === "gajae-code")
+			(finding.token === "@jawcode" || finding.token === "jawcode")
 		) {
 			return false;
 		}

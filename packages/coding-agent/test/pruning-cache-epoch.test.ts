@@ -1,17 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { Agent } from "@gajae-code/agent-core";
-import type { AssistantMessage, ToolResultMessage } from "@gajae-code/ai";
-import { getBundledModel } from "@gajae-code/ai/models";
-import { ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { loadExtensions } from "@gajae-code/coding-agent/extensibility/extensions/loader";
-import { ExtensionRunner } from "@gajae-code/coding-agent/extensibility/extensions/runner";
-import { AgentSession } from "@gajae-code/coding-agent/session/agent-session";
-import { AuthStorage } from "@gajae-code/coding-agent/session/auth-storage";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { getProjectAgentDir, TempDir } from "@gajae-code/utils";
+import { Agent } from "@jawcode-dev/agent-core";
+import type { AssistantMessage, ToolResultMessage } from "@jawcode-dev/ai";
+import { getBundledModel } from "@jawcode-dev/ai/models";
+import { ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { loadExtensions } from "@jawcode-dev/coding-agent/extensibility/extensions/loader";
+import { ExtensionRunner } from "@jawcode-dev/coding-agent/extensibility/extensions/runner";
+import { AgentSession } from "@jawcode-dev/coding-agent/session/agent-session";
+import { AuthStorage } from "@jawcode-dev/coding-agent/session/auth-storage";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { getProjectAgentDir, TempDir } from "@jawcode-dev/utils";
 
 /**
  * Cache-epoch invariant regression tests for tool-output pruning.

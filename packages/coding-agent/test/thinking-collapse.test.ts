@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import type { AssistantMessage } from "@gajae-code/ai";
-import { resetSettingsForTest, Settings } from "@gajae-code/coding-agent/config/settings";
-import { AssistantMessageComponent } from "@gajae-code/coding-agent/modes/components/assistant-message";
-import { initTheme } from "@gajae-code/coding-agent/modes/theme/theme";
+import type { AssistantMessage } from "@jawcode-dev/ai";
+import { resetSettingsForTest, Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { AssistantMessageComponent } from "@jawcode-dev/coding-agent/modes/components/assistant-message";
+import { initTheme } from "@jawcode-dev/coding-agent/modes/theme/theme";
 
 /**
  * Thinking block collapse (devlog 083.5): completed thinking blocks render as

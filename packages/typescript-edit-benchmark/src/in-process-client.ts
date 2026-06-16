@@ -5,9 +5,9 @@
  * Eliminates ~2-3s CLI startup overhead per task by creating sessions
  * in-process and sharing auth/model infrastructure across tasks.
  */
-import type { AgentEvent, AgentMessage, ResolvedThinkingLevel, ThinkingLevel } from "@gajae-code/agent-core";
-import type { Model } from "@gajae-code/ai";
-import type { AgentSession, AgentSessionEvent, AuthStorage, SessionStats } from "@gajae-code/coding-agent";
+import type { AgentEvent, AgentMessage, ResolvedThinkingLevel, ThinkingLevel } from "@jawcode-dev/agent-core";
+import type { Model } from "@jawcode-dev/ai";
+import type { AgentSession, AgentSessionEvent, AuthStorage, SessionStats } from "@jawcode-dev/coding-agent";
 import {
 	type CreateAgentSessionResult,
 	createAgentSession,
@@ -15,7 +15,7 @@ import {
 	type ModelRegistry,
 	SessionManager,
 	Settings,
-} from "@gajae-code/coding-agent";
+} from "@jawcode-dev/coding-agent";
 
 export type InProcessEventListener = (event: AgentEvent) => void;
 
@@ -49,7 +49,7 @@ export interface DiscoverSharedInfraOptions {
 
 /** Discover shared infrastructure once for the entire benchmark run. */
 export async function discoverSharedInfra(options: DiscoverSharedInfraOptions = {}): Promise<SharedInfra> {
-	const { ModelRegistry: MR } = await import("@gajae-code/coding-agent");
+	const { ModelRegistry: MR } = await import("@jawcode-dev/coding-agent");
 	const authStorage = await discoverAuthStorage();
 	const modelRegistry = new MR(authStorage);
 

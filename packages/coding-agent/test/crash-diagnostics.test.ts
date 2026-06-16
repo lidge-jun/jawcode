@@ -6,8 +6,8 @@ import {
 	classifyProcessCrash,
 	formatCrashDiagnosticNotice,
 	writeCrashReport,
-} from "@gajae-code/coding-agent/debug/crash-diagnostics";
-import { executeBash } from "@gajae-code/coding-agent/exec/bash-executor";
+} from "@jawcode-dev/coding-agent/debug/crash-diagnostics";
+import { executeBash } from "@jawcode-dev/coding-agent/exec/bash-executor";
 
 const tempDirs: string[] = [];
 

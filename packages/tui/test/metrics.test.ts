@@ -9,8 +9,8 @@ import {
 	RenderMetrics,
 	resolvePerfLogPath,
 	serializePerfEvent,
-} from "@gajae-code/tui/metrics";
-import { getLogsDir } from "@gajae-code/utils";
+} from "@jawcode-dev/tui/metrics";
+import { getLogsDir } from "@jawcode-dev/utils";
 
 describe("RenderMetrics", () => {
 	it("is a no-op when disabled (negligible default overhead)", () => {

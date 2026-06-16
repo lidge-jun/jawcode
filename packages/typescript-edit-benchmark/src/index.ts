@@ -11,10 +11,10 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { parseArgs } from "node:util";
-import { type ResolvedThinkingLevel, ThinkingLevel } from "@gajae-code/agent-core";
-import { Effort, THINKING_EFFORTS } from "@gajae-code/ai";
-import { padding, visibleWidth } from "@gajae-code/tui";
-import { postmortem, TempDir } from "@gajae-code/utils";
+import { type ResolvedThinkingLevel, ThinkingLevel } from "@jawcode-dev/agent-core";
+import { Effort, THINKING_EFFORTS } from "@jawcode-dev/ai";
+import { padding, visibleWidth } from "@jawcode-dev/tui";
+import { postmortem, TempDir } from "@jawcode-dev/utils";
 import { generateJsonReport, generateReport } from "./report";
 import {
 	type BenchmarkConfig,

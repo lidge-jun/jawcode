@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { UsageProvider } from "@gajae-code/ai";
-import * as oauth from "@gajae-code/ai/utils/oauth";
-import type { OAuthCredentials } from "@gajae-code/ai/utils/oauth/types";
-import { AuthStorage } from "@gajae-code/coding-agent/session/auth-storage";
-import { Snowflake } from "@gajae-code/utils";
+import type { UsageProvider } from "@jawcode-dev/ai";
+import * as oauth from "@jawcode-dev/ai/utils/oauth";
+import type { OAuthCredentials } from "@jawcode-dev/ai/utils/oauth/types";
+import { AuthStorage } from "@jawcode-dev/coding-agent/session/auth-storage";
+import { Snowflake } from "@jawcode-dev/utils";
 
 describe("AuthStorage account rotation", () => {
 	let tempDir: string;

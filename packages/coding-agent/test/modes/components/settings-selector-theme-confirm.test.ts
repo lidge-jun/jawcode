@@ -1,8 +1,8 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "bun:test";
-import type { SettingPath } from "@gajae-code/coding-agent/config/settings";
-import { resetSettingsForTest, Settings, settings } from "@gajae-code/coding-agent/config/settings";
-import { SettingsSelectorComponent } from "@gajae-code/coding-agent/modes/components/settings-selector";
-import { initTheme } from "@gajae-code/coding-agent/modes/theme/theme";
+import type { SettingPath } from "@jawcode-dev/coding-agent/config/settings";
+import { resetSettingsForTest, Settings, settings } from "@jawcode-dev/coding-agent/config/settings";
+import { SettingsSelectorComponent } from "@jawcode-dev/coding-agent/modes/components/settings-selector";
+import { initTheme } from "@jawcode-dev/coding-agent/modes/theme/theme";
 
 const THEMES = ["red-claw", "blue-crab"];
 

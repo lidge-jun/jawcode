@@ -163,7 +163,7 @@ console.log(
 		{
 			schemaVersion: 1,
 			command: "bun packages/ai/bench/event-stream.ts",
-			package: "@gajae-code/ai",
+			package: "@jawcode-dev/ai",
 			bench: "event-stream",
 			fixture: "10K-and-100K-event-stream-scenarios",
 			fixtureDimensions: { fixtures: [...FIXTURES], scenarios },

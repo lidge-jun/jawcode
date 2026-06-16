@@ -2,10 +2,10 @@
  * Generate commit messages from diffs using the default model.
  * Follows the same pattern as title-generator.ts.
  */
-import type { ThinkingLevel } from "@gajae-code/agent-core";
-import type { Api, Model } from "@gajae-code/ai";
-import { completeSimple } from "@gajae-code/ai";
-import { logger, prompt } from "@gajae-code/utils";
+import type { ThinkingLevel } from "@jawcode-dev/agent-core";
+import type { Api, Model } from "@jawcode-dev/ai";
+import { completeSimple } from "@jawcode-dev/ai";
+import { logger, prompt } from "@jawcode-dev/utils";
 import type { ModelRegistry } from "../config/model-registry";
 import { resolveModelRoleValue } from "../config/model-resolver";
 import type { Settings } from "../config/settings";

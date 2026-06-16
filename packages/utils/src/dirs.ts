@@ -1,5 +1,5 @@
 /**
- * Centralized path helpers for gajae-code config directories.
+ * Centralized path helpers for jawcode config directories.
  *
  * Uses PI_CONFIG_DIR (default ".jwc") for the config root and
  * PI_CODING_AGENT_DIR to override the agent directory.
@@ -131,7 +131,7 @@ export function getConfigAgentDirName(): string {
 type XdgCategory = "data" | "state" | "cache";
 
 /**
- * Resolves and caches all gajae-code directory paths. On Linux, when XDG environment
+ * Resolves and caches all jawcode directory paths. On Linux, when XDG environment
  * variables are set, paths are redirected under $XDG_*_HOME/gjc/. A new
  * instance is created whenever the agent directory changes, which naturally
  * invalidates all cached paths.

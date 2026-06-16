@@ -2,9 +2,9 @@ import { afterEach, describe, expect, test, vi } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { type AgentTool, INTENT_FIELD } from "@gajae-code/agent-core";
-import { buildSystemPrompt, buildSystemPromptToolMetadata } from "@gajae-code/coding-agent/system-prompt";
-import { prompt } from "@gajae-code/utils";
+import { type AgentTool, INTENT_FIELD } from "@jawcode-dev/agent-core";
+import { buildSystemPrompt, buildSystemPromptToolMetadata } from "@jawcode-dev/coding-agent/system-prompt";
+import { prompt } from "@jawcode-dev/utils";
 import Handlebars from "handlebars";
 import * as z from "zod/v4";
 

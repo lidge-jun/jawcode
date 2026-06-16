@@ -1,5 +1,5 @@
 {
-  "kind": "gajae-code-plugin",
+  "kind": "jawcode-plugin",
   "name": "invalid-phase",
   "version": "1.0.0",
   "subskills": ["subskills/badphase/SKILL.md"],

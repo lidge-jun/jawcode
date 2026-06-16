@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { Args } from "@gajae-code/coding-agent/cli/args";
+import type { Args } from "@jawcode-dev/coding-agent/cli/args";
 import {
 	applyJwcTmuxProfile,
 	buildDefaultTmuxLaunchPlan,
@@ -8,7 +8,7 @@ import {
 	GJC_TMUX_SESSION_PREFIX,
 	launchDefaultTmuxIfNeeded,
 	type TmuxSpawnOptions,
-} from "@gajae-code/coding-agent/jwc-runtime/launch-tmux";
+} from "@jawcode-dev/coding-agent/jwc-runtime/launch-tmux";
 
 function args(overrides: Partial<Args> = {}): Args {
 	return {

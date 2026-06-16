@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import * as path from "node:path";
-import type { AssistantMessage, Context, SimpleStreamOptions } from "@gajae-code/ai";
-import * as ai from "@gajae-code/ai";
-import { TempDir } from "@gajae-code/utils";
+import type { AssistantMessage, Context, SimpleStreamOptions } from "@jawcode-dev/ai";
+import * as ai from "@jawcode-dev/ai";
+import { TempDir } from "@jawcode-dev/utils";
 import { Settings } from "../src/config/settings";
 import { createAgentSession } from "../src/sdk";
 import type { AgentSession } from "../src/session/agent-session";

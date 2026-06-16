@@ -3,9 +3,9 @@ import { HookEditorComponent, HookInputComponent, HookSelectorComponent } from "
 // Core session management
 
 // Re-export TUI components for custom tool rendering
-export { Container, Markdown, Spacer, Text } from "@gajae-code/tui";
+export { Container, Markdown, Spacer, Text } from "@jawcode-dev/tui";
 // Logging
-export { getAgentDir, logger, VERSION } from "@gajae-code/utils";
+export { getAgentDir, logger, VERSION } from "@jawcode-dev/utils";
 export * from "./config/keybindings";
 export * from "./config/model-registry";
 // Prompt templates

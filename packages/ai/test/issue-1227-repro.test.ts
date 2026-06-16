@@ -16,9 +16,9 @@
  * requires when tool history is present.
  */
 import { describe, expect, it } from "bun:test";
-import { getBundledModel } from "@gajae-code/ai/models";
-import { streamOpenAICompletions } from "@gajae-code/ai/providers/openai-completions";
-import type { AssistantMessage, Context, Model, Tool } from "@gajae-code/ai/types";
+import { getBundledModel } from "@jawcode-dev/ai/models";
+import { streamOpenAICompletions } from "@jawcode-dev/ai/providers/openai-completions";
+import type { AssistantMessage, Context, Model, Tool } from "@jawcode-dev/ai/types";
 import * as z from "zod/v4";
 
 function abortedSignal(): AbortSignal {

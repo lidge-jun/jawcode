@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { applyDisabledExtensionsToState } from "@gajae-code/coding-agent/modes/components/extensions/state-manager";
-import type { DashboardState, Extension } from "@gajae-code/coding-agent/modes/components/extensions/types";
+import { applyDisabledExtensionsToState } from "@jawcode-dev/coding-agent/modes/components/extensions/state-manager";
+import type { DashboardState, Extension } from "@jawcode-dev/coding-agent/modes/components/extensions/types";
 
 function extension(overrides: Partial<Extension> & Pick<Extension, "id">): Extension {
 	return {

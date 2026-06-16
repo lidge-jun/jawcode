@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { LoadContext } from "@gajae-code/coding-agent/capability/types";
-import { getConfigDirs } from "@gajae-code/coding-agent/config";
-import { getUserPath } from "@gajae-code/coding-agent/discovery/helpers";
+import type { LoadContext } from "@jawcode-dev/coding-agent/capability/types";
+import { getConfigDirs } from "@jawcode-dev/coding-agent/config";
+import { getUserPath } from "@jawcode-dev/coding-agent/discovery/helpers";
 
 describe("PI_CONFIG_DIR", () => {
 	const original = process.env.PI_CONFIG_DIR;

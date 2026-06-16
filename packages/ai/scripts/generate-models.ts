@@ -10,7 +10,7 @@ const COPILOT_PREMIUM_MULTIPLIERS: Record<string, number> = {
 };
 
 import * as path from "node:path";
-import { $env } from "@gajae-code/utils";
+import { $env } from "@jawcode-dev/utils";
 import { AuthStorage, type OAuthAccess, SqliteAuthCredentialStore } from "../src/auth-storage";
 import { createModelManager } from "../src/model-manager";
 import {

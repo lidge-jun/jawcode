@@ -1,7 +1,7 @@
 /**
  * View usage statistics dashboard.
  */
-import { Command, Flags } from "@gajae-code/utils/cli";
+import { Command, Flags } from "@jawcode-dev/utils/cli";
 import { runStatsCommand, type StatsCommandArgs } from "../cli/stats-cli";
 import { initTheme } from "../modes/theme/theme";
 

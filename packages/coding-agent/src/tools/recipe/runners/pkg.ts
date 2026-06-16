@@ -1,6 +1,6 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { $which, isEnoent, logger } from "@gajae-code/utils";
+import { $which, isEnoent, logger } from "@jawcode-dev/utils";
 import type { DetectedRunner, RunnerTask, TaskRunner } from "../runner";
 
 interface PackageJsonInfo {

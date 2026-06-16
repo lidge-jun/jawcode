@@ -1,14 +1,14 @@
 import { describe, expect, it } from "bun:test";
 import * as os from "node:os";
 import * as path from "node:path";
-import { getThemeByName } from "@gajae-code/coding-agent/modes/theme/theme";
+import { getThemeByName } from "@jawcode-dev/coding-agent/modes/theme/theme";
 import {
 	dedupeParseErrors,
 	formatCodeFrameLine,
 	formatDiagnostics,
 	formatParseErrors,
 	formatScreenshot,
-} from "@gajae-code/coding-agent/tools/render-utils";
+} from "@jawcode-dev/coding-agent/tools/render-utils";
 
 describe("parse error formatting", () => {
 	it("deduplicates parse errors while preserving order", () => {

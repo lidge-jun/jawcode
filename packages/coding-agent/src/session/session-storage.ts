@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
 import * as path from "node:path";
-import { isEnoent, peekFile, toError } from "@gajae-code/utils";
+import { isEnoent, peekFile, toError } from "@jawcode-dev/utils";
 
 const utf8Decoder = new TextDecoder("utf-8");
 

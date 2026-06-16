@@ -1,5 +1,5 @@
-import { APP_NAME } from "@gajae-code/utils";
-import { Command, Flags } from "@gajae-code/utils/cli";
+import { APP_NAME } from "@jawcode-dev/utils";
+import { Command, Flags } from "@jawcode-dev/utils/cli";
 import { runNativeChatCommand } from "../jwc-runtime/memory-runtime";
 
 export default class Chat extends Command {

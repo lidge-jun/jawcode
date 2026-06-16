@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { AssistantMessage } from "@gajae-code/ai";
-import { isContextOverflow } from "@gajae-code/ai/utils/overflow";
+import type { AssistantMessage } from "@jawcode-dev/ai";
+import { isContextOverflow } from "@jawcode-dev/ai/utils/overflow";
 
 function createErrorMessage(errorMessage: string): AssistantMessage {
 	return {

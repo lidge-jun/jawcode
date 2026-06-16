@@ -1,9 +1,9 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
 import * as path from "node:path";
-import type { AgentTool, AgentToolResult } from "@gajae-code/agent-core";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import type { ToolSession } from "@gajae-code/coding-agent/tools";
-import { TempDir } from "@gajae-code/utils";
+import type { AgentTool, AgentToolResult } from "@jawcode-dev/agent-core";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import type { ToolSession } from "@jawcode-dev/coding-agent/tools";
+import { TempDir } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import { disposeAllVmContexts } from "../../src/eval/js/context-manager";
 import { executeJs, type JsResult } from "../../src/eval/js/executor";

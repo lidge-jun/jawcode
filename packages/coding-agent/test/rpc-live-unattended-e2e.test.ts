@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
-import { RpcClient } from "@gajae-code/coding-agent/modes/rpc/rpc-client";
+import { RpcClient } from "@jawcode-dev/coding-agent/modes/rpc/rpc-client";
 import type {
 	RpcExtensionUIRequest,
 	RpcUnattendedDeclaration,
 	RpcWorkflowGate,
-} from "@gajae-code/coding-agent/modes/rpc/rpc-types";
+} from "@jawcode-dev/coding-agent/modes/rpc/rpc-types";
 import { createHarnessCliEnv, type HarnessCliEnv } from "./harness-control-plane/cli-workspace-env";
 import { e2eApiKey } from "./utilities";
 

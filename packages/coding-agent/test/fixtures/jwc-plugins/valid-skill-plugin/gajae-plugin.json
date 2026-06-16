@@ -1,5 +1,5 @@
 {
-  "kind": "gajae-code-plugin",
+  "kind": "jawcode-plugin",
   "name": "valid-skill-plugin",
   "version": "1.0.0",
   "subskills": ["subskills/design/SKILL.md"],

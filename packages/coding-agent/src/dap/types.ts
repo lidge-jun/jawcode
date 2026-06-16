@@ -1,4 +1,4 @@
-import type { ptree } from "@gajae-code/utils";
+import type { ptree } from "@jawcode-dev/utils";
 
 export type DapMessage = DapRequestMessage | DapResponseMessage | DapEventMessage;
 export type DapSessionStatus = "launching" | "configuring" | "stopped" | "running" | "terminated";

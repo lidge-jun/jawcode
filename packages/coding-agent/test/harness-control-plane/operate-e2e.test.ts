@@ -104,7 +104,7 @@ function baseOpts(observer: () => Promise<Observation>) {
 				createdAt: new Date().toISOString(),
 				severity,
 				kind,
-				state: { sessionId: SID, lifecycle, harness: "gajae-code", ownerLive: true, blockers },
+				state: { sessionId: SID, lifecycle, harness: "jawcode", ownerLive: true, blockers },
 				evidence,
 				nextAllowedActions: nextAllowedActions(lifecycle, true),
 				writer: { ownerId: "test-owner", leaseEpoch: 1 },

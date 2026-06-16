@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import * as path from "node:path";
-import { TempDir } from "@gajae-code/utils";
+import { TempDir } from "@jawcode-dev/utils";
 import type { Args } from "../src/cli/args";
 import { Settings } from "../src/config/settings";
 import { MCPManager, type MCPToolsLoadResult } from "../src/runtime-mcp";

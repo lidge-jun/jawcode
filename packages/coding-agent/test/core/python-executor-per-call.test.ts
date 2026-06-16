@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { executePython } from "@gajae-code/coding-agent/eval/py/executor";
-import type { KernelExecuteOptions, KernelExecuteResult } from "@gajae-code/coding-agent/eval/py/kernel";
-import { PythonKernel } from "@gajae-code/coding-agent/eval/py/kernel";
-import { TempDir } from "@gajae-code/utils";
+import { executePython } from "@jawcode-dev/coding-agent/eval/py/executor";
+import type { KernelExecuteOptions, KernelExecuteResult } from "@jawcode-dev/coding-agent/eval/py/kernel";
+import { PythonKernel } from "@jawcode-dev/coding-agent/eval/py/kernel";
+import { TempDir } from "@jawcode-dev/utils";
 
 interface KernelStub {
 	execute: (code: string, options?: KernelExecuteOptions) => Promise<KernelExecuteResult>;

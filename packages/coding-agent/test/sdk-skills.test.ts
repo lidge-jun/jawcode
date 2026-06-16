@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { DEFAULT_JWC_DEFINITION_NAMES } from "@gajae-code/coding-agent/defaults/jwc-defaults";
-import type { Skill } from "@gajae-code/coding-agent/sdk";
-import { createAgentSession } from "@gajae-code/coding-agent/sdk";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import { buildSystemPrompt } from "@gajae-code/coding-agent/system-prompt";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { DEFAULT_JWC_DEFINITION_NAMES } from "@jawcode-dev/coding-agent/defaults/jwc-defaults";
+import type { Skill } from "@jawcode-dev/coding-agent/sdk";
+import { createAgentSession } from "@jawcode-dev/coding-agent/sdk";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import { buildSystemPrompt } from "@jawcode-dev/coding-agent/system-prompt";
 import { cleanupTempHome } from "./helpers/temp-home-cleanup";
 
 function createIsolatedSkillsSettings(): Settings {

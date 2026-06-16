@@ -2,9 +2,9 @@
  * Root command for the coding agent CLI.
  */
 
-import { THINKING_EFFORTS } from "@gajae-code/ai";
-import { APP_NAME, setProjectDir } from "@gajae-code/utils";
-import { Args, Command, Flags } from "@gajae-code/utils/cli";
+import { THINKING_EFFORTS } from "@jawcode-dev/ai";
+import { APP_NAME, setProjectDir } from "@jawcode-dev/utils";
+import { Args, Command, Flags } from "@jawcode-dev/utils/cli";
 import { parseArgs } from "../cli/args";
 import { launchDefaultTmuxIfNeeded } from "../jwc-runtime/launch-tmux";
 import { prepareLaunchWorktree } from "../jwc-runtime/launch-worktree";

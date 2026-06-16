@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { discoverAndLoadExtensions } from "@gajae-code/coding-agent/extensibility/extensions/loader";
+import { discoverAndLoadExtensions } from "@jawcode-dev/coding-agent/extensibility/extensions/loader";
 
 const TOOL_NAME = "legacy-multi-file-tool";
 

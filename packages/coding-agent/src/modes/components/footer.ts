@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
-import { ThinkingLevel } from "@gajae-code/agent-core";
-import { type Component, padding, truncateToWidth, visibleWidth } from "@gajae-code/tui";
-import { formatNumber, getProjectDir } from "@gajae-code/utils";
+import { ThinkingLevel } from "@jawcode-dev/agent-core";
+import { type Component, padding, truncateToWidth, visibleWidth } from "@jawcode-dev/tui";
+import { formatNumber, getProjectDir } from "@jawcode-dev/utils";
 import { theme } from "../../modes/theme/theme";
 import type { AgentSession } from "../../session/agent-session";
 import { shortenPath } from "../../tools/render-utils";

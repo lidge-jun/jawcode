@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { ImageProtocol, setTerminalImageProtocol, TERMINAL, TUI } from "@gajae-code/tui";
+import { ImageProtocol, setTerminalImageProtocol, TERMINAL, TUI } from "@jawcode-dev/tui";
 import { VirtualTerminal } from "./virtual-terminal";
 
 type MutableTerminalInfo = {

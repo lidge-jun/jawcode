@@ -12,7 +12,7 @@ import {
 	padding,
 	truncateToWidth,
 	visibleWidth,
-} from "@gajae-code/tui";
+} from "@jawcode-dev/tui";
 import { isProviderEnabled } from "../../../discovery";
 import { theme } from "../../../modes/theme/theme";
 import { applyFilter } from "./state-manager";

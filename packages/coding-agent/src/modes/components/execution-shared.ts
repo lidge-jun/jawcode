@@ -7,7 +7,7 @@
  * stay in their respective files.
  */
 
-import { type Component, Container, Loader, Spacer, Text, type TUI } from "@gajae-code/tui";
+import { type Component, Container, Loader, Spacer, Text, type TUI } from "@jawcode-dev/tui";
 import { getSymbolTheme, theme } from "../../modes/theme/theme";
 import { formatTruncationMetaNotice, type TruncationMeta } from "../../tools/output-meta";
 import { DynamicBorder } from "./dynamic-border";

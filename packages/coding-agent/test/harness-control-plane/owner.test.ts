@@ -45,12 +45,12 @@ let owner: RuntimeOwner | null = null;
 
 function seedState(workspace: string): SessionState {
 	const now = new Date().toISOString();
-	const handle = { sessionId: SID, harness: "gajae-code", workspace, branch: "feat/x" } as SessionHandle;
+	const handle = { sessionId: SID, harness: "jawcode", workspace, branch: "feat/x" } as SessionHandle;
 	return {
 		schemaVersion: SESSION_SCHEMA_VERSION,
 		sessionId: SID,
 		lifecycle: "started",
-		harness: "gajae-code",
+		harness: "jawcode",
 		handle,
 		retries: {},
 		blockers: [],

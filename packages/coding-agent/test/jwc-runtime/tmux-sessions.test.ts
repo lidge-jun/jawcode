@@ -3,7 +3,7 @@ import {
 	listJwcTmuxSessions,
 	removeJwcTmuxSession,
 	statusJwcTmuxSession,
-} from "@gajae-code/coding-agent/jwc-runtime/tmux-sessions";
+} from "@jawcode-dev/coding-agent/jwc-runtime/tmux-sessions";
 
 type SpawnSyncResult = Bun.SyncSubprocess<"pipe", "pipe">;
 type SpawnSyncSpy = { mockImplementation(implementation: (command: string[]) => SpawnSyncResult): void };

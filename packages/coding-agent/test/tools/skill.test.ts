@@ -3,13 +3,13 @@ import * as fs from "node:fs/promises";
 import { mkdtemp, writeFile } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { Model } from "@gajae-code/ai";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import type { Skill } from "@gajae-code/coding-agent/extensibility/skills";
-import { SKILL_PROMPT_MESSAGE_TYPE } from "@gajae-code/coding-agent/session/messages";
-import type { ToolSession } from "@gajae-code/coding-agent/tools";
-import { SkillTool } from "@gajae-code/coding-agent/tools/skill";
-import { ToolError } from "@gajae-code/coding-agent/tools/tool-errors";
+import type { Model } from "@jawcode-dev/ai";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import type { Skill } from "@jawcode-dev/coding-agent/extensibility/skills";
+import { SKILL_PROMPT_MESSAGE_TYPE } from "@jawcode-dev/coding-agent/session/messages";
+import type { ToolSession } from "@jawcode-dev/coding-agent/tools";
+import { SkillTool } from "@jawcode-dev/coding-agent/tools/skill";
+import { ToolError } from "@jawcode-dev/coding-agent/tools/tool-errors";
 
 async function makeSkill(name: string, content: string): Promise<Skill> {
 	const dir = await mkdtemp(path.join(os.tmpdir(), `skill-tool-${name}-`));

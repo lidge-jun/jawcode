@@ -3,8 +3,8 @@
  *
  * Agents are embedded at build time via Bun's import with { type: "text" }.
  */
-import { Effort } from "@gajae-code/ai";
-import { parseFrontmatter, prompt } from "@gajae-code/utils";
+import { Effort } from "@jawcode-dev/ai";
+import { parseFrontmatter, prompt } from "@jawcode-dev/utils";
 import { parseAgentFields } from "../discovery/helpers";
 import architectMd from "../prompts/agents/architect.md" with { type: "text" };
 import criticMd from "../prompts/agents/critic.md" with { type: "text" };

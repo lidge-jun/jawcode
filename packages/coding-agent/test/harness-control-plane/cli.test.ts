@@ -114,7 +114,7 @@ async function appendSignal(sessionId: string, cursor: number, signal: string): 
 		createdAt: `2026-06-03T00:00:0${cursor}.000Z`,
 		severity: "info",
 		kind: `rpc_${signal.replaceAll("-", "_")}`,
-		state: { sessionId, lifecycle: "observing", harness: "gajae-code", ownerLive: true, blockers: [] },
+		state: { sessionId, lifecycle: "observing", harness: "jawcode", ownerLive: true, blockers: [] },
 		evidence: { signal },
 		nextAllowedActions: [],
 		writer: { ownerId: "owner-exited", leaseEpoch: 1 },
@@ -127,8 +127,8 @@ describe("gjc harness CLI (foundation)", () => {
 		try {
 			const packageDir = path.join(fakeRepo, "packages", "ai");
 			await mkdir(packageDir, { recursive: true });
-			await writeFile(path.join(packageDir, "package.json"), JSON.stringify({ name: "@gajae-code/ai" }), "utf8");
-			const linkPath = path.join(fakeRepo, "node_modules", "@gajae-code", "ai");
+			await writeFile(path.join(packageDir, "package.json"), JSON.stringify({ name: "@jawcode-dev/ai" }), "utf8");
+			const linkPath = path.join(fakeRepo, "node_modules", "@jawcode", "ai");
 
 			const first = createHarnessCliEnv(fakeRepo, {} as NodeJS.ProcessEnv);
 			const second = createHarnessCliEnv(fakeRepo, {} as NodeJS.ProcessEnv);
@@ -153,13 +153,13 @@ describe("gjc harness CLI (foundation)", () => {
 		const res = runHarness([
 			"preflight",
 			"--input",
-			JSON.stringify({ harness: "gajae-code", workspace, branch: "gajae-code-pr-265-review", issueOrPr: "PR-265" }),
+			JSON.stringify({ harness: "jawcode", workspace, branch: "jawcode-pr-265-review", issueOrPr: "PR-265" }),
 		]);
 		expect(res.code).toBe(1);
 		expect(res.json.ok).toBe(false);
 		expect(res.json.evidence.preflight.blockers).toContain("branch-mismatch");
 		expect(res.json.evidence.preflight.actualBranch).toBe("feature/harness");
-		expect(res.json.evidence.preflight.declaredBranch).toBe("gajae-code-pr-265-review");
+		expect(res.json.evidence.preflight.declaredBranch).toBe("jawcode-pr-265-review");
 		expect(res.json.evidence.preflight.normalizedIssueOrPr).toBe("265");
 	});
 
@@ -171,13 +171,13 @@ describe("gjc harness CLI (foundation)", () => {
 			"#265",
 			"PR-265",
 			"pr_265",
-			"Yeachan-Heo/gajae-code#265",
-			"https://github.com/Yeachan-Heo/gajae-code/pull/265",
+			"lidge-jun/jawcode#265",
+			"https://github.com/lidge-jun/jawcode/pull/265",
 		]) {
 			const res = runHarness([
 				"preflight",
 				"--input",
-				JSON.stringify({ harness: "gajae-code", workspace, issueOrPr }),
+				JSON.stringify({ harness: "jawcode", workspace, issueOrPr }),
 			]);
 			expect(res.code).toBe(0);
 			expect(res.json.evidence.preflight.normalizedIssueOrPr).toBe("265");
@@ -186,7 +186,7 @@ describe("gjc harness CLI (foundation)", () => {
 		const bad = runHarness([
 			"preflight",
 			"--input",
-			JSON.stringify({ harness: "gajae-code", workspace, issueOrPr: "pr-2725-recovery" }),
+			JSON.stringify({ harness: "jawcode", workspace, issueOrPr: "pr-2725-recovery" }),
 		]);
 		expect(bad.code).toBe(1);
 		expect(bad.json.evidence.preflight.blockers).toContain("invalid_issue_or_pr:pr-2725-recovery");
@@ -198,7 +198,7 @@ describe("gjc harness CLI (foundation)", () => {
 		const res = runHarness([
 			"start",
 			"--input",
-			JSON.stringify({ harness: "gajae-code", workspace, branch, issueOrPr: "owner/repo#266" }),
+			JSON.stringify({ harness: "jawcode", workspace, branch, issueOrPr: "owner/repo#266" }),
 		]);
 		expect(res.code).toBe(0);
 		expect(res.json.evidence.handle.branch).toBe(branch);
@@ -210,7 +210,7 @@ describe("gjc harness CLI (foundation)", () => {
 		await initCleanGitWorkspace();
 		const siblingCwd = await mkdtemp(path.join(tmpdir(), "harness-cli-other-cwd-"));
 		try {
-			const started = runHarness(["start", "--input", JSON.stringify({ harness: "gajae-code", workspace: "." })]);
+			const started = runHarness(["start", "--input", JSON.stringify({ harness: "jawcode", workspace: "." })]);
 			expect(started.code).toBe(0);
 			const sessionId = started.json.state.sessionId;
 			expect(started.json.evidence.handle.workspace).toBe(workspace);
@@ -236,7 +236,7 @@ describe("gjc harness CLI (foundation)", () => {
 	});
 
 	it("start creates a session and reports submit owner-not-live", () => {
-		const res = runHarness(["start", "--input", JSON.stringify({ harness: "gajae-code", workspace })]);
+		const res = runHarness(["start", "--input", JSON.stringify({ harness: "jawcode", workspace })]);
 		expect(res.code).toBe(0);
 		assertContract(res.json);
 		expect(res.json.ok).toBe(true);
@@ -247,7 +247,7 @@ describe("gjc harness CLI (foundation)", () => {
 		expect(submit.reason).toBe("owner-not-live");
 	});
 
-	it("rejects non-gajae-code harness as an unsupported v1 seam", () => {
+	it("rejects non-jawcode harness as an unsupported v1 seam", () => {
 		const res = runHarness(["start", "--input", JSON.stringify({ harness: "codex", workspace })]);
 		expect(res.code).toBe(1);
 		expect(res.json.ok).toBe(false);
@@ -255,7 +255,7 @@ describe("gjc harness CLI (foundation)", () => {
 	});
 
 	it("observe re-grabs the session by id (stateless re-acquire) and stays read-only", () => {
-		const started = runHarness(["start", "--input", JSON.stringify({ harness: "gajae-code", workspace })]);
+		const started = runHarness(["start", "--input", JSON.stringify({ harness: "jawcode", workspace })]);
 		const sessionId = started.json.evidence.handle.sessionId as string;
 		const res = runHarness(["observe", "--session", sessionId]);
 		expect(res.code).toBe(0);
@@ -273,7 +273,7 @@ describe("gjc harness CLI (foundation)", () => {
 		try {
 			const env = harnessEnvWithoutStateRoot();
 			const started = runHarnessInCwd(
-				["start", "--input", JSON.stringify({ harness: "gajae-code", workspace })],
+				["start", "--input", JSON.stringify({ harness: "jawcode", workspace })],
 				workspace,
 				env,
 			);
@@ -286,7 +286,7 @@ describe("gjc harness CLI (foundation)", () => {
 				createdAt: "2026-06-03T00:00:01.000Z",
 				severity: "info",
 				kind: "prompt_accepted",
-				state: { sessionId, lifecycle: "observing", harness: "gajae-code", ownerLive: true, blockers: [] },
+				state: { sessionId, lifecycle: "observing", harness: "jawcode", ownerLive: true, blockers: [] },
 				evidence: { signal: "prompt-accepted" },
 				nextAllowedActions: [],
 				writer: { ownerId: "owner-exited", leaseEpoch: 1 },
@@ -311,7 +311,7 @@ describe("gjc harness CLI (foundation)", () => {
 	});
 
 	it("observe exposes durable completion evidence after the owner has exited", async () => {
-		const started = runHarness(["start", "--input", JSON.stringify({ harness: "gajae-code", workspace })]);
+		const started = runHarness(["start", "--input", JSON.stringify({ harness: "jawcode", workspace })]);
 		const sessionId = started.json.evidence.handle.sessionId as string;
 		const state = await readSessionState(root, sessionId);
 		expect(state).toBeTruthy();
@@ -325,7 +325,7 @@ describe("gjc harness CLI (foundation)", () => {
 			createdAt: "2026-06-03T00:00:01.000Z",
 			severity: "info",
 			kind: "rpc_agent_completed",
-			state: { sessionId, lifecycle: "finalizing", harness: "gajae-code", ownerLive: true, blockers: [] },
+			state: { sessionId, lifecycle: "finalizing", harness: "jawcode", ownerLive: true, blockers: [] },
 			evidence: { signal: "completed", outcome: "completed" },
 			nextAllowedActions: [],
 			writer: { ownerId: "owner-exited", leaseEpoch: 1 },
@@ -350,7 +350,7 @@ describe("gjc harness CLI (foundation)", () => {
 
 	it("observe treats terminal rpc_agent_completed kind without completed signal as completed owner exit", async () => {
 		await initCleanGitWorkspace();
-		const started = runHarness(["start", "--input", JSON.stringify({ harness: "gajae-code", workspace })]);
+		const started = runHarness(["start", "--input", JSON.stringify({ harness: "jawcode", workspace })]);
 		const sessionId = started.json.evidence.handle.sessionId as string;
 		const state = await readSessionState(root, sessionId);
 		expect(state).toBeTruthy();
@@ -367,7 +367,7 @@ describe("gjc harness CLI (foundation)", () => {
 			createdAt: "2026-06-03T00:00:04.000Z",
 			severity: "info",
 			kind: "rpc_agent_completed",
-			state: { sessionId, lifecycle: "finalizing", harness: "gajae-code", ownerLive: true, blockers: [] },
+			state: { sessionId, lifecycle: "finalizing", harness: "jawcode", ownerLive: true, blockers: [] },
 			evidence: { outcome: "completed" },
 			nextAllowedActions: [],
 			writer: { ownerId: "owner-exited", leaseEpoch: 1 },
@@ -400,7 +400,7 @@ describe("gjc harness CLI (foundation)", () => {
 
 	it("observe treats clean completed owner exit as terminal recovery evidence", async () => {
 		await initCleanGitWorkspace();
-		const started = runHarness(["start", "--input", JSON.stringify({ harness: "gajae-code", workspace })]);
+		const started = runHarness(["start", "--input", JSON.stringify({ harness: "jawcode", workspace })]);
 		const sessionId = started.json.evidence.handle.sessionId as string;
 		const state = await readSessionState(root, sessionId);
 		expect(state).toBeTruthy();
@@ -415,7 +415,7 @@ describe("gjc harness CLI (foundation)", () => {
 			createdAt: "2026-06-03T00:00:01.000Z",
 			severity: "info",
 			kind: "rpc_agent_completed",
-			state: { sessionId, lifecycle: "finalizing", harness: "gajae-code", ownerLive: true, blockers: [] },
+			state: { sessionId, lifecycle: "finalizing", harness: "jawcode", ownerLive: true, blockers: [] },
 			evidence: { outcome: "completed" },
 			nextAllowedActions: [],
 			writer: { ownerId: "owner-exited", leaseEpoch: 1 },
@@ -437,7 +437,7 @@ describe("gjc harness CLI (foundation)", () => {
 
 	it("observe marks vanished owner after prompt/tool activity instead of silently observing clean worktree", async () => {
 		await initCleanGitWorkspace();
-		const started = runHarness(["start", "--input", JSON.stringify({ harness: "gajae-code", workspace })]);
+		const started = runHarness(["start", "--input", JSON.stringify({ harness: "jawcode", workspace })]);
 		const sessionId = started.json.evidence.handle.sessionId as string;
 		const state = await readSessionState(root, sessionId);
 		expect(state).toBeTruthy();
@@ -472,7 +472,7 @@ describe("gjc harness CLI (foundation)", () => {
 
 	it("recover without owner classifies vanished clean sessions instead of returning pending-only", async () => {
 		await initCleanGitWorkspace();
-		const started = runHarness(["start", "--input", JSON.stringify({ harness: "gajae-code", workspace })]);
+		const started = runHarness(["start", "--input", JSON.stringify({ harness: "jawcode", workspace })]);
 		const sessionId = started.json.evidence.handle.sessionId as string;
 		const state = await readSessionState(root, sessionId);
 		expect(state).toBeTruthy();
@@ -498,7 +498,7 @@ describe("gjc harness CLI (foundation)", () => {
 
 	it("recover without owner preserves vanish evidence and explains post-acceptance owner exit", async () => {
 		await initCleanGitWorkspace();
-		const started = runHarness(["start", "--input", JSON.stringify({ harness: "gajae-code", workspace })]);
+		const started = runHarness(["start", "--input", JSON.stringify({ harness: "jawcode", workspace })]);
 		const sessionId = started.json.evidence.handle.sessionId as string;
 		const state = await readSessionState(root, sessionId);
 		expect(state).toBeTruthy();
@@ -513,7 +513,7 @@ describe("gjc harness CLI (foundation)", () => {
 			createdAt: "2026-06-03T00:00:01.000Z",
 			severity: "info",
 			kind: "prompt_accepted",
-			state: { sessionId, lifecycle: "observing", harness: "gajae-code", ownerLive: true, blockers: [] },
+			state: { sessionId, lifecycle: "observing", harness: "jawcode", ownerLive: true, blockers: [] },
 			evidence: { reason: "protocol-ack-single-flight", agentStartCursor: 1 },
 			nextAllowedActions: [],
 			writer: { ownerId: "owner-exited", leaseEpoch: 1 },
@@ -543,7 +543,7 @@ describe("gjc harness CLI (foundation)", () => {
 
 	it("observe and events expose public-safe owner exit evidence after prompt acceptance", async () => {
 		await initCleanGitWorkspace();
-		const started = runHarness(["start", "--input", JSON.stringify({ harness: "gajae-code", workspace })]);
+		const started = runHarness(["start", "--input", JSON.stringify({ harness: "jawcode", workspace })]);
 		const sessionId = started.json.evidence.handle.sessionId as string;
 		const state = await readSessionState(root, sessionId);
 		expect(state).toBeTruthy();
@@ -557,7 +557,7 @@ describe("gjc harness CLI (foundation)", () => {
 			createdAt: "2026-06-03T00:00:01.000Z",
 			severity: "info",
 			kind: "prompt_accepted",
-			state: { sessionId, lifecycle: "observing", harness: "gajae-code", ownerLive: true, blockers: [] },
+			state: { sessionId, lifecycle: "observing", harness: "jawcode", ownerLive: true, blockers: [] },
 			evidence: { reason: "protocol-ack-single-flight", agentStartCursor: 1 },
 			nextAllowedActions: [],
 			writer: { ownerId: "owner-exited", leaseEpoch: 1 },
@@ -586,7 +586,7 @@ describe("gjc harness CLI (foundation)", () => {
 
 	it("monitor distinguishes a transient endpoint gap from terminal owner loss when RPC activity continues", async () => {
 		await initCleanGitWorkspace();
-		const started = runHarness(["start", "--input", JSON.stringify({ harness: "gajae-code", workspace })]);
+		const started = runHarness(["start", "--input", JSON.stringify({ harness: "jawcode", workspace })]);
 		const sessionId = started.json.evidence.handle.sessionId as string;
 		const state = await readSessionState(root, sessionId);
 		if (!state) throw new Error("missing seeded state");
@@ -613,7 +613,7 @@ describe("gjc harness CLI (foundation)", () => {
 			createdAt: new Date(nowMs).toISOString(),
 			severity: "info",
 			kind: "rpc_activity",
-			state: { sessionId, lifecycle: "observing", harness: "gajae-code", ownerLive: true, blockers: [] },
+			state: { sessionId, lifecycle: "observing", harness: "jawcode", ownerLive: true, blockers: [] },
 			evidence: { coalescedFrames: 3 },
 			nextAllowedActions: [],
 			writer: { ownerId: "owner-live", leaseEpoch: 1 },
@@ -634,7 +634,7 @@ describe("gjc harness CLI (foundation)", () => {
 
 	it("monitor does not treat a terminal completion frame as owner liveness (no transient masking)", async () => {
 		await initCleanGitWorkspace();
-		const started = runHarness(["start", "--input", JSON.stringify({ harness: "gajae-code", workspace })]);
+		const started = runHarness(["start", "--input", JSON.stringify({ harness: "jawcode", workspace })]);
 		const sessionId = started.json.evidence.handle.sessionId as string;
 		const state = await readSessionState(root, sessionId);
 		if (!state) throw new Error("missing seeded state");
@@ -647,7 +647,7 @@ describe("gjc harness CLI (foundation)", () => {
 			createdAt: new Date().toISOString(),
 			severity: "info",
 			kind: "rpc_agent_completed",
-			state: { sessionId, lifecycle: "observing", harness: "gajae-code", ownerLive: true, blockers: [] },
+			state: { sessionId, lifecycle: "observing", harness: "jawcode", ownerLive: true, blockers: [] },
 			evidence: { outcome: "completed", signal: "completed" },
 			nextAllowedActions: [],
 			writer: { ownerId: "owner-gone", leaseEpoch: 1 },
@@ -662,7 +662,7 @@ describe("gjc harness CLI (foundation)", () => {
 	});
 
 	it("submit is blocked (accepted:false, owner-not-live) and never echoed-as-accepted", () => {
-		const started = runHarness(["start", "--input", JSON.stringify({ harness: "gajae-code", workspace })]);
+		const started = runHarness(["start", "--input", JSON.stringify({ harness: "jawcode", workspace })]);
 		const sessionId = started.json.evidence.handle.sessionId as string;
 		const res = runHarness(["submit", "--session", sessionId, "--input", JSON.stringify({ prompt: "hi" })]);
 		expect(res.code).toBe(1);
@@ -685,7 +685,7 @@ describe("gjc harness CLI (foundation)", () => {
 	});
 
 	it("retire is blocked on an unknown/dirty delta (data-loss safety)", () => {
-		const started = runHarness(["start", "--input", JSON.stringify({ harness: "gajae-code", workspace })]);
+		const started = runHarness(["start", "--input", JSON.stringify({ harness: "jawcode", workspace })]);
 		const sessionId = started.json.evidence.handle.sessionId as string;
 		const res = runHarness(["retire", "--session", sessionId]);
 		// workspace is a bare temp dir (no git) -> gitDelta "unknown" -> retire blocked.
@@ -695,7 +695,7 @@ describe("gjc harness CLI (foundation)", () => {
 	});
 
 	it("non-recover owner-runtime verbs report an honest pending milestone", () => {
-		const started = runHarness(["start", "--input", JSON.stringify({ harness: "gajae-code", workspace })]);
+		const started = runHarness(["start", "--input", JSON.stringify({ harness: "jawcode", workspace })]);
 		const sessionId = started.json.evidence.handle.sessionId as string;
 		const res = runHarness(["validate", "--session", sessionId]);
 		expect(res.code).toBe(1);

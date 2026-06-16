@@ -1,6 +1,6 @@
-import { getOAuthProviders } from "@gajae-code/ai/utils/oauth";
-import type { OAuthProviderInfo } from "@gajae-code/ai/utils/oauth/types";
-import { Container, matchesKey, Spacer, TruncatedText } from "@gajae-code/tui";
+import { getOAuthProviders } from "@jawcode-dev/ai/utils/oauth";
+import type { OAuthProviderInfo } from "@jawcode-dev/ai/utils/oauth/types";
+import { Container, matchesKey, Spacer, TruncatedText } from "@jawcode-dev/tui";
 import { theme } from "../../modes/theme/theme";
 import { matchesSelectCancel } from "../../modes/utils/keybinding-matchers";
 import type { AuthStorage } from "../../session/auth-storage";

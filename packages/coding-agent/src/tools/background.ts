@@ -1,8 +1,8 @@
 import * as path from "node:path";
-import type { AgentTool, AgentToolResult } from "@gajae-code/agent-core";
-import type { Component } from "@gajae-code/tui";
-import { Text } from "@gajae-code/tui";
-import { prompt } from "@gajae-code/utils";
+import type { AgentTool, AgentToolResult } from "@jawcode-dev/agent-core";
+import type { Component } from "@jawcode-dev/tui";
+import { Text } from "@jawcode-dev/tui";
+import { prompt } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import { type AsyncJobFilter, AsyncJobManager, isBackgroundJobSupportEnabled } from "../async";
 import { KEYBINDINGS } from "../config/keybindings";
@@ -354,7 +354,7 @@ export class BackgroundTool implements AgentTool<typeof backgroundSchema, Backgr
 		params: BackgroundParams,
 		_signal?: AbortSignal,
 		_onUpdate?: unknown,
-		context?: import("@gajae-code/agent-core").AgentToolContext,
+		context?: import("@jawcode-dev/agent-core").AgentToolContext,
 	): Promise<AgentToolResult<BackgroundToolDetails>> {
 		const manager = AsyncJobManager.instance();
 		if (!manager) {

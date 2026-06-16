@@ -1,4 +1,4 @@
-import { prompt } from "@gajae-code/utils";
+import { prompt } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import analyzeFilePrompt from "../../../commit/agentic/prompts/analyze-file.md" with { type: "text" };
 import type { CommitAgentState } from "../../../commit/agentic/state";

@@ -2,7 +2,7 @@
  * Hook loader - loads TypeScript hook modules using native Bun import.
  */
 import * as path from "node:path";
-import { logger } from "@gajae-code/utils";
+import { logger } from "@jawcode-dev/utils";
 import * as zod from "zod/v4";
 import { hookCapability } from "../../capability/hook";
 import type { Hook } from "../../discovery";
@@ -138,7 +138,7 @@ async function createHookAPI(
 		logger,
 		typebox,
 		zod,
-		pi: await import("@gajae-code/coding-agent"),
+		pi: await import("@jawcode-dev/coding-agent"),
 	} as HookAPI;
 
 	return {

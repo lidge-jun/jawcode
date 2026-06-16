@@ -1,7 +1,7 @@
 /**
  * Bordered output container with optional header and sections.
  */
-import { ImageProtocol, padding, TERMINAL, visibleWidth, wrapTextWithAnsi } from "@gajae-code/tui";
+import { ImageProtocol, padding, TERMINAL, visibleWidth, wrapTextWithAnsi } from "@jawcode-dev/tui";
 import type { Theme } from "../modes/theme/theme";
 import { getSixelLineMask } from "../utils/sixel";
 import type { State } from "./types";

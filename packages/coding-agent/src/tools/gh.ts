@@ -2,9 +2,9 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { scheduler } from "node:timers/promises";
-import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@gajae-code/agent-core";
+import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@jawcode-dev/agent-core";
 
-import { getWorktreeDir, hashPath, isEnoent, prompt, untilAborted } from "@gajae-code/utils";
+import { getWorktreeDir, hashPath, isEnoent, prompt, untilAborted } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import type { Settings } from "../config/settings";
 import githubDescription from "../prompts/tools/github.md" with { type: "text" };

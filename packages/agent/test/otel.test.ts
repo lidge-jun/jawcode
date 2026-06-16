@@ -6,7 +6,7 @@
  * lifecycle hook dispatch.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
-import { agentLoop } from "@gajae-code/agent-core/agent-loop";
+import { agentLoop } from "@jawcode-dev/agent-core/agent-loop";
 import {
 	type AgentTelemetryConfig,
 	type ChatUsageEvent,
@@ -20,12 +20,12 @@ import {
 	resetContentCaptureEnvCacheForTest,
 	resolveTelemetry,
 	type TelemetryHookContext,
-} from "@gajae-code/agent-core/telemetry";
-import type { AgentContext, AgentEvent, AgentLoopConfig, AgentMessage, AgentTool } from "@gajae-code/agent-core/types";
-import type { Message } from "@gajae-code/ai";
-import { z } from "@gajae-code/ai";
-import { createMockModel } from "@gajae-code/ai/providers/mock";
-import type { EventStream } from "@gajae-code/ai/utils/event-stream";
+} from "@jawcode-dev/agent-core/telemetry";
+import type { AgentContext, AgentEvent, AgentLoopConfig, AgentMessage, AgentTool } from "@jawcode-dev/agent-core/types";
+import type { Message } from "@jawcode-dev/ai";
+import { z } from "@jawcode-dev/ai";
+import { createMockModel } from "@jawcode-dev/ai/providers/mock";
+import type { EventStream } from "@jawcode-dev/ai/utils/event-stream";
 import { context, SpanStatusCode, trace } from "@opentelemetry/api";
 import { AsyncLocalStorageContextManager } from "@opentelemetry/context-async-hooks";
 import {

@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
-import { resetSettingsForTest, Settings, settings } from "@gajae-code/coding-agent/config/settings";
-import { fileHyperlink, isHyperlinkEnabled, tryResolveInternalUrlSync } from "@gajae-code/coding-agent/tui/hyperlink";
-import * as terminalCaps from "@gajae-code/tui";
+import { resetSettingsForTest, Settings, settings } from "@jawcode-dev/coding-agent/config/settings";
+import { fileHyperlink, isHyperlinkEnabled, tryResolveInternalUrlSync } from "@jawcode-dev/coding-agent/tui/hyperlink";
+import * as terminalCaps from "@jawcode-dev/tui";
 
 // OSC 8 sequence markers
 const OSC = "\x1b]";

@@ -1,5 +1,5 @@
-import type { ThinkingLevel } from "@gajae-code/agent-core";
-import type { Api, Model } from "@gajae-code/ai";
+import type { ThinkingLevel } from "@jawcode-dev/agent-core";
+import type { Api, Model } from "@jawcode-dev/ai";
 import type { AgentSession } from "../session/agent-session";
 import {
 	aggregateModelProfileRequiredProviders,

@@ -10,8 +10,8 @@ import {
 	type RequestPermissionResponse,
 	type SessionNotification,
 } from "@agentclientprotocol/sdk";
-import type { Model } from "@gajae-code/ai";
-import { TempDir } from "@gajae-code/utils";
+import type { Model } from "@jawcode-dev/ai";
+import { TempDir } from "@jawcode-dev/utils";
 import { Settings } from "../src/config/settings";
 import { createAcpConnection } from "../src/modes/acp/acp-mode";
 import type { AgentSession } from "../src/session/agent-session";
@@ -168,7 +168,7 @@ describe("ACP lazy startup", () => {
 			expect(initializeResponse).toEqual(
 				expect.objectContaining({
 					protocolVersion: 1,
-					agentInfo: expect.objectContaining({ name: "gajae-code" }),
+					agentInfo: expect.objectContaining({ name: "jawcode" }),
 				}),
 			);
 			expect(createCalls).toBe(0);

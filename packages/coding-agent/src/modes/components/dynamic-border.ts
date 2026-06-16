@@ -1,4 +1,4 @@
-import type { Component } from "@gajae-code/tui";
+import type { Component } from "@jawcode-dev/tui";
 import { theme } from "../../modes/theme/theme";
 
 /**

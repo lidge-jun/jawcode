@@ -1,4 +1,4 @@
-import { type AuthStorage, getEnvApiKey } from "@gajae-code/ai";
+import { type AuthStorage, getEnvApiKey } from "@jawcode-dev/ai";
 import type { SearchResponse } from "../../../web/search/types";
 import { SearchProviderError } from "../../../web/search/types";
 import { ParallelApiError, type ParallelSearchResult, type ParallelSearchSource } from "../../parallel";

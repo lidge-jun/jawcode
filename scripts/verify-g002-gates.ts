@@ -16,23 +16,23 @@ const repoRoot = path.join(import.meta.dir, "..");
 const EXPECTED_DEFINITIONS = ["jaw-interview", "plan", "team", "goal"] as const;
 const EXPECTED_ROLE_AGENT_PROMPT_FILES = ["architect", "critic", "executor", "planner"] as const;
 const EXPECTED_CALLABLE_TASK_ROLES = ["architect", "critic", "executor", "executor_ext", "planner"] as const;
-const EXPECTED_PUBLIC_PACKAGE_VERSION_CATALOG_KEY = "@gajae-code/coding-agent";
+const EXPECTED_PUBLIC_PACKAGE_VERSION_CATALOG_KEY = "@jawcode-dev/coding-agent";
 const BUNDLED_NON_WORKFLOW_SKILLS = new Set(["browse", "search"]);
 const ALLOWED_PUBLIC_PACKAGE_VERSIONS = new Map<string, string>([["jawcode", "0.1.0"]]);
 const ALLOWED_PRIVATE_PACKAGE_VERSIONS = new Map<string, string>([
-	["@gajae-code/orchestration-token-benchmark", "0.0.1"],
-	["gajae-code", "0.4.5"],
-	["@gajae-code/typescript-edit-benchmark", "0.0.1"],
+	["@jawcode-dev/orchestration-token-benchmark", "0.0.1"],
+	["jawcode", "0.4.5"],
+	["@jawcode-dev/typescript-edit-benchmark", "0.0.1"],
 ]);
-const ALLOWED_UNSCOPED_PACKAGE_NAMES = new Set<string>(["jawcode", "jawcode-cu-mcp-server", "gajae-code"]);
+const ALLOWED_UNSCOPED_PACKAGE_NAMES = new Set<string>(["jawcode", "jawcode-cu-mcp-server", "jawcode"]);
 const ALLOWED_PACKAGE_BINARIES = new Map<string, readonly string[]>([
-	["@gajae-code/ai", ["pi-ai"]],
-	["@gajae-code/coding-agent", ["gjc"]],
+	["@jawcode-dev/ai", ["pi-ai"]],
+	["@jawcode-dev/coding-agent", ["gjc"]],
 	["jawcode-cu-mcp-server", ["cu-mcp-server"]],
-	["gajae-code", ["gjc"]],
-	["@gajae-code/stats", ["gjc-stats"]],
+	["jawcode", ["gjc"]],
+	["@jawcode-dev/stats", ["gjc-stats"]],
 	["jawcode", ["jwc"]],
-	["@gajae-code/typescript-edit-benchmark", ["typescript-edit-benchmark"]],
+	["@jawcode-dev/typescript-edit-benchmark", ["typescript-edit-benchmark"]],
 ]);
 const PUBLIC_DOC_FILES = ["README.md", "packages/coding-agent/README.md"] as const;
 const LEGACY_NAME_PATTERNS: readonly RegExp[] = [
@@ -110,30 +110,30 @@ const REQUIRED_PRIVATE_EXPORT_BLOCKS = [
 	"./slash-commands/helpers/mcp",
 ] as const;
 const FORBIDDEN_PACKAGE_IMPORTS = [
-	"@gajae-code/coding-agent/mcp",
-	"@gajae-code/coding-agent/runtime-mcp/index",
-	"@gajae-code/coding-agent/runtime-mcp/manager",
-	"@gajae-code/coding-agent/commands/jwc-runtime-bridge",
-	"@gajae-code/coding-agent/capability/mcp",
-	"@gajae-code/coding-agent/config/mcp-schema",
-	"@gajae-code/coding-agent/discovery/mcp-json",
-	"@gajae-code/coding-agent/exa",
-	"@gajae-code/coding-agent/exa/factory",
-	"@gajae-code/coding-agent/exa/mcp-client",
-	"@gajae-code/coding-agent/exa/search",
-	"@gajae-code/coding-agent/exa/types",
-	"@gajae-code/coding-agent/internal-urls/mcp-protocol",
-	"@gajae-code/coding-agent/modes/components/runtime-mcp-add-wizard",
-	"@gajae-code/coding-agent/modes/controllers/runtime-mcp-command-controller",
-	"@gajae-code/coding-agent/slash-commands/helpers/mcp",
+	"@jawcode-dev/coding-agent/mcp",
+	"@jawcode-dev/coding-agent/runtime-mcp/index",
+	"@jawcode-dev/coding-agent/runtime-mcp/manager",
+	"@jawcode-dev/coding-agent/commands/jwc-runtime-bridge",
+	"@jawcode-dev/coding-agent/capability/mcp",
+	"@jawcode-dev/coding-agent/config/mcp-schema",
+	"@jawcode-dev/coding-agent/discovery/mcp-json",
+	"@jawcode-dev/coding-agent/exa",
+	"@jawcode-dev/coding-agent/exa/factory",
+	"@jawcode-dev/coding-agent/exa/mcp-client",
+	"@jawcode-dev/coding-agent/exa/search",
+	"@jawcode-dev/coding-agent/exa/types",
+	"@jawcode-dev/coding-agent/internal-urls/mcp-protocol",
+	"@jawcode-dev/coding-agent/modes/components/runtime-mcp-add-wizard",
+	"@jawcode-dev/coding-agent/modes/controllers/runtime-mcp-command-controller",
+	"@jawcode-dev/coding-agent/slash-commands/helpers/mcp",
 ] as const;
 const FORBIDDEN_PACKAGE_SYMBOLS = [
 	{
-		specifier: "@gajae-code/coding-agent",
+		specifier: "@jawcode-dev/coding-agent",
 		symbols: ["exaTools", "callExaTool", "searchTools", "researcherTools", "websetsTools"],
 	},
 	{
-		specifier: "@gajae-code/coding-agent/tools",
+		specifier: "@jawcode-dev/coding-agent/tools",
 		symbols: ["exaTools", "callExaTool", "searchTools", "researcherTools", "websetsTools"],
 	},
 ] as const;
@@ -197,7 +197,7 @@ async function verifyRebrandSurface(): Promise<GateResult> {
 
 	return {
 		name: "rebrand CLI/package surface",
-		passed: rootName === "gajae-code" && codingName.includes("gajae") && hasJwcBin && !hasLegacyBin,
+		passed: rootName === "jawcode" && codingName.includes("gajae") && hasJwcBin && !hasLegacyBin,
 		details,
 	};
 }
@@ -228,12 +228,12 @@ async function verifyPackageVersionAndBinaryAllowlist(): Promise<GateResult> {
 		const isPrivate = packageJson.private === true;
 
 		if (relativePath === "package.json") {
-			if (packageName !== "gajae-code") nameFindings.push(`${relativePath}: expected gajae-code, found ${packageName}`);
+			if (packageName !== "jawcode") nameFindings.push(`${relativePath}: expected jawcode, found ${packageName}`);
 			continue;
 		}
 
-		if (!packageName.startsWith("@gajae-code/") && !ALLOWED_UNSCOPED_PACKAGE_NAMES.has(packageName)) {
-			nameFindings.push(`${relativePath}: package name ${packageName} is outside @gajae-code scope`);
+		if (!packageName.startsWith("@jawcode-dev/") && !ALLOWED_UNSCOPED_PACKAGE_NAMES.has(packageName)) {
+			nameFindings.push(`${relativePath}: package name ${packageName} is outside @jawcode scope`);
 		}
 
 		const allowedPrivateVersion = ALLOWED_PRIVATE_PACKAGE_VERSIONS.get(packageName);

@@ -5,11 +5,11 @@ import {
 	decodeApproval,
 	decodeExecution,
 	executionGate,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/approval-gate";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/approval-gate";
 import {
 	MemoryGateStore,
 	WorkflowGateBroker,
-} from "@gajae-code/coding-agent/modes/shared/agent-wire/workflow-gate-broker";
+} from "@jawcode-dev/coding-agent/modes/shared/agent-wire/workflow-gate-broker";
 
 describe("approvalGate (plan #317)", () => {
 	it("emits a plan approval gate with stable schema", () => {

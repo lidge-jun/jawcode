@@ -1,7 +1,7 @@
-import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@gajae-code/agent-core";
-import { instrumentedCompleteSimple, resolveTelemetry } from "@gajae-code/agent-core";
-import { type Api, completeSimple, type Model } from "@gajae-code/ai";
-import { prompt } from "@gajae-code/utils";
+import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@jawcode-dev/agent-core";
+import { instrumentedCompleteSimple, resolveTelemetry } from "@jawcode-dev/agent-core";
+import { type Api, completeSimple, type Model } from "@jawcode-dev/ai";
+import { prompt } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import { extractTextContent } from "../commit/utils";
 import { expandRoleAlias, resolveModelFromString } from "../config/model-resolver";

@@ -9,7 +9,7 @@ import {
 	getProjectPluginOverridesPath,
 	isEnoent,
 	logger,
-} from "@gajae-code/utils";
+} from "@jawcode-dev/utils";
 import { extractPackageName, parsePluginSpec } from "./parser";
 import type {
 	DoctorCheck,

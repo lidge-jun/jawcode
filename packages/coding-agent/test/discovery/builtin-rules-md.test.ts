@@ -11,12 +11,12 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { getCapability } from "@gajae-code/coding-agent/capability";
-import { clearCache } from "@gajae-code/coding-agent/capability/fs";
-import { type Rule, ruleCapability } from "@gajae-code/coding-agent/capability/rule";
-import type { LoadContext } from "@gajae-code/coding-agent/capability/types";
+import { getCapability } from "@jawcode-dev/coding-agent/capability";
+import { clearCache } from "@jawcode-dev/coding-agent/capability/fs";
+import { type Rule, ruleCapability } from "@jawcode-dev/coding-agent/capability/rule";
+import type { LoadContext } from "@jawcode-dev/coding-agent/capability/types";
 // Register all discovery providers as a side effect.
-import "@gajae-code/coding-agent/discovery";
+import "@jawcode-dev/coding-agent/discovery";
 
 let tempDir: string;
 let home: string;

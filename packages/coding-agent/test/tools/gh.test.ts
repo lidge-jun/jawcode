@@ -2,16 +2,16 @@ import { afterEach, describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import type { ToolSession } from "@gajae-code/coding-agent/tools";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import type { ToolSession } from "@jawcode-dev/coding-agent/tools";
 import {
 	buildSearchDateQualifier,
 	GithubTool,
 	parsePrUnifiedDiff,
 	parseSearchDateBound,
-} from "@gajae-code/coding-agent/tools/gh";
-import * as git from "@gajae-code/coding-agent/utils/git";
-import { getAgentDir, hashPath, setAgentDir } from "@gajae-code/utils";
+} from "@jawcode-dev/coding-agent/tools/gh";
+import * as git from "@jawcode-dev/coding-agent/utils/git";
+import { getAgentDir, hashPath, setAgentDir } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 
 // Isolate every `git` invocation in this file from the developer's host

@@ -5,9 +5,9 @@
  */
 import * as fs from "node:fs/promises";
 import * as url from "node:url";
-import { getWorkProfile } from "@gajae-code/natives";
-import { Container, Loader, type SelectItem, SelectList, Spacer, Text } from "@gajae-code/tui";
-import { getSessionsDir } from "@gajae-code/utils";
+import { getWorkProfile } from "@jawcode-dev/natives";
+import { Container, Loader, type SelectItem, SelectList, Spacer, Text } from "@jawcode-dev/tui";
+import { getSessionsDir } from "@jawcode-dev/utils";
 import { DynamicBorder } from "../modes/components/dynamic-border";
 import { getSelectListTheme, getSymbolTheme, theme } from "../modes/theme/theme";
 import type { InteractiveModeContext } from "../modes/types";

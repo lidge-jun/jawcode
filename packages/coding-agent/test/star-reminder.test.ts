@@ -21,7 +21,7 @@ import {
 	STARRED_CACHE_TTL_MS,
 	type StarReminderState,
 	updateStarReminderStateLocked,
-} from "@gajae-code/coding-agent/reminders/star-reminder";
+} from "@jawcode-dev/coding-agent/reminders/star-reminder";
 
 const tempDirs: string[] = [];
 

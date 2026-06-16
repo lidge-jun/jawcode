@@ -1,5 +1,5 @@
-import type { AutocompleteItem } from "@gajae-code/tui";
-import { parseFrontmatter, prompt } from "@gajae-code/utils";
+import type { AutocompleteItem } from "@jawcode-dev/tui";
+import { parseFrontmatter, prompt } from "@jawcode-dev/utils";
 import { slashCommandCapability } from "../capability/slash-command";
 import { appendInlineArgsFallback, templateUsesInlineArgPlaceholders } from "../config/prompt-templates";
 import type { SlashCommand } from "../discovery";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { BUILTIN_SLASH_COMMANDS } from "@gajae-code/coding-agent/extensibility/slash-commands";
+import { BUILTIN_SLASH_COMMANDS } from "@jawcode-dev/coding-agent/extensibility/slash-commands";
 
 describe("native workflow autocomplete pin (99.30.02)", () => {
 	it("pins /orchestrate and /goal above the bundled skill commands (priority > 100)", () => {

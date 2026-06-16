@@ -1,4 +1,4 @@
-import { Box, Container, Spacer, Text } from "@gajae-code/tui";
+import { Box, Container, Spacer, Text } from "@jawcode-dev/tui";
 import type { Rule } from "../../capability/rule";
 import { theme } from "../../modes/theme/theme";
 

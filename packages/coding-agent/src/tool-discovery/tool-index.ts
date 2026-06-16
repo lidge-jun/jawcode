@@ -1,4 +1,4 @@
-import type { AgentTool } from "@gajae-code/agent-core";
+import type { AgentTool } from "@jawcode-dev/agent-core";
 
 // ─── Generic Tool Discovery Types ────────────────────────────────────────────
 

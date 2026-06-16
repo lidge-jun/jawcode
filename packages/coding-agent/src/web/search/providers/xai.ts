@@ -19,8 +19,8 @@
  * every other provider emits. Reference: cli-jaw devlog
  * 260530_grok_xsearch_integration.
  */
-import type { AuthStorage } from "@gajae-code/ai";
-import { $env } from "@gajae-code/utils";
+import type { AuthStorage } from "@jawcode-dev/ai";
+import { $env } from "@jawcode-dev/utils";
 import type { SearchResponse, SearchSource } from "../types";
 import { SearchProviderError } from "../types";
 import type { SearchParams } from "./base";

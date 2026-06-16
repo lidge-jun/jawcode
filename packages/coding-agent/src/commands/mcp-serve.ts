@@ -1,5 +1,5 @@
-import { APP_NAME } from "@gajae-code/utils";
-import { Args, Command, Flags } from "@gajae-code/utils/cli";
+import { APP_NAME } from "@jawcode-dev/utils";
+import { Args, Command, Flags } from "@jawcode-dev/utils/cli";
 import {
 	COORDINATOR_MCP_PROTOCOL_VERSION,
 	COORDINATOR_MCP_SERVER_NAME,

@@ -1,5 +1,5 @@
-import type { AgentTool, AgentToolResult } from "@gajae-code/agent-core";
-import { prompt } from "@gajae-code/utils";
+import type { AgentTool, AgentToolResult } from "@jawcode-dev/agent-core";
+import { prompt } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import computerUseDescription from "../prompts/tools/computer-use.md" with { type: "text" };
 import type { MCPToolCallResult } from "../runtime-mcp/types";

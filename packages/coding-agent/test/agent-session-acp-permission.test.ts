@@ -6,22 +6,22 @@
  * behavior they have in the TUI.
  */
 import { afterEach, beforeEach, expect, it, spyOn } from "bun:test";
-import { Agent, type AgentTool } from "@gajae-code/agent-core";
-import { getBundledModel } from "@gajae-code/ai";
-import { createMockModel, type MockModelOptions } from "@gajae-code/ai/providers/mock";
-import { AssistantMessageEventStream } from "@gajae-code/ai/utils/event-stream";
-import { Settings } from "@gajae-code/coding-agent/config/settings";
-import { EditTool } from "@gajae-code/coding-agent/edit";
-import { AgentSession } from "@gajae-code/coding-agent/session/agent-session";
+import { Agent, type AgentTool } from "@jawcode-dev/agent-core";
+import { getBundledModel } from "@jawcode-dev/ai";
+import { createMockModel, type MockModelOptions } from "@jawcode-dev/ai/providers/mock";
+import { AssistantMessageEventStream } from "@jawcode-dev/ai/utils/event-stream";
+import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { EditTool } from "@jawcode-dev/coding-agent/edit";
+import { AgentSession } from "@jawcode-dev/coding-agent/session/agent-session";
 import type {
 	ClientBridge,
 	ClientBridgePermissionOutcome,
 	ClientBridgePermissionToolCall,
-} from "@gajae-code/coding-agent/session/client-bridge";
-import { convertToLlm } from "@gajae-code/coding-agent/session/messages";
-import { SessionManager } from "@gajae-code/coding-agent/session/session-manager";
-import type { ToolSession } from "@gajae-code/coding-agent/tools";
-import { TempDir } from "@gajae-code/utils";
+} from "@jawcode-dev/coding-agent/session/client-bridge";
+import { convertToLlm } from "@jawcode-dev/coding-agent/session/messages";
+import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
+import type { ToolSession } from "@jawcode-dev/coding-agent/tools";
+import { TempDir } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 
 // ---------------------------------------------------------------------------

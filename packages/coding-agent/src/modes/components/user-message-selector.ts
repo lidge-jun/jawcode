@@ -1,4 +1,4 @@
-import { type Component, Container, matchesKey, Spacer, Text, truncateToWidth } from "@gajae-code/tui";
+import { type Component, Container, matchesKey, Spacer, Text, truncateToWidth } from "@jawcode-dev/tui";
 import { theme } from "../../modes/theme/theme";
 import { matchesSelectCancel } from "../../modes/utils/keybinding-matchers";
 import { DynamicBorder } from "./dynamic-border";

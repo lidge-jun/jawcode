@@ -1,13 +1,13 @@
 /**
  * Shared types and utilities for web-fetch handlers
  */
-import { ptree } from "@gajae-code/utils";
+import { ptree } from "@jawcode-dev/utils";
 import type TurndownService from "turndown";
 
 import type { AgentStorage } from "../../session/agent-storage";
 import { ToolAbortError } from "../../tools/tool-errors";
 
-export { formatNumber } from "@gajae-code/utils";
+export { formatNumber } from "@jawcode-dev/utils";
 
 export interface RenderResult {
 	url: string;

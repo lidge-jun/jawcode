@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { CompactionCancelledError, type CompactionOutcome } from "@gajae-code/agent-core/compaction";
+import { CompactionCancelledError, type CompactionOutcome } from "@jawcode-dev/agent-core/compaction";
 import {
 	getEnvApiKey,
 	getProviderDetails,
@@ -9,9 +9,9 @@ import {
 	type ToolCall,
 	type UsageLimit,
 	type UsageReport,
-} from "@gajae-code/ai";
-import { Loader, Markdown, padding, Spacer, Text, visibleWidth } from "@gajae-code/tui";
-import { APP_NAME, formatDuration, Snowflake, setProjectDir } from "@gajae-code/utils";
+} from "@jawcode-dev/ai";
+import { Loader, Markdown, padding, Spacer, Text, visibleWidth } from "@jawcode-dev/tui";
+import { APP_NAME, formatDuration, Snowflake, setProjectDir } from "@jawcode-dev/utils";
 import { $ } from "bun";
 import { reset as resetCapabilities } from "../../capability";
 import { clearClaudePluginRootsCache } from "../../discovery/helpers";

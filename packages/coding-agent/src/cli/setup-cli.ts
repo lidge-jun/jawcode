@@ -4,7 +4,7 @@
  * Handles `gjc setup [component]` to install the normal defaults or optional feature dependencies.
  */
 import * as path from "node:path";
-import { $which, APP_NAME, getPythonEnvDir } from "@gajae-code/utils";
+import { $which, APP_NAME, getPythonEnvDir } from "@jawcode-dev/utils";
 import { $ } from "bun";
 import chalk from "chalk";
 import { installDefaultJwcDefinitions, installDefaultMcpConfig } from "../defaults/jwc-defaults";
@@ -498,7 +498,7 @@ ${chalk.bold("Provider example:")}
 
 ${chalk.bold("Hermes example:")}
   ${APP_NAME} setup hermes --root /path/to/repo
-  ${APP_NAME} setup hermes --root /path/to/repo --profile my-bot --repo gajae-code --profile-dir /path/to/hermes/profile --install
+  ${APP_NAME} setup hermes --root /path/to/repo --profile my-bot --repo jawcode --profile-dir /path/to/hermes/profile --install
   ${APP_NAME} setup hermes --root /path/to/repo --session-command "gjc --model <provider/model>"
 
 ${chalk.bold("Options:")}

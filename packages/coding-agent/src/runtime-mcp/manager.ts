@@ -6,8 +6,8 @@
  */
 import * as path from "node:path";
 import * as url from "node:url";
-import type { TSchema } from "@gajae-code/ai";
-import { logger } from "@gajae-code/utils";
+import type { TSchema } from "@jawcode-dev/ai";
+import { logger } from "@jawcode-dev/utils";
 import type { SourceMeta } from "../capability/types";
 import { resolveConfigValue } from "../config/resolve-config-value";
 import type { CustomTool } from "../extensibility/custom-tools/types";

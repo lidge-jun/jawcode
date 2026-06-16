@@ -1,4 +1,4 @@
-import { logger } from "@gajae-code/utils";
+import { logger } from "@jawcode-dev/utils";
 import type { MemoryBackend, MemoryBackendStartOptions } from "../memory-backend/types";
 import { createMem0Client } from "./client";
 import { isMem0Configured, loadMem0Config } from "./config";

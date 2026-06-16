@@ -2,18 +2,18 @@ import { afterAll, describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { recordSkillActivation } from "@gajae-code/coding-agent/hooks/skill-state";
-import { runNativeJawInterviewCommand } from "@gajae-code/coding-agent/jwc-runtime/jaw-interview-runtime";
-import { runNativePlanWriterCommand } from "@gajae-code/coding-agent/jwc-runtime/plan-writer";
-import { migrateAndPersistLegacyState } from "@gajae-code/coding-agent/jwc-runtime/state-migrations";
-import { runNativeStateCommand } from "@gajae-code/coding-agent/jwc-runtime/state-runtime";
-import { RequiredOnWriteEnvelopeSchema } from "@gajae-code/coding-agent/jwc-runtime/state-schema";
-import { writeWorkflowEnvelopeAtomic } from "@gajae-code/coding-agent/jwc-runtime/state-writer";
+import { recordSkillActivation } from "@jawcode-dev/coding-agent/hooks/skill-state";
+import { runNativeJawInterviewCommand } from "@jawcode-dev/coding-agent/jwc-runtime/jaw-interview-runtime";
+import { runNativePlanWriterCommand } from "@jawcode-dev/coding-agent/jwc-runtime/plan-writer";
+import { migrateAndPersistLegacyState } from "@jawcode-dev/coding-agent/jwc-runtime/state-migrations";
+import { runNativeStateCommand } from "@jawcode-dev/coding-agent/jwc-runtime/state-runtime";
+import { RequiredOnWriteEnvelopeSchema } from "@jawcode-dev/coding-agent/jwc-runtime/state-schema";
+import { writeWorkflowEnvelopeAtomic } from "@jawcode-dev/coding-agent/jwc-runtime/state-writer";
 import {
 	type JwcTeamSnapshot,
 	persistJwcTeamModeStateSummary,
-} from "@gajae-code/coding-agent/jwc-runtime/team-runtime";
-import { WORKFLOW_STATE_VERSION } from "@gajae-code/coding-agent/skill-state/workflow-state-contract";
+} from "@jawcode-dev/coding-agent/jwc-runtime/team-runtime";
+import { WORKFLOW_STATE_VERSION } from "@jawcode-dev/coding-agent/skill-state/workflow-state-contract";
 
 const tempRoots: string[] = [];
 

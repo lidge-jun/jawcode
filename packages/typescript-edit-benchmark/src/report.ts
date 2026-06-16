@@ -2,7 +2,7 @@
  * Markdown report generator for edit benchmark results.
  */
 
-import { formatDuration, formatPercent, truncate } from "@gajae-code/utils";
+import { formatDuration, formatPercent, truncate } from "@jawcode-dev/utils";
 import { type BenchmarkResult, EDIT_FAILURE_CATEGORIES, type TaskResult } from "./runner";
 
 function getStatusEmoji(successRate: number, runsPerTask: number): string {

@@ -5,8 +5,8 @@
  * - `gjc -p "prompt"` - text output
  * - `gjc --mode json "prompt"` - JSON event stream
  */
-import type { AssistantMessage, ImageContent } from "@gajae-code/ai";
-import { logger, sanitizeText } from "@gajae-code/utils";
+import type { AssistantMessage, ImageContent } from "@jawcode-dev/ai";
+import { logger, sanitizeText } from "@jawcode-dev/utils";
 import type { AgentSession } from "../session/agent-session";
 import { isSilentAbort } from "../session/messages";
 import { initializeExtensions } from "./runtime-init";

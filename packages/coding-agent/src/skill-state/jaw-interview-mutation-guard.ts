@@ -1,5 +1,5 @@
 import * as path from "node:path";
-import type { AgentTool } from "@gajae-code/agent-core";
+import type { AgentTool } from "@jawcode-dev/agent-core";
 import { expandApplyPatchToEntries } from "../edit/modes/apply-patch";
 import { LocalProtocolHandler, resolveLocalUrlToPath } from "../internal-urls/local-protocol";
 import { ModeStateSchema, normalizeWorkflowSkillSlug } from "../jwc-runtime/state-schema";

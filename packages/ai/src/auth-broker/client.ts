@@ -5,7 +5,7 @@
  * `gjc auth-broker status` (liveness checks). All endpoints except
  * `/v1/healthz` require a bearer token.
  */
-import { readSseEvents } from "@gajae-code/utils";
+import { readSseEvents } from "@jawcode-dev/utils";
 import type { ZodType, infer as zInfer } from "zod/v4";
 import type { AuthCredential } from "../auth-storage";
 import type {

@@ -1,20 +1,20 @@
 {
   "version": 1,
-  "brief": "(AI-driven goal planning pending refinement)",
+  "brief": "(AI-driven goal planning pending refinement)\nhint: loop 계획해서 ㄱㄱㄱㄱㄱ 아주 완벽하게",
   "jwcGoalMode": "aggregate",
-  "jwcObjective": "PABCD loop 개념을 system-prompt.md, orchestrate-p.md, orchestrate-d.md, jaw-interview SKILL.md에 반영. spec: .jwc/specs/jaw-interview-pabcd-loop-concept.md, devlog: devlog/_plan/260616_pabcd_loop_concept/00_moc.md",
+  "jwcObjective": "@gajae-code → @jawcode 전체 scope rename. 5,200+ refs, ~300 files, 10 packages. Loop plan으로 PABCD 다중 사이클 실행. Phase 1: manifests, Phase 2: source imports (병렬), Phase 3: tests (병렬), Phase 4: gates/CI/docs, Phase 5: verify. devlog at devlog/_plan/260616_jawcode_scope_rename/00_moc.md",
   "goals": [
     {
       "id": "G001",
       "title": "(AI-driven goal planning pending refinement)",
-      "objective": "PABCD loop 개념을 system-prompt.md, orchestrate-p.md, orchestrate-d.md, jaw-interview SKILL.md에 반영. spec: .jwc/specs/jaw-interview-pabcd-loop-concept.md, devlog: devlog/_plan/260616_pabcd_loop_concept/00_moc.md",
+      "objective": "@gajae-code → @jawcode 전체 scope rename. 5,200+ refs, ~300 files, 10 packages. Loop plan으로 PABCD 다중 사이클 실행. Phase 1: manifests, Phase 2: source imports (병렬), Phase 3: tests (병렬), Phase 4: gates/CI/docs, Phase 5: verify. devlog at devlog/_plan/260616_jawcode_scope_rename/00_moc.md",
       "status": "active",
-      "createdAt": "2026-06-16T08:46:40.729Z",
-      "updatedAt": "2026-06-16T09:04:12.074Z",
-      "startedAt": "2026-06-16T08:46:40.736Z",
-      "evidence": "pabcd d→complete (audit=pending, verification=pending); /Users/jun/Developer/new/700_projects/jawcode/.jwc/state/pabcd-state.json"
+      "createdAt": "2026-06-16T10:54:27.157Z",
+      "updatedAt": "2026-06-16T10:55:30.037Z",
+      "startedAt": "2026-06-16T10:54:27.175Z",
+      "evidence": "Loop plan MOC written. 3 PABCD cycles: manifests → imports → gates+verify. Phase 0 blocking.; devlog/_plan/260616_jawcode_scope_rename/00_moc.md"
     }
   ],
-  "createdAt": "2026-06-16T08:46:40.729Z",
-  "updatedAt": "2026-06-16T09:04:12.074Z"
+  "createdAt": "2026-06-16T10:54:27.157Z",
+  "updatedAt": "2026-06-16T10:55:30.037Z"
 }

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { buildOpenAiNativeHistory, requestOpenAiRemoteCompaction } from "@gajae-code/agent-core/compaction/openai";
-import type { AssistantMessage, Model, ToolResultMessage } from "@gajae-code/ai/types";
-import { hookFetch } from "@gajae-code/utils";
+import { buildOpenAiNativeHistory, requestOpenAiRemoteCompaction } from "@jawcode-dev/agent-core/compaction/openai";
+import type { AssistantMessage, Model, ToolResultMessage } from "@jawcode-dev/ai/types";
+import { hookFetch } from "@jawcode-dev/utils";
 
 function setEnvForTest(key: string, value: string): () => void {
 	const previous = Bun.env[key];

@@ -18,12 +18,12 @@
  * - isKittyProtocolActive() - Query global Kitty protocol state
  */
 
-import type { KeyEventType } from "@gajae-code/natives";
+import type { KeyEventType } from "@jawcode-dev/natives";
 import {
 	matchesKey as matchesKeyNative,
 	parseKey as parseKeyNative,
 	parseKittySequence as parseKittySequenceNative,
-} from "@gajae-code/natives";
+} from "@jawcode-dev/natives";
 
 // =============================================================================
 // Platform Detection
@@ -195,7 +195,7 @@ export type KeyId = BaseKey | ModifiedKeyId<BaseKey>;
  * modifier methods return precisely-typed concatenations (e.g. `Key.ctrl("c")`
  * is `"ctrl+c"`, not just `string`). This mirrors the upstream
  * `@mariozechner/pi-tui` `Key` export verbatim so plugins built against any
- * scope alias (`@mariozechner`, `@earendil-works`, `@gajae-code`) keep working
+ * scope alias (`@mariozechner`, `@earendil-works`, `@jawcode`) keep working
  * once the specifier shim remaps them to this package.
  */
 export const Key = {

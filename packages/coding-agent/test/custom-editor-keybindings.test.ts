@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "bun:test";
-import { setKittyProtocolActive } from "@gajae-code/tui";
+import { setKittyProtocolActive } from "@jawcode-dev/tui";
 import { defaultEditorTheme } from "../../tui/test/test-themes";
 import { CustomEditor } from "../src/modes/components/custom-editor";
 

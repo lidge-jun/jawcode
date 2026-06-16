@@ -4,10 +4,10 @@
 import type * as fs1 from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import type { ThinkingLevel } from "@gajae-code/agent-core";
-import type { ImageContent, Model, TextContent } from "@gajae-code/ai";
-import type { KeyId } from "@gajae-code/tui";
-import { hasFsCode, isEacces, isEnoent, logger } from "@gajae-code/utils";
+import type { ThinkingLevel } from "@jawcode-dev/agent-core";
+import type { ImageContent, Model, TextContent } from "@jawcode-dev/ai";
+import type { KeyId } from "@jawcode-dev/tui";
+import { hasFsCode, isEacces, isEnoent, logger } from "@jawcode-dev/utils";
 import * as Zod from "zod/v4";
 import { type ExtensionModule, extensionModuleCapability } from "../../capability/extension-module";
 import { loadCapability } from "../../discovery";
@@ -128,7 +128,7 @@ class ConcreteExtensionAPI implements ExtensionAPI, IExtensionRuntime {
 	}> = [];
 
 	constructor(
-		public readonly pi: typeof import("@gajae-code/coding-agent"),
+		public readonly pi: typeof import("@jawcode-dev/coding-agent"),
 		private readonly extension: Extension,
 		private readonly runtime: IExtensionRuntime,
 		private readonly cwd: string,
@@ -142,7 +142,7 @@ class ConcreteExtensionAPI implements ExtensionAPI, IExtensionRuntime {
 	}
 
 	registerTool<
-		TParams extends import("@gajae-code/ai").TSchema = import("@gajae-code/ai").TSchema,
+		TParams extends import("@jawcode-dev/ai").TSchema = import("@jawcode-dev/ai").TSchema,
 		TDetails = unknown,
 	>(tool: ToolDefinition<TParams, TDetails>): void {
 		this.extension.tools.set(tool.name, {
@@ -293,7 +293,7 @@ async function loadExtension(
 		}
 
 		const extension = createExtension(extensionPath, resolvedPath);
-		const api = new ConcreteExtensionAPI(await import("@gajae-code/coding-agent"), extension, runtime, cwd, eventBus);
+		const api = new ConcreteExtensionAPI(await import("@jawcode-dev/coding-agent"), extension, runtime, cwd, eventBus);
 		await factory(api);
 
 		return { extension, error: null };
@@ -314,7 +314,7 @@ export async function loadExtensionFromFactory(
 	name = "<inline>",
 ): Promise<Extension> {
 	const extension = createExtension(name, name);
-	const api = new ConcreteExtensionAPI(await import("@gajae-code/coding-agent"), extension, runtime, cwd, eventBus);
+	const api = new ConcreteExtensionAPI(await import("@jawcode-dev/coding-agent"), extension, runtime, cwd, eventBus);
 	await factory(api);
 	return extension;
 }

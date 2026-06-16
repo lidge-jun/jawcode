@@ -2,25 +2,25 @@ import { afterEach, describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { getBundledModel } from "@gajae-code/ai/models";
-import type { AssistantMessage, Message, ProviderPayload, ProviderSessionState, Usage } from "@gajae-code/ai/types";
-import { createOpenAIResponsesHistoryPayload } from "@gajae-code/ai/utils";
-import * as asyncModule from "@gajae-code/coding-agent/async";
-import * as settingsModule from "@gajae-code/coding-agent/config/settings";
-import type { CreateAgentSessionResult } from "@gajae-code/coding-agent/sdk";
-import * as sdkModule from "@gajae-code/coding-agent/sdk";
-import type { AgentSession, ForkContextSeed } from "@gajae-code/coding-agent/session/agent-session";
-import type { AuthStorage } from "@gajae-code/coding-agent/session/auth-storage";
+import { getBundledModel } from "@jawcode-dev/ai/models";
+import type { AssistantMessage, Message, ProviderPayload, ProviderSessionState, Usage } from "@jawcode-dev/ai/types";
+import { createOpenAIResponsesHistoryPayload } from "@jawcode-dev/ai/utils";
+import * as asyncModule from "@jawcode-dev/coding-agent/async";
+import * as settingsModule from "@jawcode-dev/coding-agent/config/settings";
+import type { CreateAgentSessionResult } from "@jawcode-dev/coding-agent/sdk";
+import * as sdkModule from "@jawcode-dev/coding-agent/sdk";
+import type { AgentSession, ForkContextSeed } from "@jawcode-dev/coding-agent/session/agent-session";
+import type { AuthStorage } from "@jawcode-dev/coding-agent/session/auth-storage";
 import {
 	type SessionEntry,
 	SessionManager,
 	type SessionMessageEntry,
-} from "@gajae-code/coding-agent/session/session-manager";
-import * as taskModule from "@gajae-code/coding-agent/task";
-import * as agentsModule from "@gajae-code/coding-agent/task/agents";
-import * as discoveryModule from "@gajae-code/coding-agent/task/discovery";
-import * as eventBusModule from "@gajae-code/coding-agent/utils/event-bus";
-import { Snowflake } from "@gajae-code/utils";
+} from "@jawcode-dev/coding-agent/session/session-manager";
+import * as taskModule from "@jawcode-dev/coding-agent/task";
+import * as agentsModule from "@jawcode-dev/coding-agent/task/agents";
+import * as discoveryModule from "@jawcode-dev/coding-agent/task/discovery";
+import * as eventBusModule from "@jawcode-dev/coding-agent/utils/event-bus";
+import { Snowflake } from "@jawcode-dev/utils";
 
 function createUsage(): Usage {
 	return {
@@ -185,9 +185,9 @@ async function createSessionHarness(
 ): Promise<{ session: AgentSession; authStorage: AuthStorage }> {
 	const { provider = "openai", modelId = "gpt-5-mini" } = options;
 	const [{ createAgentSession }, { Settings }, { AuthStorage }] = await Promise.all([
-		import("@gajae-code/coding-agent/sdk"),
-		import("@gajae-code/coding-agent/config/settings"),
-		import("@gajae-code/coding-agent/session/auth-storage"),
+		import("@jawcode-dev/coding-agent/sdk"),
+		import("@jawcode-dev/coding-agent/config/settings"),
+		import("@jawcode-dev/coding-agent/session/auth-storage"),
 	]);
 	const authStorage = await AuthStorage.create(path.join(tempDir, `testauth-${Snowflake.next()}.db`));
 	authStorage.setRuntimeApiKey("openai", "test-key");

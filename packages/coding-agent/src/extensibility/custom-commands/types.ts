@@ -23,7 +23,7 @@ export interface CustomCommandAPI {
 	typebox: typeof import("../typebox");
 	/** Injected zod module for Zod-authored custom commands. */
 	zod: typeof import("zod/v4");
-	/** Injected gajae-code exports */
+	/** Injected jawcode exports */
 	pi: typeof import("../..");
 }
 

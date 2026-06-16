@@ -1,4 +1,4 @@
-import { $which, logger } from "@gajae-code/utils";
+import { $which, logger } from "@jawcode-dev/utils";
 import transcribeScript from "./transcribe.py" with { type: "text" };
 
 export interface TranscribeOptions {

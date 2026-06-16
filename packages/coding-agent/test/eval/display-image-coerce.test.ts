@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { JsRuntime } from "@gajae-code/coding-agent/eval/js/shared/runtime";
-import type { JsDisplayOutput } from "@gajae-code/coding-agent/eval/js/shared/types";
+import { JsRuntime } from "@jawcode-dev/coding-agent/eval/js/shared/runtime";
+import type { JsDisplayOutput } from "@jawcode-dev/coding-agent/eval/js/shared/types";
 
 function collect(): {
 	runtime: JsRuntime;

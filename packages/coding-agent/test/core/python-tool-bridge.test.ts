@@ -1,11 +1,11 @@
 import { afterAll, describe, expect, it } from "bun:test";
-import type { AgentTool, AgentToolResult } from "@gajae-code/agent-core";
+import type { AgentTool, AgentToolResult } from "@jawcode-dev/agent-core";
 import {
 	disposePyToolBridge,
 	ensurePyToolBridge,
 	registerPyToolBridge,
-} from "@gajae-code/coding-agent/eval/py/tool-bridge";
-import type { ToolSession } from "@gajae-code/coding-agent/tools";
+} from "@jawcode-dev/coding-agent/eval/py/tool-bridge";
+import type { ToolSession } from "@jawcode-dev/coding-agent/tools";
 
 interface FakeCall {
 	id: string;

@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { AgentTool } from "@gajae-code/agent-core";
+import type { AgentTool } from "@jawcode-dev/agent-core";
 import { getJawInterviewMutationDecision } from "../../src/skill-state/jaw-interview-mutation-guard";
 
 async function withTempCwd(fn: (cwd: string) => Promise<void>): Promise<void> {

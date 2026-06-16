@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { stream } from "@gajae-code/ai/stream";
-import type { Context, Model } from "@gajae-code/ai/types";
+import { stream } from "@jawcode-dev/ai/stream";
+import type { Context, Model } from "@jawcode-dev/ai/types";
 
 const originalFetch = global.fetch;
 

@@ -62,7 +62,7 @@
 
 ### Fixed
 
-- Fixed `matchesKey(data, "ctrl+m")` (and the other named-key collisions: `ctrl+h`/`ctrl+i`/`ctrl+j`/`ctrl+[`) returning true for the bare `\r`/`\x08`/`\t`/`\n`/`\x1b` byte terminals send for Enter/Backspace/Tab/Escape in legacy mode. Binding a command to `Ctrl+M` no longer fires when the user presses Enter — the named key wins, and `ctrl+<colliding-letter>` matches only when the terminal disambiguates via the Kitty keyboard protocol or `modifyOtherKeys`. ([#1354](https://github.com/can1357/gajae-code/issues/1354))
+- Fixed `matchesKey(data, "ctrl+m")` (and the other named-key collisions: `ctrl+h`/`ctrl+i`/`ctrl+j`/`ctrl+[`) returning true for the bare `\r`/`\x08`/`\t`/`\n`/`\x1b` byte terminals send for Enter/Backspace/Tab/Escape in legacy mode. Binding a command to `Ctrl+M` no longer fires when the user presses Enter — the named key wins, and `ctrl+<colliding-letter>` matches only when the terminal disambiguates via the Kitty keyboard protocol or `modifyOtherKeys`. ([#1354](https://github.com/lidge-jun/jawcode/issues/1354))
 
 ## [15.2.3] - 2026-05-22
 ### Added
@@ -77,19 +77,19 @@
 
 ### Fixed
 
-- Fixed terminal probe responses (DA1, kitty keyboard, Mode 2031) leaking into the prompt as keystrokes when the response is split across stdin reads. `ProcessTerminal` now reassembles `\x1b[?<digits>...` private CSI fragments and dispatches the complete response through the existing pattern handlers. ([#1238](https://github.com/can1357/gajae-code/issues/1238))
+- Fixed terminal probe responses (DA1, kitty keyboard, Mode 2031) leaking into the prompt as keystrokes when the response is split across stdin reads. `ProcessTerminal` now reassembles `\x1b[?<digits>...` private CSI fragments and dispatches the complete response through the existing pattern handlers. ([#1238](https://github.com/lidge-jun/jawcode/issues/1238))
 
 ## [15.1.4] - 2026-05-19
 
 ### Fixed
 
-- Fixed `renderInlineMarkdown` crashing with `TypeError: undefined is not an object (evaluating 'e.replace')` when called with a non-string value during streaming — partial JSON parsing leaves option label fields temporarily unpopulated, causing the ask tool renderer to fail. ([#1176](https://github.com/can1357/gajae-code/issues/1176))
+- Fixed `renderInlineMarkdown` crashing with `TypeError: undefined is not an object (evaluating 'e.replace')` when called with a non-string value during streaming — partial JSON parsing leaves option label fields temporarily unpopulated, causing the ask tool renderer to fail. ([#1176](https://github.com/lidge-jun/jawcode/issues/1176))
 
 ## [15.0.2] - 2026-05-15
 
 ### Added
 
-- Restored the `Key` runtime helper on `@gajae-code/tui` to mirror upstream `@mariozechner/pi-tui`'s surface. `Key.enter`, `Key.escape`, `Key.tab`, … return the canonical key-name strings; modifier methods (`Key.ctrl(k)`, `Key.shift(k)`, `Key.ctrlShift(k)`, etc.) build precisely-typed `KeyId` literals like `"ctrl+c"`. Pure runtime convenience for typed key-id construction — plugins built against the upstream package surface that import `Key` (e.g. `@plannotator/pi-extension`, `@juicesharp/rpiv-ask-user-question`) load again now that the specifier shim remaps them onto this package.
+- Restored the `Key` runtime helper on `@jawcode-dev/tui` to mirror upstream `@mariozechner/pi-tui`'s surface. `Key.enter`, `Key.escape`, `Key.tab`, … return the canonical key-name strings; modifier methods (`Key.ctrl(k)`, `Key.shift(k)`, `Key.ctrlShift(k)`, etc.) build precisely-typed `KeyId` literals like `"ctrl+c"`. Pure runtime convenience for typed key-id construction — plugins built against the upstream package surface that import `Key` (e.g. `@plannotator/pi-extension`, `@juicesharp/rpiv-ask-user-question`) load again now that the specifier shim remaps them onto this package.
 
 ## [15.0.1] - 2026-05-14
 ### Breaking Changes
@@ -156,7 +156,7 @@
 ## [14.9.5] - 2026-05-12
 ### Fixed
 
-- Fixed rapidly blinking cursor artifact during task execution by consolidating cursor control sequences into the synchronized output buffer ([#992](https://github.com/can1357/gajae-code/issues/992))
+- Fixed rapidly blinking cursor artifact during task execution by consolidating cursor control sequences into the synchronized output buffer ([#992](https://github.com/lidge-jun/jawcode/issues/992))
 
 ## [14.5.7] - 2026-04-29
 
@@ -192,7 +192,7 @@
 - Simplified cache key computation in Box component by removing intermediate hash updates and consolidating hash operations
 - Wrapped native text utility functions (`sliceWithWidth`, `truncateToWidth`, `wrapTextWithAnsi`, `extractSegments`) to automatically pass the current default tab width, simplifying the API for consumers
 - Added `getIndentationNoescape` wrapper that uses `process.cwd()` as the project root for relative file paths
-- Re-export `getDefaultTabWidth`, `getIndentation`, and `setDefaultTabWidth` from `@gajae-code/utils`; native text helpers still receive tab width via wrappers that read the JS default
+- Re-export `getDefaultTabWidth`, `getIndentation`, and `setDefaultTabWidth` from `@jawcode-dev/utils`; native text helpers still receive tab width via wrappers that read the JS default
 
 ## [13.16.1] - 2026-03-27
 
@@ -261,7 +261,7 @@
 
 ### Fixed
 
-- Fixed viewport repaint scrollback accounting during resize oscillation to avoid double-scrolling on height shrink and added exact-row scrollback assertions in overlay regression coverage ([#228](https://github.com/can1357/gajae-code/issues/228), [#234](https://github.com/can1357/gajae-code/issues/234))
+- Fixed viewport repaint scrollback accounting during resize oscillation to avoid double-scrolling on height shrink and added exact-row scrollback assertions in overlay regression coverage ([#228](https://github.com/lidge-jun/jawcode/issues/228), [#234](https://github.com/lidge-jun/jawcode/issues/234))
 ## [13.5.3] - 2026-03-01
 
 ### Fixed
@@ -368,7 +368,7 @@
 
 ### Fixed
 
-- Fixed history-entry navigation anchoring (Up opens at top, Down opens at bottom) and preserved editor scroll context when max-height changes to keep cursor movement visible in long prompts ([#99](https://github.com/can1357/gajae-code/issues/99)).
+- Fixed history-entry navigation anchoring (Up opens at top, Down opens at bottom) and preserved editor scroll context when max-height changes to keep cursor movement visible in long prompts ([#99](https://github.com/lidge-jun/jawcode/issues/99)).
 
 ## [12.11.3] - 2026-02-19
 
@@ -483,7 +483,7 @@
 - Changed notification suppression environment variable from `GJC_NOTIFICATIONS` to `PI_NOTIFICATIONS`
 - Changed TUI write log environment variable from `GJC_TUI_WRITE_LOG` to `PI_TUI_WRITE_LOG`
 - Changed hardware cursor environment variable from `GJC_HARDWARE_CURSOR` to `PI_HARDWARE_CURSOR`
-- Updated environment variable access to use `getEnv()` utility function from `@gajae-code/utils` for consistent handling
+- Updated environment variable access to use `getEnv()` utility function from `@jawcode-dev/utils` for consistent handling
 - Renamed `TERMINAL_INFO` export to `TERMINAL` for clearer API semantics
 - Reorganized terminal image exports from `terminal-image` to `terminal-capabilities` module
 - Updated all internal references to use `TERMINAL` instead of `TERMINAL_INFO`
@@ -502,7 +502,7 @@
 
 ### Changed
 
-- Moved `wrapTextWithAnsi` export to `@gajae-code/natives` package
+- Moved `wrapTextWithAnsi` export to `@jawcode-dev/natives` package
 
 ### Fixed
 
@@ -529,7 +529,7 @@
 
 ### Removed
 
-- Removed `truncateToWidth`, `sliceWithWidth`, and `extractSegments` functions from public API (now re-exported directly from @gajae-code/natives)
+- Removed `truncateToWidth`, `sliceWithWidth`, and `extractSegments` functions from public API (now re-exported directly from @jawcode-dev/natives)
 - Removed `ellipsis` property from `SymbolTheme` interface
 - Removed `extractAnsiCode` function from public API
 
@@ -823,7 +823,7 @@
 
 ### Changed
 
-- Forked to @gajae-code scope with unified versioning across all packages
+- Forked to @jawcode-dev scope with unified versioning across all packages
 
 ### Fixed
 
@@ -833,7 +833,7 @@
 
 ## [1.337.0] - 2026-01-02
 
-Initial release under @gajae-code scope. See previous releases at [badlogic/pi-mono](https://github.com/badlogic/pi-mono).
+Initial release under @jawcode-dev scope. See previous releases at [badlogic/pi-mono](https://github.com/badlogic/pi-mono).
 
 ## [0.31.1] - 2026-01-02
 

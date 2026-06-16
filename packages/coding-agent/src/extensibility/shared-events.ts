@@ -12,9 +12,9 @@
  * carry subsystem-specific message types — lives in the per-subsystem
  * `types.ts` files and is documented there.
  */
-import type { AgentMessage } from "@gajae-code/agent-core";
-import type { CompactionPreparation, CompactionResult } from "@gajae-code/agent-core/compaction";
-import type { ImageContent, TextContent, ToolResultMessage } from "@gajae-code/ai";
+import type { AgentMessage } from "@jawcode-dev/agent-core";
+import type { CompactionPreparation, CompactionResult } from "@jawcode-dev/agent-core/compaction";
+import type { ImageContent, TextContent, ToolResultMessage } from "@jawcode-dev/ai";
 import type { Rule } from "../capability/rule";
 import type { Goal, GoalModeState } from "../goals/state";
 import type { BranchSummaryEntry, CompactionEntry, SessionEntry } from "../session/session-manager";

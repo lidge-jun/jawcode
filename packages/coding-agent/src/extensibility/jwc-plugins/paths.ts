@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
-import { getAgentDir, pathIsWithin } from "@gajae-code/utils";
+import { getAgentDir, pathIsWithin } from "@jawcode-dev/utils";
 import { GJC_PLUGIN_MANIFEST_FILENAME, JwcPluginLoadError } from "./types";
 
 export function jwcPluginUserRoot(): string {

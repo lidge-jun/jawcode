@@ -1,7 +1,7 @@
 /**
  * Default themes for TUI tests using chalk
  */
-import type { EditorTheme, MarkdownTheme, SelectListTheme, SymbolTheme } from "@gajae-code/tui";
+import type { EditorTheme, MarkdownTheme, SelectListTheme, SymbolTheme } from "@jawcode-dev/tui";
 import { Chalk } from "chalk";
 
 const chalk = new Chalk({ level: 3 });

@@ -1,4 +1,4 @@
-import { getProjectDir, logger } from "@gajae-code/utils";
+import { getProjectDir, logger } from "@jawcode-dev/utils";
 import type { AutocompleteProvider, CombinedAutocompleteProvider } from "../autocomplete";
 import { BracketedPasteHandler } from "../bracketed-paste";
 import { getKeybindings, type KeybindingsManager } from "../keybindings";

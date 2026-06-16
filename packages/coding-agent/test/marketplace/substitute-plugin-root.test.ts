@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { substitutePluginRoot } from "@gajae-code/coding-agent/discovery/substitute-plugin-root";
+import { substitutePluginRoot } from "@jawcode-dev/coding-agent/discovery/substitute-plugin-root";
 
 // Use concatenation to avoid noTemplateCurlyInString lint rule on literal placeholder names
 const CLAUDE_VAR = "$" + "{CLAUDE_PLUGIN_ROOT}";

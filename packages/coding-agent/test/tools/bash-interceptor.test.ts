@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import type { AgentToolContext } from "@gajae-code/agent-core";
-import { validateToolArguments } from "@gajae-code/ai/utils/validation";
+import type { AgentToolContext } from "@jawcode-dev/agent-core";
+import { validateToolArguments } from "@jawcode-dev/ai/utils/validation";
 import type { BashInterceptorRule } from "../../src/config/settings-schema";
 import type { ToolSession } from "../../src/tools";
 import { BashTool, type BashToolInput } from "../../src/tools/bash";

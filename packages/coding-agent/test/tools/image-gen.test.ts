@@ -1,15 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
-import type { Model } from "@gajae-code/ai";
-import type { ModelRegistry } from "@gajae-code/coding-agent/config/model-registry";
-import { SETTINGS_SCHEMA } from "@gajae-code/coding-agent/config/settings-schema";
-import type { CustomToolContext } from "@gajae-code/coding-agent/extensibility/custom-tools";
-import type { ReadonlySessionManager } from "@gajae-code/coding-agent/session/session-manager";
+import type { Model } from "@jawcode-dev/ai";
+import type { ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
+import { SETTINGS_SCHEMA } from "@jawcode-dev/coding-agent/config/settings-schema";
+import type { CustomToolContext } from "@jawcode-dev/coding-agent/extensibility/custom-tools";
+import type { ReadonlySessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
 import {
 	getImageGenToolsWithRegistry,
 	imageGenTool,
 	setPreferredImageProvider,
-} from "@gajae-code/coding-agent/tools/image-gen";
+} from "@jawcode-dev/coding-agent/tools/image-gen";
 
 const originalFetch = global.fetch;
 const originalOpenRouterKey = Bun.env.OPENROUTER_API_KEY;
