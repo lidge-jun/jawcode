@@ -689,6 +689,7 @@ export class EventController {
 				} else {
 					this.#backgroundToolCallIds.delete(event.toolCallId);
 					this.#clearReadToolCall(event.toolCallId);
+					this.#commitLiveTool(component);
 				}
 				this.ctx.ui.requestRender();
 			} else {
@@ -711,6 +712,7 @@ export class EventController {
 					this.ctx.pendingTools.delete(event.toolCallId);
 					this.#backgroundToolCallIds.delete(event.toolCallId);
 					this.#clearReadToolCall(event.toolCallId);
+					this.#commitLiveTool(component);
 				}
 				this.ctx.ui.requestRender();
 			}

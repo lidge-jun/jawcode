@@ -78,6 +78,25 @@ function endEvent(toolCallId: string): Extract<AgentSessionEvent, { type: "tool_
 	} as Extract<AgentSessionEvent, { type: "tool_execution_end" }>;
 }
 
+function readInternalStartEvent(toolCallId: string): Extract<AgentSessionEvent, { type: "tool_execution_start" }> {
+	return {
+		type: "tool_execution_start",
+		toolCallId,
+		toolName: "read",
+		args: { path: "agent://audit-output" },
+	} as Extract<AgentSessionEvent, { type: "tool_execution_start" }>;
+}
+
+function readInternalEndEvent(toolCallId: string): Extract<AgentSessionEvent, { type: "tool_execution_end" }> {
+	return {
+		type: "tool_execution_end",
+		toolCallId,
+		toolName: "read",
+		isError: false,
+		result: { content: [{ type: "text", text: '{\n  "verdict": "FAIL",\n  "findings": []\n}' }] },
+	} as Extract<AgentSessionEvent, { type: "tool_execution_end" }>;
+}
+
 function assistantToolMessage(toolCallId: string): AssistantMessage {
 	return {
 		role: "assistant",
@@ -136,6 +155,23 @@ describe("commit-time folding (99.20.04)", () => {
 		expect(chatContainer.children).toContain(component);
 		// Committed collapsed: rendered height is the minimized two-line form
 		// (blank spacer + one summary line), never the multi-line output.
+		const committedHeight = (component as { render(width: number): string[] }).render(80).length;
+		expect(committedHeight).toBeLessThanOrEqual(2);
+	});
+	it("commit mode: internal-url read previews in the live zone, commits collapsed on completion", async () => {
+		settings.set("tool.renderMode", "commit");
+		const { controller, chatContainer, liveToolContainer } = createFixture();
+
+		await controller.handleEvent(readInternalStartEvent("read-internal"));
+		expect(liveToolContainer.children.length).toBe(1);
+		expect(chatContainer.children.length).toBe(0);
+
+		const component = liveToolContainer.children[0];
+
+		await controller.handleEvent(readInternalEndEvent("read-internal"));
+		expect(liveToolContainer.children.length).toBe(0);
+		expect(chatContainer.children).toContain(component);
+		expect(chatContainer.children.length).toBe(1);
 		const committedHeight = (component as { render(width: number): string[] }).render(80).length;
 		expect(committedHeight).toBeLessThanOrEqual(2);
 	});
