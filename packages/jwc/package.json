@@ -1,7 +1,7 @@
 {
 	"type": "module",
 	"name": "jawcode",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "Jawcode (jwc) — structured coding-agent runtime CLI for cli-jaw and standalone use",
 	"license": "MIT",
 	"bin": {
@@ -41,7 +41,7 @@
 		"smoke:packed-sdk": "node scripts/smoke-packed-sdk.mjs"
 	},
 	"dependencies": {
-		"@jawcode-dev/natives": "1.0.0",
+		"@jawcode-dev/natives": "1.0.2",
 		"markit-ai": "0.5.3",
 		"better-sqlite3": "^11.10.0",
 		"json5": "^2.2.3",
@@ -50,7 +50,7 @@
 		"bun": "1.3.14"
 	},
 	"devDependencies": {
-		"@jawcode-dev/coding-agent": "1.0.0",
+		"@jawcode-dev/coding-agent": "1.0.2",
 		"esbuild": "^0.25.0",
 		"yaml": "^2.6.0",
 		"smol-toml": "^1.3.0",

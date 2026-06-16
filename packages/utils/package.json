@@ -1,7 +1,7 @@
 {
 	"type": "module",
 	"name": "@jawcode-dev/utils",
-	"version": "1.0.0",
+	"version": "1.0.2",
 	"description": "Shared utilities for pi packages",
 	"homepage": "https://gaebal-gajae.dev",
 	"author": "Yeachan-Heo",
