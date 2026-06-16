@@ -419,7 +419,7 @@ export function resolveEvalBackends(session: ToolSession): EvalBackendsAllowance
  */
 export async function createTools(session: ToolSession, toolNames?: string[]): Promise<Tool[]> {
 	const includeYield = session.requireYieldTool === true;
-	const enableLsp = session.enableLsp ?? true;
+	const enableLsp = session.enableLsp ?? session.settings.get("lsp.enabled");
 	let requestedTools =
 		toolNames && toolNames.length > 0 ? [...new Set(toolNames.map(name => name.toLowerCase()))] : undefined;
 	const goalEnabled = session.settings.get("goal.enabled");
