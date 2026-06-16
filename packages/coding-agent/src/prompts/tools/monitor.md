@@ -29,4 +29,4 @@ Returns `Monitor started · task <task_id>` plus a background row visible via `b
 
 ## Cancellation
 
-There is no separate `monitor` kill tool. Cancel a running monitor with `background` when supported by its cancel matrix, or with legacy `job` using the returned `task_id`. Disposing the session also cancels every monitor the calling agent started.
+There is no separate `monitor` kill tool. Cancel a running monitor with `background` using `op: "cancel"` and the `task_id`. Disposing the session also cancels every monitor the calling agent started.

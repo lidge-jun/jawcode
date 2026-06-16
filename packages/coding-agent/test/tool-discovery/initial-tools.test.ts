@@ -10,7 +10,6 @@ import {
 	createTools,
 	DEFAULT_ESSENTIAL_TOOL_NAMES,
 	IrcTool,
-	JobTool,
 	RecipeTool,
 	SshTool,
 } from "../../src/tools/index";
@@ -91,7 +90,6 @@ async function getToolMetadata(): Promise<Map<string, { loadMode?: string; summa
 	for (const tool of [
 		new AskTool({ ...toolSession, hasUI: true }),
 		new SshTool(toolSession, [], new Map(), ""),
-		new JobTool(toolSession),
 		new RecipeTool(toolSession, []),
 		new IrcTool(toolSession),
 	]) {

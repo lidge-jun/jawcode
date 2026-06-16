@@ -45,8 +45,6 @@ import { FindTool } from "./find";
 import { GithubTool } from "./gh";
 import { InspectImageTool } from "./inspect-image";
 import { IrcTool } from "./irc";
-import { JobTool } from "./job";
-import { MonitorTool } from "./monitor";
 import { wrapToolWithMetaNotice } from "./output-meta";
 import { ReadTool } from "./read";
 import { RecipeTool } from "./recipe";
@@ -85,8 +83,6 @@ export * from "./gh";
 export * from "./image-gen";
 export * from "./inspect-image";
 export * from "./irc";
-export * from "./job";
-export * from "./monitor";
 export * from "./read";
 export * from "./recipe";
 export * from "./render-mermaid";
@@ -310,6 +306,7 @@ export const DEFAULT_ESSENTIAL_TOOL_NAMES: readonly string[] = [
 	"subagent",
 	"task",
 	"skill",
+	"background",
 ] as const;
 
 /**
@@ -335,7 +332,7 @@ export function computeEssentialBuiltinNames(settings: Settings): string[] {
  */
 export const BUILTIN_TOOLS: Record<string, ToolFactory> = {
 	read: s => new ReadTool(s),
-	background: s => BackgroundTool.createIf(s),
+	background: s => new BackgroundTool(s),
 	bash: s => new BashTool(s),
 	edit: s => new EditTool(s),
 	ast_grep: s => new AstGrepTool(s),
@@ -357,8 +354,6 @@ export const BUILTIN_TOOLS: Record<string, ToolFactory> = {
 	rewind: RewindTool.createIf,
 	task: s => TaskTool.create(s),
 	subagent: s => new SubagentTool(s),
-	job: JobTool.createIf,
-	monitor: MonitorTool.createIf,
 	CronCreate: CronCreateTool.createIf,
 	CronList: CronListTool.createIf,
 	CronDelete: CronDeleteTool.createIf,

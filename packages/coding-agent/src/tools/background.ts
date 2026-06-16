@@ -326,7 +326,7 @@ export class BackgroundTool implements AgentTool<typeof backgroundSchema, Backgr
 	readonly description: string;
 	readonly parameters = backgroundSchema;
 	readonly strict = true;
-	readonly loadMode = "discoverable";
+	readonly loadMode = "essential";
 
 	constructor(private readonly session: ToolSession) {
 		this.description = prompt.render(backgroundDescription);
