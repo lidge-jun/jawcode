@@ -19,7 +19,9 @@ Pick by how many notifications you need:
 - `kind` (required): one of `"log"`, `"poll"`, `"watch"`, `"other"`. Describes the monitoring strategy so listings can surface useful categories.
 - `description` (required): short human-readable description of what is being monitored. Appears in task listings.
 - `timeout` (optional): maximum wall-clock seconds the monitor may run before automatic shutdown. Omit for the session lifetime.
-- `persistent` (optional, default `false`): keep the monitor running past the current turn. Persistent monitors survive until session end or until cancelled via `job`.
+- `persistent` (optional, default `false`): keep the monitor running past the current turn. Persistent monitors survive until session end or until cancelled via `background`.
+- `silent` (optional, default `false`; **auto-enabled for `kind: "poll"`**): when true, notifications queue silently without triggering a new agent turn. The agent sees them on its next natural turn — avoids empty response spam for poll monitors.
+- `deduplicate` (optional, default `false`; **auto-enabled for `kind: "poll"`**): skip notification when the stdout line is identical to the previous one. Combines well with `silent` for poll patterns.
 
 ## Output
 

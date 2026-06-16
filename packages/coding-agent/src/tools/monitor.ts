@@ -35,6 +35,18 @@ const monitorSchema = z.object({
 		.describe(
 			"Whether to keep the monitor running past the originating turn. Persistent monitors survive until session end or explicit kill via the background-task stop tool.",
 		),
+	silent: z
+		.boolean()
+		.optional()
+		.describe(
+			"When true, notifications queue silently without triggering a new agent turn. Default: false; auto-enabled for kind='poll'.",
+		),
+	deduplicate: z
+		.boolean()
+		.optional()
+		.describe(
+			"When true, skip notification if stdout line identical to previous. Default: false; auto-enabled for kind='poll'.",
+		),
 });
 
 export type MonitorParams = z.infer<typeof monitorSchema>;
@@ -117,6 +129,8 @@ export class MonitorTool implements AgentTool<typeof monitorSchema, MonitorToolD
 		}
 
 		const persistent = params.persistent ?? false;
+		const effectiveSilent = params.silent ?? params.kind === "poll";
+		const effectiveDedup = params.deduplicate ?? params.kind === "poll";
 		const label = buildMonitorLabel(params);
 		const ownerId = this.session.getAgentId?.() ?? undefined;
 		const bash = new BashTool(this.session);
@@ -127,6 +141,7 @@ export class MonitorTool implements AgentTool<typeof monitorSchema, MonitorToolD
 		let latestLine: string | undefined;
 		let coalescedCount = 0;
 		let flushScheduled = false;
+		let lastSeenLine: string | undefined;
 		// Count of notification *sends* (not live queue depth): once it exceeds the
 		// cap, each new send first purges older queued notifications for this task,
 		// keeping the queue bounded and latest-biased.
@@ -187,7 +202,7 @@ export class MonitorTool implements AgentTool<typeof monitorSchema, MonitorToolD
 			}
 			const sendPromise = this.session.sendCustomMessage?.(
 				{ customType: "task-notification", content, display: false, attribution: "agent", details },
-				{ triggerTurn: true, deliverAs: "followUp" },
+				{ triggerTurn: !effectiveSilent, deliverAs: "followUp" },
 			);
 			if (sendPromise) {
 				void sendPromise.catch(error => {
@@ -195,7 +210,7 @@ export class MonitorTool implements AgentTool<typeof monitorSchema, MonitorToolD
 						error: error instanceof Error ? error.message : String(error),
 					});
 				});
-			} else {
+			} else if (!effectiveSilent) {
 				this.session.steer?.({ customType: "task-notification", content, details });
 			}
 		};
@@ -226,6 +241,8 @@ export class MonitorTool implements AgentTool<typeof monitorSchema, MonitorToolD
 					if (!persistent && deliveredFirstLine) return;
 					deliveredFirstLine = true;
 					if (persistent) {
+						if (effectiveDedup && line === lastSeenLine) return;
+						lastSeenLine = line;
 						schedulePersistentNotification(line);
 						return;
 					}
