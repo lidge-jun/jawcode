@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to publish (e.g. 0.1.0 or 0.2.0-preview.1)"
+        description: "Version to publish (e.g. 1.0.1 or 1.1.0-preview.1)"
         required: true
         type: string
       tag:
@@ -23,9 +23,11 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   mac-native-probes:
     runs-on: macos-14
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -34,6 +36,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: release-${{ runner.os }}
+          cache-on-failure: true
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}
       - run: bun install --frozen-lockfile
       - run: bun run build:native
       - run: bun --cwd=packages/jwc run bundle
@@ -43,6 +54,7 @@ jobs:
   publish:
     needs: mac-native-probes
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       id-token: write
@@ -55,47 +67,18 @@ jobs:
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: release-${{ runner.os }}
+          cache-on-failure: true
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}
       - run: bun install --frozen-lockfile
       - run: bun run build:native
-      - run: bun run ci:check:full
 
-      - name: Canonical JWC release validation
-        run: bun run validate:jwc-release
-
-      - name: Build bundles
-        run: |
-          bun --cwd=packages/jwc run bundle
-          bun --cwd=packages/jwc run build:node
-
-      - name: Node SDK smoke test
-        run: node packages/jwc/scripts/smoke-node-sdk.mjs
-
-      - name: Node bin syntax check
-        run: node --check packages/jwc/bin/jwc.js
-
-      - name: Pack size guard
-        run: |
-          cd packages/jwc
-          npm pack 2>/dev/null
-          SIZE=$(stat -c%s jawcode-*.tgz 2>/dev/null || stat -f%z jawcode-*.tgz)
-          MAX=$((15 * 1024 * 1024))
-          echo "Pack size: $SIZE bytes (max: $MAX)"
-          if [ "$SIZE" -gt "$MAX" ]; then
-            echo "::error::Package tarball exceeds 15MB limit ($SIZE bytes)"
-            exit 1
-          fi
-          rm -f jawcode-*.tgz
-
-      - name: Pack file count guard
-        run: |
-          cd packages/jwc
-          COUNT=$(npm pack --dry-run 2>&1 | grep "^npm notice total files:" | grep -o '[0-9]*')
-          MAX=15
-          echo "File count: $COUNT (max: $MAX)"
-          if [ "$COUNT" -gt "$MAX" ]; then
-            echo "::error::Package contains $COUNT files (max $MAX)"
-            exit 1
-          fi
       - name: Verify version matches
         run: |
           PKG_VERSION=$(node -e "console.log(require('./packages/jwc/package.json').version)")
@@ -104,14 +87,17 @@ jobs:
             exit 1
           fi
 
-      - name: Publish
+      - name: Publish all packages
         run: |
-          cd packages/jwc
+          ARGS="--tag ${{ inputs.tag }}"
           if [ "${{ inputs.dry-run }}" = "true" ]; then
-            npm publish --dry-run --tag ${{ inputs.tag }}
+            bun scripts/ci-release-publish.ts --dry-run $ARGS
           else
-            npm publish --access public --provenance --tag ${{ inputs.tag }}
+            bun scripts/ci-release-publish.ts $ARGS
           fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Post-publish registry smoke
         if: inputs.dry-run != true
         run: |

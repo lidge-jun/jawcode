@@ -73,7 +73,7 @@ class Settings(BaseSettings):
     # opening a PR — continue" reminder prompts into the same gjc session.
     # Set to 0 to disable.
     task_completion_max_reminders: int = Field(2, alias="ROBJWC_TASK_COMPLETION_MAX_REMINDERS")
-    gjc_command: str = Field("gjc", alias="ROBJWC_GJC_COMMAND")
+    gjc_command: str = Field("jwc", alias="ROBJWC_GJC_COMMAND")
 
     # Graceful shutdown (Phase B). On SIGTERM the dispatcher stops claiming
     # new work, then waits up to `drain` seconds for in-flight events to

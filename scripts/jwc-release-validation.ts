@@ -32,6 +32,14 @@ const steps: Step[] = [
 	{ name: "github workflow guard", args: ["bun", "run", "check:no-github-workflows"] },
 	{ name: "active public legacy zero", args: ["bun", "scripts/check-public-legacy-zero.ts"] },
 	{ name: "legacy name inventory", args: ["bun", "run", "inventory:legacy-names"] },
+	{
+		name: "internal dep version match",
+		args: [
+			"node",
+			"-e",
+			`const jwc = require('./packages/jwc/package.json'); const natives = require('./packages/natives/package.json'); const codingAgent = require('./packages/coding-agent/package.json'); const checks = [['@gajae-code/natives', jwc.dependencies?.['@gajae-code/natives'], natives.version], ['@gajae-code/coding-agent', jwc.devDependencies?.['@gajae-code/coding-agent'], codingAgent.version]]; let ok = true; for (const [name, dep, ws] of checks) { if (dep && dep !== ws) { console.error('MISMATCH: ' + name + ' dep=' + dep + ' workspace=' + ws); ok = false; } } if (!ok) process.exit(1); console.log('internal dep versions match workspace');`,
+		],
+	},
 ];
 
 for (const step of steps) {

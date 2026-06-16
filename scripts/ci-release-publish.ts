@@ -42,6 +42,10 @@ interface PackageManifest extends JsonObject {
 
 const repoRoot = path.join(import.meta.dir, "..");
 const isDryRun = process.argv.includes("--dry-run");
+const distTag = (() => {
+	const idx = process.argv.indexOf("--tag");
+	return idx >= 0 ? process.argv[idx + 1] : undefined;
+})();
 export const packages: PublishPackage[] = [
 	{ dir: "packages/utils", kind: "typescript" },
 	{ dir: "packages/ai", kind: "typescript" },
@@ -245,7 +249,9 @@ async function publishPackage(pkg: PublishPackage): Promise<void> {
 		return;
 	}
 	console.log(`Publishing ${name}…`);
-	const result = await $`npm publish --access public`.cwd(pkgDir).quiet().nothrow();
+	const publishArgs = ["publish", "--access", "public", "--provenance"];
+	if (distTag) publishArgs.push("--tag", distTag);
+	const result = await $`npm ${publishArgs}`.cwd(pkgDir).quiet().nothrow();
 	const output = `${result.stdout.toString()}${result.stderr.toString()}`.trim();
 	if (output) console.log(output);
 	if (result.exitCode !== 0) process.exit(result.exitCode ?? 1);

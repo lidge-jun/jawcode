@@ -61,7 +61,7 @@ function rowsFor(running: RunningEvent[], inflight: string[]): Row[] {
 async function cancelDelivery(deliveryId: string): Promise<void> {
   if (
     !window.confirm(
-      "Kill this running task? The gjc subprocess dies and the row lands in 'failed'.",
+      "Kill this running task? The jwc subprocess dies and the row lands in 'failed'.",
     )
   ) {
     return;

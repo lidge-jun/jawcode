@@ -7,7 +7,7 @@ import { checkNode20Baseline } from "./check-node20-baseline";
 const tempRoots: string[] = [];
 
 async function createRepo(files: Record<string, string>): Promise<string> {
-	const root = await fs.mkdtemp(path.join(os.tmpdir(), "gjc-node20-baseline-"));
+	const root = await fs.mkdtemp(path.join(os.tmpdir(), "jwc-node20-baseline-"));
 	tempRoots.push(root);
 	for (const [relativePath, content] of Object.entries(files)) {
 		const filePath = path.join(root, relativePath);

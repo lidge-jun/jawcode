@@ -93,8 +93,8 @@ function main(): void {
 	}
 
 	const drift = commandRefs.filter(ref => !ref.valid);
-	console.log(`gjc skill docs verifier - scanned ${path.relative(repoRoot, skillsRoot)}/*/SKILL.md`);
-	console.log(`Found ${commandRefs.length} gjc command reference(s).`);
+	console.log(`jwc skill docs verifier - scanned ${path.relative(repoRoot, skillsRoot)}/*/SKILL.md`);
+	console.log(`Found ${commandRefs.length} jwc command reference(s).`);
 	console.log(`Found ${mutationRefs.length} direct .jwc shell mutation example(s).\n`);
 
 	const byFile = new Map<string, CommandRef[]>();

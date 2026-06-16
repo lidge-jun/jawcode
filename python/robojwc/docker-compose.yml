@@ -64,7 +64,7 @@ services:
       ROBJWC_REPLAY_TOKEN: ${ROBJWC_REPLAY_TOKEN:-}
 
       # --- container-fixed paths ---
-      ROBJWC_GJC_COMMAND: gjc
+      ROBJWC_GJC_COMMAND: jwc
       ROBJWC_WORKSPACE_ROOT: /data/workspaces
       ROBJWC_SQLITE_PATH: /data/robojwc.sqlite
       ROBJWC_LOG_DIR: /data/logs
@@ -74,7 +74,7 @@ services:
     depends_on:
       gh-proxy:
         condition: service_started
-    # Resolve `llm-gateway.internal` (used in /srv/agent-home/.gjc/agent/models.yml) to the
+    # Resolve `llm-gateway.internal` (used in /srv/agent-home/.jwc/agent/models.yml) to the
     # Docker host. The actual gateway listens on 127.0.0.1:4000 on the host;
     # `host-gateway` is Docker's alias for the host bridge IP.
     extra_hosts:
@@ -88,9 +88,9 @@ services:
       # Host agent config is mounted read-only under /srv/agent-home-stage
       # with host-controlled permissions. The entrypoint copies it into
       # root-owned, world-readable files under /srv/agent-home; the agent
-      # subprocess runs with HOME=/srv/agent-home, so ~/.gjc and ~/.agent
+      # subprocess runs with HOME=/srv/agent-home, so ~/.jwc and ~/.agent
       # resolve there without exposing mutable host mounts.
-      - ${HOME}/.gjc/agent/models.container.yml:/srv/agent-home-stage/.gjc/agent/models.yml:ro
+      - ${HOME}/.jwc/agent/models.container.yml:/srv/agent-home-stage/.jwc/agent/models.yml:ro
       - ${HOME}/.agent/AGENT.md:/srv/agent-home-stage/.agent/AGENTS.md:ro
       - ${HOME}/.agent/rules:/srv/agent-home-stage/.agent/rules:ro
     ports:

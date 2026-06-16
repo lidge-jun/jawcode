@@ -60,7 +60,7 @@ SOURCE_BUN_HOME="$WORK_DIR/bun-source"
 	export BUN_INSTALL="$SOURCE_BUN_HOME"
 	export PATH="$BUN_INSTALL/bin:$PATH"
 	bun --cwd="$ROOT_DIR/packages/coding-agent" link
-	smoke_cli "$BUN_INSTALL/bin/gjc"
+	smoke_cli "$BUN_INSTALL/bin/jwc"
 )
 
 section "Tarball install smoke"
@@ -109,7 +109,7 @@ mkdir -p "$TARBALL_APP_DIR"
 	"
 
 	bun add "$utils_tgz" "$natives_tgz" "$ai_tgz" "$agent_tgz" "$tui_tgz" "$stats_tgz" "$coding_agent_tgz"
-	smoke_cli ./node_modules/.bin/gjc
+	smoke_cli ./node_modules/.bin/jwc
 	bun add "$jwc_tgz"
 	smoke_cli ./node_modules/.bin/jwc
 	node -e 'import("jawcode/sdk").then((sdk) => { if (typeof sdk.createAgentSession !== "function") throw new Error("missing createAgentSession"); })'

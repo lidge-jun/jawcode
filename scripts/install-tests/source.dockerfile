@@ -21,4 +21,4 @@ RUN bun --cwd=packages/natives run build
 RUN cd packages/coding-agent && bun link
 
 # Verify
-RUN gjc --version
+RUN jwc --version
