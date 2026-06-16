@@ -6,8 +6,8 @@
 ## 런타임·표면
 
 - **단일 공개 진입**: npm 패키지 `jawcode`, bin **`jwc`** — `packages/jwc/bin/jwc.js`가 managed Bun으로 workspace/bundle CLI를 재실행한다.
-- **레거시 제거**: `packages/gajae-code` wrapper 삭제; 사용자가 호출하는 CLI는 `jwc`만 남긴다.
-- **앱 식별자**: `APP_NAME` 기본 `jwc` (`packages/coding-agent` main/help); 내부 `ENGINE_NAME`·`@gajae-code/*` 워크스페이스는 리베이스 비용 절감용으로 유지.
+- **레거시 제거**: `packages/gajae-code` → jawcode-compat wrapper; 사용자가 호출하는 CLI는 `jwc`만 남긴다.
+- **앱 식별자**: `APP_NAME` 기본 `jwc` (`packages/coding-agent` main/help); 내부 `ENGINE_NAME`·`@jawcode-dev/*` 워크스페이스는 리베이스 비용 절감용으로 유지.
 - **릴리스·가드**: `scripts/rebrand-inventory.ts --strict`, `packages/jwc` publish 번들이 공개 표면 게이트.
 
 ## upstream 대비

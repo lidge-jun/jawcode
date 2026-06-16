@@ -10,7 +10,7 @@
 1. gjc는 **계보 형제**이지 jaw의 릴리즈 보스가 아님.
 2. 참조 = **읽기·diff·선별 포팅** — 전체 리베이스 의무 없음.
 3. **jaw 불변**: orchestrate, jaw-interview, `.jwc` 런타임, INVERTED-GUARD, `packages/jwc` 단일 bin.
-4. **γ 경계**: `gjc-runtime/` 경로, receipt owner `gjc-runtime`, `@gajae-code/*` import (063.1 B).
+4. **γ 경계**: `gjc-runtime/` 경로, receipt owner `gjc-runtime`, `@jawcode-dev/*` import (063.1 B).
 5. **ralplan 이별 (99.30.02, 260613)**: jaw의 합의 플래닝은 네이티브 orchestrate P단계로
    단일화 — upstream의 ralplan 트랙(스킬 문서·consensus 루프 개선, 예: #395/#396)은
    **체리픽 금지, 의미론적 팔로우만**: 아이디어가 가치 있으면 orchestrate 런타임/프롬프트에

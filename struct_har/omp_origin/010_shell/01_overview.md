@@ -6,12 +6,12 @@
 ## CLI · 브랜드 · 패키지
 
 - bin **`omp`** (`@oh-my-pi/pi-coding-agent`).
-- npm scope **`@oh-my-pi/*`** — gjc의 `@gajae-code/*`와 별계열.
+- npm scope **`@oh-my-pi/*`** — gjc의 `@jawcode-dev/*`와 별계열.
 - 런타임 확장 경로 **`.omp/`** (skills, commands) — jaw는 **`.jwc/`** + cli-jaw.
 
 ## jawcode 대조
 
-jwc: `packages/jwc` only bin; `gajae-code` shell removed; APP_NAME=jwc.
+jwc: `packages/jwc` only bin; `gajae-code` → jawcode-compat; shell removed; APP_NAME=jwc.
 
 | 문서 | |
 |---|---|

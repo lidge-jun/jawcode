@@ -10,7 +10,7 @@
 
 ## 대조
 
-jwc: `packages/jwc` only bin; `gajae-code` shell removed; APP_NAME=jwc.
+jwc: `packages/jwc` only bin; `gajae-code` → jawcode-compat; shell removed; APP_NAME=jwc.
 
 ## 정본
 

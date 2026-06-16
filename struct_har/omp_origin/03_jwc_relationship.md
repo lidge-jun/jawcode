@@ -29,7 +29,7 @@ pi-mono (badlogic)
 
 | omp | 이유 |
 |---|---|
-| `@oh-my-pi/*` scope rename | jawcode는 `@gajae-code/*` 유지 |
+| `@oh-my-pi/*` scope rename | jawcode는 `@jawcode-dev/*` 유지 |
 | `omp` bin / 브랜딩 | **`jwc` 단일 표면** |
 | gjc 4 workflow 스킬을 omp로 역수출 | 제품 방향 상이 |
 | omp `.omp/` 경로를 런타임 기본으로 | jaw는 `.jwc/` + cli-jaw skills |

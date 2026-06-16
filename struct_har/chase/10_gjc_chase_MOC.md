@@ -80,7 +80,7 @@
 
 ## 불변
 
-orchestrate · jaw-interview · `.jwc` · `packages/jwc` only bin · `@gajae-code/*`
+orchestrate · jaw-interview · `.jwc` · `packages/jwc` only bin · `@jawcode-dev/*`
 
 ## omp
 

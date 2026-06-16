@@ -29,7 +29,7 @@ gjc upstream (`devlog/_upstream_gjc`): `packages/ai/src/models.json` + generate-
 | `packages/coding-agent/src/cli.ts` | worker host dispatch (`declareWorkerHostEntry`, `__omp_*_worker` argv) |
 | `packages/coding-agent/package.json` | `@oh-my-pi/pi-coding-agent`, version catalog `15.11.x` 대역 (클론 시점) |
 
-jwc_patched: `packages/jwc/bin/jwc.js` → `@gajae-code/coding-agent/cli` (wrapper only).
+jwc_patched: `packages/jwc/bin/jwc.js` → `@jawcode-dev/coding-agent/cli` (wrapper only).
 
 ## 4. 문서·에셋
 

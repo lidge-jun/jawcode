@@ -33,14 +33,14 @@ const BANDS: OmpBand[] = [
 		moc: "010_moc_shell_rename.md",
 		title: "CLI · 브랜드 · 패키지",
 		ompBehavior: `- bin **\`omp\`** (\`@oh-my-pi/pi-coding-agent\`).
-- npm scope **\`@oh-my-pi/*\`** — gjc의 \`@gajae-code/*\`와 별계열.
+- npm scope **\`@oh-my-pi/*\`** — gjc의 \`@jawcode-dev/*\`와 별계열.
 - 런타임 확장 경로 **\`.omp/\`** (skills, commands) — jaw는 **\`.jwc/\`** + cli-jaw.`,
 		anchors: [
 			"package.json",
 			"packages/coding-agent/package.json",
 			"packages/coding-agent/bin",
 		],
-		jwcContrast: "jwc: `packages/jwc` only bin; `gajae-code` shell removed; APP_NAME=jwc.",
+		jwcContrast: "jwc: `packages/jwc` only bin; `gajae-code` → jawcode-compat; shell removed; APP_NAME=jwc.",
 		logicBullets: [
 			"단일 제품 CLI = omp (stats 등 서브커맨드는 omp 패키지 내)",
 			"브랜딩·config는 pi/omp 관례 — gjc fork 시 gjc/jwc로 표면만 치환",

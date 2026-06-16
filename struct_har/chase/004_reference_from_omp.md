@@ -28,7 +28,7 @@
 
 | omp | 이유 |
 |---|---|
-| `@oh-my-pi/*` rename | `@gajae-code/*` 유지 |
+| `@oh-my-pi/*` rename | `@jawcode-dev/*` 유지 |
 | `omp` bin | `jwc` 단일 표면 |
 | 4 workflow → omp | 제품 방향 상이 |
 | `.omp/` 런타임 기본 | `.jwc/` + cli-jaw |
