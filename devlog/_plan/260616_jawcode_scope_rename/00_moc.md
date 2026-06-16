@@ -1,115 +1,103 @@
-# @gajae-code → @jawcode Scope Rename
+# @gajae-code → @jawcode Scope Rename — MOC
 
-> Status: planning
-> Created: 2026-06-16
+Created: 2026-06-16
+Status: Plan ready for execution
 
-## Problem
+## Scale
 
-`@gajae-code/*` is the upstream (forked) npm scope. Our fork is `jawcode`. This causes:
-
-1. **npm publish failure** — `@gajae-code/natives@1.0.0` doesn't exist on npm, so `npm install jawcode` fails to resolve deps
-2. **Version drift** — upstream publishes `@gajae-code/*@0.4.x`, our fork needs `1.0.x`, namespace collision
-3. **Identity confusion** — `jawcode` binary, `@gajae-code/*` internals, `@jawcode` org on npm needed
-
-## Scope Audit
-
-### Package Manifests (package.json)
-
-| Package | Current name | Proposed name | Internal deps |
-|---|---|---|---|
-| `packages/utils` | `@gajae-code/utils` | `@jawcode/utils` | `@gajae-code/natives` |
-| `packages/ai` | `@gajae-code/ai` | `@jawcode/ai` | `@gajae-code/utils` |
-| `packages/natives` | `@gajae-code/natives` | `@jawcode/natives` | — |
-| `packages/tui` | `@gajae-code/tui` | `@jawcode/tui` | `@gajae-code/natives`, `@gajae-code/utils` |
-| `packages/agent` | `@gajae-code/agent-core` | `@jawcode/agent-core` | `@gajae-code/ai`, `@gajae-code/natives`, `@gajae-code/utils` |
-| `packages/coding-agent` | `@gajae-code/coding-agent` | `@jawcode/coding-agent` | `@gajae-code/stats`, `@gajae-code/agent-core`, `@gajae-code/ai`, `@gajae-code/natives`, `@gajae-code/tui`, `@gajae-code/utils` |
-| `packages/stats` | `@gajae-code/stats` | `@jawcode/stats` | `@gajae-code/ai`, `@gajae-code/utils` |
-| `packages/bridge-client` | `@gajae-code/bridge-client` | `@jawcode/bridge-client` | — |
-| `packages/orchestration-token-benchmark` | `@gajae-code/orchestration-token-benchmark` | `@jawcode/orchestration-token-benchmark` | `@gajae-code/agent-core`, `@gajae-code/coding-agent`, `@gajae-code/utils`, `@gajae-code/ai`, `@gajae-code/tui` |
-| `packages/typescript-edit-benchmark` | `@gajae-code/typescript-edit-benchmark` | `@jawcode/typescript-edit-benchmark` | `@gajae-code/agent-core`, `@gajae-code/coding-agent`, `@gajae-code/utils`, `@gajae-code/ai`, `@gajae-code/tui` |
-| `packages/gajae-code` | `gajae-code` (unscoped) | keep or deprecate | `@gajae-code/coding-agent` |
-| `packages/jwc` | `jawcode` (unscoped) | keep | `@gajae-code/natives`, `@gajae-code/coding-agent` |
-
-**Root catalog** (`package.json`): 8 `@gajae-code/*` entries
-
-### Source Code References (excluding dist/, CHANGELOG)
-
-| Category | Count |
+| Metric | Count |
 |---|---|
-| Files with `@gajae-code` imports | **1,296 files** |
-| Total import lines | **~3,400 lines** |
-| Non-import source refs (comments, strings, URLs) | **~500 lines** |
-| Markdown docs refs | **~583 lines** |
-| package.json refs | **33 lines** |
-| CI/workflow yml refs | **0** (already cleaned) |
-| Cargo.toml/pyproject.toml refs | **6** (upstream URLs only) |
+| Total @gajae-code occurrences | ~5,200+ |
+| Source imports (src/) | 1,171 |
+| Test imports (test/) | 2,114 |
+| Package.json refs | 58 (names + deps + catalog + repo URLs) |
+| Script/gate refs | 48 |
+| Test fixture refs | 186 (serialized session data) |
+| Files affected | ~300+ |
+| Packages to rename | 10 |
 
-### Import Breakdown by Package
+## Package Rename Map
 
-| Package | Import count |
+| Current | Proposed |
 |---|---|
-| `@gajae-code/coding-agent` | 1,344 |
-| `@gajae-code/utils` | 956 |
-| `@gajae-code/ai` | 732 |
-| `@gajae-code/tui` | 454 |
-| `@gajae-code/agent-core` | 425 |
-| `@gajae-code/natives` | 145 |
-| `@gajae-code/stats` | 6 |
+| `@gajae-code/utils` | `@jawcode/utils` |
+| `@gajae-code/ai` | `@jawcode/ai` |
+| `@gajae-code/natives` | `@jawcode/natives` |
+| `@gajae-code/tui` | `@jawcode/tui` |
+| `@gajae-code/stats` | `@jawcode/stats` |
+| `@gajae-code/agent-core` | `@jawcode/agent-core` |
+| `@gajae-code/coding-agent` | `@jawcode/coding-agent` |
+| `@gajae-code/bridge-client` | `@jawcode/bridge-client` |
+| `@gajae-code/typescript-edit-benchmark` | `@jawcode/typescript-edit-benchmark` |
+| `@gajae-code/orchestration-token-benchmark` | `@jawcode/orchestration-token-benchmark` |
+| `gajae-code` (root) | `jawcode-monorepo` (private, not published) |
+| `gajae-code` (packages/gajae-code) | DELETE or `jawcode-compat` |
 
-### Special Cases
+## Prerequisite
 
-1. **`gajae-code-plugin` kind** — hardcoded in plugin system (`GJC_PLUGIN_KIND`)
-2. **PI_SCOPE_ALIASES** — legacy import shim maps `@gajae-code/*` → internal modules
-3. **`gajae_code` tmux prefix** — `GJC_DEFAULT_TMUX_SESSION`, `GJC_TMUX_SESSION_PREFIX`
-4. **`.gajae-code-worktrees`** — worktree directory name
-5. **Harness control plane** — `harness: "gajae-code"` hardcoded in v1 seam
-6. **npm registry URL** — `registry.npmjs.org/@gajae-code/coding-agent/latest` for version check
-7. **GitHub URLs** — `can1357/gajae-code`, `Yeachan-Heo/gajae-code`, `gajae-ai/gajae-code`
-8. **dist/ bundles** — `jwc.bundle.js` and `sdk.js` contain embedded `@gajae-code` strings (rebuild after rename)
-9. **Test fixtures** — ~100 test files reference `gajae-code` in assertions and fixtures
-10. **Gate scripts** — `verify-g002-gates.ts`, `rebrand-inventory.ts`, `check-public-legacy-zero.ts` validate `@gajae-code` scope
+**npm에서 `@jawcode` org 생성 필요** — https://www.npmjs.com/org/create
+이거 먼저 해야 패키지 publish 가능.
 
-## Phases
+## Execution Phases (병렬 가능)
 
-| Phase | Description | Status | Estimated |
-|---|---|---|---|
-| 1 | npm `@jawcode` org creation + trusted publisher setup | pending | manual, 5min |
-| 2 | package.json name + deps rename (all 12 packages + root catalog) | pending | 30min |
-| 3 | Source import rewrite (`@gajae-code/*` → `@jawcode/*`, ~3,400 lines) | pending | ast_edit, 10min |
-| 4 | Non-import source refs (comments, strings, URLs, constants) | pending | 30min |
-| 5 | Gate scripts + test fixtures update | pending | 30min |
-| 6 | Docs/markdown refs | pending | 15min |
-| 7 | Rebuild dist bundles + bun.lock + verify | pending | 15min |
-| 8 | Legacy compat: PI_SCOPE_ALIASES add `@jawcode` → `@gajae-code` reverse shim | pending | 15min |
+### Phase 1: Package Manifests (~15 files)
+- 모든 `packages/*/package.json` name 필드 변경
+- Root `package.json` catalog `@gajae-code/*` → `@jawcode/*`
+- `packages/jwc/package.json` deps + bundle externals
+- `bun install` → `bun.lock` 재생성
 
-## Strategy: ast_edit for Imports
+### Phase 2: Source Imports (~1,300 files, 병렬 6개)
+Global text replace: `@gajae-code/` → `@jawcode/`
+대상: `packages/*/src/**/*.ts`
 
-```bash
-# Phase 3 can be 90% automated:
-ast_edit ops=[{pat: 'import { $$$IMPORTS } from "@gajae-code/$PKG"', out: 'import { $$$IMPORTS } from "@jawcode/$PKG"'}]
-# Per-package, 7 packages × 1 call = 7 ast_edit calls
-```
+병렬 분할:
+1. `packages/coding-agent/src/` (1,020 refs)
+2. `packages/ai/src/` (62 refs)
+3. `packages/agent/src/` + `packages/tui/src/` (52 refs)
+4. `packages/stats/src/` + `packages/utils/src/` + `packages/jwc/` (18 refs)
+5. `packages/natives/` + benchmarks (6 refs)
+6. `scripts/` + root configs (42 refs)
 
-## Risks
+### Phase 3: Tests (~600 files, 병렬 4개)
+Global text replace: `@gajae-code/` → `@jawcode/`
+대상: `packages/*/test/**/*.ts` + test fixtures
 
-1. **Backward compat** — existing `@gajae-code/*` plugins and extensions break. Mitigate with PI_SCOPE_ALIASES reverse shim.
-2. **npm org availability** — `@jawcode` must be created on npm first. If taken, need alternative.
-3. **Bundle rebuild** — dist/ contains embedded strings, must rebuild after source rename.
-4. **Test fixture drift** — assertions comparing package names must update.
+1. `packages/coding-agent/test/` (1,784 refs)
+2. `packages/ai/test/` + `packages/tui/test/` (257 refs)
+3. `packages/agent/test/` + others (73 refs)
+4. Test fixtures (186 refs — serialized JSON, careful with encoding)
 
-## Prerequisites
+### Phase 4: Gates, CI, Docs (~20 files)
+수동 정밀 수정:
+- `scripts/rebrand-inventory.ts` — expectedPackageScope
+- `scripts/verify-g002-gates.ts` — 27 refs, scope checks
+- `scripts/check-public-legacy-zero.ts` — allowlist
+- `scripts/release.ts` — catalog regex
+- `scripts/jwc-release-validation.ts` — dep version match
+- `scripts/install-tests/run-ci.sh` — npm overrides
+- `AGENTS.md` — upstream attribution
+- `Cargo.toml` — repo URL
+- `python/robojwc/tests/test_natives_cache.py`
 
-- [ ] Create `@jawcode` org on npm
-- [ ] Add trusted publisher to all `@jawcode/*` packages (10 packages)
-- [ ] Verify `@jawcode` org is available
+### Phase 5: Verify
+- `bun install` (lockfile regen)
+- `bun run ci:check:full`
+- `bun run ci:test:smoke`
+- `bun scripts/rebrand-inventory.ts --strict`
+- `bun scripts/verify-g002-gates.ts`
+- `npm pack --dry-run` in packages/jwc
 
-## Parallelization Plan
+## NOT Changing
+- `ENGINE_NAME = "gjc"` (internal log path identifier)
+- `devlog/_upstream_gjc/` (upstream snapshot)
+- `struct_har/gjc_origin/` (comparison data)
+- Rust crate name `pi-natives` (unrelated to npm scope)
+- `packages/gajae-code/` (private compat wrapper — review for deletion)
 
-Phase 2-6 can be parallelized across 5 subagents:
-- **Agent 1**: package.json manifests (Phase 2)
-- **Agent 2**: source imports via ast_edit (Phase 3)
-- **Agent 3**: non-import source refs + constants (Phase 4)
-- **Agent 4**: gate scripts + test fixtures (Phase 5)
-- **Agent 5**: docs/markdown (Phase 6)
+## Risk
+- **npm @jawcode org must exist first** — create before Phase 1
+- ast_edit may miss string literals in serialized fixtures — text replace fallback
+- bun.lock regen may surface unrelated dep changes
+- Gate scripts (verify-g002-gates) are the most fragile — 27 hardcoded scope refs
 
-Phase 7-8 must be sequential after 2-6 complete.
+## Execution: 다른 세션에서 PABCD B-stage 병렬 subagent로 실행
