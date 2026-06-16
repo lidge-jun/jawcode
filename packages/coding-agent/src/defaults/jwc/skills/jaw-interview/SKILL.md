@@ -559,6 +559,9 @@ Spec structure:
 
 **Research workflow override:** if `--research-setup` is active, skip the standard execution options below and write a pending-approval spec that names research setup as an unresolved follow-up. Do not invoke deprecated research workflow shims.
 
+**Loop assessment** (skipped when `--research-setup` is active): Before presenting the execution options below, assess whether the spec describes work that should be split into multiple PABCD cycles. If so, note it in the question preamble so the user can make an informed choice. Do not bypass the execution options — loop is a mode of Option 1 (orchestrate P), not a separate gate.
+
+
 After the spec is written, mark it `pending approval` and present execution options via the `ask` tool. Until the user selects an execution option, the jaw-interview module MUST NOT run mutation-oriented shell commands, edit source files, commit, push, open PRs, invoke execution skills, or delegate implementation tasks:
 
 **Question:** "Your spec is ready (ambiguity: {score}%). How would you like to proceed?"
@@ -566,7 +569,7 @@ After the spec is written, mark it `pending approval` and present execution opti
 **Options:**
 
 1. **Refine with the orchestrate plan stage (Recommended — default for almost all specs)**
-   - Description: "Plan-refine this spec through the native orchestrate P stage, then stop for explicit execution approval. Maximum quality. Prefer this unless the spec is already implementation-ready and trivially simple."
+   - Description: "Plan-refine this spec through the native orchestrate P stage, then stop for explicit execution approval. Maximum quality. Prefer this unless the spec is already implementation-ready and trivially simple. **Loop execution**: if the spec covers multiple independent patches, the agent will propose a loop plan (phase breakdown in `devlog/_plan/`) before entering P — each phase runs a separate PABCD cycle."
    - Action: Only after the user selects this option, run `jwc orchestrate p --spec-ref .jwc/specs/jaw-interview-{slug}.md`. The orchestrate plan stage owns consensus planning natively — do not route through superseded legacy planning skill loops. When the plan stage completes and produces a plan artifact, stop with that plan marked `pending approval`; do not automatically invoke execution or any other execution skill.
    - Pipeline: `jaw-interview spec → explicit approval to refine → orchestrate P → pending approval → separate execution approval`
 

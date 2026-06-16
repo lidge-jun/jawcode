@@ -25,4 +25,8 @@ Closing:
 
 When done → run `jwc orchestrate d` yourself via the shell tool to close the orchestration (`jwc orchestrate d --complete` and `jwc orchestrate complete` are the same close action).
 
-**Goal-mode continuation**: After closing, if a `jwc goal` is active, check whether the goal objective is fully achieved. If work remains, re-enter planning with `jwc orchestrate p` for the next piece — do not treat IDLE as the end. If the goal is complete, run `jwc goal done`. If the goal is truly impossible or needs a direction change, pause and ask the user.
+**Loop and goal continuation**: After closing and returning to idle:
+1. If a devlog loop plan exists with `pending` phases: mark the just-completed phase `done` in the MOC, then re-enter `jwc orchestrate p` for the next `pending` phase. When a `jwc goal` is active, proceed automatically (HOTL); otherwise confirm with the user first.
+2. If no loop plan exists but a `jwc goal` is active: check whether the goal objective is fully achieved. If work remains, re-enter planning with `jwc orchestrate p`. If the goal is complete, run `jwc goal done`.
+3. If the goal is truly impossible or needs a direction change, pause and ask the user.
+Do not treat IDLE as the end when loop phases or goal work remain.
