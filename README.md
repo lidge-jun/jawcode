@@ -57,11 +57,12 @@ irm bun.sh/install.ps1 | iex
 ```
 
 **Windows (WSL recommended for full support)**
-```powershell
-# 1. Install WSL if you haven't
+```sh
+# 1. Install WSL if you haven't (run in PowerShell as admin)
 wsl --install
 
-# 2. Inside WSL (Ubuntu), install bun
+# 2. Inside WSL (Ubuntu), install prerequisites + bun
+sudo apt update && sudo apt install -y unzip curl
 curl -fsSL https://bun.sh/install | bash
 ```
 
