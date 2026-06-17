@@ -2,7 +2,7 @@
 
 > **PABCD**: 본 문서 = **P** (승인 → `jwc orchestrate a` → B/C/D)  
 > **명명**: [008](../../../struct_har/chase/008_gjc_jwc_naming_contract.md)  
-> **chase**: [007](../../../struct_har/chase/007_follow_index.md) · [10.008](../../../struct_har/chase/10.008_gjc_chase_rpc_lifecycle.md) · [10.011](../../../struct_har/chase/10.011_gjc_chase_receipt_spool.md) · [10.018](../../../struct_har/chase/10.018_gjc_chase_rpc_registry_uds.md) · [10.026](../../../struct_har/chase/_fin/10/10.026_gjc_chase_rpc_issues_audit.md)
+> **chase**: [007](../../../struct_har/chase/007_follow_index.md) · [10.008](../../../struct_har/chase/_fin/10/10.008_gjc_chase_rpc_lifecycle.md) · [10.011](../../../struct_har/chase/_fin/10/10.011_gjc_chase_receipt_spool.md) · [10.018](../../../struct_har/chase/_fin/10/10.018_gjc_chase_rpc_registry_uds.md) · [10.026](../../../struct_har/chase/_fin/10/10.026_gjc_chase_rpc_issues_audit.md)
 
 ## 목표
 

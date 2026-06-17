@@ -12,8 +12,8 @@
 |-------|-------------------------|----------|
 | [10.004](../../../struct_har/chase/10.004_gjc_chase_session_compaction.md) | pre-send estimated context + canonical prune persistence (CHANGELOG 0.5.0 Fixed) | `_fin/10.015` 랜딩(260613)과 겹침 — **잔여 HARD-EDIT**는 3-way 재실측 |
 | [10.007](../../../struct_har/chase/10.007_gjc_chase_team_profile_self_heal.md) | `@gjc-profile` self-heal when `GJC_TMUX_LAUNCHED=1` (0.5.0) | rebrand → `jwc team` / tmux env |
-| [10.008](../../../struct_har/chase/10.008_gjc_chase_rpc_lifecycle.md) | malformed JSONL recovery, EOF flush, slim `get_state` (0.5.0); **0.5.1** registry + UDS `--listen` + fast-lane abort + unattended negotiate | headless/orchestrate **대부분 upstream 선행** — jwc **diff 잔여**만 카드 유지 |
-| [10.011](../../../struct_har/chase/10.011_gjc_chase_receipt_spool.md) | receipt spool at `75d103f` (이미 reviewed) | owner/storage clean 실측 유효; **10.008 묶음** |
+| [10.008](../../../struct_har/chase/_fin/10/10.008_gjc_chase_rpc_lifecycle.md) | malformed JSONL recovery, EOF flush, slim `get_state` (0.5.0); **0.5.1** registry + UDS `--listen` + fast-lane abort + unattended negotiate | headless/orchestrate **대부분 upstream 선행** — jwc **diff 잔여**만 카드 유지 |
+| [10.011](../../../struct_har/chase/_fin/10/10.011_gjc_chase_receipt_spool.md) | receipt spool at `75d103f` (이미 reviewed) | owner/storage clean 실측 유효; **10.008 묶음** |
 | model-profiles UX | `137f9f78` preset-first `/model`, 25 profiles (0.5.0) | chase: 사용자 패치 중 — 카드 없음 |
 
 ### B. `75d103f` 이후 **신규** (chase 카드 신설 후보 `10.018+`)
@@ -28,7 +28,7 @@
 | **10.023** | task notification vs context maintenance race (#570, 0.5.1) | session/task | compaction 전 알림 폭주 |
 | **10.024** | coordinator MCP event watch + Hermes snapshot (#572, #568) | extensibility | bot/remote steering 참조 |
 | **10.025** | perf corpus + session-memory bench + geobench docs (#584) | 횡단 | 참조·게이트만 |
-| **10.026** | `issues/01`–`13` RPC/unattended/command-dispatch 감사 메모 | RPC/docs | 구현 전 설계 입력; [10.008](../../../struct_har/chase/10.008_gjc_chase_rpc_lifecycle.md) 보강 |
+| **10.026** | `issues/01`–`13` RPC/unattended/command-dispatch 감사 메모 | RPC/docs | 구현 전 설계 입력; [10.008](../../../struct_har/chase/_fin/10/10.008_gjc_chase_rpc_lifecycle.md) 보강 |
 
 기타 HEAD 근처: `dev:link`/`dev:doctor` (#611), history project-scope (#604), Grok Build bundle (#596), model-registry display inherit (#617), TUI input latency (#593), Termius IME (#573).
 

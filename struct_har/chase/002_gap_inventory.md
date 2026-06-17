@@ -39,9 +39,9 @@
 | 영역 | upstream 후보 | jaw 병합 난이도 | 참조 |
 |---|---|---|---|
 | 세션/autocompact | pre-send `#checkEstimatedContextBeforePrompt` | ✅ pre-send + threshold prune persistence + progress UX | [_fin/10.004](./_fin/10/10.004_gjc_chase_session_compaction.md) |
-| RPC lifecycle | malformed JSONL; EOF flush; bridges | **🟡** fast-lane reads ✅; durability diff ⬜ | [10.008](./10.008_gjc_chase_rpc_lifecycle.md) |
+| RPC lifecycle | malformed JSONL; EOF flush; bridges | ✅ _fin 260615 — stdio Phase 1; residual RPC items tracked through 10.026 | [10.008](./_fin/10/10.008_gjc_chase_rpc_lifecycle.md) |
 | RPC registry/UDS | #589 registry, `--listen` | ✅ TS+`jwc_rpc.list_sessions` + UDS Phase 2 | [10.018](./_fin/10/10.018_gjc_chase_rpc_registry_uds.md) |
-| receipt spool | #554 JSONL exporter | **🟡** core ✅; tests/`_fin` ⬜ | [10.011](./10.011_gjc_chase_receipt_spool.md) |
+| receipt spool | #554 JSONL exporter | ✅ _fin 260615 — receipt spool exporter | [10.011](./_fin/10/10.011_gjc_chase_receipt_spool.md) |
 | goal busy-loop | #616 AgentBusyError | ✅ landed 260615 | [_fin/10.022](./_fin/10/10.022_gjc_chase_goal_agent_busy_loop.md) |
 | team self-heal | #546 `@gjc-profile` | 중 | [10.007](./10.007_gjc_chase_team_profile_self_heal.md) |
 | pi-shell / harness submit | #551 / #549 | ✅ landed 260613 | [_fin/10](./_fin/INDEX.md) |
@@ -72,11 +72,11 @@ Executor v2 (260614): **011 YES**, **008/026 RISKY**; **018 registry TS+Py lande
 | session modules | listing/loader | [20.007](./20.007_omp_chase_session_modularization.md) |
 | memory/skills | mnemopi | [20.003](./20.003_omp_chase_memory_skills.md) |
 | profiles/auth isolation | `--profile`, profile-scoped config/OAuth | [20.009](./20.009_omp_chase_profiles_aliases.md) |
-| advisor/WATCHDOG | passive review lane | [20.010](./20.010_omp_chase_advisor_review_lane.md) |
+| advisor/WATCHDOG | passive review lane | ✅ 비채택 — [20.010](./_fin/20/20.010_omp_chase_advisor_review_lane.md) |
 | tool dialects | in-band tool-call conversion | [20.011](./20.011_omp_chase_tool_dialect.md) |
 | AI schema/stream hardening | strict schemas + streamed args | [20.012](./20.012_omp_chase_ai_tool_schema_streaming.md) |
 | task coordination | roles, IRC, fallback chains | [20.013](./20.013_omp_chase_task_coordination.md) |
-| extensions/plugins | discovery/marketplace hardening | [20.014](./20.014_omp_chase_extensions_plugins.md) |
+| extensions/plugins | discovery/marketplace hardening | ✅ 부분 채택 — [20.014](./_fin/20/20.014_omp_chase_extensions_plugins.md) |
 | terminal resilience | keypad/multiplexer/resize/input | [20.015](./20.015_omp_chase_terminal_resilience.md) |
 | review PR URLs | remote PR review UX | ✅ [_fin/20.016](./_fin/20/20.016_omp_chase_review_pr_url.md) |
 | unexpected-stop retry | classifier + bounded retry | [20.017](./20.017_omp_chase_unexpected_stop_detection.md) |
@@ -91,8 +91,8 @@ Codex reformation · TUI O(n²) · xAI `/searchengine` · 100 Node · MCP discov
 
 | 항목 | 축 | 가치 | 분류 |
 |---|---|:---:|---|
-| 10.011 spool | gjc | 60 | 🟡 코어 landed |
-| 10.008 RPC | gjc | 60 | 🟡 선별 |
+| 10.011 spool | gjc | 60 | ✅ _fin |
+| 10.008 RPC | gjc | 60 | ✅ _fin |
 | 10.018 registry | gjc | 60 | ✅ _fin |
 | 10.022 busy-loop | gjc | 55 | ✅ _fin |
 | 10.004 session compaction | gjc | 60 | ✅ _fin |

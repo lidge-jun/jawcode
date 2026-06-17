@@ -57,11 +57,9 @@
 | 007 | [20.007_omp_chase_session_modularization.md](./20.007_omp_chase_session_modularization.md) | session modules | 083 | ⬜ |
 | 008 | [20.008_omp_chase_pull_15_13_delta.md](./20.008_omp_chase_pull_15_13_delta.md) | 15.13 index | 횡단 | 🟡 |
 | 009 | [20.009_omp_chase_profiles_aliases.md](./20.009_omp_chase_profiles_aliases.md) | profiles/auth isolation | P2 | ⬜ |
-| 010 | [20.010_omp_chase_advisor_review_lane.md](./20.010_omp_chase_advisor_review_lane.md) | advisor/WATCHDOG | P2 | ⬜ |
 | 011 | [20.011_omp_chase_tool_dialect.md](./20.011_omp_chase_tool_dialect.md) | tool dialects | **P1** | ⬜ |
 | 012 | [20.012_omp_chase_ai_tool_schema_streaming.md](./20.012_omp_chase_ai_tool_schema_streaming.md) | AI schema/stream | **P1** | ⬜ |
 | 013 | [20.013_omp_chase_task_coordination.md](./20.013_omp_chase_task_coordination.md) | task coordination | P2 | ⬜ |
-| 014 | [20.014_omp_chase_extensions_plugins.md](./20.014_omp_chase_extensions_plugins.md) | extensions/plugins | P3 | ⬜ |
 | 015 | [20.015_omp_chase_terminal_resilience.md](./20.015_omp_chase_terminal_resilience.md) | terminal resilience | P2 | ⬜ |
 | 017 | [20.017_omp_chase_unexpected_stop_detection.md](./20.017_omp_chase_unexpected_stop_detection.md) | unexpected-stop retry | P2 | ⬜ |
 | 018+ | _(미할당)_ | | | ⬜ |
@@ -72,6 +70,8 @@
 
 | NNN | 문서 | 완료일 | 판정 |
 |---|---|---|---|
+| 010 | [_fin/20/20.010 advisor/WATCHDOG](./_fin/20/20.010_omp_chase_advisor_review_lane.md) | 260617 | 비채택 — PABCD/goal reviewer lanes 유지 |
+| 014 | [_fin/20/20.014 extensions/plugins](./_fin/20/20.014_omp_chase_extensions_plugins.md) | 260617 | 부분 채택 — JWC plugin boundary 유지, OMP marketplace parity 비채택 |
 | 016 | [_fin/20/20.016_omp_chase_review_pr_url.md](./_fin/20/20.016_omp_chase_review_pr_url.md) | 260616 | 비채택 — GitHub skill route 유지 |
 
 ## gjc

@@ -26,8 +26,8 @@
 | 8 | 032 | [10.032 subagent controls](./10.032_gjc_chase_subagent_controls.md) | **P1** | ⬜ |
 | 8b | 034 | [10.034 workflow state invariants](./10.034_gjc_chase_state_writer_invariants.md) | **P1** | ⬜ semantics-only |
 | 8c | 030 | [10.030 long-session TUI/output](./10.030_gjc_chase_long_session_tui_hardening.md) | **P1** | ⬜ protected UI |
-| 9 | 011 | [10.011 receipt spool](./10.011_gjc_chase_receipt_spool.md) | P1 | 🟡 코어 landed |
-| 10 | 008 | [10.008 RPC lifecycle](./10.008_gjc_chase_rpc_lifecycle.md) | P1 | 🟡 partial |
+| 9 | 011 | [10.011 receipt spool](./_fin/10/10.011_gjc_chase_receipt_spool.md) | P1 | ✅ _fin · receipt spool |
+| 10 | 008 | [10.008 RPC lifecycle](./_fin/10/10.008_gjc_chase_rpc_lifecycle.md) | P1 | ✅ _fin · stdio Phase 1 |
 | 10b | 018 | [10.018 RPC registry/UDS](./_fin/10/10.018_gjc_chase_rpc_registry_uds.md) | P1 | ✅ _fin · TS+Py · UDS P2 |
 | 10c | 026 | [10.026 issues audit](./_fin/10/10.026_gjc_chase_rpc_issues_audit.md) | P2 | ✅ _fin · residual rows documented |
 | 11 | 022 | [10.022 goal busy-loop](./_fin/10/10.022_gjc_chase_goal_agent_busy_loop.md) | P1 | ✅ _fin · busy guard |
@@ -58,12 +58,12 @@
 | 23 | 20.006 | [20.006 TUI micro](./20.006_omp_chase_tui_input_micro_fixes.md) | P2 | ⬜ |
 | 24 | 20.015 | [20.015 terminal resilience](./20.015_omp_chase_terminal_resilience.md) | P2 | ⬜ |
 | 25 | 20.009 | [20.009 profiles/auth isolation](./20.009_omp_chase_profiles_aliases.md) | P2 | ⬜ |
-| 26 | 20.010 | [20.010 advisor/WATCHDOG](./20.010_omp_chase_advisor_review_lane.md) | P2 | ⬜ |
+| 26 | 20.010 | [20.010 advisor/WATCHDOG](./_fin/20/20.010_omp_chase_advisor_review_lane.md) | P2 | ✅ _fin · 비채택/reference-only |
 | 27 | 20.013 | [20.013 task coordination](./20.013_omp_chase_task_coordination.md) | P2 | ⬜ |
 | 28 | 20.017 | [20.017 unexpected-stop](./20.017_omp_chase_unexpected_stop_detection.md) | P2 | ⬜ |
 | 29 | 20.003 | [20.003 memory/skills](./20.003_omp_chase_memory_skills.md) | P2 | ⬜ |
 | 30 | 20.007 | [20.007 session modules](./20.007_omp_chase_session_modularization.md) | P2 | ⬜ |
-| 31 | 20.014 | [20.014 extensions](./20.014_omp_chase_extensions_plugins.md) | P3 | ⬜ |
+| 31 | 20.014 | [20.014 extensions](./_fin/20/20.014_omp_chase_extensions_plugins.md) | P3 | ✅ _fin · partial adopt/watch closed |
 | — | 20.008 | [20.008 15.13 delta](./20.008_omp_chase_pull_15_13_delta.md) | — | 🟡 index |
 
 ## 완료 (_fin)
@@ -71,4 +71,6 @@
 | NNN | 내용 | 상태 |
 |-----|------|------|
 | 009–017 | pi-shell, submit, perf×3, context, tool_choice, Fable N/A | ✅ |
+| 20.010 | [20.010 advisor/WATCHDOG](./_fin/20/20.010_omp_chase_advisor_review_lane.md) | ✅ 비채택 — PABCD/goal reviewer lanes |
+| 20.014 | [20.014 extensions/plugins](./_fin/20/20.014_omp_chase_extensions_plugins.md) | ✅ 부분 채택 — JWC plugin boundary |
 | 20.016 | [20.016 review PR URL](./_fin/20/20.016_omp_chase_review_pr_url.md) | ✅ 비채택 — GitHub skill route |
