@@ -44,7 +44,7 @@
 | 022 | goal AgentBusyError (#616) | ✅ **_fin** [10.022](./_fin/10/10.022_gjc_chase_goal_agent_busy_loop.md) |
 | 026 | issues/01–13 | ✅ **_fin** [10.026](./_fin/10/10.026_gjc_chase_rpc_issues_audit.md) |
 | 027 | RLM research mode (#778) | ⬜ **신규** [10.027](./10.027_gjc_chase_rlm_research_mode.md) — public surface decision 필요 |
-| 028 | native `computer_use` coordinate contract (#695) | ⬜ **신규** [10.028](./10.028_gjc_chase_computer_use_coordinate_contract.md) — lazy tool/runtime diff |
+| 028 | native `computer_use` coordinate contract (#695) | 🟡 [10.028](./10.028_gjc_chase_computer_use_coordinate_contract.md) — JWC lazy CUA proxy vs GJC native coordinate/supervisor diff measured |
 | 029 | process/resource lifecycle hardening (F1/U1–U10) | ⬜ **신규** [10.029](./10.029_gjc_chase_process_lifecycle_hardening.md) — P0 safety bundle |
 | 030 | long-session TUI/render/output-size hardening | ⬜ **신규** [10.030](./10.030_gjc_chase_long_session_tui_hardening.md) — JWC visual/scroll guards 유지 |
 | 031 | provider/auth reliability fixes | ⬜ **신규** [10.031](./10.031_gjc_chase_provider_auth_reliability.md) — [10.002](./10.002_gjc_chase_ai_auth.md) 구현 시 fold |
@@ -71,7 +71,7 @@
 | 024 | [10.024_gjc_chase_coordinator_mcp_watch.md](./10.024_gjc_chase_coordinator_mcp_watch.md) | coordinator | P3 | ⬜ |
 | 025 | [10.025_gjc_chase_perf_corpus_geobench.md](./10.025_gjc_chase_perf_corpus_geobench.md) | perf ref | P3 | ⬜ |
 | 027 | [10.027_gjc_chase_rlm_research_mode.md](./10.027_gjc_chase_rlm_research_mode.md) | RLM research lane | P2 | ⬜ |
-| 028 | [10.028_gjc_chase_computer_use_coordinate_contract.md](./10.028_gjc_chase_computer_use_coordinate_contract.md) | computer_use native | **P1** | ⬜ |
+| 028 | [10.028_gjc_chase_computer_use_coordinate_contract.md](./10.028_gjc_chase_computer_use_coordinate_contract.md) | computer_use native | **P1** | 🟡 실측 완료 · 결정 필요 |
 | 029 | [10.029_gjc_chase_process_lifecycle_hardening.md](./10.029_gjc_chase_process_lifecycle_hardening.md) | process lifecycle | **P0** | ⬜ |
 | 030 | [10.030_gjc_chase_long_session_tui_hardening.md](./10.030_gjc_chase_long_session_tui_hardening.md) | TUI/output long-session | **P1** | ⬜ |
 | 031 | [10.031_gjc_chase_provider_auth_reliability.md](./10.031_gjc_chase_provider_auth_reliability.md) | provider/auth | **P1** | ⬜ |

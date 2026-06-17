@@ -11,7 +11,7 @@
 
 | 축 | jwc가 **앞서거나 유일** | jwc가 **뒤처지거나 약함** |
 |---|---|---|
-| **gjc** | orchestrate/PABCD, jaw 표면, `.jwc`, lazy `computer_use`, pi-shell·submit gate(10.009·10.010 ✅), goal busy-loop #616 ✅, session compaction/progress ✅ | RPC lifecycle 잔여(008), team profile self-heal(007), **process lifecycle P0(10.029)**, computer_use native(10.028), provider/auth(10.031), subagent controls(10.032), RLM/검색/setup bridge(10.027·033·035) |
+| **gjc** | orchestrate/PABCD, jaw 표면, `.jwc`, lazy `computer_use`, pi-shell·submit gate(10.009·10.010 ✅), goal busy-loop #616 ✅, session compaction/progress ✅ | RPC lifecycle 잔여(008), team profile self-heal(007), **process lifecycle P0(10.029)**, computer_use native coordinate/supervisor(10.028 🟡), provider/auth(10.031), subagent controls(10.032), RLM/검색/setup bridge(10.027·033·035) |
 | **omp** | 4 workflow 번들, jaw 워크플로 | task-agent, session ops, memory, pruning = **참조** ([20.008](./20.008_omp_chase_pull_15_13_delta.md)); **16.0.2 reference** profiles/advisor/dialect/schema/task/plugins/terminal/review/retry ([20.009](./20.009_omp_chase_profiles_aliases.md)–[20.017](./20.017_omp_chase_unexpected_stop_detection.md)) |
 | **자체** | 100 Node 완료, TUI O(n²) 수정, 99.03·99.01·99.07 부분 | 99.02·99.04·99.05·99.06 · M2 110+ |
 
@@ -48,7 +48,7 @@
 | model-profiles UX | #553 | 사용자 패치 중 — 카드 없음 | [10.001](./10.001_gjc_chase_cycle.md) |
 | providers/schemas | drift | ai diff; **99.02** | `packages/ai/` |
 | RLM research | opt-in research notebook/report lane | 중 — public surface decision | [10.027](./10.027_gjc_chase_rlm_research_mode.md) |
-| computer_use native | coordinate contract + Rust/tool integration | 중상 — safety/runtime diff | [10.028](./10.028_gjc_chase_computer_use_coordinate_contract.md) |
+| computer_use native | coordinate contract + Rust/tool integration | 중상 — JWC lazy CUA proxy 보유, native coordinate/supervisor 미보유 | [10.028](./10.028_gjc_chase_computer_use_coordinate_contract.md) |
 | process lifecycle | owned process/resource cleanup | 높음 — P0 safety bundle | [10.029](./10.029_gjc_chase_process_lifecycle_hardening.md) |
 | TUI/output long-session | render lifecycle + output caps | 중 — visual/scroll guards | [10.030](./10.030_gjc_chase_long_session_tui_hardening.md) |
 | provider/auth reliability | credential ranking + Codex WS recovery | 중상 — [10.002](./10.002_gjc_chase_ai_auth.md) fold | [10.031](./10.031_gjc_chase_provider_auth_reliability.md) |
@@ -100,7 +100,7 @@ Codex reformation · TUI O(n²) · xAI `/searchengine` · 100 Node · MCP discov
 | 10.002·003 | gjc | 60 | 선별 |
 | 20.005 steering | omp | 60 | 참조 |
 | 10.029 lifecycle | gjc | 80 | **P0 안전** |
-| 10.028 computer_use | gjc | 65 | 선별 |
+| 10.028 computer_use | gjc | 65 | 🟡 실측 완료 · native safety 결정 |
 | 10.031 provider/auth | gjc | 60 | 선별 |
 | 10.032 subagent controls | gjc | 55 | 선별 |
 | 20.011 dialect | omp | 65 | 참조 |
