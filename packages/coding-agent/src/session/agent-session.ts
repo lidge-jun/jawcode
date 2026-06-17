@@ -1130,6 +1130,7 @@ export class AgentSession {
 		if (this.#promptInFlightCount === 0) {
 			this.#releasePowerAssertion();
 			this.#flushPendingBackgroundExchanges();
+			this.#drainStrandedFollowUpMessages();
 			this.#flushPendingAgentEnd();
 		}
 	}
@@ -1146,6 +1147,14 @@ export class AgentSession {
 		if (!pending) return;
 		this.#pendingAgentEndEmit = undefined;
 		this.#emit(pending);
+	}
+
+	#drainStrandedFollowUpMessages(): void {
+		if (!this.#canAutoContinueForFollowUp()) return;
+		if (!this.agent.hasQueuedMessages()) return;
+		this.#scheduleAgentContinue({
+			shouldContinue: () => this.#canAutoContinueForFollowUp() && this.agent.hasQueuedMessages(),
+		});
 	}
 
 	constructor(config: AgentSessionConfig) {

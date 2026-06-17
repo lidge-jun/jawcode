@@ -607,6 +607,8 @@ async function runLoopBody(
 			stream.end(newMessages);
 			return;
 		}
+		pendingMessages = (await config.getSteeringMessages?.()) || [];
+		if (pendingMessages.length > 0) continue;
 		const followUpMessages = (await config.getFollowUpMessages?.()) || [];
 		if (followUpMessages.length > 0) {
 			// Set as pending so inner loop processes them

@@ -6,6 +6,7 @@ import { getBundledModel, type TextContent } from "@jawcode-dev/ai";
 import { createMockModel, type MockHandler } from "@jawcode-dev/ai/providers/mock";
 import { ModelRegistry } from "@jawcode-dev/coding-agent/config/model-registry";
 import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import type { ExtensionRunner } from "@jawcode-dev/coding-agent/extensibility/extensions/runner";
 import { AgentSession } from "@jawcode-dev/coding-agent/session/agent-session";
 import { AuthStorage } from "@jawcode-dev/coding-agent/session/auth-storage";
 import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
@@ -42,7 +43,7 @@ describe("AgentSession queued prompts (issue #434)", () => {
 		tempDir.removeSync();
 	});
 
-	function buildSession(responses: MockHandler[]): AgentSession {
+	function buildSession(responses: MockHandler[], extensionRunner?: ExtensionRunner): AgentSession {
 		const model = getBundledModel("anthropic", "claude-sonnet-4-5");
 		if (!model) throw new Error("Expected bundled Anthropic test model to exist");
 		const mock = createMockModel({ responses });
@@ -53,7 +54,13 @@ describe("AgentSession queued prompts (issue #434)", () => {
 		});
 		const settings = Settings.isolated({ "compaction.enabled": false });
 		settings.setModelRole("default", `${model.provider}/${model.id}`);
-		return new AgentSession({ agent, sessionManager: SessionManager.inMemory(), settings, modelRegistry });
+		return new AgentSession({
+			agent,
+			sessionManager: SessionManager.inMemory(),
+			settings,
+			modelRegistry,
+			extensionRunner,
+		});
 	}
 
 	function messageText(m: Extract<AgentMessage, { role: "user" }>): string {
@@ -146,5 +153,50 @@ describe("AgentSession queued prompts (issue #434)", () => {
 		// Steering interrupted/continued the active turn; the queued prompt ran
 		// after it. Submission order across both is preserved.
 		expect(userTexts(session)).toEqual(["p1", "steer me", "queue me"]);
+	});
+
+	it("delivers steering queued at the yield boundary before ending the session", async () => {
+		session = buildSession([{ content: ["turn 1"] }, { content: ["after late steer"] }]);
+		let queuedLateSteer = false;
+		session.agent.setOnBeforeYield(() => {
+			if (queuedLateSteer) return;
+			queuedLateSteer = true;
+			session!.agent.steer({
+				role: "user",
+				content: [{ type: "text", text: "late steer" }],
+				attribution: "user",
+				timestamp: Date.now(),
+			});
+		});
+
+		await session.prompt("p1");
+		await session.waitForIdle();
+
+		expect(userTexts(session)).toEqual(["p1", "late steer"]);
+		expect(assistantCount(session)).toBe(2);
+		expect(session.queuedMessageCount).toBe(0);
+	});
+
+	it("drains follow-up queued while agent_end is deferred until prompt settle", async () => {
+		let queuedFollowUp = false;
+		const extensionRunner = {
+			hasHandlers: () => false,
+			emitBeforeAgentStart: async () => undefined,
+			async emit(event: { type: string }): Promise<void> {
+				if (event.type !== "agent_end") return;
+				if (queuedFollowUp) return;
+				queuedFollowUp = true;
+				await session!.prompt("deferred follow-up", { streamingBehavior: "followUp" });
+			},
+		} as unknown as ExtensionRunner;
+		session = buildSession([{ content: ["turn 1"] }, { content: ["after deferred follow-up"] }], extensionRunner);
+
+		await session.prompt("p1");
+		await session.waitForIdle();
+
+		expect(queuedFollowUp).toBe(true);
+		expect(userTexts(session)).toEqual(["p1", "deferred follow-up"]);
+		expect(assistantCount(session)).toBe(2);
+		expect(session.queuedMessageCount).toBe(0);
 	});
 });
