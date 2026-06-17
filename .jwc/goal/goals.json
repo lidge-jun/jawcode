@@ -1,20 +1,20 @@
 {
   "version": 1,
-  "brief": "(AI-driven goal planning pending refinement)\nhint: loop 계획해서 ㄱㄱㄱㄱㄱ 아주 완벽하게",
+  "brief": "(AI-driven goal planning pending refinement)\nhint: 수정해줘",
   "jwcGoalMode": "aggregate",
-  "jwcObjective": "@gajae-code → @jawcode 전체 scope rename. 5,200+ refs, ~300 files, 10 packages. Loop plan으로 PABCD 다중 사이클 실행. Phase 1: manifests, Phase 2: source imports (병렬), Phase 3: tests (병렬), Phase 4: gates/CI/docs, Phase 5: verify. devlog at devlog/_plan/260616_jawcode_scope_rename/00_moc.md",
+  "jwcObjective": "Fix goal completion guard receipt targeting so aggregate-mode story/sentinel objectives can validate a fresh final-aggregate receipt, while preserving strict per-story receipt checks and improving stale receipt diagnostics.",
   "goals": [
     {
       "id": "G001",
       "title": "(AI-driven goal planning pending refinement)",
-      "objective": "@gajae-code → @jawcode 전체 scope rename. 5,200+ refs, ~300 files, 10 packages. Loop plan으로 PABCD 다중 사이클 실행. Phase 1: manifests, Phase 2: source imports (병렬), Phase 3: tests (병렬), Phase 4: gates/CI/docs, Phase 5: verify. devlog at devlog/_plan/260616_jawcode_scope_rename/00_moc.md",
+      "objective": "Fix goal completion guard receipt targeting so aggregate-mode story/sentinel objectives can validate a fresh final-aggregate receipt, while preserving strict per-story receipt checks and improving stale receipt diagnostics.",
       "status": "active",
-      "createdAt": "2026-06-16T10:54:27.157Z",
-      "updatedAt": "2026-06-16T11:09:50.689Z",
-      "startedAt": "2026-06-16T10:54:27.175Z",
-      "evidence": "@gajae-code → @jawcode-dev scope rename complete. 1441 files changed, all check:ts gates pass, smoke test ok. 4 commits: Phase 1 manifests, Phase 2-4 bulk rename, gate fixes, G002 updates.; bun run check:ts PASS, bun run ci:test:smoke PASS (jwc/1.0.1), rebrand-inventory --strict PASS, verify-g002-gates rebrand+version PASS"
+      "createdAt": "2026-06-17T06:02:50.734Z",
+      "updatedAt": "2026-06-17T06:04:13.606Z",
+      "startedAt": "2026-06-17T06:02:50.744Z",
+      "evidence": "Refined sentinel goal to goal-guard receipt targeting fix; User requested implementation after devlog/subagent analysis; refined objective names aggregate story/sentinel final-aggregate fallback, strict per-story preservation, and diagnostic improvement."
     }
   ],
-  "createdAt": "2026-06-16T10:54:27.157Z",
-  "updatedAt": "2026-06-16T11:09:50.689Z"
+  "createdAt": "2026-06-17T06:02:50.734Z",
+  "updatedAt": "2026-06-17T06:04:13.606Z"
 }
