@@ -45,7 +45,7 @@
 | 026 | issues/01–13 | ✅ **_fin** [10.026](./_fin/10/10.026_gjc_chase_rpc_issues_audit.md) |
 | 027 | RLM research mode (#778) | ⬜ **신규** [10.027](./10.027_gjc_chase_rlm_research_mode.md) — public surface decision 필요 |
 | 028 | native `computer_use` coordinate contract (#695) | 🟡 [10.028](./10.028_gjc_chase_computer_use_coordinate_contract.md) — JWC lazy CUA proxy vs GJC native coordinate/supervisor diff measured |
-| 029 | process/resource lifecycle hardening (F1/U1–U10) | ⬜ **신규** [10.029](./10.029_gjc_chase_process_lifecycle_hardening.md) — P0 safety bundle |
+| 029 | process/resource lifecycle hardening (F1/U1–U10) | ✅ **_fin** [10.029](./_fin/10/10.029_gjc_chase_process_lifecycle_hardening.md) — P0 safety bundle |
 | 030 | long-session TUI/render/output-size hardening | ⬜ **신규** [10.030](./10.030_gjc_chase_long_session_tui_hardening.md) — JWC visual/scroll guards 유지 |
 | 031 | provider/auth reliability fixes | ⬜ **신규** [10.031](./10.031_gjc_chase_provider_auth_reliability.md) — [10.002](./10.002_gjc_chase_ai_auth.md) 구현 시 fold |
 | 032 | subagent controls/service tier/resume durability | ⬜ **신규** [10.032](./10.032_gjc_chase_subagent_controls.md) — [10.005](./10.005_gjc_chase_task_subagent.md) 업데이트 후보 |
@@ -72,7 +72,6 @@
 | 025 | [10.025_gjc_chase_perf_corpus_geobench.md](./10.025_gjc_chase_perf_corpus_geobench.md) | perf ref | P3 | ⬜ |
 | 027 | [10.027_gjc_chase_rlm_research_mode.md](./10.027_gjc_chase_rlm_research_mode.md) | RLM research lane | P2 | ⬜ |
 | 028 | [10.028_gjc_chase_computer_use_coordinate_contract.md](./10.028_gjc_chase_computer_use_coordinate_contract.md) | computer_use native | **P1** | 🟡 실측 완료 · 결정 필요 |
-| 029 | [10.029_gjc_chase_process_lifecycle_hardening.md](./10.029_gjc_chase_process_lifecycle_hardening.md) | process lifecycle | **P0** | ⬜ |
 | 030 | [10.030_gjc_chase_long_session_tui_hardening.md](./10.030_gjc_chase_long_session_tui_hardening.md) | TUI/output long-session | **P1** | ⬜ |
 | 031 | [10.031_gjc_chase_provider_auth_reliability.md](./10.031_gjc_chase_provider_auth_reliability.md) | provider/auth | **P1** | ⬜ |
 | 032 | [10.032_gjc_chase_subagent_controls.md](./10.032_gjc_chase_subagent_controls.md) | subagent controls | **P1** | ⬜ |
@@ -95,6 +94,7 @@
 | 026 | [10.026 issues audit](./_fin/10/10.026_gjc_chase_rpc_issues_audit.md) | 260615 | [RPC bundle](../../../devlog/_plan/260614_chase_rpc_harness_bundle/000_moc.md) — Phase 1 appendix + UDS issue 09 |
 | 022 | [10.022 goal busy-loop](./_fin/10/10.022_gjc_chase_goal_agent_busy_loop.md) | 260615 | goal continuation busy/compaction guard — 19 tests green |
 | 004 | [10.004 session compaction](./_fin/10/10.004_gjc_chase_session_compaction.md) | 260615 | pre-send + pruning persistence + compaction progress — 45 focused tests green |
+| 029 | [10.029 process lifecycle](./_fin/10/10.029_gjc_chase_process_lifecycle_hardening.md) | 260617 | [process lifecycle hardening](../../devlog/_fin/260617_process_lifecycle_hardening/90_d_done.md) — 32 focused tests + package check |
 
 ## 불변
 

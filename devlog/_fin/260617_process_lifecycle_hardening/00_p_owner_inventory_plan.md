@@ -21,7 +21,7 @@ Expected outcome: a current owner inventory, documented decisions in the chase c
 - `/Users/jun/Developer/new/700_projects/jawcode/struct_har/chase/002_gap_inventory.md`
 - `/Users/jun/Developer/new/700_projects/jawcode/struct_har/chase/007_follow_index.md`
 - `/Users/jun/Developer/new/700_projects/jawcode/struct_har/chase/10_gjc_chase_MOC.md`
-- `/Users/jun/Developer/new/700_projects/jawcode/struct_har/chase/10.029_gjc_chase_process_lifecycle_hardening.md`
+- `/Users/jun/Developer/new/700_projects/jawcode/struct_har/chase/_fin/10/10.029_gjc_chase_process_lifecycle_hardening.md`
 - `/Users/jun/Developer/new/700_projects/jawcode/devlog/_upstream_gjc/packages/coding-agent/src/runtime/process-lifecycle.ts`
 - `/Users/jun/.cli-jaw/skills/dev/SKILL.md`
 - `/Users/jun/.cli-jaw/skills/dev-pabcd/SKILL.md`
@@ -358,7 +358,7 @@ proc: OwnedProcess["child"];
 
 #### MODIFY
 
-`/Users/jun/Developer/new/700_projects/jawcode/struct_har/chase/10.029_gjc_chase_process_lifecycle_hardening.md`
+`/Users/jun/Developer/new/700_projects/jawcode/struct_har/chase/_fin/10/10.029_gjc_chase_process_lifecycle_hardening.md`
 
 Before:
 

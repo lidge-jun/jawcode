@@ -20,7 +20,7 @@
 
 | 순 | NNN | 문서 | P | 상태 |
 |---|-----|------|---|------|
-| 5 | 029 | [10.029 process lifecycle](./10.029_gjc_chase_process_lifecycle_hardening.md) | **P0** | ⬜ safety |
+| 5 | 029 | [10.029 process lifecycle](./_fin/10/10.029_gjc_chase_process_lifecycle_hardening.md) | **P0** | ✅ _fin · lifecycle hardening |
 | 6 | 028 | [10.028 computer_use native](./10.028_gjc_chase_computer_use_coordinate_contract.md) | **P1** | 🟡 JWC lazy proxy vs GJC native diff measured |
 | 7 | 031 | [10.031 provider/auth](./10.031_gjc_chase_provider_auth_reliability.md) | **P1** | ⬜ |
 | 8 | 032 | [10.032 subagent controls](./10.032_gjc_chase_subagent_controls.md) | **P1** | ⬜ |
