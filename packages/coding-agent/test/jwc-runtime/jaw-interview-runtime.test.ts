@@ -62,6 +62,10 @@ describe("native gjc jaw-interview runtime", () => {
 		expect(source).toContain("spec: Flags.string");
 		expect(source).toContain("deliberate: Flags.boolean");
 		expect(source).toContain("handoff: Flags.string");
+		expect(source).toContain('"ambiguity-score": Flags.string');
+		expect(source).toContain('"handoff-status": Flags.string');
+		expect(source).toContain('"handoff-outcome": Flags.string');
+		expect(source).toContain("Cannot combine with --handoff-status");
 	});
 
 	it("handles missing, valid, and corrupt jaw-interview state during spec persistence", async () => {
@@ -149,6 +153,234 @@ describe("native gjc jaw-interview runtime", () => {
 		expect(state.spec_path).toBe(payload.path);
 		expect(state.spec_slug).toBe("persist-me");
 		await expect(fs.access(path.join(root, ".jwc", "plans"))).rejects.toThrow();
+	});
+
+	it("persists strict pre-P summary pending metadata", async () => {
+		const root = await tempDir();
+		const result = await runNativeJawInterviewCommand(
+			[
+				"--write",
+				"--stage",
+				"final",
+				"--slug",
+				"strict-pending",
+				"--spec",
+				"# Final Spec\n\n## Metadata\n- Status: PASSED\n",
+				"--ambiguity-score",
+				"0.03",
+				"--ambiguity-threshold",
+				"0.05",
+				"--ambiguity-status",
+				"passed",
+				"--closure-status",
+				"pass",
+				"--restated-goal-confirmed",
+				"--handoff-outcome",
+				"PASSED",
+				"--pre-p-summary-presented",
+				"--handoff-status",
+				"summary_pending",
+				"--json",
+			],
+			root,
+		);
+		expect(result.status).toBe(0);
+		const payload = JSON.parse(result.stdout ?? "{}");
+		expect(payload.handoff_status).toBe("summary_pending");
+		expect(payload.handoff_outcome).toBe("PASSED");
+
+		const state = JSON.parse(
+			await fs.readFile(path.join(root, ".jwc", "state", "jaw-interview-state.json"), "utf-8"),
+		);
+		expect(state.current_phase).toBe("summary_pending");
+		expect(state.pre_p_summary_presented).toBe(true);
+		expect(state.pre_p_summary_confirmed).toBe(false);
+		expect(state.handoff_outcome).toBe("PASSED");
+		expect(await fs.readFile(payload.path, "utf-8")).toContain("- Handoff Outcome: PASSED");
+	});
+
+	it("persists strict pre-P summary confirmed metadata", async () => {
+		const root = await tempDir();
+		const result = await runNativeJawInterviewCommand(
+			[
+				"--write",
+				"--stage",
+				"final",
+				"--slug",
+				"strict-confirmed",
+				"--spec",
+				"# Final Spec\n\n## Metadata\n- Status: PASSED\n",
+				"--ambiguity-score",
+				"0.03",
+				"--ambiguity-threshold",
+				"0.05",
+				"--ambiguity-status",
+				"passed",
+				"--closure-status",
+				"pass",
+				"--restated-goal-confirmed",
+				"--handoff-outcome",
+				"PASSED",
+				"--pre-p-summary-presented",
+				"--pre-p-summary-confirmed",
+				"--handoff-status",
+				"summary_confirmed",
+				"--json",
+			],
+			root,
+		);
+		expect(result.status).toBe(0);
+		const state = JSON.parse(
+			await fs.readFile(path.join(root, ".jwc", "state", "jaw-interview-state.json"), "utf-8"),
+		);
+		expect(state.current_phase).toBe("handoff");
+		expect(state.handoff_status).toBe("summary_confirmed");
+		expect(state.pre_p_summary_confirmed).toBe(true);
+		expect(state.handoff_outcome).toBe("PASSED");
+	});
+
+	it("persists strict early-exit summary metadata", async () => {
+		const root = await tempDir();
+		const result = await runNativeJawInterviewCommand(
+			[
+				"--write",
+				"--stage",
+				"final",
+				"--slug",
+				"strict-early-exit",
+				"--spec",
+				"# Early Exit Spec\n\n## Metadata\n- Status: BELOW_THRESHOLD_EARLY_EXIT\n",
+				"--ambiguity-score",
+				"0.18",
+				"--ambiguity-threshold",
+				"0.05",
+				"--ambiguity-status",
+				"early_exit",
+				"--closure-status",
+				"override",
+				"--handoff-outcome",
+				"BELOW_THRESHOLD_EARLY_EXIT",
+				"--pre-p-summary-presented",
+				"--pre-p-summary-confirmed",
+				"--handoff-status",
+				"early_exit_summary_confirmed",
+				"--json",
+			],
+			root,
+		);
+		expect(result.status).toBe(0);
+		const payload = JSON.parse(result.stdout ?? "{}");
+		const state = JSON.parse(
+			await fs.readFile(path.join(root, ".jwc", "state", "jaw-interview-state.json"), "utf-8"),
+		);
+		expect(state.handoff_status).toBe("early_exit_summary_confirmed");
+		expect(state.ambiguity_status).toBe("early_exit");
+		expect(state.closure_guard_status).toBe("override");
+		expect(state.handoff_outcome).toBe("BELOW_THRESHOLD_EARLY_EXIT");
+		expect(await fs.readFile(payload.path, "utf-8")).toContain("- Handoff Outcome: BELOW_THRESHOLD_EARLY_EXIT");
+	});
+
+	it("rejects invalid strict handoff tuples", async () => {
+		const root = await tempDir();
+		const base = [
+			"--write",
+			"--stage",
+			"final",
+			"--slug",
+			"strict-invalid",
+			"--spec",
+			"# Final Spec",
+			"--ambiguity-score",
+			"0.30",
+			"--ambiguity-threshold",
+			"0.05",
+			"--ambiguity-status",
+			"passed",
+			"--closure-status",
+			"pass",
+			"--restated-goal-confirmed",
+			"--handoff-outcome",
+			"PASSED",
+			"--pre-p-summary-presented",
+			"--pre-p-summary-confirmed",
+			"--handoff-status",
+			"summary_confirmed",
+			"--json",
+		];
+		const aboveThreshold = await runNativeJawInterviewCommand(base, root);
+		expect(aboveThreshold.status).toBe(2);
+		expect(aboveThreshold.stderr).toContain("passed ambiguity cannot exceed threshold");
+
+		const missingSummary = await runNativeJawInterviewCommand(
+			base.filter(arg => arg !== "--pre-p-summary-confirmed").map(arg => (arg === "0.30" ? "0.03" : arg)),
+			root,
+		);
+		expect(missingSummary.status).toBe(2);
+		expect(missingSummary.stderr).toContain(
+			"summary_confirmed requires --pre-p-summary-presented and --pre-p-summary-confirmed",
+		);
+
+		const combined = await runNativeJawInterviewCommand(
+			[...base.map(arg => (arg === "0.30" ? "0.03" : arg)), "--deliberate"],
+			root,
+		);
+		expect(combined.status).toBe(2);
+		expect(combined.stderr).toContain("--handoff-status cannot be combined with --handoff or --deliberate");
+
+		const invalidRows: Array<{ name: string; args: string[]; stderr: string }> = [
+			{
+				name: "pending cannot also be confirmed",
+				args: base
+					.map(arg => (arg === "0.30" ? "0.03" : arg))
+					.map(arg => (arg === "summary_confirmed" ? "summary_pending" : arg)),
+				stderr: "summary_pending cannot set --pre-p-summary-confirmed",
+			},
+			{
+				name: "passed cannot use closure override",
+				args: base.map(arg => (arg === "0.30" ? "0.03" : arg)).map(arg => (arg === "pass" ? "override" : arg)),
+				stderr: "passed ambiguity requires closure-status pass",
+			},
+			{
+				name: "passed requires restated goal",
+				args: base.filter(arg => arg !== "--restated-goal-confirmed").map(arg => (arg === "0.30" ? "0.03" : arg)),
+				stderr: "passed ambiguity requires --restated-goal-confirmed",
+			},
+			{
+				name: "early exit requires early-exit status",
+				args: base.map(arg => (arg === "0.30" ? "0.18" : arg)).map(arg => (arg === "passed" ? "early_exit" : arg)),
+				stderr: "early_exit ambiguity requires early_exit handoff_status",
+			},
+			{
+				name: "early exit requires early-exit outcome",
+				args: base
+					.map(arg => (arg === "0.30" ? "0.18" : arg))
+					.map(arg => (arg === "passed" ? "early_exit" : arg))
+					.map(arg => (arg === "summary_confirmed" ? "early_exit_summary_confirmed" : arg)),
+				stderr: "early_exit handoff requires --handoff-outcome BELOW_THRESHOLD_EARLY_EXIT",
+			},
+			{
+				name: "early exit cannot use fail closure",
+				args: base
+					.map(arg => (arg === "0.30" ? "0.18" : arg))
+					.map(arg => (arg === "passed" ? "early_exit" : arg))
+					.map(arg => (arg === "pass" ? "fail" : arg))
+					.map(arg => (arg === "PASSED" ? "BELOW_THRESHOLD_EARLY_EXIT" : arg))
+					.map(arg => (arg === "summary_confirmed" ? "early_exit_summary_confirmed" : arg)),
+				stderr: "early_exit handoff cannot use closure-status fail",
+			},
+			{
+				name: "passed requires PASSED outcome",
+				args: base
+					.map(arg => (arg === "0.30" ? "0.03" : arg))
+					.map(arg => (arg === "PASSED" ? "BELOW_THRESHOLD_EARLY_EXIT" : arg)),
+				stderr: "passed handoff requires --handoff-outcome PASSED",
+			},
+		];
+		for (const row of invalidRows) {
+			const result = await runNativeJawInterviewCommand(row.args, root);
+			expect(result.status, row.name).toBe(2);
+			expect(result.stderr, row.name).toContain(row.stderr);
+		}
 	});
 
 	it("uses --deliberate to persist the final spec and hand off to plan", async () => {

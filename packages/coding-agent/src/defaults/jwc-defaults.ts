@@ -11,6 +11,9 @@ import autoAnswerUncertainFragment from "./jwc/skills/jaw-interview/auto-answer-
 import autoResearchGreenfieldFragment from "./jwc/skills/jaw-interview/auto-research-greenfield.md" with {
 	type: "text",
 };
+import interviewTurnEvaluatorFragment from "./jwc/skills/jaw-interview/interview-turn-evaluator.md" with {
+	type: "text",
+};
 import jawInterviewSkill from "./jwc/skills/jaw-interview/SKILL.md" with { type: "text" };
 import planSkill from "./jwc/skills/plan/SKILL.md" with { type: "text" };
 import searchSkill from "./jwc/skills/search/SKILL.md" with { type: "text" };
@@ -110,6 +113,12 @@ const DEFAULT_GJC_DEFINITIONS: readonly DefaultJwcDefinition[] = [
 		parentSkillName: "jaw-interview",
 		relativePath: "skill-fragments/jaw-interview/auto-answer-uncertain.md",
 		content: autoAnswerUncertainFragment,
+	},
+	{
+		kind: "skill-fragment",
+		parentSkillName: "jaw-interview",
+		relativePath: "skill-fragments/jaw-interview/interview-turn-evaluator.md",
+		content: interviewTurnEvaluatorFragment,
 	},
 	{
 		kind: "skill-fragment",

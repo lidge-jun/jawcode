@@ -63,6 +63,12 @@ const VALUE_FLAGS = new Set([
 	"--slug",
 	"--spec",
 	"--handoff",
+	"--ambiguity-score",
+	"--ambiguity-threshold",
+	"--ambiguity-status",
+	"--closure-status",
+	"--handoff-status",
+	"--handoff-outcome",
 ]);
 
 function flagValue(args: readonly string[], flag: string): string | undefined {
@@ -142,6 +148,15 @@ interface JawInterviewLanguagePreference {
 	instruction: string;
 }
 
+export type JawInterviewHandoffStatus =
+	| "summary_pending"
+	| "summary_confirmed"
+	| "early_exit_summary_pending"
+	| "early_exit_summary_confirmed";
+export type JawInterviewAmbiguityStatus = "passed" | "early_exit";
+export type JawInterviewClosureStatus = "pass" | "override" | "fail";
+export type JawInterviewHandoffOutcome = "PASSED" | "BELOW_THRESHOLD_EARLY_EXIT";
+
 export interface ResolvedJawInterviewSpecWriteArgs {
 	stage: "final";
 	slug: string;
@@ -151,6 +166,150 @@ export interface ResolvedJawInterviewSpecWriteArgs {
 	deliberate: boolean;
 	handoff?: "plan" | "ralplan";
 	force: boolean;
+	handoffStatus?: JawInterviewHandoffStatus;
+	ambiguityScore?: number;
+	ambiguityThreshold?: number;
+	ambiguityStatus?: JawInterviewAmbiguityStatus;
+	closureStatus?: JawInterviewClosureStatus;
+	restatedGoalConfirmed: boolean;
+	prePSummaryPresented: boolean;
+	prePSummaryConfirmed: boolean;
+	handoffOutcome?: JawInterviewHandoffOutcome;
+}
+
+const HANDOFF_STATUSES = new Set<JawInterviewHandoffStatus>([
+	"summary_pending",
+	"summary_confirmed",
+	"early_exit_summary_pending",
+	"early_exit_summary_confirmed",
+]);
+
+const AMBIGUITY_STATUSES = new Set<JawInterviewAmbiguityStatus>(["passed", "early_exit"]);
+const CLOSURE_STATUSES = new Set<JawInterviewClosureStatus>(["pass", "override", "fail"]);
+const HANDOFF_OUTCOMES = new Set<JawInterviewHandoffOutcome>(["PASSED", "BELOW_THRESHOLD_EARLY_EXIT"]);
+
+export interface JawInterviewStateReadResult {
+	statePath: string;
+	state?: Record<string, unknown>;
+	corruptError?: string;
+}
+
+export async function readJawInterviewStateWithFallback(
+	cwd: string,
+	sessionId?: string,
+): Promise<JawInterviewStateReadResult> {
+	const statePath = jawInterviewStatePath(cwd, sessionId);
+	const existingRead = await readExistingStateForMutation(statePath);
+	if (existingRead.kind === "valid") return { statePath, state: existingRead.value };
+	if (existingRead.kind === "corrupt") return { statePath, corruptError: existingRead.error };
+	return { statePath };
+}
+
+function parseEnumValue<T extends string>(
+	value: string | undefined,
+	flag: string,
+	allowed: ReadonlySet<T>,
+): T | undefined {
+	if (value === undefined) return undefined;
+	if (allowed.has(value as T)) return value as T;
+	throw new JawInterviewCommandError(2, `invalid ${flag}: ${value}`);
+}
+
+function parseUnitNumber(value: string | undefined, flag: string): number | undefined {
+	if (value === undefined) return undefined;
+	const parsed = Number(value);
+	if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
+		throw new JawInterviewCommandError(2, `invalid ${flag}: ${value}. Expected 0 <= value <= 1.`);
+	}
+	return parsed;
+}
+
+function requireStrictField(value: unknown, name: string): void {
+	if (value === undefined) throw new JawInterviewCommandError(2, `--${name} is required with --handoff-status`);
+}
+
+function validateStrictSpecWrite(resolved: ResolvedJawInterviewSpecWriteArgs): void {
+	const status = resolved.handoffStatus;
+	if (!status) return;
+	if (resolved.deliberate || resolved.handoff) {
+		throw new JawInterviewCommandError(2, "--handoff-status cannot be combined with --handoff or --deliberate");
+	}
+	requireStrictField(resolved.ambiguityScore, "ambiguity-score");
+	requireStrictField(resolved.ambiguityThreshold, "ambiguity-threshold");
+	requireStrictField(resolved.ambiguityStatus, "ambiguity-status");
+	requireStrictField(resolved.closureStatus, "closure-status");
+	requireStrictField(resolved.handoffOutcome, "handoff-outcome");
+	const score = resolved.ambiguityScore ?? 0;
+	const threshold = resolved.ambiguityThreshold ?? 0;
+	const ambiguityStatus = resolved.ambiguityStatus;
+	const closureStatus = resolved.closureStatus;
+	const outcome = resolved.handoffOutcome;
+
+	if (threshold <= 0) throw new JawInterviewCommandError(2, "--ambiguity-threshold must be > 0 with --handoff-status");
+	if (status === "summary_pending" && resolved.prePSummaryConfirmed) {
+		throw new JawInterviewCommandError(2, "summary_pending cannot set --pre-p-summary-confirmed");
+	}
+	if ((status === "summary_pending" || status === "early_exit_summary_pending") && !resolved.prePSummaryPresented) {
+		throw new JawInterviewCommandError(2, `${status} requires --pre-p-summary-presented`);
+	}
+	if (status === "summary_confirmed" && (!resolved.prePSummaryPresented || !resolved.prePSummaryConfirmed)) {
+		throw new JawInterviewCommandError(
+			2,
+			"summary_confirmed requires --pre-p-summary-presented and --pre-p-summary-confirmed",
+		);
+	}
+	if (
+		status === "early_exit_summary_confirmed" &&
+		(!resolved.prePSummaryPresented || !resolved.prePSummaryConfirmed)
+	) {
+		throw new JawInterviewCommandError(
+			2,
+			"early_exit_summary_confirmed requires --pre-p-summary-presented and --pre-p-summary-confirmed",
+		);
+	}
+	if (ambiguityStatus === "passed") {
+		if (score > threshold) throw new JawInterviewCommandError(2, "passed ambiguity cannot exceed threshold");
+		if (closureStatus !== "pass")
+			throw new JawInterviewCommandError(2, "passed ambiguity requires closure-status pass");
+		if (!resolved.restatedGoalConfirmed) {
+			throw new JawInterviewCommandError(2, "passed ambiguity requires --restated-goal-confirmed");
+		}
+		if (status.startsWith("early_exit_")) {
+			throw new JawInterviewCommandError(2, "passed ambiguity cannot use early_exit handoff_status");
+		}
+		if (outcome !== "PASSED")
+			throw new JawInterviewCommandError(2, "passed handoff requires --handoff-outcome PASSED");
+		return;
+	}
+	if (ambiguityStatus === "early_exit") {
+		if (!status.startsWith("early_exit_")) {
+			throw new JawInterviewCommandError(2, "early_exit ambiguity requires early_exit handoff_status");
+		}
+		if (outcome !== "BELOW_THRESHOLD_EARLY_EXIT") {
+			throw new JawInterviewCommandError(
+				2,
+				"early_exit handoff requires --handoff-outcome BELOW_THRESHOLD_EARLY_EXIT",
+			);
+		}
+		if (closureStatus === "fail") {
+			throw new JawInterviewCommandError(2, "early_exit handoff cannot use closure-status fail");
+		}
+	}
+}
+
+function ensureHandoffOutcomeMetadata(spec: string, outcome: JawInterviewHandoffOutcome | undefined): string {
+	if (!outcome) return spec;
+	const line = `- Handoff Outcome: ${outcome}`;
+	const existingLine = /^- Handoff Outcome: .+$/m;
+	if (existingLine.test(spec)) return spec.replace(existingLine, line);
+	const metadataHeading = /^## Metadata\s*$/m;
+	const match = metadataHeading.exec(spec);
+	if (match) {
+		const insertAt = match.index + match[0].length;
+		return `${spec.slice(0, insertAt)}\n${line}${spec.slice(insertAt)}`;
+	}
+	const trimmed = spec.endsWith("\n") ? spec : `${spec}\n`;
+	return `${trimmed}\n## Metadata\n${line}\n`;
 }
 
 export interface PersistedJawInterviewSpec {
@@ -172,6 +331,15 @@ interface JawInterviewSpecWriteSummary {
 	sha: string;
 	created_at: string;
 	state_path: string;
+	handoff_status?: JawInterviewHandoffStatus;
+	ambiguity_score?: number;
+	ambiguity_threshold?: number;
+	ambiguity_status?: JawInterviewAmbiguityStatus;
+	closure_guard_status?: JawInterviewClosureStatus;
+	restated_goal_confirmed?: boolean;
+	pre_p_summary_presented?: boolean;
+	pre_p_summary_confirmed?: boolean;
+	handoff_outcome?: JawInterviewHandoffOutcome;
 	handoff?: {
 		to: "plan";
 		mode: "deliberate";
@@ -313,6 +481,28 @@ async function resolveSpecWriteArgs(args: readonly string[], cwd: string): Promi
 		"--deliberate",
 		"--json",
 		"--force",
+		"--ambiguity-score",
+		"--ambiguity-threshold",
+		"--ambiguity-status",
+		"--closure-status",
+		"--restated-goal-confirmed",
+		"--pre-p-summary-presented",
+		"--pre-p-summary-confirmed",
+		"--handoff-status",
+		"--handoff-outcome",
+	]);
+	const writeValueFlags = new Set([
+		"--stage",
+		"--slug",
+		"--spec",
+		"--session-id",
+		"--handoff",
+		"--ambiguity-score",
+		"--ambiguity-threshold",
+		"--ambiguity-status",
+		"--closure-status",
+		"--handoff-status",
+		"--handoff-outcome",
 	]);
 	let skipNext = false;
 	for (const arg of args) {
@@ -320,7 +510,7 @@ async function resolveSpecWriteArgs(args: readonly string[], cwd: string): Promi
 			skipNext = false;
 			continue;
 		}
-		if (["--stage", "--slug", "--spec", "--session-id", "--handoff"].includes(arg)) {
+		if (writeValueFlags.has(arg)) {
 			skipNext = true;
 			continue;
 		}
@@ -329,7 +519,7 @@ async function resolveSpecWriteArgs(args: readonly string[], cwd: string): Promi
 		}
 	}
 
-	return {
+	const resolved: ResolvedJawInterviewSpecWriteArgs = {
 		stage: "final",
 		slug,
 		spec: await resolveSpecContent(rawSpec, cwd),
@@ -338,7 +528,18 @@ async function resolveSpecWriteArgs(args: readonly string[], cwd: string): Promi
 		deliberate: hasFlag(args, "--deliberate"),
 		force: hasFlag(args, "--force"),
 		handoff: rawHandoff as "plan" | "ralplan" | undefined,
+		handoffStatus: parseEnumValue(flagValue(args, "--handoff-status"), "--handoff-status", HANDOFF_STATUSES),
+		ambiguityScore: parseUnitNumber(flagValue(args, "--ambiguity-score"), "--ambiguity-score"),
+		ambiguityThreshold: parseUnitNumber(flagValue(args, "--ambiguity-threshold"), "--ambiguity-threshold"),
+		ambiguityStatus: parseEnumValue(flagValue(args, "--ambiguity-status"), "--ambiguity-status", AMBIGUITY_STATUSES),
+		closureStatus: parseEnumValue(flagValue(args, "--closure-status"), "--closure-status", CLOSURE_STATUSES),
+		restatedGoalConfirmed: hasFlag(args, "--restated-goal-confirmed"),
+		prePSummaryPresented: hasFlag(args, "--pre-p-summary-presented"),
+		prePSummaryConfirmed: hasFlag(args, "--pre-p-summary-confirmed"),
+		handoffOutcome: parseEnumValue(flagValue(args, "--handoff-outcome"), "--handoff-outcome", HANDOFF_OUTCOMES),
 	};
+	validateStrictSpecWrite(resolved);
+	return resolved;
 }
 
 async function resolveJawInterviewArgs(args: readonly string[], cwd: string): Promise<ResolvedJawInterviewArgs> {
@@ -421,7 +622,8 @@ export async function persistJawInterviewSpec(
 	const existing = existingRead.kind === "valid" ? existingRead.value : {};
 
 	const specPath = path.join(cwd, ".jwc", "specs", `jaw-interview-${resolved.slug}.md`);
-	const content = resolved.spec.endsWith("\n") ? resolved.spec : `${resolved.spec}\n`;
+	const specWithMetadata = ensureHandoffOutcomeMetadata(resolved.spec, resolved.handoffOutcome);
+	const content = specWithMetadata.endsWith("\n") ? specWithMetadata : `${specWithMetadata}\n`;
 	await writeArtifact(specPath, content, {
 		cwd,
 		audit: { category: "artifact", verb: "write", owner: "jwc-runtime", skill: "jaw-interview" },
@@ -435,10 +637,11 @@ export async function persistJawInterviewSpec(
 		{ cwd, audit: { category: "ledger", verb: "append", owner: "jwc-runtime", skill: "jaw-interview" } },
 	);
 
+	const strictPhase = resolved.handoffStatus?.endsWith("_pending") ? "summary_pending" : "handoff";
 	const payload: Record<string, unknown> = {
 		...existing,
 		active: true,
-		current_phase: "handoff",
+		current_phase: strictPhase,
 		skill: "jaw-interview",
 		version: WORKFLOW_STATE_VERSION,
 		spec_slug: resolved.slug,
@@ -448,6 +651,17 @@ export async function persistJawInterviewSpec(
 		spec_persisted_at: createdAt,
 		updated_at: createdAt,
 	};
+	if (resolved.handoffStatus) {
+		payload.handoff_status = resolved.handoffStatus;
+		payload.ambiguity_score = resolved.ambiguityScore;
+		payload.ambiguity_threshold = resolved.ambiguityThreshold;
+		payload.ambiguity_status = resolved.ambiguityStatus;
+		payload.closure_guard_status = resolved.closureStatus;
+		payload.restated_goal_confirmed = resolved.restatedGoalConfirmed;
+		payload.pre_p_summary_presented = resolved.prePSummaryPresented;
+		payload.pre_p_summary_confirmed = resolved.prePSummaryConfirmed;
+		payload.handoff_outcome = resolved.handoffOutcome;
+	}
 	if (resolved.sessionId) payload.session_id = resolved.sessionId;
 	await writeWorkflowEnvelopeAtomic(statePath, payload, {
 		cwd,
@@ -470,8 +684,8 @@ export async function persistJawInterviewSpec(
 	await syncJawInterviewHud({
 		cwd,
 		sessionId: resolved.sessionId,
-		phase: "handoff",
-		specStatus: "persisted",
+		phase: strictPhase,
+		specStatus: resolved.handoffStatus?.endsWith("_pending") ? "summary-pending" : "persisted",
 	});
 
 	return {
@@ -549,7 +763,10 @@ export async function retireJawInterviewStateForWorkflowExit(input: {
 	const phase = String(existing.current_phase ?? "")
 		.trim()
 		.toLowerCase();
-	const canRetire = phase === "handoff" || (input.includeActiveInterview === true && phase === "interviewing");
+	const canRetire =
+		phase === "handoff" ||
+		phase === "summary_pending" ||
+		(input.includeActiveInterview === true && phase === "interviewing");
 	if (!canRetire) return false;
 
 	const now = new Date().toISOString();
@@ -680,6 +897,17 @@ async function handleSpecWrite(args: readonly string[], cwd: string): Promise<Ja
 		created_at: persisted.createdAt,
 		state_path: persisted.statePath,
 	};
+	if (resolved.handoffStatus) {
+		summary.handoff_status = resolved.handoffStatus;
+		summary.ambiguity_score = resolved.ambiguityScore;
+		summary.ambiguity_threshold = resolved.ambiguityThreshold;
+		summary.ambiguity_status = resolved.ambiguityStatus;
+		summary.closure_guard_status = resolved.closureStatus;
+		summary.restated_goal_confirmed = resolved.restatedGoalConfirmed;
+		summary.pre_p_summary_presented = resolved.prePSummaryPresented;
+		summary.pre_p_summary_confirmed = resolved.prePSummaryConfirmed;
+		summary.handoff_outcome = resolved.handoffOutcome;
+	}
 
 	if (shouldHandoff) {
 		const planphaseArgs = ["--deliberate", "--json"];

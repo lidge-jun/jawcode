@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Goal: (AI-driven goal planning pending refinement)\nhint: ㄱㄱ"
+    }
+  ],
+  "details": {
+    "op": "get",
+    "goal": {
+      "threadId": "019ed136-63a0-7000-bf11-4e6d987fbf09",
+      "objective": "(AI-driven goal planning pending refinement)\nhint: ㄱㄱ",
+      "status": "active",
+      "createdAt": "2026-06-17T05:45:46.827142Z",
+      "updatedAt": "2026-06-17T05:45:46.827142Z"
+    }
+  }
+}

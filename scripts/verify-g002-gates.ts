@@ -18,12 +18,13 @@ const EXPECTED_ROLE_AGENT_PROMPT_FILES = ["architect", "critic", "executor", "pl
 const EXPECTED_CALLABLE_TASK_ROLES = ["architect", "critic", "executor", "executor_ext", "planner"] as const;
 const EXPECTED_PUBLIC_PACKAGE_VERSION_CATALOG_KEY = "@jawcode-dev/coding-agent";
 const BUNDLED_NON_WORKFLOW_SKILLS = new Set(["browse", "search"]);
-const ALLOWED_PUBLIC_PACKAGE_VERSIONS = new Map<string, string>([["jawcode", "1.0.9"]]);
+const ALLOWED_PUBLIC_PACKAGE_VERSIONS = new Map<string, string>([["jawcode", "1.0.9"], ["@jawcode-dev/natives", "1.0.6"]]);
 const ALLOWED_PRIVATE_PACKAGE_VERSIONS = new Map<string, string>([
 	["@jawcode-dev/orchestration-token-benchmark", "0.0.1"],
 	["jawcode-compat", "0.4.5"],
 	["@jawcode-dev/typescript-edit-benchmark", "0.0.1"],
 ]);
+const ALLOWED_CARGO_WORKSPACE_VERSION = "1.0.0";
 const ALLOWED_UNSCOPED_PACKAGE_NAMES = new Set<string>(["jawcode-monorepo", "jawcode", "jawcode-compat", "jawcode-cu-mcp-server"]);
 const ALLOWED_PACKAGE_BINARIES = new Map<string, readonly string[]>([
 	["@jawcode-dev/ai", ["pi-ai"]],
@@ -259,8 +260,8 @@ async function verifyPackageVersionAndBinaryAllowlist(): Promise<GateResult> {
 
 	const cargoWorkspace = await readText("Cargo.toml");
 	const cargoVersion = /^version\s*=\s*"([^"]+)"/mu.exec(cargoWorkspace)?.[1] ?? "<missing>";
-	if (cargoVersion !== expectedPublicPackageVersion) {
-		versionFindings.push(`Cargo.toml workspace.package version ${cargoVersion} != ${expectedPublicPackageVersion}`);
+	if (cargoVersion !== ALLOWED_CARGO_WORKSPACE_VERSION) {
+		versionFindings.push(`Cargo.toml workspace.package version ${cargoVersion} != ${ALLOWED_CARGO_WORKSPACE_VERSION}`);
 	}
 
 	return {

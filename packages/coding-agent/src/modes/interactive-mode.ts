@@ -449,7 +449,10 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.editorContainer.addChild(this.editor);
 		this.statusLine = new StatusLineComponent(session);
 		this.statusLine.setAutoCompactEnabled(session.autoCompactionEnabled);
-		this.statusLine.onPabcdStageChange(() => this.updateEditorChrome());
+		this.statusLine.onPabcdStageChange(() => {
+			this.updateEditorChrome();
+			this.ui.requestRender();
+		});
 		this.composerFooter = new ComposerFooter(() => this.ui.requestRender());
 		this.backgroundFooterPanel = new BackgroundFooterPanel({
 			openDetail: rowId => this.openBackgroundFooterDetail(rowId),

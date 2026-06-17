@@ -56,6 +56,18 @@ describe("workflow command-reference proof spike", () => {
 		expect(first.bytes.endsWith("\n")).toBe(true);
 	});
 
+	it("renders strict jaw-interview command references without legacy final bridges", () => {
+		const block = renderCommandRefBlock("jaw-interview");
+		expect(block.bytes).toContain("Commands:");
+		expect(block.bytes).toContain("--handoff-status summary_confirmed");
+		expect(block.bytes).toContain("--handoff-outcome PASSED");
+		expect(block.bytes).toContain("jwc orchestrate p --spec-ref .jwc/specs/jaw-interview-{slug}.md");
+		expect(block.bytes).not.toContain(
+			"jwc jaw-interview --write --stage final --slug {slug} --spec <markdown-or-path> --deliberate --json",
+		);
+		expect(block.bytes).not.toContain("jwc state jaw-interview write --input");
+	});
+
 	it("reports byte-equal or gap status without mutating SKILL.md files", async () => {
 		const before = await snapshotSkillFiles();
 		const result = await runBun(["scripts/generate-jwc-skill-command-refs.ts", "--check", "--json"]);

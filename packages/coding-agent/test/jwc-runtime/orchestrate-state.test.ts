@@ -327,6 +327,40 @@ describe("orchestrate runtime full cycle", () => {
 		);
 	}
 
+	async function seedStrictJawInterviewStateForTest(
+		overrides: Record<string, unknown> = {},
+		sessionId?: string,
+	): Promise<Record<string, unknown>> {
+		const now = new Date().toISOString();
+		const specPath = path.join(cwd, ".jwc", "specs", "jaw-interview-strict.md");
+		await fs.mkdir(path.dirname(specPath), { recursive: true });
+		await fs.writeFile(specPath, "# Strict Spec\n", "utf-8");
+		const state = {
+			active: true,
+			current_phase: "handoff",
+			skill: "jaw-interview",
+			version: WORKFLOW_STATE_VERSION,
+			session_id: sessionId,
+			updated_at: now,
+			spec_path: specPath,
+			spec_stage: "final",
+			handoff_status: "summary_confirmed",
+			ambiguity_score: 0.03,
+			ambiguity_threshold: 0.05,
+			ambiguity_status: "passed",
+			closure_guard_status: "pass",
+			restated_goal_confirmed: true,
+			pre_p_summary_presented: true,
+			pre_p_summary_confirmed: true,
+			handoff_outcome: "PASSED",
+			...overrides,
+		};
+		const statePath = jawInterviewStatePathForTest(cwd, sessionId);
+		await fs.mkdir(path.dirname(statePath), { recursive: true });
+		await fs.writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf-8");
+		return state;
+	}
+
 	async function readJsonForTest(filePath: string): Promise<Record<string, unknown>> {
 		return JSON.parse(await fs.readFile(filePath, "utf-8")) as Record<string, unknown>;
 	}
@@ -461,6 +495,108 @@ describe("orchestrate runtime full cycle", () => {
 		expect(parsed.stage).toBe("p");
 		expect(entry.stdout).toContain("Never spawn another Critic against an unchanged plan");
 		expect(parsed.spec_ref).toBe(".jwc/specs/jaw-interview-direct.md");
+	});
+
+	it("rejects strict jaw-interview summary_pending before p and leaves pabcd state unwritten", async () => {
+		await withPabcdSessionEnv({}, async () => {
+			await seedStrictJawInterviewStateForTest({
+				current_phase: "summary_pending",
+				handoff_status: "summary_pending",
+				pre_p_summary_confirmed: false,
+			});
+			const result = await run(["p"]);
+			expect(result.status).toBe(1);
+			expect(result.stderr).toContain("jaw-interview summary confirmation required");
+			expect(result.stderr).toContain("show the short full-spec summary");
+			expect(result.stderr).toContain("ask for acknowledgement");
+			expect(result.stderr).toContain("mark pre_p_summary_confirmed before jwc orchestrate p");
+			await expect(fs.access(pabcdStatePath(cwd))).rejects.toThrow();
+		});
+	});
+
+	it("enters p from strict summary_confirmed and persists jaw-interview spec_ref", async () => {
+		await withPabcdSessionEnv({}, async () => {
+			const state = await seedStrictJawInterviewStateForTest();
+			const result = await run(["p"]);
+			expect(result.status).toBe(0);
+			const status = await run(["status", "--json"]);
+			const parsed = JSON.parse(status.stdout ?? "{}") as { stage: string; spec_ref: string | null };
+			expect(parsed.stage).toBe("p");
+			expect(parsed.spec_ref).toBe(String(state.spec_path));
+		});
+	});
+
+	it("rejects strict early-exit summary_pending and accepts early_exit_summary_confirmed", async () => {
+		await withPabcdSessionEnv({}, async () => {
+			await seedStrictJawInterviewStateForTest({
+				current_phase: "summary_pending",
+				handoff_status: "early_exit_summary_pending",
+				ambiguity_score: 0.18,
+				ambiguity_status: "early_exit",
+				closure_guard_status: "override",
+				restated_goal_confirmed: false,
+				pre_p_summary_confirmed: false,
+				handoff_outcome: "BELOW_THRESHOLD_EARLY_EXIT",
+			});
+			const pending = await run(["p"]);
+			expect(pending.status).toBe(1);
+			expect(pending.stderr).toContain("jaw-interview summary confirmation required");
+
+			await seedStrictJawInterviewStateForTest({
+				handoff_status: "early_exit_summary_confirmed",
+				ambiguity_score: 0.18,
+				ambiguity_status: "early_exit",
+				closure_guard_status: "override",
+				restated_goal_confirmed: false,
+				handoff_outcome: "BELOW_THRESHOLD_EARLY_EXIT",
+			});
+			const confirmed = await run(["p"]);
+			expect(confirmed.status).toBe(0);
+			const status = await run(["status", "--json"]);
+			const parsed = JSON.parse(status.stdout ?? "{}") as { stage: string; spec_ref: string | null };
+			expect(parsed.stage).toBe("p");
+			expect(parsed.spec_ref).toContain("jaw-interview-strict.md");
+		});
+	});
+
+	it("rejects strict confirmed handoff without final spec metadata", async () => {
+		await withPabcdSessionEnv({}, async () => {
+			await seedStrictJawInterviewStateForTest({ spec_path: undefined });
+			const result = await run(["p"]);
+			expect(result.status).toBe(1);
+			expect(result.stderr).toContain("jaw-interview spec_ref required");
+		});
+	});
+
+	it("rejects strict closure failure before canTransition/persist", async () => {
+		await withPabcdSessionEnv({}, async () => {
+			await run(["i"]);
+			const before = await readPabcdState(cwd);
+			expect(before?.ok).toBe(true);
+			await seedStrictJawInterviewStateForTest({ closure_guard_status: "fail" });
+			const result = await run(["p"]);
+			expect(result.status).toBe(1);
+			expect(result.stderr).toContain("jaw-interview closure guard failed");
+			const after = await readPabcdState(cwd);
+			expect(after?.ok).toBe(true);
+			if (!before?.ok || !after?.ok) throw new Error("expected pabcd state");
+			expect(after.value.current_phase).toBe(before.value.current_phase);
+			expect(after.value.updated_at).toBe(before.value.updated_at);
+		});
+	});
+
+	it("allows reset while strict summary_pending exists", async () => {
+		await withPabcdSessionEnv({}, async () => {
+			await run(["i"]);
+			await seedStrictJawInterviewStateForTest({
+				current_phase: "summary_pending",
+				handoff_status: "summary_pending",
+				pre_p_summary_confirmed: false,
+			});
+			const reset = await run(["reset"]);
+			expect(reset.status).toBe(0);
+			await expect(fs.access(pabcdStatePath(cwd))).rejects.toThrow();
+		});
 	});
 
 	it("retires same-scope jaw-interview handoff after direct p entry", async () => {

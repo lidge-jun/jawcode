@@ -1,5 +1,10 @@
 import { beforeAll, describe, expect, test, vi } from "bun:test";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
 import type { AgentMessage } from "@jawcode-dev/agent-core";
+import { renderSegment } from "@jawcode-dev/coding-agent/modes/components/status-line/segments";
+import type { SegmentContext } from "@jawcode-dev/coding-agent/modes/components/status-line/types";
+import { EventController } from "@jawcode-dev/coding-agent/modes/controllers/event-controller";
 import { initTheme } from "@jawcode-dev/coding-agent/modes/theme/theme";
 import type { InteractiveModeContext } from "@jawcode-dev/coding-agent/modes/types";
 import { UiHelpers } from "@jawcode-dev/coding-agent/modes/utils/ui-helpers";
@@ -14,6 +19,14 @@ function renderLastLine(container: Container, width = 120): string {
 
 function renderContainer(container: Container, width = 120): string {
 	return container.render(width).join("\n");
+}
+
+function stripAnsi(text: string): string {
+	return text.replace(/\x1b\[[0-9;]*m/g, "");
+}
+
+function pabcdCtx(stage: "i" | "p"): SegmentContext {
+	return { pabcd: { active: true, stage }, options: {} } as unknown as SegmentContext;
 }
 
 function createInitialRenderHarness(): { ctx: InteractiveModeContext; helpers: UiHelpers } {
@@ -40,6 +53,7 @@ function createInitialRenderHarness(): { ctx: InteractiveModeContext; helpers: U
 		settings: { get: () => false },
 		session: {
 			retryAttempt: 0,
+			buildDisplaySessionContext: () => buildSessionContext([]),
 			getToolByName: () => undefined,
 		},
 		toolOutputExpanded: false,
@@ -123,5 +137,48 @@ describe("InteractiveMode.showStatus", () => {
 		// handler owns this lifecycle and uses it to guard against clearing the
 		// user's in-progress editor draft during an optimistic send (#783).
 		expect(ctx.optimisticUserMessageSignature).toBe("hello\u00001");
+	});
+});
+
+describe("InteractiveMode PABCD status refresh", () => {
+	test("command tool completion refreshes pabcd state", async () => {
+		const refreshPabcdNow = vi.fn();
+		const ctx = {
+			isInitialized: true,
+			statusLine: { invalidate: vi.fn(), refreshPabcdNow },
+			updateEditorTopBorder: vi.fn(),
+			pendingTools: new Map(),
+			ui: { requestRender: vi.fn() },
+			setTodos: vi.fn(),
+		} as unknown as InteractiveModeContext;
+		const controller = new EventController(ctx);
+
+		await controller.handleEvent({
+			type: "tool_execution_end",
+			toolCallId: "bash-1",
+			toolName: "bash",
+			result: { content: [], details: {} },
+			isError: false,
+		} as never);
+
+		expect(refreshPabcdNow).toHaveBeenCalledTimes(1);
+	});
+
+	test("pabcd stage-change callback requests render with editor chrome update", async () => {
+		const source = await fs.readFile(path.resolve(import.meta.dir, "../src/modes/interactive-mode.ts"), "utf-8");
+		const callbackStart = source.indexOf("this.statusLine.onPabcdStageChange(() => {");
+		expect(callbackStart).toBeGreaterThanOrEqual(0);
+		const callbackEnd = source.indexOf("});", callbackStart);
+		const callback = source.slice(callbackStart, callbackEnd);
+		expect(callback).toContain("this.updateEditorChrome();");
+		expect(callback).toContain("this.ui.requestRender();");
+	});
+
+	test("rendered pabcd segment changes from INTERV to PLAN", () => {
+		const interview = stripAnsi(renderSegment("pabcd", pabcdCtx("i")).content);
+		const plan = stripAnsi(renderSegment("pabcd", pabcdCtx("p")).content);
+		expect(interview).toContain("INTERV");
+		expect(plan).toContain("PLAN");
+		expect(plan).not.toContain("INTERV");
 	});
 });

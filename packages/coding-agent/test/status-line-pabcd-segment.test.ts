@@ -31,10 +31,17 @@ describe("pabcd strip segment (99.04.02)", () => {
 		const result = renderSegment("pabcd", ctx({ stage: "b", active: true, verificationStatus: "done" }));
 		expect(result.visible).toBe(true);
 		const text = strip(result.content);
-		expect(text).toContain("▶B");
-		expect(text).toContain("I·P·A·▶B·C·D".replaceAll("·", "·"));
+		expect(text).toContain("BUILD");
+		expect(text).not.toContain("INTERV");
 	});
 
+	it("renders current-session stage changes from INTERV to PLAN labels", () => {
+		const interview = strip(renderSegment("pabcd", ctx({ stage: "i", active: true })).content);
+		const plan = strip(renderSegment("pabcd", ctx({ stage: "p", active: true })).content);
+		expect(interview).toContain("INTERV");
+		expect(plan).toContain("PLAN");
+		expect(plan).not.toContain("INTERV");
+	});
 	it("shows pending gate chips for A and B stages", () => {
 		const a = strip(renderSegment("pabcd", ctx({ stage: "a", active: true, auditStatus: "pending" })).content);
 		expect(a).toContain("audit");
@@ -56,7 +63,7 @@ describe("pabcd strip segment (99.04.02)", () => {
 	it("omits the chip when gates are satisfied", () => {
 		const a = strip(renderSegment("pabcd", ctx({ stage: "a", active: true, auditStatus: "pass" })).content);
 		expect(a).not.toContain("audit");
-		expect(a).toContain("▶A");
+		expect(a).toContain("AUDIT");
 	});
 
 	it("stays within the 22-column width budget (ANSI stripped)", () => {

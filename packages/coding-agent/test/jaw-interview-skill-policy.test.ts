@@ -44,6 +44,37 @@ describe("jaw-interview SKILL.md policy markers (042)", () => {
 		expect(skill).toContain("BELOW_THRESHOLD_EARLY_EXIT");
 	});
 
+	it("requires fresh-fork evaluator scoring and anti-anchor final readiness", () => {
+		expect(skill).toContain("interview-turn-evaluator.md");
+		expect(skill).toContain("fresh fork-context read-only architect after each scored user answer");
+		expect(skill).toContain("prior ambiguity/dimension scores as baseline/advisory, not as an anchor");
+		expect(skill).toContain("final score must be absolute from transcript/spec evidence");
+	});
+
+	it("requires closure guard, restated goal, and short summary acknowledgement before P", () => {
+		expect(skill).toContain("closure_guard_status: pass");
+		expect(skill).toContain("explicit user confirmation of the restated goal");
+		expect(skill).toContain("Show the mandatory short full-spec summary before any execution bridge");
+		expect(skill).toContain(
+			"Ambiguity `<= threshold` means “ready for this summary,” not permission to auto-enter P",
+		);
+		expect(skill).toContain("--pre-p-summary-presented --pre-p-summary-confirmed");
+		expect(skill).toContain("Do not run `jwc orchestrate p` from Phase 4");
+		expect(skill).toContain("then enter Phase 5 execution options");
+		expect(skill).toContain("The summary gate is already complete before these options");
+		expect(skill).toContain("the user explicitly selects a Phase 5 execution option");
+	});
+
+	it("forbids raw jaw-interview state handoff as the final P bridge", () => {
+		const phase5bStart = skill.indexOf("### Phase 5b: Handoff before chain");
+		expect(phase5bStart).toBeGreaterThanOrEqual(0);
+		const nextSection = skill.indexOf("\n### ", phase5bStart + 1);
+		const phase5b = skill.slice(phase5bStart, nextSection === -1 ? undefined : nextSection);
+		expect(phase5b).toContain("never use raw `jwc state jaw-interview write");
+		expect(phase5b).not.toContain("jwc state jaw-interview write --input");
+		expect(phase5b).toContain("--handoff-status summary_confirmed");
+	});
+
 	it("hands off specs at the jaw-interview path and consults legacy artifacts (D040-9)", () => {
 		expect(skill).toContain("handoff: .jwc/specs/jaw-interview-{slug}.md");
 		expect(skill).toContain("`.jwc/specs/jaw-interview-*.md`");

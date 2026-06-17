@@ -26,7 +26,7 @@ import {
 } from "./actor-registry";
 import { checkpointGoal, readGoalPlan } from "./goal-engine";
 import { resolveCliWorkflowSessionId } from "./goal-mode-request";
-import { retireJawInterviewStateForWorkflowExit } from "./jaw-interview-runtime";
+import { readJawInterviewStateWithFallback, retireJawInterviewStateForWorkflowExit } from "./jaw-interview-runtime";
 import {
 	canTransitionPabcd,
 	PABCD_MAX_A_ROUNDS,
@@ -274,6 +274,113 @@ function nextCtxFor(target: PabcdStage, current: PabcdCtx, args: ParsedArgs): Pa
 	return ctx;
 }
 
+const STRICT_JAW_INTERVIEW_HANDOFF_STATUSES = new Set([
+	"summary_pending",
+	"summary_confirmed",
+	"early_exit_summary_pending",
+	"early_exit_summary_confirmed",
+]);
+
+function summaryConfirmationRequiredError(): string {
+	return [
+		"jaw-interview summary confirmation required",
+		"show the short full-spec summary",
+		"ask for acknowledgement",
+		"mark pre_p_summary_confirmed before jwc orchestrate p",
+	].join("; ");
+}
+
+function isStrictJawInterviewHandoff(state: Record<string, unknown> | undefined): state is Record<string, unknown> {
+	return (
+		state?.active === true &&
+		typeof state.handoff_status === "string" &&
+		STRICT_JAW_INTERVIEW_HANDOFF_STATUSES.has(state.handoff_status)
+	);
+}
+
+function numberField(state: Record<string, unknown>, key: string): number | undefined {
+	const value = state[key];
+	return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function validateStrictJawInterviewTuple(
+	state: Record<string, unknown>,
+	effectiveSpecRef: string | undefined,
+): { ok: true; specRef?: string } | { ok: false; reason: string } {
+	const handoffStatus = state.handoff_status;
+	if (handoffStatus === "summary_pending" || handoffStatus === "early_exit_summary_pending") {
+		return { ok: false, reason: summaryConfirmationRequiredError() };
+	}
+	if (state.pre_p_summary_confirmed !== true) {
+		return { ok: false, reason: summaryConfirmationRequiredError() };
+	}
+	if (state.pre_p_summary_presented !== true) {
+		return { ok: false, reason: summaryConfirmationRequiredError() };
+	}
+
+	const stateSpecPath = typeof state.spec_path === "string" && state.spec_path.trim() ? state.spec_path : undefined;
+	if (!stateSpecPath || state.spec_stage !== "final" || !effectiveSpecRef) {
+		return {
+			ok: false,
+			reason:
+				"jaw-interview spec_ref required: strict confirmed handoff requires final spec_path/spec_stage before P",
+		};
+	}
+
+	const score = numberField(state, "ambiguity_score");
+	const threshold = numberField(state, "ambiguity_threshold");
+	if (score === undefined || threshold === undefined || threshold <= 0 || threshold > 1 || score < 0 || score > 1) {
+		return { ok: false, reason: "jaw-interview closure guard failed: invalid ambiguity score/threshold" };
+	}
+
+	const ambiguityStatus = state.ambiguity_status;
+	const closureStatus = state.closure_guard_status;
+	const outcome = state.handoff_outcome;
+	const currentPhase = state.current_phase;
+	if (currentPhase !== "handoff") {
+		return {
+			ok: false,
+			reason: "jaw-interview closure guard failed: confirmed strict handoff must be in handoff phase",
+		};
+	}
+
+	if (ambiguityStatus === "passed") {
+		if (handoffStatus !== "summary_confirmed" || outcome !== "PASSED") {
+			return { ok: false, reason: "jaw-interview closure guard failed: passed handoff tuple mismatch" };
+		}
+		if (score > threshold || closureStatus !== "pass" || state.restated_goal_confirmed !== true) {
+			return { ok: false, reason: "jaw-interview closure guard failed: passed handoff is not closed" };
+		}
+		return { ok: true, specRef: effectiveSpecRef ?? stateSpecPath };
+	}
+
+	if (ambiguityStatus === "early_exit") {
+		if (handoffStatus !== "early_exit_summary_confirmed" || outcome !== "BELOW_THRESHOLD_EARLY_EXIT") {
+			return { ok: false, reason: "jaw-interview closure guard failed: early-exit handoff tuple mismatch" };
+		}
+		if (closureStatus === "fail") {
+			return { ok: false, reason: "jaw-interview closure guard failed: early-exit closure failed" };
+		}
+		return { ok: true, specRef: effectiveSpecRef ?? stateSpecPath };
+	}
+
+	return { ok: false, reason: "jaw-interview closure guard failed: unknown ambiguity status" };
+}
+
+async function validateJawInterviewPrePGuard(input: {
+	cwd: string;
+	sessionId?: string;
+	explicitSpecRef?: string;
+	existingSpecRef?: string;
+}): Promise<{ ok: true; specRef?: string } | { ok: false; reason: string }> {
+	const read = await readJawInterviewStateWithFallback(input.cwd, input.sessionId);
+	if (!read.state || !isStrictJawInterviewHandoff(read.state)) return { ok: true };
+	const stateSpecPath =
+		typeof read.state.spec_path === "string" && read.state.spec_path.trim() ? read.state.spec_path : undefined;
+	const effectiveSpecRef = input.explicitSpecRef ?? input.existingSpecRef ?? stateSpecPath;
+	return validateStrictJawInterviewTuple(read.state, effectiveSpecRef);
+}
+
 async function recordVerdict(cwd: string, args: ParsedArgs): Promise<OrchestrateCommandResult> {
 	if (!args.workerOutput) {
 		return { stderr: "orchestrate verdict requires --worker-output <path>\n", status: 2 };
@@ -470,6 +577,17 @@ export async function runNativeOrchestrateCommand(argv: string[], cwd: string): 
 	const target: PabcdStage = sub === "d" && (parsed.complete || from === "d") ? "complete" : sub;
 	const baseCtx: PabcdCtx = current.envelope?.ctx ?? {};
 	const gateCtx: PabcdCtx = parsed.userApproved ? { ...baseCtx, user_approved: true } : baseCtx;
+	let effectiveSpecRef = parsed.specRef ?? current.envelope?.spec_ref;
+	if (target === "p") {
+		const strictGuard = await validateJawInterviewPrePGuard({
+			cwd,
+			sessionId: parsed.sessionId,
+			explicitSpecRef: parsed.specRef,
+			existingSpecRef: current.envelope?.spec_ref,
+		});
+		if (!strictGuard.ok) return { stderr: `${strictGuard.reason}\n`, status: 1 };
+		effectiveSpecRef = strictGuard.specRef ?? effectiveSpecRef;
+	}
 
 	const transition = canTransitionPabcd(from, target, gateCtx);
 	if (!transition.ok) return { stderr: `${transition.reason}\n`, status: 1 };
@@ -480,11 +598,7 @@ export async function runNativeOrchestrateCommand(argv: string[], cwd: string): 
 		updated_at: new Date().toISOString(),
 		current_phase: target,
 		active: target !== "complete",
-		...(parsed.specRef !== undefined
-			? { spec_ref: parsed.specRef }
-			: current.envelope?.spec_ref !== undefined
-				? { spec_ref: current.envelope.spec_ref }
-				: {}),
+		...(effectiveSpecRef !== undefined ? { spec_ref: effectiveSpecRef } : {}),
 		...(parsed.planRef !== undefined
 			? { plan_ref: parsed.planRef }
 			: current.envelope?.plan_ref !== undefined

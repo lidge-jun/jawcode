@@ -60,13 +60,14 @@ describe("default GJC definitions", () => {
 
 		expect(skills).toEqual(expected);
 		expect(workflowDefinitions).toHaveLength(6);
-		expect(definitions).toHaveLength(10);
+		expect(definitions).toHaveLength(11);
 		expect(workflowDefinitions.every(definition => definition.relativePath.startsWith("skills/"))).toBe(true);
 		expect(workflowDefinitions.every(definition => definition.content.includes(definition.name))).toBe(true);
-		expect(fragmentDefinitions).toHaveLength(4);
+		expect(fragmentDefinitions).toHaveLength(5);
 		expect(fragmentDefinitions.map(definition => definition.parentSkillName).sort()).toEqual([
 			"browse",
 			"goal",
+			"jaw-interview",
 			"jaw-interview",
 			"jaw-interview",
 		]);
@@ -75,6 +76,7 @@ describe("default GJC definitions", () => {
 			"skill-fragments/goal/ai-slop-cleaner.md",
 			"skill-fragments/jaw-interview/auto-answer-uncertain.md",
 			"skill-fragments/jaw-interview/auto-research-greenfield.md",
+			"skill-fragments/jaw-interview/interview-turn-evaluator.md",
 		]);
 	});
 
@@ -86,13 +88,17 @@ describe("default GJC definitions", () => {
 				.map(skill => skill.name)
 				.sort(),
 		).toEqual([...DEFAULT_JWC_DEFINITION_NAMES].sort());
-		expect(fragments).toHaveLength(2);
-		expect(fragments.map(fragment => fragment.kind)).toEqual(["skill-fragment", "skill-fragment"]);
+		expect(fragments).toHaveLength(3);
+		expect(fragments.map(fragment => fragment.kind)).toEqual(["skill-fragment", "skill-fragment", "skill-fragment"]);
 		expect(fragments.map(fragment => fragment.relativePath).sort()).toEqual([
 			"skill-fragments/jaw-interview/auto-answer-uncertain.md",
 			"skill-fragments/jaw-interview/auto-research-greenfield.md",
+			"skill-fragments/jaw-interview/interview-turn-evaluator.md",
 		]);
-		expect(fragments.every(fragment => fragment.content.includes("read-only architect"))).toBe(true);
+		expect(fragments.every(fragment => fragment.content.includes("read-only"))).toBe(true);
+		const evaluator = fragments.find(fragment => fragment.relativePath.endsWith("interview-turn-evaluator.md"));
+		expect(evaluator?.content).toContain("prior ambiguity and dimension scores as advisory baseline only");
+		expect(evaluator?.content).toContain("final score must be evidence-based");
 	});
 
 	it("exposes the goal ai-slop-cleaner fragment only through the parent-scoped fragment accessor", () => {
@@ -417,10 +423,10 @@ Project executor override body.
 		const jawInterviewSkillPath = path.join(targetRoot, "skills", "jaw-interview", "SKILL.md");
 		const installedJawInterview = await Bun.file(jawInterviewSkillPath).text();
 
-		expect(initial.written).toBe(10);
-		expect(initial.total).toBe(10);
+		expect(initial.written).toBe(11);
+		expect(initial.total).toBe(11);
 		expect(initial.skipped).toBe(0);
-		expect(initial.files.filter(file => file.kind === "skill-fragment")).toHaveLength(4);
+		expect(initial.files.filter(file => file.kind === "skill-fragment")).toHaveLength(5);
 
 		const installedResearchFragment = await Bun.file(
 			path.join(targetRoot, "skill-fragments", "jaw-interview", "auto-research-greenfield.md"),
@@ -429,15 +435,15 @@ Project executor override body.
 		await Bun.write(jawInterviewSkillPath, "local edit");
 		const skipped = await installDefaultJwcDefinitions({ targetRoot });
 		expect(skipped.written).toBe(0);
-		expect(skipped.skipped).toBe(10);
+		expect(skipped.skipped).toBe(11);
 		expect(await Bun.file(jawInterviewSkillPath).text()).toBe("local edit");
 
 		const check = await installDefaultJwcDefinitions({ targetRoot, check: true });
 		expect(check.different).toBe(1);
-		expect(check.matching).toBe(9);
+		expect(check.matching).toBe(10);
 
 		const forced = await installDefaultJwcDefinitions({ targetRoot, force: true });
-		expect(forced.written).toBe(10);
+		expect(forced.written).toBe(11);
 		expect(await Bun.file(jawInterviewSkillPath).text()).toBe(installedJawInterview);
 		expect(
 			forced.files.some(file => file.kind === "skill-fragment" && file.parentSkillName === "jaw-interview"),

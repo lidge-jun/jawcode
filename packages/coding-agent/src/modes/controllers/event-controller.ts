@@ -732,6 +732,9 @@ export class EventController {
 				this.ctx.ui.requestRender();
 			}
 		}
+		if (event.toolName === "bash" || event.toolName === "shell" || event.toolName === "exec") {
+			this.ctx.statusLine.refreshPabcdNow();
+		}
 		// Update todo display when todo_write tool completes
 		if (event.toolName === "todo_write" && !event.isError) {
 			const details = event.result.details as { phases?: TodoPhase[] } | undefined;

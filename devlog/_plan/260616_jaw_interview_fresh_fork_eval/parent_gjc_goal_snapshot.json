@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Goal: Complete the durable goal plan in .jwc/goal/goals.json, including later accepted/appended stories, under the original brief constraints; use .jwc/goal/ledger.jsonl as the audit trail."
+    }
+  ],
+  "details": {
+    "op": "get",
+    "goal": {
+      "threadId": "019ed136-63a0-7000-bf11-4e6d987fbf09",
+      "objective": "Complete the durable goal plan in .jwc/goal/goals.json, including later accepted/appended stories, under the original brief constraints; use .jwc/goal/ledger.jsonl as the audit trail.",
+      "status": "active",
+      "createdAt": "2026-06-17T05:46:26.377703Z",
+      "updatedAt": "2026-06-17T05:46:26.377703Z"
+    }
+  }
+}

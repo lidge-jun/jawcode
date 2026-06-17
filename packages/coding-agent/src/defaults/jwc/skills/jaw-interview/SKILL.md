@@ -49,24 +49,25 @@ Inspired by the [Ouroboros project](https://github.com/Q00/ouroboros) which demo
 - When appending each round to `state.rounds[]`, record `ambiguity` (the post-round score) and `dimensions` — the four per-dimension clarity levels mapped to a 0..3 integer scale (low=0, medium=1, high/xhigh=2, max=3). The HUD renders these as mini gauges; rounds without the fields stay backward-compatible.
 - Negativity bias: treat every answer as a claim to pressure-test. If an answer is vague, hedging ("maybe", "아마", "~일 수도"), or lacks concrete detail, DOWNGRADE the affected dimension score and stay on that dimension until one layer deeper, one assumption clearer, or one boundary tighter. Never raise a score to close the interview faster
 - The ontology dimension score is the ontology stability_ratio mapped to the tracker (display only); the external ambiguity formula and gate stay on the three scored dimensions (+brownfield context)
-- External audit (the mathematical scoring call) runs at CHECKPOINTS only, not every round: when your internal tracker estimates every dimension at 0.8+, immediately before honoring an explicit user skip, and immediately before Phase 4 crystallization. The pre-skip and pre-crystallization external audits are MANDATORY -- never finalize or skip on internal scores alone. Display the latest external score (with round number) plus your internal estimate each round
+- Fresh-fork evaluator runs after every scored user answer and again before final readiness. It receives the transcript summary, established facts, latest answer, prior ambiguity/dimension scores as advisory baseline, topology, and trigger ledger; it must independently rescore and propose the next single highest-leverage question or `ready_for_summary`.
 - When the locked topology has multiple active components, score and target each component explicitly so depth-first clarity on one component cannot hide ambiguity in siblings
 - Keep prompt payloads budgeted: summarize or trim oversized initial context/history before composing question, scoring, spec, or handoff prompts
 - If the user's initial context is oversized, create a concise prompt-safe summary first and wait for that summary before ambiguity scoring, question generation, or downstream execution handoff
-- Do not proceed to execution until ambiguity ≤ the resolved threshold for this run and the user explicitly approves a scoped execution path
+- Do not proceed to execution or `jwc orchestrate p` until ambiguity ≤ the resolved threshold, closure guard passes, the restated goal is explicitly confirmed, the short full-spec summary has been shown, the user acknowledges/proceeds after that summary, strict confirmed handoff metadata is persisted, and the user explicitly selects a Phase 5 execution option
 - Allow early exit with a clear warning if ambiguity is still high
 - Persist interview state for resume across session interruptions
 - Explicit markdown/mockup interview mode is allowed when the user explicitly asks to conduct the interview while updating Markdown documents or lightweight HTML mockups. In this mode, the runtime permits `.md` and mockup `.html` edits and the prompt policy governs judgment: create or update Markdown only for interview decisions, open questions, phase splits, risks, specs, plans, or related planning notes; create or update HTML only as a static mockup to clarify requirements or UX decisions. Non-markdown/non-mockup product/source files, tests/builds, commits, execution handoffs, delegation, and direct `.jwc/state` edits remain forbidden until the normal approval gates are satisfied.
-- Challenge agents activate at specific round thresholds to shift perspective
+- Challenge agents activate at specific round thresholds to shift perspective; they are style lenses only and do not replace the mandatory fresh-fork evaluator
 </Execution_Policy>
 
 <Internal_Auto_Mode_Protocol>
-- `auto-research-greenfield.md` and `auto-answer-uncertain.md` are internal prompt fragments loaded on demand with bundle metadata `kind: "skill-fragment"`; they are not public skills, are never slash-command/discoverable, and must not be registered through any `skill://` route.
+- `auto-research-greenfield.md`, `auto-answer-uncertain.md`, and `interview-turn-evaluator.md` are internal prompt fragments loaded on demand with bundle metadata `kind: "skill-fragment"`; they are not public skills, are never slash-command/discoverable, and must not be registered through any `skill://` route.
 - Load fragments only for the specific hook that needs them, with forked inherited context kept read-only and prompt-budgeted; summarize active interview context before spawning the architect if the payload is large.
 - Auto-mode architects are read-only: no code edits, no `.jwc/` mutation, no workflow chaining, no formatters, and no execution delegation.
-- Validate every fragment response before using it: required sections must be present, candidates/answer must match the requested shape, rationale must cite available context, confidence must be explicit, and insufficient-context fallbacks must be honored.
+- `interview-turn-evaluator.md` MUST be loaded for a fresh fork-context read-only architect after each scored user answer and immediately before final readiness. The fork receives prior ambiguity/dimension scores as baseline/advisory, not as an anchor; its output is validated and folded into only the next user-facing question or readiness decision.
+- Validate every fragment response before using it: required sections must be present, candidates/answer/evaluation must match the requested shape, rationale must cite available context, confidence or score rationale must be explicit, and insufficient-context fallbacks must be honored.
 - If architect spawn, fragment loading, or response validation fails, continue the normal manual interview path silently and record an internal audit note in state by incrementing `architect_failures`; do not expose tool noise to the user unless it changes the next user-facing question.
-- Track `auto_researched_rounds`, `auto_answered_rounds`, and `architect_failures` in state and final spec metadata.
+- Track `auto_researched_rounds`, `auto_answered_rounds`, `architect_failures`, and evaluator-fork trigger/rationale summaries in state and final spec metadata.
 </Internal_Auto_Mode_Protocol>
 
 
@@ -319,9 +320,11 @@ After the `ask` tool resolves and before ambiguity scoring, if the user opts out
 
 Auto-answer has a clarity cap: unless the architect confidence is `high` and uncertainty is negligible, no dimension score improved solely by the auto-answer may exceed `0.85`. If the auto-answer would make ambiguity cross the resolved threshold, ask the user for threshold-crossing confirmation before Phase 4: present the tentative assumption and require explicit confirmation, revision, or continued questioning. On architect failure or invalid response, continue with the user's opt-out as an unresolved gap, increment `architect_failures`, and do not block the interview.
 
-### Step 2c: Score Ambiguity (checkpoint external audit)
+### Step 2c: Score Ambiguity (fresh-fork every scored round)
 
-After receiving the user's answer, ALWAYS update the internal tracker (all four dimensions, negativity bias applied). Run the external mathematical scoring call ONLY at checkpoints: internal estimate of every dimension at 0.8+, immediately before an explicit user skip, or immediately before Phase 4 crystallization. The pre-skip and pre-crystallization external audits are mandatory. When spawning the scoring call, fork the context with a pinned cacheIdentity so successive checkpoint calls share the provider prompt-cache prefix.
+After receiving the user's answer, ALWAYS update the internal tracker (all four dimensions, negativity bias applied). Then load `interview-turn-evaluator.md` as a fresh fork-context read-only architect for every scored round. Pass a prompt-safe transcript summary, established facts, latest raw/refined answer, prior ambiguity and dimension scores as advisory baseline, locked topology, trigger ledger, and resolved threshold. The evaluator must independently produce an absolute ambiguity score, dimension scores, material trigger/rationale, and one next-question proposal or `ready_for_summary`.
+
+External audit (the mathematical scoring call) runs at CHECKPOINTS only for heavier red-team scoring: internal estimate/evaluator output indicates every dimension at 0.8+, immediately before an explicit user skip, or immediately before Phase 4 crystallization. The pre-skip and pre-crystallization external audits are MANDATORY -- never finalize or skip on internal scores alone. When spawning the scoring call, fork the context with a pinned cacheIdentity so successive checkpoint calls share the provider prompt-cache prefix.
 
 If the round used an auto-answer, include the architect answer, rationale, confidence, and uncertainty in the scoring prompt. Apply the Step 2b′ clarity cap mechanically before calculating ambiguity, and treat any low-confidence or insufficient-context auto-answer as an unresolved gap rather than user-confirmed truth.
 
@@ -428,39 +431,45 @@ Update interview state with the new round, global scores, per-component `topolog
 
 ### Step 2f: Check Soft Limits
 
-- **Round 1+**: Allow explicit early exit at ANY round if the user says "enough", "let's go", "build it", "skip", or equivalent -- run the mandatory pre-skip external audit, warn about remaining ambiguity, then crystallize the spec with Status: BELOW_THRESHOLD_EARLY_EXIT
+- **Round 1+**: Allow explicit early exit at ANY round if the user says "enough", "let's go", "build it", "skip", or equivalent -- run the mandatory pre-skip external audit, warn about remaining ambiguity, record early-exit override metadata, show the short full-spec summary, persist `early_exit_summary_pending`, wait for explicit acknowledgement, persist `early_exit_summary_confirmed`, and then enter Phase 5 execution bridge. Never crystallize-and-run P immediately.
 - **Round 10**: Show soft warning: "We're at 10 rounds. Current ambiguity: {score}%. Continue or proceed with current clarity?"
 - **Round 20**: Hard cap: "Maximum interview rounds reached. Proceeding with current clarity level ({score}%)."
 
 ## Phase 3: Challenge Agents
 
-At specific round thresholds, shift the questioning perspective:
+Challenge modes are optional style lenses subordinate to the fresh-fork evaluator. They may influence wording only after the validated evaluator output chooses the material next-question target; they must not inject parallel questions or override `interview-turn-evaluator.md`.
 
 ### Round 4+: Contrarian Mode
-Inject into the question generation prompt:
+If the evaluator-selected next question benefits from this lens, fold this style into that single question:
 > You are now in CONTRARIAN mode. Your next question should challenge the user's core assumption. Ask "What if the opposite were true?" or "What if this constraint doesn't actually exist?" The goal is to test whether the user's framing is correct or just habitual.
 
 ### Round 6+: Simplifier Mode
-Inject into the question generation prompt:
+If the evaluator-selected next question benefits from this lens, fold this style into that single question:
 > You are now in SIMPLIFIER mode. Your next question should probe whether complexity can be removed. Ask "What's the simplest version that would still be valuable?" or "Which of these constraints are actually necessary vs. assumed?" The goal is to find the minimal viable specification.
 
 ### Round 8+: Ontologist Mode (if ambiguity still > 0.3)
-Inject into the question generation prompt:
+If the evaluator-selected next question benefits from this lens, fold this style into that single question:
 > You are now in ONTOLOGIST mode. The ambiguity is still high after 8 rounds, suggesting we may be addressing symptoms rather than the core problem. The tracked entities so far are: {current_entities_summary from latest ontology snapshot}. Ask "What IS this, really?" or "Looking at these entities, which one is the CORE concept and which are just supporting?" The goal is to find the essence by examining the ontology.
 
-Challenge modes are used ONCE each, then return to normal Socratic questioning. Track which modes have been used in state.
+Challenge modes are used at most ONCE each, then return to normal Socratic wording. Track which modes have been used in state. They never replace the mandatory per-round fresh-fork evaluator or create extra questions.
 
 ## Phase 4: Crystallize Spec
 
-When ambiguity ≤ threshold (or hard cap / early exit):
+When ambiguity ≤ threshold, hard cap, or explicit early exit indicates possible readiness:
 
-1. **Generate the specification** using opus model with the prompt-safe transcript. If the full interview transcript or initial context is too large, include the summary plus all concrete decisions, acceptance criteria, unresolved gaps, and ontology snapshots; never overflow the prompt with raw oversized context.
+1. **Run final fresh-fork readiness evaluation** with `interview-turn-evaluator.md` in final red-team mode. Prior ambiguity is advisory only; the final score must be absolute from transcript/spec evidence.
+2. **Apply closure guard before crystallization**:
+   - Normal passed handoff requires `ambiguity <= threshold`, `closure_guard_status: pass`, and explicit user confirmation of the restated goal.
+   - Above-threshold user progression is an early-exit override: record unresolved material gaps, `closure_guard_status: override`, and `Status: BELOW_THRESHOLD_EARLY_EXIT`.
+   - `closure_guard_status: fail` must return to the single highest-impact follow-up question. Do not force completion.
+3. **Generate the specification** using opus model with the prompt-safe transcript. If the full interview transcript or initial context is too large, include the summary plus all concrete decisions, acceptance criteria, unresolved gaps, and ontology snapshots; never overflow the prompt with raw oversized context.
    - Apply `language.instruction` when present so user-facing prose in the spec preserves the session language; keep code identifiers, file paths, commands, JSON/settings keys, and quoted source text unchanged.
-2. **Write the final spec through the workflow CLI**: persist the artifact at `.jwc/specs/jaw-interview-{slug}.md`
+4. **Show the mandatory short full-spec summary before any execution bridge**. Keep it easy and brief: objective, scope, constraints, acceptance signal, unresolved/override status, and next stage options. Ask for explicit acknowledgement/proceed. Ambiguity `<= threshold` means “ready for this summary,” not permission to auto-enter P.
+5. **Persist strict handoff metadata through the workflow CLI**:
+   - After the summary is shown but before acknowledgement, write `.jwc/specs/jaw-interview-{slug}.md` with `--handoff-status summary_pending` or `--handoff-status early_exit_summary_pending`, `--pre-p-summary-presented`, strict ambiguity/closure fields, and `--handoff-outcome PASSED|BELOW_THRESHOLD_EARLY_EXIT`. `jwc orchestrate p` must reject this pending state.
+   - Only after the user acknowledges/proceeds, write the same final spec through `jwc interview --write --stage final --slug {slug} --spec <markdown-or-path>` with `--pre-p-summary-presented --pre-p-summary-confirmed` and `--handoff-status summary_confirmed` or `early_exit_summary_confirmed`, then enter Phase 5 execution options. Do not run `jwc orchestrate p` from Phase 4.
    - Always use this exact final spec path. Do not write temporary working files to the repo root or other ad hoc paths; repos may allowlist `.jwc/` for planning artifacts while protecting product branches.
-   - Use the native jaw-interview write command with `--write --stage final --slug {slug} --spec <markdown-or-path> [--json]` for artifact and state persistence; direct `.jwc/` file edits are forbidden unless an explicit force override is active.
-   - Persist the final `spec_path` in state when available so downstream skills and resumed sessions can pass the artifact path explicitly.
-   - If the user preselected the deliberate planning path, persist the final spec with the same native write command and record the deliberate-rigor expectation inside the spec (pre-mortem, expanded test planning); the orchestrate plan stage picks it up via `--spec-ref`. Do not use the legacy deliberate seeding bridge.
+   - Direct `.jwc/` file edits and raw `jwc state jaw-interview write '{"current_phase":"handoff"}'` handoff are forbidden unless an explicit force override is active.
 
 Spec structure:
 
@@ -477,6 +486,7 @@ Spec structure:
 - Threshold Source: <resolvedThresholdSource>
 - Initial Context Summarized: {yes|no}
 - Status: {PASSED | BELOW_THRESHOLD_EARLY_EXIT}
+- Handoff Outcome: {PASSED | BELOW_THRESHOLD_EARLY_EXIT}
 - Auto-Researched Rounds: {auto_researched_rounds}
 - Auto-Answered Rounds: {auto_answered_rounds}
 - Architect Failures: {architect_failures}
@@ -562,7 +572,7 @@ Spec structure:
 **Loop assessment** (skipped when `--research-setup` is active): Before presenting the execution options below, assess whether the spec describes work that should be split into multiple PABCD cycles. If so, note it in the question preamble so the user can make an informed choice. Do not bypass the execution options — loop is a mode of Option 1 (orchestrate P), not a separate gate.
 
 
-After the spec is written, mark it `pending approval` and present execution options via the `ask` tool. Until the user selects an execution option, the jaw-interview module MUST NOT run mutation-oriented shell commands, edit source files, commit, push, open PRs, invoke execution skills, or delegate implementation tasks:
+After the final spec is written and the mandatory short summary acknowledgement has been persisted as `summary_confirmed` or `early_exit_summary_confirmed`, mark it `pending approval` and present execution options via the `ask` tool. Until the user selects an execution option, the jaw-interview module MUST NOT run mutation-oriented shell commands, edit source files, commit, push, open PRs, invoke execution skills, or delegate implementation tasks:
 
 **Question:** "Your spec is ready (ambiguity: {score}%). How would you like to proceed?"
 
@@ -570,7 +580,7 @@ After the spec is written, mark it `pending approval` and present execution opti
 
 1. **Refine with the orchestrate plan stage (Recommended — default for almost all specs)**
    - Description: "Plan-refine this spec through the native orchestrate P stage, then stop for explicit execution approval. Maximum quality. Prefer this unless the spec is already implementation-ready and trivially simple. **Loop execution**: if the spec covers multiple independent patches, the agent will propose a loop plan (phase breakdown in `devlog/_plan/`) before entering P — each phase runs a separate PABCD cycle."
-   - Action: Only after the user selects this option, run `jwc orchestrate p --spec-ref .jwc/specs/jaw-interview-{slug}.md`. The orchestrate plan stage owns consensus planning natively — do not route through superseded legacy planning skill loops. When the plan stage completes and produces a plan artifact, stop with that plan marked `pending approval`; do not automatically invoke execution or any other execution skill.
+   - Action: The summary gate is already complete before these options. On explicit selection of this option, run `jwc orchestrate p --spec-ref .jwc/specs/jaw-interview-{slug}.md`. The orchestrate plan stage owns consensus planning natively — do not route through superseded legacy planning skill loops. When the plan stage completes and produces a plan artifact, stop with that plan marked `pending approval`; do not automatically invoke execution or any other execution skill.
    - Pipeline: `jaw-interview spec → explicit approval to refine → orchestrate P → pending approval → separate execution approval`
 
 2. **Execute with goal (only when spec is already implementation-ready and really simple)**
@@ -585,23 +595,43 @@ After the spec is written, mark it `pending approval` and present execution opti
    - Description: "Continue interviewing to improve clarity (current: {score}%)"
    - Action: Return to Phase 2 interview loop.
 
-**IMPORTANT:** On explicit selection, **MUST** use the chosen native entrypoint: plan refinement goes through `jwc orchestrate p --spec-ref <spec path>` (the native IPABCD plan stage — never superseded legacy planning skill loops); execution handoff defaults to `/skill:goal`; `/skill:team` is reserved for when tmux-based interactive worker parallelization is genuinely required, and `jwc team` is a native tmux runtime command used only when the Team workflow explicitly requires the CLI runtime. Do NOT implement directly. The jaw-interview agent is a requirements agent, not an execution agent. If oversized initial context was summarized, pass the spec and prompt-safe summary forward, not the raw oversized source material. Without explicit execution selection, stop with the spec marked `pending approval`.
+**IMPORTANT:** On explicit selection, **MUST** use the chosen native entrypoint after its gate is satisfied: plan refinement goes through strict summary-confirmed `jwc interview --write ... --handoff-status summary_confirmed|early_exit_summary_confirmed` and then `jwc orchestrate p --spec-ref <spec path>` (the native IPABCD plan stage — never superseded legacy planning skill loops); execution handoff defaults to `/skill:goal`; `/skill:team` is reserved for when tmux-based interactive worker parallelization is genuinely required, and `jwc team` is a native tmux runtime command used only when the Team workflow explicitly requires the CLI runtime. Do NOT implement directly. The jaw-interview agent is a requirements agent, not an execution agent. If oversized initial context was summarized, pass the spec and prompt-safe summary forward, not the raw oversized source material. Without explicit execution selection and summary acknowledgement, stop with the spec marked `summary_pending`/`pending approval`.
 
 ### Phase 5b: Handoff before chain
 
-Before bridging to the orchestrate plan stage, `/skill:team`, or `/skill:goal`, the final spec must already be persisted through the native jaw-interview write command. For ordinary user-selected handoff, mark jaw-interview ready for the downstream chain guard:
+Before bridging to the orchestrate plan stage, `/skill:team`, or `/skill:goal`, the final spec must already be persisted through the native jaw-interview write command with strict handoff metadata. For ordinary user-selected P refinement, never use raw `jwc state jaw-interview write '{"current_phase":"handoff"}'` and never use the legacy `--deliberate` write bridge.
 
-```
-jwc state jaw-interview write --input '{"current_phase":"handoff"}' --json
+Summary pending state, after the short full-spec summary has been shown but before user acknowledgement:
+
+```sh
+jwc interview --write --stage final --slug {slug} --spec <markdown-or-path> \
+  --ambiguity-score {score_0_to_1} --ambiguity-threshold <resolvedThreshold> \
+  --ambiguity-status passed --closure-status pass --restated-goal-confirmed \
+  --handoff-outcome PASSED \
+  --pre-p-summary-presented \
+  --handoff-status summary_pending --json
 ```
 
-Then bridge plan refinement with the native orchestrate entrypoint:
+Confirmed handoff state, only after the user acknowledges/proceeds. This does not run P; it only unlocks Phase 5 execution options:
 
+```sh
+jwc interview --write --stage final --slug {slug} --spec <markdown-or-path> \
+  --ambiguity-score {score_0_to_1} --ambiguity-threshold <resolvedThreshold> \
+  --ambiguity-status passed --closure-status pass --restated-goal-confirmed \
+  --handoff-outcome PASSED \
+  --pre-p-summary-presented --pre-p-summary-confirmed \
+  --handoff-status summary_confirmed --json
 ```
+
+If the user then explicitly selects Phase 5 option 1, run:
+
+```sh
 jwc orchestrate p --spec-ref .jwc/specs/jaw-interview-{slug}.md
 ```
 
-The final write persists `.jwc/specs/jaw-interview-{slug}.md`; `--spec-ref` feeds it to the orchestrate plan stage. (The legacy deliberate seeding bridge is superseded — record deliberate rigor inside the spec instead.) Skipping spec persistence leaves the Phase 5 chain blocked by design.
+For above-threshold early exit, use `--ambiguity-status early_exit`, `--closure-status override`, `--handoff-outcome BELOW_THRESHOLD_EARLY_EXIT`, and the matching `early_exit_summary_pending|early_exit_summary_confirmed` handoff status.
+
+The final write persists `.jwc/specs/jaw-interview-{slug}.md`; `--spec-ref` feeds it to the orchestrate plan stage. Skipping spec persistence, summary acknowledgement, or strict metadata leaves the Phase 5 chain blocked by design.
 
 ### Approval-Gated Refinement Path (Recommended)
 
@@ -770,6 +800,8 @@ Why bad: 45% ambiguity means nearly half the requirements are unclear. The mathe
 - [ ] Execution bridge presented via the `ask` tool
 - [ ] Selected execution mode invoked via public jwc workflow entrypoint only after explicit execution approval (never direct implementation)
 - [ ] If 3-stage pipeline selected: `jwc orchestrate p --spec-ref <spec>` invoked, then stopped with the plan artifact marked `pending approval` until the user explicitly approves execution
+- [ ] Before any `jwc orchestrate p`, the short full-spec summary was shown, user acknowledgement was received, and strict confirmed handoff metadata was persisted with `--pre-p-summary-presented --pre-p-summary-confirmed --handoff-status summary_confirmed|early_exit_summary_confirmed`
+- [ ] Before any `jwc orchestrate p`, the Phase 5 execution option was explicitly selected after the strict confirmed handoff write
 - [ ] State cleaned up after approved workflow handoff
 - [ ] Brownfield confirmation questions cite repo evidence (file/path/pattern) before asking the user to decide
 - [ ] Scope-fuzzy tasks can trigger ontology-style questioning to stabilize the core entity before feature elaboration
@@ -828,7 +860,10 @@ The recommended refinement path chains clarity and feasibility gates, then stops
 ```
 /skill:jaw-interview "vague idea"
   → Socratic Q&A until ambiguity ≤ <resolvedThresholdPercent>
-  → Spec written to .jwc/specs/jaw-interview-{slug}.md
+  → Short full-spec summary shown to the user
+  → User acknowledges/proceeds after the summary
+  → Spec written to .jwc/specs/jaw-interview-{slug}.md with strict `summary_confirmed|early_exit_summary_confirmed` metadata
+  → Phase 5 execution options presented via ask
   → User explicitly selects "Refine with the orchestrate plan stage"
   → jwc orchestrate p --spec-ref .jwc/specs/jaw-interview-{slug}.md
     → Plan drafted from the spec
