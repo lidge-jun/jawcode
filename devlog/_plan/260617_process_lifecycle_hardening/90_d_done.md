@@ -65,4 +65,5 @@ Result: `biome check .` and `tsgo -p tsconfig.json --noEmit` passed.
 
 ## Commit
 
-- `e11f0632` — `feat(runtime): harden process lifecycle ownership`
+- Implementation commit: `9f009964` — `feat(runtime): harden process lifecycle ownership`
+- Completion-note commit: created separately because a commit cannot contain its own final hash.
