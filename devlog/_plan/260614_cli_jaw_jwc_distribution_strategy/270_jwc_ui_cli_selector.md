@@ -1,7 +1,7 @@
 # 270 — Expose JWC in Manager CLI selector
 
-> PABCD slice. Repo for implementation: cli-jaw. Classification: C2.
-> Current doc role: cross-repo API/frontend contract kept in jawcode for porting jawcode/JWC into cli-jaw.
+> Status: done via PABCD receipts `270.1`–`270.15`; implementation commit in cli-jaw: `a024fae4 feat: expose JWC in manager cli registry`.
+> Repo for implementation: cli-jaw. Classification: C2.
 
 ## Problem
 
@@ -28,6 +28,7 @@ Verified cli-jaw evidence from checkout:
 - `src/cli/registry-live.ts:4-16` returns a structured clone of `CLI_REGISTRY` with live augmentation.
 - `src/routes/settings.ts:310-311` exposes `GET /api/cli-registry` via `buildLiveCliRegistry()`.
 - `public/manager/src/settings/pages/components/agent/agent-meta.ts:28` currently omits `jwc` from `PRIMARY_CLIS`.
+- 2026-06-17 implementation evidence: cli-jaw commit `a024fae4` normalizes `CLI_REGISTRY.jwc.label` to `JWC`, adds `jwc` to Manager primary ordering, uses `orderRuntimeCliOptions()`, and adds focused registry/manager/route tests. C-stage gates passed in `270.15_c_check_report.md`.
 
 ## Required documentation/implementation contract
 

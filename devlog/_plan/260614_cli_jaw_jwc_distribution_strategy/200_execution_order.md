@@ -62,10 +62,11 @@ The 270-310 band is a cross-repo porting queue for embedding jawcode/JWC into cl
 1. current jawcode contract/evidence paths in this repo;
 2. cli-jaw implementation/API/frontend paths in a cli-jaw checkout.
 
-7. **270 Manager UI CLI selector**
+7. **270 Manager UI CLI selector — DONE (2026-06-17, cli-jaw `a024fae4`)**
    - target: cli-jaw Manager selector and registry API;
    - cli-jaw paths checked: `src/routes/settings.ts` exposes `GET /api/cli-registry`, `src/cli/registry.ts`, `src/cli/registry-live.ts`, `public/manager/src/settings/pages/components/agent/agent-meta.ts`;
    - jawcode evidence to pair: `packages/jwc/package.json`, `packages/jwc/src/sdk.ts`.
+   - completion receipt: `270.1_p_jwc_selector_exposure_plan.md`, `270.14_b_verifier_done.md`, `270.15_c_check_report.md`;
 8. **280 Default CLI switch + e2e smoke**
    - target: cli-jaw default runtime selection and main message/SSE/persistence API;
    - cli-jaw paths checked: `src/core/main-session.ts` (`resolveMainCli`, session persistence fields), `src/routes/command.ts` (`POST /api/message`), `src/routes/events.ts` (`GET /api/events`), `src/manager/server.ts` (`GET /api/manager/events/stream`), `src/core/db.ts` (`session.active_cli`);
