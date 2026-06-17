@@ -50,7 +50,6 @@
 |---|---|---|---|---|
 | 001 | [20.001_omp_chase_cycle.md](./20.001_omp_chase_cycle.md) | fetch·regen | struct_har | 🟡 |
 | 002 | [20.002_omp_chase_worker_catalog.md](./20.002_omp_chase_worker_catalog.md) | worker | 100 | ⬜ |
-| 003 | [20.003_omp_chase_memory_skills.md](./20.003_omp_chase_memory_skills.md) | memory·skills | 99.01 | ⬜ |
 | 004 | [20.004_omp_chase_lsp_dap.md](./20.004_omp_chase_lsp_dap.md) | LSP/DAP | 081 | ⬜ |
 | 005 | [20.005_omp_chase_steering_delivery.md](./20.005_omp_chase_steering_delivery.md) | steer/followUp 전달 | session | ⬜ |
 | 006 | [20.006_omp_chase_tui_input_micro_fixes.md](./20.006_omp_chase_tui_input_micro_fixes.md) | Esc·ast status | 082·99.20 | ⬜ |
@@ -70,6 +69,7 @@
 
 | NNN | 문서 | 완료일 | 판정 |
 |---|---|---|---|
+| 003 | [_fin/20/20.003 memory/skills](./_fin/20/20.003_omp_chase_memory_skills.md) | 260617 | reference-only — 99.01 memory/chat absorbed |
 | 010 | [_fin/20/20.010 advisor/WATCHDOG](./_fin/20/20.010_omp_chase_advisor_review_lane.md) | 260617 | 비채택 — PABCD/goal reviewer lanes 유지 |
 | 014 | [_fin/20/20.014 extensions/plugins](./_fin/20/20.014_omp_chase_extensions_plugins.md) | 260617 | 부분 채택 — JWC plugin boundary 유지, OMP marketplace parity 비채택 |
 | 016 | [_fin/20/20.016_omp_chase_review_pr_url.md](./_fin/20/20.016_omp_chase_review_pr_url.md) | 260616 | 비채택 — GitHub skill route 유지 |

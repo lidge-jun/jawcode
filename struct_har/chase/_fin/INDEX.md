@@ -19,6 +19,7 @@
 | 10.026 | RPC/unattended issues audit pack — Phase 1 appendix + UDS issue 09 | 260615 | [10/10.026](./10/10.026_gjc_chase_rpc_issues_audit.md) |
 | 10.022 | goal-mode AgentBusyError continuation loop | 260615 | [10/10.022](./10/10.022_gjc_chase_goal_agent_busy_loop.md) |
 | 10.029 | process/resource lifecycle hardening — P0 safety bundle | 260617 | [10/10.029](./10/10.029_gjc_chase_process_lifecycle_hardening.md) |
+| 20.003 | memory / skills — reference-only, 99.01 memory/chat absorbed | 260617 | [20/20.003](./20/20.003_omp_chase_memory_skills.md) |
 | 20.010 | passive advisor / WATCHDOG review lane — 비채택, PABCD/goal reviewer lanes 유지 | 260617 | [20/20.010](./20/20.010_omp_chase_advisor_review_lane.md) |
 | 20.014 | extensions/plugins discovery and marketplace hardening — 부분 채택, JWC plugin boundary 유지 | 260617 | [20/20.014](./20/20.014_omp_chase_extensions_plugins.md) |
 | 20.016 | review PR URL / diff-slice support — 비채택, GitHub skill route 유지 | 260616 | [20/20.016](./20/20.016_omp_chase_review_pr_url.md) |

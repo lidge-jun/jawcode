@@ -70,7 +70,7 @@ Executor v2 (260614): **011 YES**, **008/026 RISKY**; **018 registry TS+Py lande
 | steering delivery | yield re-poll, stranded drain | [20.005](./20.005_omp_chase_steering_delivery.md) |
 | TUI micro | Esc draft, ast status | [20.006](./20.006_omp_chase_tui_input_micro_fixes.md) |
 | session modules | listing/loader | [20.007](./20.007_omp_chase_session_modularization.md) |
-| memory/skills | mnemopi | [20.003](./20.003_omp_chase_memory_skills.md) |
+| memory/skills | mnemopi | ✅ reference-only — [20.003](./_fin/20/20.003_omp_chase_memory_skills.md), 99.01 absorbed |
 | profiles/auth isolation | `--profile`, profile-scoped config/OAuth | [20.009](./20.009_omp_chase_profiles_aliases.md) |
 | advisor/WATCHDOG | passive review lane | ✅ 비채택 — [20.010](./_fin/20/20.010_omp_chase_advisor_review_lane.md) |
 | tool dialects | in-band tool-call conversion | [20.011](./20.011_omp_chase_tool_dialect.md) |

@@ -61,7 +61,7 @@
 | 26 | 20.010 | [20.010 advisor/WATCHDOG](./_fin/20/20.010_omp_chase_advisor_review_lane.md) | P2 | ✅ _fin · 비채택/reference-only |
 | 27 | 20.013 | [20.013 task coordination](./20.013_omp_chase_task_coordination.md) | P2 | ⬜ |
 | 28 | 20.017 | [20.017 unexpected-stop](./20.017_omp_chase_unexpected_stop_detection.md) | P2 | ⬜ |
-| 29 | 20.003 | [20.003 memory/skills](./20.003_omp_chase_memory_skills.md) | P2 | ⬜ |
+| 29 | 20.003 | [20.003 memory/skills](./_fin/20/20.003_omp_chase_memory_skills.md) | P2 | ✅ _fin · 99.01 absorbed |
 | 30 | 20.007 | [20.007 session modules](./20.007_omp_chase_session_modularization.md) | P2 | ⬜ |
 | 31 | 20.014 | [20.014 extensions](./_fin/20/20.014_omp_chase_extensions_plugins.md) | P3 | ✅ _fin · partial adopt/watch closed |
 | — | 20.008 | [20.008 15.13 delta](./20.008_omp_chase_pull_15_13_delta.md) | — | 🟡 index |
@@ -71,6 +71,7 @@
 | NNN | 내용 | 상태 |
 |-----|------|------|
 | 009–017 | pi-shell, submit, perf×3, context, tool_choice, Fable N/A | ✅ |
+| 20.003 | [20.003 memory/skills](./_fin/20/20.003_omp_chase_memory_skills.md) | ✅ reference-only — 99.01 memory/chat absorbed |
 | 20.010 | [20.010 advisor/WATCHDOG](./_fin/20/20.010_omp_chase_advisor_review_lane.md) | ✅ 비채택 — PABCD/goal reviewer lanes |
 | 20.014 | [20.014 extensions/plugins](./_fin/20/20.014_omp_chase_extensions_plugins.md) | ✅ 부분 채택 — JWC plugin boundary |
 | 20.016 | [20.016 review PR URL](./_fin/20/20.016_omp_chase_review_pr_url.md) | ✅ 비채택 — GitHub skill route |
