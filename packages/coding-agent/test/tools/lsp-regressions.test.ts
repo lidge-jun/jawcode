@@ -31,6 +31,19 @@ import { clampTimeout } from "@jawcode-dev/coding-agent/tools/tool-timeouts";
 import * as piUtils from "@jawcode-dev/utils";
 import { sanitizeText, TempDir } from "@jawcode-dev/utils";
 
+function createMockOwner(proc: LspClient["proc"]): LspClient["owner"] {
+	return {
+		child: proc,
+		pid: undefined,
+		exited: Promise.resolve(0),
+		disposed: false,
+		async awaitExit() {
+			return { exited: true, code: 0 };
+		},
+		async dispose() {},
+	};
+}
+
 describe("lsp regressions", () => {
 	afterEach(() => {
 		vi.restoreAllMocks();
@@ -319,6 +332,7 @@ describe("lsp regressions", () => {
 				name: "test-lsp",
 				cwd: tempDir.path(),
 				config: server,
+				owner: createMockOwner({} as LspClient["proc"]),
 				proc: {
 					stdin: {
 						write() {},
@@ -456,6 +470,7 @@ describe("lsp regressions", () => {
 				name: "test-lsp",
 				cwd: tempDir.path(),
 				config: server,
+				owner: createMockOwner({} as LspClient["proc"]),
 				proc: {
 					stdin: { write() {}, flush: async () => {} },
 				} as unknown as LspClient["proc"],
@@ -557,6 +572,7 @@ describe("lsp regressions", () => {
 				name: "test-lsp",
 				cwd: tempDir.path(),
 				config: server,
+				owner: createMockOwner({} as LspClient["proc"]),
 				proc: {
 					stdin: { write() {}, flush: async () => {} },
 				} as unknown as LspClient["proc"],
@@ -617,6 +633,7 @@ describe("lsp regressions", () => {
 				name: "test-lsp",
 				cwd: tempDir.path(),
 				config: server,
+				owner: createMockOwner({} as LspClient["proc"]),
 				proc: {
 					stdin: { write() {}, flush: async () => {} },
 				} as unknown as LspClient["proc"],
@@ -686,6 +703,7 @@ describe("lsp regressions", () => {
 				name: "test-rs",
 				cwd: tempDir.path(),
 				config: server,
+				owner: createMockOwner({} as LspClient["proc"]),
 				proc: {
 					stdin: { write() {}, flush: async () => {} },
 				} as unknown as LspClient["proc"],
@@ -755,6 +773,7 @@ describe("lsp regressions", () => {
 				name: "test-lsp",
 				cwd: tempDir.path(),
 				config: server,
+				owner: createMockOwner({} as LspClient["proc"]),
 				proc: {
 					stdin: { write() {}, flush: async () => {} },
 				} as unknown as LspClient["proc"],
@@ -812,6 +831,7 @@ describe("lsp regressions", () => {
 				name: "test-lsp",
 				cwd: tempDir.path(),
 				config: server,
+				owner: createMockOwner({} as LspClient["proc"]),
 				proc: {
 					stdin: { write() {}, flush: async () => {} },
 				} as unknown as LspClient["proc"],

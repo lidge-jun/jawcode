@@ -1,5 +1,6 @@
 import type { ptree } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
+import type { OwnedProcess } from "../runtime/process-lifecycle";
 
 // =============================================================================
 // Tool Schema
@@ -398,6 +399,7 @@ export interface LspClient {
 	name: string;
 	cwd: string;
 	config: ServerConfig;
+	owner: OwnedProcess<"pipe">;
 	proc: ptree.ChildProcess<"pipe">;
 	requestId: number;
 	diagnostics: Map<string, PublishedDiagnostics>;

@@ -5,7 +5,9 @@
  * Messages are newline-delimited JSON.
  */
 
-import { getProjectDir, ptree, readJsonl, Snowflake } from "@jawcode-dev/utils";
+import { getProjectDir, readJsonl, Snowflake } from "@jawcode-dev/utils";
+import type { OwnedProcess } from "../../runtime/process-lifecycle";
+import { spawnOwnedProcess } from "../../runtime/process-lifecycle";
 import type {
 	JsonRpcError,
 	JsonRpcMessage,
@@ -24,7 +26,7 @@ import { toJsonRpcError } from "../../runtime-mcp/types";
 const CLOSE_WAIT_MS = 1_000;
 
 export class StdioTransport implements MCPTransport {
-	#process: ptree.ChildProcess<"pipe"> | null = null;
+	#process: OwnedProcess<"pipe"> | null = null;
 	#pendingRequests = new Map<
 		string | number,
 		{
@@ -58,11 +60,12 @@ export class StdioTransport implements MCPTransport {
 			...this.config.env,
 		};
 
-		this.#process = ptree.spawn([this.config.command, ...args], {
+		this.#process = spawnOwnedProcess([this.config.command, ...args], {
 			cwd: this.config.cwd ?? getProjectDir(),
 			env,
 			stdin: "pipe",
 			stderr: "full",
+			name: `mcp:${this.config.command}`,
 		});
 
 		this.#connected = true;
@@ -75,9 +78,9 @@ export class StdioTransport implements MCPTransport {
 	}
 
 	async #startReadLoop(): Promise<void> {
-		if (!this.#process?.stdout) return;
+		if (!this.#process?.child.stdout) return;
 		try {
-			for await (const line of readJsonl(this.#process.stdout)) {
+			for await (const line of readJsonl(this.#process.child.stdout)) {
 				if (!this.#connected) break;
 				try {
 					this.#handleMessage(line as JsonRpcMessage);
@@ -95,9 +98,9 @@ export class StdioTransport implements MCPTransport {
 	}
 
 	async #startStderrLoop(): Promise<void> {
-		if (!this.#process?.stderr) return;
+		if (!this.#process?.child.stderr) return;
 
-		const reader = this.#process.stderr.getReader();
+		const reader = this.#process.child.stderr.getReader();
 		const decoder = new TextDecoder();
 
 		try {
@@ -169,12 +172,12 @@ export class StdioTransport implements MCPTransport {
 	}
 
 	#sendResponse(id: string | number, result?: unknown, error?: JsonRpcError): void {
-		if (!this.#connected || !this.#process?.stdin) return;
+		if (!this.#connected || !this.#process?.child.stdin) return;
 		const response = error
 			? { jsonrpc: "2.0" as const, id, error }
 			: { jsonrpc: "2.0" as const, id, result: result ?? {} };
-		this.#process.stdin.write(`${JSON.stringify(response)}\n`);
-		this.#process.stdin.flush();
+		this.#process.child.stdin.write(`${JSON.stringify(response)}\n`);
+		this.#process.child.stdin.flush();
 	}
 
 	#handleClose(): void {
@@ -195,7 +198,7 @@ export class StdioTransport implements MCPTransport {
 		params?: Record<string, unknown>,
 		options?: MCPRequestOptions,
 	): Promise<T> {
-		if (!this.#connected || !this.#process?.stdin) {
+		if (!this.#connected || !this.#process?.child.stdin) {
 			throw new Error("Transport not connected");
 		}
 
@@ -261,8 +264,8 @@ export class StdioTransport implements MCPTransport {
 		const message = `${JSON.stringify(request)}\n`;
 		try {
 			// Bun's FileSink has write() method directly
-			this.#process.stdin.write(message);
-			this.#process.stdin.flush();
+			this.#process.child.stdin.write(message);
+			this.#process.child.stdin.flush();
 		} catch (error: unknown) {
 			cleanup();
 			reject(error instanceof Error ? error : new Error(String(error)));
@@ -272,7 +275,7 @@ export class StdioTransport implements MCPTransport {
 	}
 
 	async notify(method: string, params?: Record<string, unknown>): Promise<void> {
-		if (!this.#connected || !this.#process?.stdin) {
+		if (!this.#connected || !this.#process?.child.stdin) {
 			throw new Error("Transport not connected");
 		}
 
@@ -284,8 +287,8 @@ export class StdioTransport implements MCPTransport {
 
 		const message = `${JSON.stringify(notification)}\n`;
 		// Bun's FileSink has write() method directly
-		this.#process.stdin.write(message);
-		this.#process.stdin.flush();
+		this.#process.child.stdin.write(message);
+		this.#process.child.stdin.flush();
 	}
 
 	async close(): Promise<void> {
@@ -301,8 +304,7 @@ export class StdioTransport implements MCPTransport {
 		// Terminate the subprocess tree and keep the handle until exit is observed.
 		const process = this.#process;
 		if (process) {
-			process.kill();
-			await Promise.race([process.exited.catch(() => {}), Bun.sleep(CLOSE_WAIT_MS)]);
+			await Promise.race([process.dispose(), Bun.sleep(CLOSE_WAIT_MS)]);
 			this.#process = null;
 		}
 

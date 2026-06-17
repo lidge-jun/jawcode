@@ -400,7 +400,7 @@ async function reloadServer(client: LspClient, serverName: string, signal?: Abor
 		}
 	}
 	if (output.startsWith("Restarted")) {
-		client.proc.kill();
+		await client.owner.dispose();
 	}
 	return output;
 }

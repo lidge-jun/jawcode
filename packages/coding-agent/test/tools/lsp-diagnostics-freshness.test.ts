@@ -24,12 +24,27 @@ function createDiagnostic(message: string): Diagnostic {
 	};
 }
 
+function createMockOwner(proc: ptree.ChildProcess<"pipe">): LspClient["owner"] {
+	return {
+		child: proc,
+		pid: undefined,
+		exited: Promise.resolve(0),
+		disposed: false,
+		async awaitExit() {
+			return { exited: true, code: 0 };
+		},
+		async dispose() {},
+	};
+}
+
 function createClient(cwd: string, config: ServerConfig): LspClient {
+	const proc = {} as ptree.ChildProcess<"pipe">;
 	return {
 		name: "test-lsp",
 		cwd,
 		config,
-		proc: {} as ptree.ChildProcess<"pipe">,
+		owner: createMockOwner(proc),
+		proc,
 		requestId: 0,
 		diagnostics: new Map(),
 		diagnosticsVersion: 0,

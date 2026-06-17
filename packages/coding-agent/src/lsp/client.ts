@@ -1,5 +1,6 @@
-import { isEnoent, logger, ptree, untilAborted } from "@jawcode-dev/utils";
+import { isEnoent, logger, untilAborted } from "@jawcode-dev/utils";
 import { formatCrashDiagnosticNotice, writeCrashReport } from "../debug/crash-diagnostics";
+import { spawnOwnedProcess } from "../runtime/process-lifecycle";
 import { ToolAbortError, throwIfAborted } from "../tools/tool-errors";
 import { applyWorkspaceEdit } from "./edits";
 import { getLspmuxCommand, isLspmuxSupported } from "./lspmux";
@@ -452,11 +453,13 @@ export async function getOrCreateClient(config: ServerConfig, cwd: string, initT
 			? await getLspmuxCommand(baseCommand, baseArgs)
 			: { command: baseCommand, args: baseArgs };
 
-		const proc = ptree.spawn([command, ...args], {
+		const owner = spawnOwnedProcess([command, ...args], {
 			cwd,
 			stdin: "pipe",
 			env: env ? { ...Bun.env, ...env } : undefined,
+			name: `lsp:${config.command}`,
 		});
+		const proc = owner.child;
 
 		let resolveProjectLoaded!: () => void;
 		const projectLoaded = new Promise<void>(resolve => {
@@ -473,6 +476,7 @@ export async function getOrCreateClient(config: ServerConfig, cwd: string, initT
 		const client: LspClient = {
 			name: key,
 			cwd,
+			owner,
 			proc,
 			config,
 			requestId: 0,
@@ -566,7 +570,7 @@ export async function getOrCreateClient(config: ServerConfig, cwd: string, initT
 			// Clean up on initialization failure
 			clients.delete(key);
 			clientLocks.delete(key);
-			proc.kill();
+			await owner.dispose();
 			throw err;
 		} finally {
 			clientLocks.delete(key);
@@ -801,8 +805,7 @@ async function shutdownClientInstance(client: LspClient): Promise<void> {
 	const timeout = Bun.sleep(5_000);
 	const shutdown = sendRequest(client, "shutdown", null).catch(() => {});
 	await Promise.race([shutdown, timeout]);
-	client.proc.kill();
-	await Promise.race([client.proc.exited.catch(() => {}), Bun.sleep(1_000)]);
+	await client.owner.dispose();
 }
 
 export async function shutdownClient(key: string): Promise<void> {
