@@ -98,7 +98,7 @@ The audit inventory must cover:
 
 #### NEW
 
-`/Users/jun/Developer/new/700_projects/jawcode/devlog/_plan/260617_process_lifecycle_hardening/00_p_owner_inventory_plan.md`
+`/Users/jun/Developer/new/700_projects/jawcode/devlog/_fin/260617_process_lifecycle_hardening/00_p_owner_inventory_plan.md`
 
 Purpose: this plan.
 
@@ -106,7 +106,7 @@ Purpose: this plan.
 
 #### NEW
 
-`/Users/jun/Developer/new/700_projects/jawcode/devlog/_plan/260617_process_lifecycle_hardening/01_a_owner_inventory.md`
+`/Users/jun/Developer/new/700_projects/jawcode/devlog/_fin/260617_process_lifecycle_hardening/01_a_owner_inventory.md`
 
 Complete content shape:
 
@@ -375,7 +375,7 @@ After:
 ```markdown
 ## JWC execution notes
 
-- Owner inventory: `/Users/jun/Developer/new/700_projects/jawcode/devlog/_plan/260617_process_lifecycle_hardening/01_a_owner_inventory.md`
+- Owner inventory: `/Users/jun/Developer/new/700_projects/jawcode/devlog/_fin/260617_process_lifecycle_hardening/01_a_owner_inventory.md`
 - Adopted slices: TBD after B/C.
 - Verification: TBD after C.
 
@@ -416,7 +416,7 @@ Do not run `tsc` or `npx tsc`.
 
 #### NEW
 
-`/Users/jun/Developer/new/700_projects/jawcode/devlog/_plan/260617_process_lifecycle_hardening/90_d_done.md`
+`/Users/jun/Developer/new/700_projects/jawcode/devlog/_fin/260617_process_lifecycle_hardening/90_d_done.md`
 
 Content must summarize:
 

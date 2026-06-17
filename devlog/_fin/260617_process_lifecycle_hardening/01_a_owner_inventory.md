@@ -2,7 +2,7 @@
 
 Date: 2026-06-17
 Project root: `/Users/jun/Developer/new/700_projects/jawcode`
-Plan: `/Users/jun/Developer/new/700_projects/jawcode/devlog/_plan/260617_process_lifecycle_hardening/00_p_owner_inventory_plan.md`
+Plan: `/Users/jun/Developer/new/700_projects/jawcode/devlog/_fin/260617_process_lifecycle_hardening/00_p_owner_inventory_plan.md`
 
 ## Audit summary
 

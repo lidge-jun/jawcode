@@ -9,7 +9,7 @@ Selected the 10.029 chase card as the active goal and wrote an owner-inventory-f
 
 Plan artifact:
 
-- `/Users/jun/Developer/new/700_projects/jawcode/devlog/_plan/260617_process_lifecycle_hardening/00_p_owner_inventory_plan.md`
+- `/Users/jun/Developer/new/700_projects/jawcode/devlog/_fin/260617_process_lifecycle_hardening/00_p_owner_inventory_plan.md`
 
 ## A — Audit
 
@@ -23,7 +23,7 @@ Backend plan audit failed twice, then passed after the plan fixed:
 
 Audit artifact:
 
-- `/Users/jun/Developer/new/700_projects/jawcode/devlog/_plan/260617_process_lifecycle_hardening/01_a_owner_inventory.md`
+- `/Users/jun/Developer/new/700_projects/jawcode/devlog/_fin/260617_process_lifecycle_hardening/01_a_owner_inventory.md`
 
 ## B — Build
 
