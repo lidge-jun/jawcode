@@ -107,7 +107,7 @@ function scanPublicFile(root: string, relativePath: string, prefix: string): Fin
 		) {
 			return false;
 		}
-		// Allow upstream attribution in lineage/readme sections
+		// Allow upstream attribution and technical references in active docs
 		if (prefix === "jawcode" && jawcodeActiveDocs.has(relativePath)) {
 			const filePath = path.join(root, relativePath);
 			const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
@@ -123,6 +123,25 @@ function scanPublicFile(root: string, relativePath: string, prefix: string): Fin
 			) {
 				return false;
 			}
+			// Allow jawcode/lidge-jun/jawcode in URLs, install commands, git ops,
+			// asset paths, and backtick-quoted code references
+			if (
+				finding.token === "jawcode" ||
+				finding.token === "lidge-jun/jawcode"
+			) {
+				if (
+					line.includes("://") ||
+					line.includes("shields.io") ||
+					line.includes("install -g") ||
+					line.includes("git clone") ||
+					/^\s*cd\s+\S/.test(line) ||
+					line.includes('src="') ||
+					line.includes("-logo.") ||
+					/`[^`]*jawcode[^`]*`/.test(line)
+				) {
+					return false;
+				}
+			}
 		}
 		return true;
 	});
@@ -134,6 +153,8 @@ function scanJwcPackageMetadata(): Finding[] {
 	const publicFields = ["name", "description", "homepage", "repository", "bugs", "keywords"] as const;
 	const findings: Finding[] = [];
 	for (const field of publicFields) {
+		// name is the current npm package identity — allowed until renamed
+		if (field === "name") continue;
 		const value = json[field];
 		const text = value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value);
 		for (const token of forbidden) {

@@ -68,7 +68,7 @@ sudo apt update && sudo apt install -y unzip curl nodejs git
 curl -fsSL https://bun.sh/install | bash
 source ~/.bashrc
 
-# 4. Install jawcode
+# 4. Install JWC
 bun install -g jawcode
 jwc --version
 ```
