@@ -7,6 +7,12 @@
 > 업데이트: **2026-06-14** (executor v2 · chase refresh)
 > **PABCD devlog**: [260614_chase_rpc_harness_bundle](../../devlog/_plan/260614_chase_rpc_harness_bundle/000_moc.md)
 
+## 2026-06-27 세션 상태 (방향-결정 인터뷰 + 닫기 루프)
+
+> **마감(_fin) 9**: reference 6 (20.002·003·007·008, 10.020·025) · 코드 10.013 · doc-judgment 10.024·10.005.
+> **방향 기록 9** (인터뷰 elici). **보류/연기 active**: 20.004(held) · 10.006(082/083 게이트).
+> **⛔ blocked 8** (test-env): 10.002(C4) · 10.003 · 10.007 · 10.012 · 10.021(gated) · 10.023 · 20.005 · 20.006 — net-new 행동코드/C4, 런타임 테스트가 네이티브 catalog 드리프트로 차단. 결정 대기: [devlog 16_pause_audit](../../devlog/_plan/260627_chase_direction_interview/16_pause_audit.md).
+
 ## G3 — jwc 자체 (Tier 1)
 
 | 순 | 항목 | 문서 |
@@ -26,12 +32,12 @@
 | 10c | 026 | [10.026 issues audit](./_fin/10/10.026_gjc_chase_rpc_issues_audit.md) | P2 | ✅ _fin · residual rows documented |
 | 11 | 022 | [10.022 goal busy-loop](./_fin/10/10.022_gjc_chase_goal_agent_busy_loop.md) | P1 | ✅ _fin · busy guard |
 | 12 | 004 | [10.004 session compaction](./_fin/10/10.004_gjc_chase_session_compaction.md) | P1 | ✅ _fin · JWC-ahead progress |
-| 13 | 007 | [10.007 team profile](./10.007_gjc_chase_team_profile_self_heal.md) | P1 | ⬜ self-heal |
-| 14–15 | 002–003 | [10.002](./10.002_gjc_chase_ai_auth.md) · [10.003](./10.003_gjc_chase_cursor.md) | P1 | ⬜ |
-| 16–17 | 012-steer · 021 | [10.012](./10.012_gjc_chase_goal_steering.md) · [10.021](./10.021_gjc_chase_goal_redteam_review.md) | P2 | ⬜ |
+| 13 | 007 | [10.007 team profile](./10.007_gjc_chase_team_profile_self_heal.md) | P1 | ⛔ blocked: net-new self-heal (test-env) |
+| 14–15 | 002–003 | [10.002](./10.002_gjc_chase_ai_auth.md) · [10.003](./10.003_gjc_chase_cursor.md) | P1 | ⛔ 10.002 C4 auth · 10.003 net-new (test-env) |
+| 16–17 | 012-steer · 021 | [10.012](./10.012_gjc_chase_goal_steering.md) · [10.021](./10.021_gjc_chase_goal_redteam_review.md) | P2 | ⛔ 10.012 net-new · 10.021 gated on 10.012 |
 | 18 | 019 | [10.019 gc](./10.019_gjc_chase_gc_file_lock.md) | P2 | ⬜ |
-| 19 | 023 | [10.023 task notifications](./10.023_gjc_chase_task_notification_context.md) | P2 | ⬜ |
-| — | 005–006 · 020 · 024–025 | 나머지 활성 카드 | P2–3 | ⬜ |
+| 19 | 023 | [10.023 task notifications](./10.023_gjc_chase_task_notification_context.md) | P2 | ⛔ blocked: skipped race tests (test-env) |
+| — | 005·013·020·024·025 | **✅ _fin (260627)** task_subagent·assistant_cache·deep_interview·coordinator·perf_geobench · 006 deferred(082/083) | P2–3 | ✅/⏸ |
 
 ### RPC PABCD 묶음 (한 사이클 권장)
 
@@ -46,8 +52,8 @@
 
 | 순 | NNN | 문서 |
 |---|-----|------|
-| 23 | 20.006 | [20.006 TUI micro](./20.006_omp_chase_tui_input_micro_fixes.md) |
-| 24 | 20.005 | [20.005 steering](./20.005_omp_chase_steering_delivery.md) |
+| 23 | 20.006 | [20.006 TUI micro](./20.006_omp_chase_tui_input_micro_fixes.md) ⛔ net-new (test-env) |
+| 24 | 20.005 | [20.005 steering](./20.005_omp_chase_steering_delivery.md) ⛔ net-new (test-env) |
 | 25 | 20.003 | [20.003 memory/skills](./_fin/20/20.003_omp_chase_memory_skills.md) |
 | 26 | 20.007 | [20.007 session modules](./_fin/20/20.007_omp_chase_session_modularization.md) |
 | — | 20.008 | [20.008 15.13 delta](./_fin/20/20.008_omp_chase_pull_15_13_delta.md) |
