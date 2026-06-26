@@ -284,7 +284,7 @@ describe("AgentSession auto-compaction queue resume", () => {
 		expect(getRuntimeSignals()).not.toContain("compaction:start:threshold");
 	});
 
-	it.skip("compacts before agent-initiated task notifications that would overflow the next turn", async () => {
+	it("compacts before agent-initiated task notifications that would overflow the next turn", async () => {
 		vi.useRealTimers();
 		session.settings.set("compaction.thresholdTokens", 1000);
 		session.settings.set("compaction.keepRecentTokens", 1);
@@ -326,7 +326,7 @@ describe("AgentSession auto-compaction queue resume", () => {
 		expect(sessionManager.getBranch().some(entry => entry.type === "compaction")).toBe(true);
 	});
 
-	it.skip("keeps display context usage on cheap heuristic estimation for custom messages", () => {
+	it("keeps display context usage on cheap heuristic estimation for custom messages", () => {
 		const assistantMsg: AssistantMessage = {
 			role: "assistant",
 			content: [{ type: "text", text: "Ready for custom context" }],
@@ -421,9 +421,10 @@ describe("AgentSession auto-compaction queue resume", () => {
 		void continueSpy;
 	});
 
-	it.skip("runs pre-prompt handoff maintenance before sending the oversized prompt", async () => {
+	it("runs pre-prompt handoff maintenance before sending the oversized prompt", async () => {
 		vi.useRealTimers();
 		session.settings.set("compaction.strategy", "handoff");
+		session.setTodoPhases([{ name: "Execution", tasks: [{ content: "Finish pending task", status: "in_progress" }] }]);
 		session.settings.set("compaction.thresholdTokens", 1000);
 		const continueSpy = vi.spyOn(session.agent, "continue").mockResolvedValue();
 

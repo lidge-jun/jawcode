@@ -5013,7 +5013,7 @@ export class AgentSession {
 
 			// Pre-prompt context maintenance: estimate whether the prompt will overflow
 			// and run compaction proactively before sending (upstream #542).
-			await this.#checkEstimatedContextBeforePrompt();
+			await this.#checkEstimatedContextBeforePrompt([message]);
 
 			// Build messages array (session context, eager todo prelude, then active prompt message)
 			const messages: AgentMessage[] = [];

@@ -423,6 +423,7 @@ function collectMessageFragments(message: AgentMessage): { fragments: string[]; 
 			}
 			break;
 		}
+		case "custom":
 		case "hookMessage":
 		case "toolResult": {
 			if (typeof message.content === "string") {
