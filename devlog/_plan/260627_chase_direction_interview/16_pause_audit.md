@@ -52,6 +52,24 @@ fresh verification tails in each D attestation.
 2. Diff-triage reviewer: of 5 undetermined adapt cards, only 10.005 closeable; other 4 net-new BLOCKED.
 Both now satisfied: 10.024 + 10.005 closed; the 8 remaining have no faithful autonomous path.
 
+## Precise native-blocker root cause (investigated 2026-06-27)
+
+Tried the fix (within granted authority); diagnosed it as a genuine maintainer decision, then reverted.
+- Dependents declare `"@jawcode-dev/natives": "catalog:"`; the root `package.json` **catalog pins
+  `@jawcode-dev/natives` (and tui, utils) to published `1.0.2`** — not the workspace.
+- The workspace `packages/natives` is `1.0.6` (sentinel `nV1_0_4`, built `.node` exports
+  `piNativesV1_0_4`, loader-state expects `__piNativesV1_0_4`) — **internally consistent**.
+- But the catalog-resolved published `1.0.2` copies hoisted into `packages/{utils,coding-agent,
+  tui,agent}/node_modules/@jawcode-dev/natives` are **internally broken**: package.json `1.0.2`,
+  loader expects `__piNativesV1_0_2`, but the bundled `.node` exports `piNativesV1_0_0`.
+- `bun install` reported "no changes" (catalog is satisfied by the broken 1.0.2 copies); my local
+  crate rebuild only updates the workspace `1.0.6`, never the catalog `1.0.2` copies.
+- → Fix is a **maintainer decision**, not a clean autonomous one: either (i) repoint the catalog
+  `@jawcode-dev/*` to `workspace:*` (switches the project from published to local packages — a
+  dependency-model change), or (ii) republish a correct `1.0.2`/bump the catalog to a fixed version.
+  Hacking node_modules (symlink/copy) would mask the real config mismatch and not survive installs.
+- Side effects from the attempt (`bun.lock`, `docs-index.generated.ts`) were reverted; repo clean.
+
 ## Decision surfaced to user
 
 (a) authorize a test-env restoration pass (native re-sync) → close the 8 with real tests; or
