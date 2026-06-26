@@ -11,8 +11,8 @@
 
 > **마감(_fin) 9**: reference 6 (20.002·003·007·008, 10.020·025) · 코드 10.013 · doc-judgment 10.024·10.005.
 > **방향 기록 9** (인터뷰 elici). **보류/연기 active**: 20.004(held) · 10.006(082/083 게이트).
-> **test-env 해제 → 실테스트 마감 +4**: 네이티브 catalog 정렬(`f53f285` natives→`workspace:*`) 후 10.003 · 10.012 · 10.023 · 20.005 모두 실테스트로 마감. (이전 "⛔ blocked 8" 프레이밍 폐기.)
-> **잔여 active 3**: 10.002(C4 auth, 대형) · 10.007(team self-heal, net-new) · 20.006(tui input micro-fixes). **신규 split-off**: 10.027(live-artifact 검증 엔진, P3 deferred ← 10.021 Decision A=split). audit 경위: [devlog 16_pause_audit](../../devlog/_plan/260627_chase_direction_interview/16_pause_audit.md) · [18_native_testenv_fix](../../devlog/_plan/260627_chase_direction_interview/18_native_testenv_fix.md).
+> **test-env 해제 → 실테스트 마감 +5**: 네이티브 catalog 정렬(`f53f285` natives→`workspace:*`) 후 10.003 · 10.012 · 10.023 · 20.005 · 20.006 모두 실테스트로 마감. (이전 "⛔ blocked 8" 프레이밍 폐기.)
+> **잔여 active 2**: 10.002(C4 auth, 대형) · 10.007(team self-heal, net-new). **신규 split-off**: 10.027(live-artifact 검증 엔진, P3 deferred ← 10.021 Decision A=split). audit 경위: [devlog 16_pause_audit](../../devlog/_plan/260627_chase_direction_interview/16_pause_audit.md) · [18_native_testenv_fix](../../devlog/_plan/260627_chase_direction_interview/18_native_testenv_fix.md).
 
 ## G3 — jwc 자체 (Tier 1)
 
@@ -53,7 +53,7 @@
 
 | 순 | NNN | 문서 |
 |---|-----|------|
-| 23 | 20.006 | [20.006 TUI micro](./20.006_omp_chase_tui_input_micro_fixes.md) ⛔ net-new (test-env) |
+| 23 | 20.006 | [20.006 TUI micro](./_fin/20/20.006_omp_chase_tui_input_micro_fixes.md) **✅ _fin** (omp e914bf0/3d646d8, jwc a291199) |
 | 24 | 20.005 | [20.005 steering](./_fin/20/20.005_omp_chase_steering_delivery.md) **✅ _fin** (omp 42ffc83, 055aee8) |
 | 25 | 20.003 | [20.003 memory/skills](./_fin/20/20.003_omp_chase_memory_skills.md) |
 | 26 | 20.007 | [20.007 session modules](./_fin/20/20.007_omp_chase_session_modularization.md) |
