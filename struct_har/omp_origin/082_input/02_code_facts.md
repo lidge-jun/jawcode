@@ -1,7 +1,7 @@
 # 082_input — 02 code facts (omp_origin)
 
-> 클론 @ `db421bb2ef68` · cite: `/Users/jun/Developer/new/700_projects/jawcode/devlog/_upstream_omp/<path>:<line>`
-> gjc @ `75d103f45145` · jwc @ `dc4f22672581` (대조만)
+> 클론 @ `0fc6d136c34a279a711a2d3f2df9d64e0fa06cee` · cite: `/Users/jun/Developer/new/700_projects/jawcode/devlog/_omp_chase/oh-my-pi/<path>:<line>`
+> gjc @ `f0a8a3eb6e619392af4965273c3cf95c3faf4345` · jwc @ `da23db8f217637412552c7a7b1e411a180c5ecc8` (대조만)
 
 ## 앵커
 
@@ -12,7 +12,7 @@
 ## diff (예)
 
 ```bash
-diff -u devlog/_upstream_omp/packages/tui/src devlog/_upstream_gjc/packages/tui/src | head
+diff -u devlog/_omp_chase/oh-my-pi/packages/tui/src devlog/_gjc_chase/gajae-code/packages/tui/src | head
 ```
 
 ## 정본

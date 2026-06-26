@@ -1,7 +1,7 @@
 # architecture / extensibility (gjc_origin)
 
-> **스냅샷 (2026-06-13)**: patched SoT는 [`structure/21_extensibility.md`](../../../structure/21_extensibility.md).
-> fork `d60b78223d5d5f5b3f82b3d0ccfe95620f754eb5` · gjc clone `269387babcbf02e33613032bc8e41ea395aa10ec`.
+> **스냅샷 (2026-06-26)**: patched SoT는 [`structure/21_extensibility.md`](../../../structure/21_extensibility.md).
+> fork `da23db8f217637412552c7a7b1e411a180c5ecc8` · gjc clone `f0a8a3eb6e619392af4965273c3cf95c3faf4345`.
 
 ## structure/ 발췌 (첫 12줄)
 

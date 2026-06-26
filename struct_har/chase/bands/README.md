@@ -3,7 +3,7 @@
 > 횡단 표: [002_gap_inventory.md](../002_gap_inventory.md)  
 > 구체 갭: `chase/10.NNN_*` · `20.NNN_*` · 완료 `_fin/`
 
-## 밴드 요약 (2026-06-14 · `50_status` 동형)
+## 밴드 요약 (2026-06-26 · `50_status` 동형)
 
 | 밴드 | G1 gjc | G3 jwc (제품) | struct_har 대조 |
 |------|--------|---------------|-----------------|
@@ -30,7 +30,7 @@ Public planning은 native `jwc orchestrate`; bundled skill은 `defaults/jwc/skil
 // packages/coding-agent/src/prompts/jaw/orchestrate-*.md
 ```
 
-`struct_har` 재생성 앵커: `struct_har/_scripts/struct-har-regenerate.ts` 밴드 `050_plan` → 위 경로 **present** @ `d60b7822`.
+`struct_har` 재생성 앵커: `struct_har/_scripts/struct-har-regenerate.ts` 밴드 `050_plan` → 위 경로 **present** @ `da23db8`.
 
 ## 060_goal — continuation 타이머 (jwc)
 

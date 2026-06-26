@@ -1,7 +1,7 @@
 # chase — omp 참조 방안
 
 > **플랜 정본**: [20_omp_chase_MOC](./20_omp_chase_MOC.md) · `20.001`–`20.004` (+ `20.005`…) · 완료 [_fin/20](./_fin/20/README.md)
-> **정본 클론**: `devlog/_upstream_omp/` · reviewed through `db421bb2ef68`
+> **정본 클론**: `devlog/_omp_chase/oh-my-pi/` · branch `main` tracking `origin/main` · reviewed through `0fc6d136`
 > **역할**: 벤치·아키텍처 선행 참고 — **fork diff 한쪽이 아님** ([omp_origin/README.md](../omp_origin/README.md)).
 
 ## 원칙

@@ -1,8 +1,8 @@
 # 10 — gjc_chase_MOC
 
-> 상태: 🟡 운영 중 (2026-06-14)
+> 상태: 🟡 운영 중 (2026-06-26)
 > **정본 디렉터리**: `struct_har/chase/10_*` · `10.NNN_*`
-> **의미**: `devlog/_upstream_gjc` 대비 jwc **뒤쳐짐(G1)** — **1갭 = 문서 1개** (`10.NNN`, `001`~)
+> **의미**: `devlog/_gjc_chase/gajae-code` 대비 jwc **뒤쳐짐(G1)** — **1갭 = 문서 1개** (`10.NNN`, `001`~)
 
 ## 번호
 
@@ -26,7 +26,7 @@
 
 | gjc | jwc |
 |---|---|
-| `269387babcbf` (0.5.1 + Unreleased) | `d60b7822` (worktree) |
+| `f0a8a3eb` (`upstream/dev`) | `da23db8` (worktree) |
 
 > OMP head is intentionally not repeated here; see [20_omp_chase_MOC.md](./20_omp_chase_MOC.md).
 
@@ -34,7 +34,7 @@
 
 | NNN | upstream fact | jwc 처리 |
 |---|---|---|
-| 004 | pre-send `#checkEstimatedContextBeforePrompt()` before message packing; pruning/compaction at sanctioned maintenance boundary (`devlog/_upstream_gjc/packages/coding-agent/src/session/agent-session.ts:4747-4756,6517-6533,6537-6558`) | ✅ **_fin** [10.004](./_fin/10/10.004_gjc_chase_session_compaction.md) |
+| 004 | pre-send `#checkEstimatedContextBeforePrompt()` before message packing; pruning/compaction at sanctioned maintenance boundary (`devlog/_gjc_chase/gajae-code/packages/coding-agent/src/session/agent-session.ts:4747-4756,6517-6533,6537-6558`) | ✅ **_fin** [10.004](./_fin/10/10.004_gjc_chase_session_compaction.md) |
 | 007 | `GJC_TMUX_LAUNCHED_ENV`-guarded `@gjc-profile` retag only for genuinely launched leaders (`team-runtime.ts:1646-1683`; changelog `:17-18`) | ownership invariant; rebrand-safe team gap |
 | 008 | RPC lifecycle stdio | ✅ **_fin** [10.008](./_fin/10/10.008_gjc_chase_rpc_lifecycle.md) |
 | 009 | pi-shell UTF-8 fixup #551 | ✅ **_fin** [10.009](./_fin/10/10.009_gjc_chase_pishell_utf8_fixup.md) 260613 |

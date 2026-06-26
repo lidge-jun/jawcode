@@ -4,11 +4,10 @@
 
 ## 플랜 (prefix 060)
 
-- [060.1_moc_full_jwc_port.md](../../../devlog/_plan/260612_jawcode_fork/phase1/060.1_moc_full_jwc_port.md)
-- [060_moc_goal_merge.md](../../../devlog/_plan/260612_jawcode_fork/phase1/060_moc_goal_merge.md)
+—
 
 ## 공통
 
-- [000_roadmap.md](../../../devlog/_plan/260612_jawcode_fork/phase1/000_roadmap.md)
-- [05_interview_conclusions.md](../../../devlog/_plan/260612_jawcode_fork/phase1/05_interview_conclusions.md)
+- [000_roadmap.md](../../../devlog/_plan/260612_jawcode_fork/000_roadmap.md)
+- [05_interview_conclusions.md](../../../devlog/_plan/260612_jawcode_fork/05_interview_conclusions.md)
 - [structure/40_fork-delta.md](../../../structure/40_fork-delta.md)

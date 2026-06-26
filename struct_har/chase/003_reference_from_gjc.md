@@ -1,7 +1,7 @@
 # chase — gjc 참조 방안
 
 > **플랜 정본**: [10_gjc_chase_MOC](./10_gjc_chase_MOC.md) · `10.001`–`10.008` (+ `10.009`…) · 완료 [_fin/10](./_fin/10/README.md)
-> **정본 클론**: `devlog/_upstream_gjc/` · branch `dev` · reviewed through **`269387babcbf`**
+> **정본 클론**: `devlog/_gjc_chase/gajae-code/` · branch `dev` tracking `upstream/dev` · reviewed through **`f0a8a3eb`**
 > **jaw SoT**: worktree `packages/` — 병합 시 [structure/40_fork-delta.md](../../structure/40_fork-delta.md) **CONFLICT-EXPECTED** 열 필수.
 **jwc 포팅 명명**: [008_gjc_jwc_naming_contract.md](./008_gjc_jwc_naming_contract.md) (`jwc-rpc`, `.jwc`, `jwc` CLI).
 
@@ -20,11 +20,11 @@
 ## 절차 (한 사이클)
 
 ```bash
-git -C devlog/_upstream_gjc fetch origin
-GJC=$(git -C devlog/_upstream_gjc rev-parse --short HEAD)
+git -C devlog/_gjc_chase/gajae-code fetch upstream dev
+GJC=$(git -C devlog/_gjc_chase/gajae-code rev-parse --short HEAD)
 JWC=$(git -C /Users/jun/Developer/new/700_projects/jawcode rev-parse --short HEAD)
 grep CONFLICT-EXPECTED structure/40_fork-delta.md
-diff -u devlog/_upstream_gjc/packages/coding-agent/src/cli.ts packages/coding-agent/src/cli.ts | head
+diff -u devlog/_gjc_chase/gajae-code/packages/coding-agent/src/cli.ts packages/coding-agent/src/cli.ts | head
 ```
 
 | 단계 | 행동 |
@@ -72,8 +72,8 @@ diff -u devlog/_upstream_gjc/packages/coding-agent/src/cli.ts packages/coding-ag
 ### packages/coding-agent — cursor (081)
 
 ```bash
-diff -u devlog/_upstream_gjc/packages/coding-agent/src/cursor.ts packages/coding-agent/src/cursor.ts
-diff -u devlog/_upstream_gjc/packages/ai/src/providers/cursor.ts packages/ai/src/providers/cursor.ts
+diff -u devlog/_gjc_chase/gajae-code/packages/coding-agent/src/cursor.ts packages/coding-agent/src/cursor.ts
+diff -u devlog/_gjc_chase/gajae-code/packages/ai/src/providers/cursor.ts packages/ai/src/providers/cursor.ts
 ```
 
 upstream **호스트 model pin**·tool-call 수정 — jaw 고유 수정과 **3-way 병합**.

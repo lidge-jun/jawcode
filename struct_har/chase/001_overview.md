@@ -4,7 +4,7 @@
 
 **chase** = jawcode가 **의도적으로 아직 못 따라온** 영역 + **gjc/omp/cli-jaw를 어떻게 읽을지**에 대한 참조 방안.
 
-jawcode를 **OSS upstream**으로 운영할 때도 chase는 유효하다: gjc/omp는 **계보·벤치마크**, jwc SoT는 `structure/` + worktree @ `d60b7822`.
+jawcode를 **OSS upstream**으로 운영할 때도 chase는 유효하다: gjc/omp는 **계보·벤치마크**, jwc SoT는 `structure/` + worktree @ `da23db8`.
 
 ## 플랜 번호 (`struct_har/chase/`)
 

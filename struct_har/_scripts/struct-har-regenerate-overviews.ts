@@ -3,7 +3,7 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { resolveForkHead, resolveGjcHead } from "./resolve-heads.ts";
+import { resolveForkHead, resolveGjcClonePath, resolveGjcHead } from "./resolve-heads.ts";
 
 const ROOT = path.resolve(import.meta.dir, "../..");
 const STRUCT = path.join(ROOT, "struct_har");
@@ -11,6 +11,7 @@ const PLAN = path.join(ROOT, "devlog/_plan/260612_jawcode_fork");
 
 const FORK_HEAD = resolveForkHead();
 const GJC_HEAD = resolveGjcHead();
+const GJC_CLONE_REL = path.relative(ROOT, resolveGjcClonePath());
 
 const BANDS: { id: string; moc: string; title: string }[] = [
 	{ id: "010_shell", moc: "010_moc_shell_rename.md", title: "jwc 셸 + 표면 리네이밍" },
@@ -48,7 +49,7 @@ for (const band of BANDS) {
 			path.join(dir, "01_overview.md"),
 			`# ${band.id} — 01 overview (${side})
 
-> ${isGjc ? `upstream \`devlog/_upstream_gjc/\` @ \`${GJC_HEAD}\`` : `worktree @ \`${FORK_HEAD}\` · gjc @ \`${GJC_HEAD}\``}
+> ${isGjc ? `upstream \`${GJC_CLONE_REL}/\` @ \`${GJC_HEAD}\`` : `worktree @ \`${FORK_HEAD}\` · gjc @ \`${GJC_HEAD}\``}
 > MOC: [\`${band.moc}\`](../../../devlog/_plan/260612_jawcode_fork/${band.moc})
 
 ## ${band.title}

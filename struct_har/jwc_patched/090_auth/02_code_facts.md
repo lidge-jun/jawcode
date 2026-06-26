@@ -1,6 +1,6 @@
 # 090_auth — code facts (jwc_patched)
-> **worktree**: jawcode @ `d60b78223d5d5f5b3f82b3d0ccfe95620f754eb5`
-> **gjc 대조**: `devlog/_upstream_gjc/` @ `269387babcbf02e33613032bc8e41ea395aa10ec`
+> **worktree**: jawcode @ `da23db8f217637412552c7a7b1e411a180c5ecc8`
+> **gjc 대조**: `devlog/_gjc_chase/gajae-code/` @ `f0a8a3eb6e619392af4965273c3cf95c3faf4345`
 > MOC: `devlog/_plan/260612_jawcode_fork/090_moc_auth_release_gate.md`
 ## 1. patched 앵커 경로
 
@@ -18,9 +18,9 @@
 ## 3. 검증
 
 ```bash
-git -C devlog/_upstream_gjc rev-parse --short HEAD   # 269387babcbf02e33613032bc8e41ea395aa10ec
-git rev-parse --short HEAD               # d60b78223d5d5f5b3f82b3d0ccfe95620f754eb5
-diff -u devlog/_upstream_gjc/packages/ai/src/auth-storage.ts packages/ai/src/auth-storage.ts | head
+git -C devlog/_gjc_chase/gajae-code rev-parse --short HEAD   # f0a8a3eb6e619392af4965273c3cf95c3faf4345
+git rev-parse --short HEAD               # da23db8f217637412552c7a7b1e411a180c5ecc8
+diff -u devlog/_gjc_chase/gajae-code/packages/ai/src/auth-storage.ts packages/ai/src/auth-storage.ts | head
 ```
 
 ## 부록

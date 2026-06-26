@@ -2,7 +2,7 @@
 
 > jawcode(jawcode 0.4.4 lineage)의 코드 지도 **단일 허브**. JWC standalone 개발·cli-jaw 임베딩 때 근거
 > 파일을 빠르게 찾는 진입점. 여기서 시작하세요.
-> public repo root commit `d60b7822` · upstream 클론 `devlog/_upstream_gjc` @ `269387ba` (갱신 시 cite).
+> public repo root commit `da23db8` · GJC chase clone `devlog/_gjc_chase/gajae-code` @ `f0a8a3eb` (`upstream/dev`) · OMP chase clone `devlog/_omp_chase/oh-my-pi` @ `0fc6d136` (`origin/main`).
 
 ## 삼축 정본 (어디가 정본인가)
 
@@ -12,8 +12,8 @@
 | **양축 대조** | [struct_har/](../struct_har/README.md) | `gjc_origin` ↔ `jwc_patched` 밴드별 code facts |
 | **OMP 참조** | [struct_har/omp_origin/](../struct_har/omp_origin/README.md) | oh-my-pi(상류) 13 밴드 — fork diff 아님 |
 
-업스트림 클론(gitignored): `devlog/_upstream_gjc/` @ `269387ba`(jawcode) · `devlog/_upstream_omp/` @ `e13ad3805`(oh-my-pi).
-cite: gjc_origin=`devlog/_upstream_gjc/<path>:<line>` · jwc_patched=`700_projects/jawcode/<path>:<line>` · omp_origin=`devlog/_upstream_omp/<path>:<line>`.
+업스트림 클론(gitignored): `devlog/_gjc_chase/gajae-code/` @ `f0a8a3eb`(gajae-code upstream/dev) · `devlog/_omp_chase/oh-my-pi/` @ `0fc6d136`(oh-my-pi origin/main).
+cite: gjc_origin=`devlog/_gjc_chase/gajae-code/<path>:<line>` · jwc_patched=`700_projects/jawcode/<path>:<line>` · omp_origin=`devlog/_omp_chase/oh-my-pi/<path>:<line>`.
 
 ## 10개 정본 문서 (티어)
 
@@ -52,8 +52,8 @@ cite: gjc_origin=`devlog/_upstream_gjc/<path>:<line>` · jwc_patched=`700_projec
 | `coding-agent/src/sdk.ts` 공개 API | `architecture.md`, `prompt_flow.md`, `session_storage.md` |
 | 시스템 프롬프트/스킬 렌더 | `prompt_flow.md`, `extensibility.md` |
 | storage schema | `session_storage.md`, `architecture.md` |
-| `_upstream_gjc` fetch/rebase | `struct_har/gjc_origin/**`, `struct_har/README.md`, `conventions.md` |
-| `_upstream_omp` fetch | `struct_har/omp_origin/**`, `fork-delta.md`(계보 절) |
+| GJC chase clone fetch/pull | `struct_har/gjc_origin/**`, `struct_har/README.md`, `conventions.md` |
+| OMP chase clone fetch/pull | `struct_har/omp_origin/**`, `fork-delta.md`(계보 절) |
 | 포크 밴드 완료 | `structure/*`, `struct_har/jwc_patched/**` |
 | 99 밴드·readiness·MOC | `status.md`, `struct_har/jwc_patched/099_stabilization/**`, `extensibility.md`, `prompt_flow.md` |
 | 99.30 todo UX | `session_storage.md`, `struct_har/jwc_patched/080_tui/` |
@@ -75,7 +75,7 @@ bun struct_har/_scripts/struct-har-regenerate-omp.ts
 
 그다음 `struct_har/README.md`·`INDEX.md`·`structure/11_conventions.md`에 HEAD 기록.
 
-*마지막 갱신: 2026-06-14. worktree `d60b7822` · gjc 클론 `269387ba`. 24→10 통합: packages_overview·sdk_surface→architecture / gitstructure→conventions /
+*마지막 갱신: 2026-06-26. worktree `da23db8` · gjc 클론 `f0a8a3eb` · omp 클론 `0fc6d136`. 24→10 통합: packages_overview·sdk_surface→architecture / gitstructure→conventions /
 workflows→extensibility / memory_pipeline·todo_pipeline→session_storage / codex_transport·model_patches·
 search→providers / fork_logic_changelog·upstream_lineage→fork-delta / beta·m1·jwc_readiness→status / README→INDEX.
 cli-jaw structure 모델(티어 허브) 정렬.*

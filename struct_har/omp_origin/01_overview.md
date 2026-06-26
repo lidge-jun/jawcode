@@ -1,7 +1,7 @@
 # omp_origin — 01 overview (hub)
 
 > **전수 밴드**: gjc/jwc와 동일 id (`010_shell` … `100_node`) — 각 폴더에 01/02/03/02_logic_changes.
-> 클론 @ `db421bb2ef68` · 재생성: `bun struct_har/_scripts/struct-har-regenerate-omp.ts`
+> 클론 @ `0fc6d136c34a279a711a2d3f2df9d64e0fa06cee` · 재생성: `bun struct_har/_scripts/struct-har-regenerate-omp.ts`
 
 ## 밴드 인덱스
 

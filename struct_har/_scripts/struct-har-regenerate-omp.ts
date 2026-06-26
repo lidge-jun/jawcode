@@ -4,10 +4,18 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { resolveForkHead, resolveGjcHead, resolveOmpHead } from "./resolve-heads.ts";
+import {
+	resolveForkHead,
+	resolveGjcClonePath,
+	resolveGjcHead,
+	resolveOmpClonePath,
+	resolveOmpHead,
+} from "./resolve-heads.ts";
 
 const ROOT = path.resolve(import.meta.dir, "../..");
-const OMP_CLONE = path.join(ROOT, "devlog/_upstream_omp");
+const OMP_CLONE = resolveOmpClonePath();
+const OMP_CLONE_REL = path.relative(ROOT, OMP_CLONE);
+const GJC_CLONE_REL = path.relative(ROOT, resolveGjcClonePath());
 const STRUCT = path.join(ROOT, "struct_har/omp_origin");
 const PLAN = path.join(ROOT, "devlog/_plan/260612_jawcode_fork");
 
@@ -15,7 +23,7 @@ const OMP_HEAD = resolveOmpHead();
 const GJC_HEAD = resolveGjcHead();
 const FORK_HEAD = resolveForkHead();
 
-const OMP_ABS = "/Users/jun/Developer/new/700_projects/jawcode/devlog/_upstream_omp";
+const OMP_ABS = OMP_CLONE;
 
 type OmpBand = {
 	id: string;
@@ -234,7 +242,7 @@ function writeBand(b: OmpBand): void {
 		path.join(dir, "01_overview.md"),
 		`# ${b.id} — 01 overview (omp_origin)
 
-> omp @ \`${OMP_HEAD}\` · 클론 [\`devlog/_upstream_omp/\`](../../../devlog/_upstream_omp/)
+> omp @ \`${OMP_HEAD}\` · 클론 [\`${OMP_CLONE_REL}/\`](../../../${OMP_CLONE_REL}/)
 > MOC (jaw 밴드 정렬): [\`${b.moc}\`](../../../devlog/_plan/260612_jawcode_fork/${b.moc})
 
 ## ${b.title}
@@ -272,7 +280,7 @@ ${anchorRows(b.anchors)}
 ## diff (예)
 
 \`\`\`bash
-diff -u devlog/_upstream_omp/${b.anchors[0] ?? "packages/coding-agent"} devlog/_upstream_gjc/${b.anchors[0] ?? "packages/coding-agent"} | head
+diff -u ${OMP_CLONE_REL}/${b.anchors[0] ?? "packages/coding-agent"} ${GJC_CLONE_REL}/${b.anchors[0] ?? "packages/coding-agent"} | head
 \`\`\`
 
 ## 정본

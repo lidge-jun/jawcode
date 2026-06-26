@@ -1,6 +1,6 @@
 # chase — GJC ↔ JWC 명명 계약 (포팅 시 필수)
 
-> **목적**: upstream `devlog/_upstream_gjc`를 읽을 때와 jwc에 이식할 때 **같은 기능, 다른 이름**을 헷갈리지 않게 한다.  
+> **목적**: upstream `devlog/_gjc_chase/gajae-code`를 읽을 때와 jwc에 이식할 때 **같은 기능, 다른 이름**을 헷갈리지 않게 한다.
 > chase 카드·executor·PABCD 산출물은 **jwc 정본 이름**을 쓴다. upstream 인용만 `gjc`/`gjc-rpc` 유지.
 
 ## 축 요약
@@ -20,12 +20,12 @@
 - 패키지: `jwc-rpc` (pyproject `name = "jwc-rpc"`)
 - import: `jwc_rpc` (`python/jwc-rpc/src/jwc_rpc/`)
 - Docker: `COPY python/jwc-rpc`, wheel `jwc_rpc-*.whl`
-- upstream `devlog/_upstream_gjc/python/gjc-rpc`는 **diff 참조만** — 파일을 `gjc-rpc` 이름으로 복사하지 않음.
+- upstream `devlog/_gjc_chase/gajae-code/python/gjc-rpc`는 **diff 참조만** — 파일을 `gjc-rpc` 이름으로 복사하지 않음.
 
 ## chase / executor 규칙
 
 1. **갭 설명·완료 기준·테스트 경로** → `jwc`, `jwc-rpc`, `jwc_rpc`, `.jwc`.
-2. **upstream fact 인용** (CHANGELOG, commit, `devlog/_upstream_gjc/...`) → `gjc`, `gjc-rpc` 그대로 가능.
+2. **upstream fact 인용** (CHANGELOG, commit, `devlog/_gjc_chase/gajae-code/...`) → `gjc`, `gjc-rpc` 그대로 가능.
 3. **10.026 issues 06–08** → 제목은 upstream `gjcrpc`이어도 jwc 매트릭스 열은 **`python/jwc-rpc`** 기준으로 재평가.
 4. **10.018** registry/list_sessions → TS는 `session-registry.ts`; Python은 **`jwc_rpc`에 `list_sessions()`** (upstream gjc_rpc 패리티).
 

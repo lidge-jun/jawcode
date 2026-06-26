@@ -2,7 +2,7 @@
 
 > 상태: 🟡 운영 중
 > **정본 디렉터리**: `struct_har/chase/20_*` · `20.NNN_*`
-> **의미**: `devlog/_upstream_omp` 대비 jwc **약함(G2)** — 참조·설계 (`20.NNN`). **1:1 이식 ❌**
+> **의미**: `devlog/_omp_chase/oh-my-pi` 대비 jwc **약함(G2)** — 참조·설계 (`20.NNN`). **1:1 이식 ❌**
 
 ## 번호
 
@@ -24,7 +24,7 @@
 
 | omp | jwc |
 |---|---|
-| `7e8122000ad9` (15.13.0) | `d60b7822` (worktree) |
+| `0fc6d136` (`origin/main`, v16.1.20) | `da23db8` (worktree) |
 
 > GJC head is intentionally not repeated here; see [10_gjc_chase_MOC.md](./10_gjc_chase_MOC.md).
 
@@ -32,7 +32,7 @@
 
 | 영역 | OMP source facts | jwc 처리 |
 |---|---|---|
-| task-agent discovery | `.omp/agents` roots and Claude plugin roots; first-wins exact-name dedup; execution-time rediscovery; `read-summarize: false`; plan-mode tool narrowing (`devlog/_upstream_omp/docs/task-agent-discovery.md:38,59,68-77,114,126-130,180-186`) | 030/099 참조; jwc role-agent 4종 표면 유지 |
+| task-agent discovery | `.omp/agents` roots and Claude plugin roots; first-wins exact-name dedup; execution-time rediscovery; `read-summarize: false`; plan-mode tool narrowing (`devlog/_omp_chase/oh-my-pi/docs/task-agent-discovery.md:38,59,68-77,114,126-130,180-186`) | 030/099 참조; jwc role-agent 4종 표면 유지 |
 | task tool lifecycle | batch default-on, required shared `context`, no per-call `schema`, async jobs, `agent://`/`history://`, yield-required finish, idle/parked revival, semaphore/recursion gates, IRC follow-up (`docs/tools/task.md:29-46,52-58,69-71,76-97,132-140,157-163`) | subagent UX/contract gap으로만 분해 |
 | session ops | export `subSessions`, custom share failure no-fallback, encrypted share, fork parentSession metadata, cross-project resume re-root/fork, rollback switch caveats (`docs/session-operations-export-share-fork-resume.md:21-28,45,115-130,181-190,236-249,257-277,313-327`) | operator semantics 후보 |
 | memory | disabled-by-default local pipeline, Memory Guidance injection, `memory://`, extraction/consolidation, redaction, model-role fallback (`docs/memory.md:3-5,16-24,28-30,44-56,76-89,95-98`) | 99.01 후보 |

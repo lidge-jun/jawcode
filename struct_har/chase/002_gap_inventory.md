@@ -1,7 +1,7 @@
 # chase — 갭 인벤토리 (횡단)
 
-> 스냅샷: gjc **`269387babcbf`** · jwc **`d60b7822`** (worktree) · omp **`7e8122000ad9`** (2026-06-14 **5차 — pull + jwc-rpc 명명 정본**).
-> **reviewed through**: GJC `269387babcbf` · OMP `7e8122000ad9` · JWC `d60b7822`
+> 스냅샷: gjc **`f0a8a3eb`** (`upstream/dev`) · jwc **`da23db8`** (worktree) · omp **`0fc6d136`** (`origin/main`) (2026-06-26 **6차 — actual chase clone refresh**).
+> **reviewed through**: GJC `f0a8a3eb` · OMP `0fc6d136` · JWC `da23db8`
 > **명명**: [008_gjc_jwc_naming_contract.md](./008_gjc_jwc_naming_contract.md) — Python **`python/jwc-rpc`** (`jwc_rpc`); upstream만 `gjc-rpc`.
 > **RPC 실현성**: [devlog 03_rpc_bundle_feasibility_jwc_rpc](../../devlog/_plan/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md)
 > 상태: `⬜` 미착수 · `🟡` 설계/부분 · `✅` jwc 선행 · `—` 해당 없음
@@ -86,8 +86,8 @@ Codex reformation · TUI O(n²) · xAI `/searchengine` · 100 Node · MCP discov
 ## 갱신 체크리스트
 
 ```bash
-git -C devlog/_upstream_gjc pull --ff-only origin dev
-git -C devlog/_upstream_omp pull --ff-only origin main
+git -C devlog/_gjc_chase/gajae-code pull --ff-only upstream dev
+git -C devlog/_omp_chase/oh-my-pi pull --ff-only origin main
 ```
 
 → 본 표 · [bands/](./bands/) · **008 명명** · MOC `reviewed through` · [10.001](./10.001_gjc_chase_cycle.md) changelog 행.

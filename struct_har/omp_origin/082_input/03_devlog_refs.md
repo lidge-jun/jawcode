@@ -4,13 +4,10 @@
 
 ## 플랜 (prefix 082)
 
-- [082.1_issue_tui_ctrl_ime.md](../../../devlog/_plan/260612_jawcode_fork/phase1/082.1_issue_tui_ctrl_ime.md)
-- [082.2_issue_first_char_cursor_jump.md](../../../devlog/_plan/260612_jawcode_fork/phase1/082.2_issue_first_char_cursor_jump.md)
-- [082.3_plan_interview_ask_docked_input.md](../../../devlog/_plan/260612_jawcode_fork/phase1/082.3_plan_interview_ask_docked_input.md)
-- [082_moc_tui_input.md](../../../devlog/_plan/260612_jawcode_fork/phase1/082_moc_tui_input.md)
+—
 
 ## 공통
 
-- [000_roadmap.md](../../../devlog/_plan/260612_jawcode_fork/phase1/000_roadmap.md)
-- [05_interview_conclusions.md](../../../devlog/_plan/260612_jawcode_fork/phase1/05_interview_conclusions.md)
+- [000_roadmap.md](../../../devlog/_plan/260612_jawcode_fork/000_roadmap.md)
+- [05_interview_conclusions.md](../../../devlog/_plan/260612_jawcode_fork/05_interview_conclusions.md)
 - [structure/40_fork-delta.md](../../../structure/40_fork-delta.md)

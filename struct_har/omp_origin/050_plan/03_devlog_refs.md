@@ -4,10 +4,10 @@
 
 ## 플랜 (prefix 050)
 
-- [050_moc_plan_pabcd.md](../../../devlog/_plan/260612_jawcode_fork/phase1/050_moc_plan_pabcd.md)
+—
 
 ## 공통
 
-- [000_roadmap.md](../../../devlog/_plan/260612_jawcode_fork/phase1/000_roadmap.md)
-- [05_interview_conclusions.md](../../../devlog/_plan/260612_jawcode_fork/phase1/05_interview_conclusions.md)
+- [000_roadmap.md](../../../devlog/_plan/260612_jawcode_fork/000_roadmap.md)
+- [05_interview_conclusions.md](../../../devlog/_plan/260612_jawcode_fork/05_interview_conclusions.md)
 - [structure/40_fork-delta.md](../../../structure/40_fork-delta.md)
