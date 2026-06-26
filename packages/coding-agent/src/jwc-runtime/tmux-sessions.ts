@@ -1,4 +1,5 @@
 import {
+	buildJwcTmuxExactOptionTarget,
 	buildJwcTmuxProfileCommands,
 	buildJwcTmuxSessionName,
 	GJC_TMUX_BRANCH_OPTION,
@@ -140,7 +141,7 @@ export function createJwcTmuxSession(env: NodeJS.ProcessEnv = process.env): JwcT
 }
 
 function readProfileForExactTarget(sessionName: string, env: NodeJS.ProcessEnv): string {
-	return runTmux(["show-options", "-qv", "-t", `=${sessionName}`, GJC_TMUX_PROFILE_OPTION], env).trim();
+	return runTmux(["show-options", "-qv", "-t", buildJwcTmuxExactOptionTarget(sessionName), GJC_TMUX_PROFILE_OPTION], env).trim();
 }
 
 export function removeJwcTmuxSession(sessionName: string, env: NodeJS.ProcessEnv = process.env): JwcTmuxSessionStatus {
