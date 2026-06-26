@@ -51,7 +51,7 @@
 | 001 | [10.001_gjc_chase_cycle.md](./10.001_gjc_chase_cycle.md) | fetch·CHANGELOG | P0 | 🟡 |
 | 002 | [10.002_gjc_chase_ai_auth.md](./10.002_gjc_chase_ai_auth.md) | ai·090 | **P1** | ⬜ |
 | 003 | [10.003_gjc_chase_cursor.md](./10.003_gjc_chase_cursor.md) | 081 | **P1** | ⬜ |
-| 005 | [10.005_gjc_chase_task_subagent.md](./10.005_gjc_chase_task_subagent.md) | task | P2 | ⬜ |
+| 005 | [10.005_gjc_chase_task_subagent.md](./_fin/10/10.005_gjc_chase_task_subagent.md) | task | P2 | ✅ _fin |
 | 006 | [10.006_gjc_chase_tui_core.md](./10.006_gjc_chase_tui_core.md) | tui | P3 | ⬜ |
 | 007 | [10.007_gjc_chase_team_profile_self_heal.md](./10.007_gjc_chase_team_profile_self_heal.md) | team·leader profile | **P1** | ⬜ |
 | 013-cache | [10.013_gjc_chase_assistant_msg_cache.md](./_fin/10/10.013_gjc_chase_assistant_msg_cache.md) | assistant cache | P3 | ✅ _fin |
