@@ -33,7 +33,7 @@
 | 11 | 022 | [10.022 goal busy-loop](./_fin/10/10.022_gjc_chase_goal_agent_busy_loop.md) | P1 | ✅ _fin · busy guard |
 | 12 | 004 | [10.004 session compaction](./_fin/10/10.004_gjc_chase_session_compaction.md) | P1 | ✅ _fin · JWC-ahead progress |
 | 13 | 007 | [10.007 team profile](./10.007_gjc_chase_team_profile_self_heal.md) | P1 | ⛔ blocked: net-new self-heal (test-env) |
-| 14–15 | 002–003 | [10.002](./10.002_gjc_chase_ai_auth.md) · [10.003](./10.003_gjc_chase_cursor.md) | P1 | ⛔ 10.002 C4 auth · 10.003 net-new (test-env) |
+| 14–15 | 002·003 | [10.002](./10.002_gjc_chase_ai_auth.md) · [10.003](./_fin/10/10.003_gjc_chase_cursor.md) | P1 | 10.002 ⛔ C4 auth · **10.003 ✅ _fin** (timeout fix 4eeffb7) |
 | 16–17 | 012-steer · 021 | [10.012](./10.012_gjc_chase_goal_steering.md) · [10.021](./10.021_gjc_chase_goal_redteam_review.md) | P2 | ⛔ 10.012 net-new · 10.021 gated on 10.012 |
 | 18 | 019 | [10.019 gc](./10.019_gjc_chase_gc_file_lock.md) | P2 | ⬜ |
 | 19 | 023 | [10.023 task notifications](./10.023_gjc_chase_task_notification_context.md) | P2 | ⛔ blocked: skipped race tests (test-env) |
