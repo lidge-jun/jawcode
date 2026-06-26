@@ -36,7 +36,7 @@
 | 14–15 | 002·003 | [10.002](./10.002_gjc_chase_ai_auth.md) · [10.003](./_fin/10/10.003_gjc_chase_cursor.md) | P1 | 10.002 ⛔ C4 auth · **10.003 ✅ _fin** (timeout fix 4eeffb7) |
 | 16–17 | 012-steer · 021 | [10.012](./10.012_gjc_chase_goal_steering.md) · [10.021](./10.021_gjc_chase_goal_redteam_review.md) | P2 | ⛔ 10.012 net-new · 10.021 gated on 10.012 |
 | 18 | 019 | [10.019 gc](./10.019_gjc_chase_gc_file_lock.md) | P2 | ⬜ |
-| 19 | 023 | [10.023 task notifications](./10.023_gjc_chase_task_notification_context.md) | P2 | ⛔ blocked: skipped race tests (test-env) |
+| 19 | 023 | [10.023 task notifications](./_fin/10/10.023_gjc_chase_task_notification_context.md) | P2 | **✅ _fin** (omp 0.5.1, e80075b) |
 | — | 005·013·020·024·025 | **✅ _fin (260627)** task_subagent·assistant_cache·deep_interview·coordinator·perf_geobench · 006 deferred(082/083) | P2–3 | ✅/⏸ |
 
 ### RPC PABCD 묶음 (한 사이클 권장)
