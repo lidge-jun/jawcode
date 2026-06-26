@@ -428,7 +428,7 @@ export const astEditToolRenderer = {
 		const rewriteCount = args.ops?.length ?? 0;
 		if (rewriteCount > 1) meta.push(`${rewriteCount} rewrites`);
 
-		const description = rewriteCount === 1 ? args.ops?.[0]?.pat : rewriteCount ? `${rewriteCount} rewrites` : "?";
+		const description = rewriteCount === 1 ? args.ops?.[0]?.pat?.replace(/\s+/g, " ").trim() : rewriteCount ? `${rewriteCount} rewrites` : "?";
 		const text = renderStatusLine({ icon: "pending", title: "AST Edit", description, meta }, uiTheme);
 		return new Text(text, 0, 0);
 	},
@@ -453,7 +453,7 @@ export const astEditToolRenderer = {
 
 		if (totalReplacements === 0) {
 			const rewriteCount = args?.ops?.length ?? 0;
-			const description = rewriteCount === 1 ? args?.ops?.[0]?.pat : undefined;
+			const description = rewriteCount === 1 ? args?.ops?.[0]?.pat?.replace(/\s+/g, " ").trim() : undefined;
 			const meta = ["0 replacements"];
 			if (details?.scopePath) meta.push(`in ${details.scopePath}`);
 			if (filesSearched > 0) meta.push(`searched ${filesSearched}`);
@@ -469,7 +469,7 @@ export const astEditToolRenderer = {
 		meta.push(`searched ${filesSearched}`);
 		if (limitReached) meta.push(uiTheme.fg("warning", "limit reached"));
 		const rewriteCount = args?.ops?.length ?? 0;
-		const description = rewriteCount === 1 ? args?.ops?.[0]?.pat : undefined;
+		const description = rewriteCount === 1 ? args?.ops?.[0]?.pat?.replace(/\s+/g, " ").trim() : undefined;
 
 		const textContent = result.details?.displayContent ?? result.content?.find(c => c.type === "text")?.text ?? "";
 		const allGroups = splitGroupsByBlankLine(textContent.split("\n"));

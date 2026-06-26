@@ -205,6 +205,23 @@ describe("InputController escape behavior", () => {
 		expect(spies.abort).not.toHaveBeenCalled();
 	});
 
+	it("clears a typed draft and disarms the double-Esc timer on a single Escape", () => {
+		const { ctx, editor, spies } = createContext();
+		// Seed a non-zero double-Esc sentinel so the reset assertion is non-vacuous.
+		ctx.lastEscapeTime = 12345;
+		editor.setText("a half-written message");
+		const controller = new InputController(ctx);
+		controller.setupKeyHandlers();
+
+		editor.onEscape?.();
+
+		// Idle + typed text was previously a no-op; now Esc clears the draft,
+		// requests a render, and disarms the double-Esc window (sentinel -> 0).
+		expect(editor.getText()).toBe("");
+		expect(spies.requestRender).toHaveBeenCalled();
+		expect(ctx.lastEscapeTime).toBe(0);
+	});
+
 	it("runs /btw as a builtin side request instead of steering the active stream", async () => {
 		const { ctx, editor, spies } = createContext();
 		(ctx.session as { isStreaming: boolean }).isStreaming = true;

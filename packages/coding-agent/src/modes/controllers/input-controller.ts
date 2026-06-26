@@ -152,7 +152,14 @@ export class InputController {
 				} else {
 					void this.#abortInteractive();
 				}
-			} else if (!this.ctx.editor.getText().trim()) {
+			} else if (this.ctx.editor.getText().trim()) {
+				// Esc with typed text clears the draft and resets the double-Esc
+				// window (omp input-controller.ts:318-323). This idle+text state
+				// was previously an unhandled no-op.
+				this.ctx.editor.setText("");
+				this.ctx.ui.requestRender();
+				this.ctx.lastEscapeTime = 0;
+			} else {
 				// Double-interrupt with empty editor triggers /tree, /branch, or nothing based on setting
 				const action = settings.get("doubleEscapeAction");
 				if (action !== "none") {
