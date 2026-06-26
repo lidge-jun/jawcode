@@ -49,7 +49,7 @@
 | NNN | 문서 | 스코프 | P | 상태 |
 |---|---|---|---|---|
 | 001 | [10.001_gjc_chase_cycle.md](./10.001_gjc_chase_cycle.md) | fetch·CHANGELOG | P0 | 🟡 |
-| 002 | [10.002_gjc_chase_ai_auth.md](./10.002_gjc_chase_ai_auth.md) | ai·090 | **P1** | ⬜ |
+| 002 | [10.002_gjc_chase_ai_auth.md](./_fin/10/10.002_gjc_chase_ai_auth.md) | ai·090 | **P1** | ✅ _fin |
 | 003 | [10.003_gjc_chase_cursor.md](./_fin/10/10.003_gjc_chase_cursor.md) | 081 | **P1** | ✅ _fin |
 | 005 | [10.005_gjc_chase_task_subagent.md](./_fin/10/10.005_gjc_chase_task_subagent.md) | task | P2 | ✅ _fin |
 | 006 | [10.006_gjc_chase_tui_core.md](./10.006_gjc_chase_tui_core.md) | tui | P3 | ⬜ |
