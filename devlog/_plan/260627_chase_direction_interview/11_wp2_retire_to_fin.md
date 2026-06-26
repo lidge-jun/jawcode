@@ -23,6 +23,30 @@
 - Each moved card's internal links resolve (spot-check 20.008 + 10.020).
 - `git diff --check` exit 0. tsc/tests N/A (doc-only).
 
+## C verification result
+
+- ✅ Zero chase-root links to the 6 movers remain (`rg`).
+- ✅ 6 files relocated (`_fin/20`: 20.002/003/007/008; `_fin/10`: 10.020/025); gone from chase root.
+- ✅ Moved-card link resolution (node `existsSync`): **17/19 resolve**.
+- ✅ Stale devlog `_plan`→`_fin` fixed in 8 docs (commit `8b3f820`, 12 refs).
+- ✅ `git diff --check` clean; tsc/tests N/A (doc-only).
+- **Conclusion: WP2 introduced ZERO new breakage.** The 2 unresolved links are pre-existing
+  (see below), not a retirement regression.
+
+## Discovered pre-existing issues (out of WP2 scope — recorded, not fixed)
+
+**Bands consolidation staleness.** `struct_har/chase/bands/` was consolidated to a single
+`README.md`; the per-band files (`100_node.md`, `083_output.md`, `080_tui.md`, `081_cursor.md`,
+`090_auth.md`, `070_memory.md`, `030_skills.md`, …) no longer exist. Links to `bands/NNN_*.md`
+are therefore broken across **many** chase docs — verified identical at `HEAD~2` (before this
+work), so NOT introduced here. In the 6 movers this surfaces as 2 broken links:
+`20.002 → ../../bands/100_node.md`, `20.008 → ../../bands/083_output.md`. Also present in
+active docs: 10.002, 10.003, 10.013, 006_jwc_own_backlog, 004_reference_from_omp, … .
+
+**Recommended follow-up** (separate small PABCD, not this goal): repoint all `bands/NNN_*.md`
+references to `bands/README.md` (or its band-row anchors) consistently across chase docs.
+Left unfixed here to avoid partial/inconsistent edits and scope creep on the retirement.
+
 ## Commit scope
 
 - 6 `git mv` + 6 movers' outbound edits; `002_gap_inventory.md`, `007_follow_index.md`,
