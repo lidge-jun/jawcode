@@ -883,6 +883,53 @@ async function requireSubstantiveArtifactEvidence(cwd: string, row: JsonObject, 
 	);
 }
 
+// Live surface families (web/cli/native) cannot be proven by inline prose alone — mirrors gjc
+// surfaceFamily()+isLiveSurfaceFamily(). The token set is exactly gjc's native+web+cli tokens,
+// which gjc classifies before api-package/algorithm-math, so this flat check is equivalent to
+// isLiveSurfaceFamily(surfaceFamily(s)) for every surface. api-package/algorithm-math stay
+// inline-permitted.
+const LIVE_SURFACE_TOKENS = [
+	"computer",
+	"computer-use",
+	"desktop-input",
+	"native-input",
+	"native",
+	"desktop",
+	"tui",
+	"gui",
+	"web",
+	"browser",
+	"ui",
+	"visual",
+	"cli",
+	"terminal",
+	"command",
+];
+
+function isLiveSurface(surface: string): boolean {
+	const normalized = surface.toLowerCase().replaceAll("_", "-");
+	return LIVE_SURFACE_TOKENS.some(token => normalized.includes(token));
+}
+
+// gjc validateLiveSurfaceProofPresence parity (minimal): a live surface needs at least one linked
+// artifact backed by a resolvable non-empty file; inlineEvidence / typed receipts do not prove a
+// live surface. Deep byte/structural/replay verification is split to a follow-up card (10.021 split).
+async function requireLiveSurfaceProof(
+	cwd: string,
+	surface: string,
+	artifactIds: string[],
+	artifactRefs: Map<string, JsonObject>,
+	fieldName: string,
+): Promise<void> {
+	if (!isLiveSurface(surface)) return;
+	for (const artifactId of artifactIds) {
+		if (await hasExistingNonEmptyArtifact(cwd, artifactRefs.get(artifactId)!.path)) return;
+	}
+	throw new Error(
+		`qualityGate ${fieldName} for live surfaces must reference a resolvable non-empty artifact file; inlineEvidence and typed verifiedReceipt do not prove live surfaces`,
+	);
+}
+
 async function validateArtifactRefs(cwd: string, executorQa: JsonObject): Promise<Map<string, JsonObject>> {
 	const rows = requireObjectArray(executorQa.artifactRefs, "executorQa.artifactRefs");
 	const idMap = buildRowIdMap(rows, "executorQa.artifactRefs");
@@ -895,10 +942,11 @@ async function validateArtifactRefs(cwd: string, executorQa: JsonObject): Promis
 	return idMap;
 }
 
-function validateSurfaceEvidence(
+async function validateSurfaceEvidence(
+	cwd: string,
 	executorQa: JsonObject,
 	artifactRefs: Map<string, JsonObject>,
-): Map<string, JsonObject> {
+): Promise<Map<string, JsonObject>> {
 	const rows = requireObjectArray(executorQa.surfaceEvidence, "executorQa.surfaceEvidence");
 	const idMap = buildRowIdMap(rows, "executorQa.surfaceEvidence");
 	for (const [index, row] of rows.entries()) {
@@ -918,6 +966,7 @@ function validateSurfaceEvidence(
 		const artifactIds = requireStringLinks(row.artifactRefs, `${fieldName}.artifactRefs`);
 		requireResolvedLinks(artifactIds, artifactRefs, `${fieldName}.artifactRefs`);
 		validateSurfaceArtifactCompatibility(surface, artifactIds, artifactRefs, `${fieldName}.artifactRefs`);
+		await requireLiveSurfaceProof(cwd, surface, artifactIds, artifactRefs, `${fieldName}.artifactRefs`);
 	}
 	return idMap;
 }
@@ -1007,7 +1056,7 @@ function validateContractCoverage(
 
 async function validateExecutorQaRedTeamEvidence(cwd: string, executorQa: JsonObject): Promise<void> {
 	const artifactRefs = await validateArtifactRefs(cwd, executorQa);
-	const surfaceEvidence = validateSurfaceEvidence(executorQa, artifactRefs);
+	const surfaceEvidence = await validateSurfaceEvidence(cwd, executorQa, artifactRefs);
 	const adversarialCases = validateAdversarialCases(executorQa, artifactRefs);
 	validateContractCoverage(executorQa, surfaceEvidence, adversarialCases, artifactRefs);
 }

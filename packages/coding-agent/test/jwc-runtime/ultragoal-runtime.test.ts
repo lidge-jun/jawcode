@@ -31,6 +31,19 @@ beforeEach(() => {
 async function tempDir(): Promise<string> {
 	const dir = await fs.mkdtemp(path.join(process.cwd(), ".tmp-goal-runtime-"));
 	tempRoots.push(dir);
+	// Seed the live-surface artifact files referenced by passingQualityGate() so complete
+	// checkpoints satisfy the live-surface proof requirement (a resolvable non-empty file).
+	// Negative tests strip the `path` field to make the live surface unprovable.
+	await fs.mkdir(path.join(dir, "artifacts"), { recursive: true });
+	await Bun.write(path.join(dir, "artifacts", "browser-run.json"), JSON.stringify({ ok: true, flow: "approved" }));
+	await Bun.write(
+		path.join(dir, "artifacts", "gui-screenshot.png"),
+		"non-empty screenshot bytes for live-surface proof",
+	);
+	await Bun.write(
+		path.join(dir, "artifacts", "adversarial-report.txt"),
+		"adversarial boundary and failure-mode evidence",
+	);
 	return dir;
 }
 
@@ -1275,6 +1288,26 @@ describe("native GJC goal runtime", () => {
 		});
 
 		expect(plan.goals[0]?.status).toBe("complete");
+	});
+
+	it("rejects inline-only evidence for live surfaces without a resolvable artifact file", async () => {
+		const root = await tempDir();
+		const created = await createGoalPlan({ cwd: root, brief: "Ship the fix" });
+		await startNextGoal({ cwd: root });
+		// gui/web is a live surface (10.021 parity). Stripping the `path` from the two artifacts
+		// the surface row links (browser-run, gui-screenshot) leaves only inline prose, which must
+		// NOT prove a live surface — even though tempDir() seeds those files on disk, the gate rows
+		// no longer point at them.
+		const inlineOnlyLiveGate = mutateQualityGate(gate => {
+			const refs = gate.executorQa!.artifactRefs as Array<Record<string, unknown>>;
+			delete refs[0]!.path;
+			delete refs[1]!.path;
+		});
+
+		const error = await expectRejectedCompleteGate(root, created, inlineOnlyLiveGate);
+
+		expect(error).toContain("executorQa.surfaceEvidence[0].artifactRefs");
+		expect(error).toContain("do not prove live surfaces");
 	});
 
 	it("rejects empty or degenerate red-team receipts before mutation", async () => {
