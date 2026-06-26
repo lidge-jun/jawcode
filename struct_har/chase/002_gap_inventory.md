@@ -58,7 +58,7 @@ Executor v2 (260614): **011 YES**, **008/026 RISKY**; **018 registry TS+Py lande
 | 영역 | omp | jaw 방향 |
 |---|---|---|
 | 15.13 delta | session split, auto-learn, STT | [20.008](./_fin/20/20.008_omp_chase_pull_15_13_delta.md) |
-| steering delivery | yield re-poll, stranded drain | [20.005](./20.005_omp_chase_steering_delivery.md) |
+| steering delivery | yield re-poll, stranded drain | [20.005](./_fin/20/20.005_omp_chase_steering_delivery.md) |
 | TUI micro | Esc draft, ast status | [20.006](./20.006_omp_chase_tui_input_micro_fixes.md) |
 | session modules | listing/loader | [20.007](./_fin/20/20.007_omp_chase_session_modularization.md) |
 | memory/skills | mnemopi | [20.003](./_fin/20/20.003_omp_chase_memory_skills.md) |

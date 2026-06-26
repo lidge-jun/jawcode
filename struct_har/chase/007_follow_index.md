@@ -53,7 +53,7 @@
 | 순 | NNN | 문서 |
 |---|-----|------|
 | 23 | 20.006 | [20.006 TUI micro](./20.006_omp_chase_tui_input_micro_fixes.md) ⛔ net-new (test-env) |
-| 24 | 20.005 | [20.005 steering](./20.005_omp_chase_steering_delivery.md) ⛔ net-new (test-env) |
+| 24 | 20.005 | [20.005 steering](./_fin/20/20.005_omp_chase_steering_delivery.md) **✅ _fin** (omp 42ffc83, 055aee8) |
 | 25 | 20.003 | [20.003 memory/skills](./_fin/20/20.003_omp_chase_memory_skills.md) |
 | 26 | 20.007 | [20.007 session modules](./_fin/20/20.007_omp_chase_session_modularization.md) |
 | — | 20.008 | [20.008 15.13 delta](./_fin/20/20.008_omp_chase_pull_15_13_delta.md) |
