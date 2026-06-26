@@ -57,12 +57,13 @@
 | 012-steer | [10.012_gjc_chase_goal_steering.md](./_fin/10/10.012_gjc_chase_goal_steering.md) | goal steering | P2 | ✅ _fin |
 | 013-cache | [10.013_gjc_chase_assistant_msg_cache.md](./_fin/10/10.013_gjc_chase_assistant_msg_cache.md) | assistant cache | P3 | ✅ _fin |
 | 019 | [10.019_gjc_chase_gc_file_lock.md](./10.019_gjc_chase_gc_file_lock.md) | gc | P2 | ⬜ |
-| 021 | [10.021_gjc_chase_goal_redteam_review.md](./10.021_gjc_chase_goal_redteam_review.md) | goal red-team | P2 | ⬜ (10.012 게이트 해제, 다음 대상) |
+| 021 | [10.021_gjc_chase_goal_redteam_review.md](./_fin/10/10.021_gjc_chase_goal_redteam_review.md) | goal red-team | P2 | ✅ _fin (split→027) |
 | 023 | [10.023_gjc_chase_task_notification_context.md](./_fin/10/10.023_gjc_chase_task_notification_context.md) | task notify | P2 | ✅ _fin |
 | 020 | [10.020_gjc_chase_deep_interview_semantics.md](./_fin/10/10.020_gjc_chase_deep_interview_semantics.md) | interview ref | P3 | ✅ _fin |
 | 024 | [10.024_gjc_chase_coordinator_mcp_watch.md](./_fin/10/10.024_gjc_chase_coordinator_mcp_watch.md) | coordinator | P3 | ✅ _fin |
 | 025 | [10.025_gjc_chase_perf_corpus_geobench.md](./_fin/10/10.025_gjc_chase_perf_corpus_geobench.md) | perf ref | P3 | ✅ _fin |
-| 027+ | _(미할당)_ | | | ⬜ |
+| 027 | [10.027_gjc_chase_goal_live_artifact_engine.md](./10.027_gjc_chase_goal_live_artifact_engine.md) | live-artifact engine (split←021) | P3 | ⬜ |
+| 028+ | _(미할당)_ | | | ⬜ |
 
 ## 완료
 

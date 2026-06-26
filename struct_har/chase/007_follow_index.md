@@ -12,7 +12,7 @@
 > **마감(_fin) 9**: reference 6 (20.002·003·007·008, 10.020·025) · 코드 10.013 · doc-judgment 10.024·10.005.
 > **방향 기록 9** (인터뷰 elici). **보류/연기 active**: 20.004(held) · 10.006(082/083 게이트).
 > **test-env 해제 → 실테스트 마감 +4**: 네이티브 catalog 정렬(`f53f285` natives→`workspace:*`) 후 10.003 · 10.012 · 10.023 · 20.005 모두 실테스트로 마감. (이전 "⛔ blocked 8" 프레이밍 폐기.)
-> **잔여 active 4**: 10.002(C4 auth, 대형) · 10.007(team self-heal, net-new) · 10.021(10.012 게이트 해제, 다음 대상) · 20.006(tui input micro-fixes). audit 경위: [devlog 16_pause_audit](../../devlog/_plan/260627_chase_direction_interview/16_pause_audit.md) · [18_native_testenv_fix](../../devlog/_plan/260627_chase_direction_interview/18_native_testenv_fix.md).
+> **잔여 active 3**: 10.002(C4 auth, 대형) · 10.007(team self-heal, net-new) · 20.006(tui input micro-fixes). **신규 split-off**: 10.027(live-artifact 검증 엔진, P3 deferred ← 10.021 Decision A=split). audit 경위: [devlog 16_pause_audit](../../devlog/_plan/260627_chase_direction_interview/16_pause_audit.md) · [18_native_testenv_fix](../../devlog/_plan/260627_chase_direction_interview/18_native_testenv_fix.md).
 
 ## G3 — jwc 자체 (Tier 1)
 
@@ -33,9 +33,9 @@
 | 10c | 026 | [10.026 issues audit](./_fin/10/10.026_gjc_chase_rpc_issues_audit.md) | P2 | ✅ _fin · residual rows documented |
 | 11 | 022 | [10.022 goal busy-loop](./_fin/10/10.022_gjc_chase_goal_agent_busy_loop.md) | P1 | ✅ _fin · busy guard |
 | 12 | 004 | [10.004 session compaction](./_fin/10/10.004_gjc_chase_session_compaction.md) | P1 | ✅ _fin · JWC-ahead progress |
-| 13 | 007 | [10.007 team profile](./10.007_gjc_chase_team_profile_self_heal.md) | P1 | ⛔ blocked: net-new self-heal (test-env) |
+| 13 | 007 | [10.007 team profile](./10.007_gjc_chase_team_profile_self_heal.md) | P1 | ⬜ net-new self-heal (test-env 해제됨, 다음 대상) |
 | 14–15 | 002·003 | [10.002](./10.002_gjc_chase_ai_auth.md) · [10.003](./_fin/10/10.003_gjc_chase_cursor.md) | P1 | 10.002 ⛔ C4 auth · **10.003 ✅ _fin** (timeout fix 4eeffb7) |
-| 16–17 | 012-steer · 021 | [10.012](./_fin/10/10.012_gjc_chase_goal_steering.md) · [10.021](./10.021_gjc_chase_goal_redteam_review.md) | P2 | **✅ 10.012 _fin** (steering port, `0974e20`; 84/0) · 10.021 ungated → 다음 |
+| 16–17 | 012 · 021 | [10.012](./_fin/10/10.012_gjc_chase_goal_steering.md) · [10.021](./_fin/10/10.021_gjc_chase_goal_redteam_review.md) | P2 | **✅ 둘 다 _fin** — 012 steering `0974e20`(84/0) · 021 live-surface proof `cdee4f7`(85/0), split→[10.027](./10.027_gjc_chase_goal_live_artifact_engine.md) |
 | 18 | 019 | [10.019 gc](./10.019_gjc_chase_gc_file_lock.md) | P2 | ⬜ |
 | 19 | 023 | [10.023 task notifications](./_fin/10/10.023_gjc_chase_task_notification_context.md) | P2 | **✅ _fin** (omp 0.5.1, e80075b) |
 | — | 005·013·020·024·025 | **✅ _fin (260627)** task_subagent·assistant_cache·deep_interview·coordinator·perf_geobench · 006 deferred(082/083) | P2–3 | ✅/⏸ |
