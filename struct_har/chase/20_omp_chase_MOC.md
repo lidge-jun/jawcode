@@ -39,20 +39,20 @@
 | compaction pruning | superseded read pruning, useless-result elision, protected tools, 40k protect/20k min savings, suffix/idle prompt-cache-aware flush (`packages/agent/src/compaction/pruning.ts:19-39,48-70,108-138,146-165,171-215,243-274,284-331`) | 083/session 후보 |
 | steering delivery | yield-boundary `lateSteering` re-poll; settle-time stranded queue drain; steer image-normalization idle mirror (`packages/agent/src/agent-loop.ts:1066-1081`, `agent-session.ts:1432-1447,6373-6410,6599-6611`, `42ffc83`) | **[20.005](./20.005_omp_chase_steering_delivery.md)** — jwc 부분 보유, gjc 미수용 |
 | TUI 입력 micro | Esc draft clear + selector `resetDisplay` (`e914bf0`); double-esc history **revert** (`d055f64`); ast-edit status 공백 축약 (`3d646d8`) | **[20.006](./20.006_omp_chase_tui_input_micro_fixes.md)** — collab/brew 커밋은 lineage 부재로 비채택 |
-| OMP 15.12→15.13 | session split, auto-learn, STT/TTS, compaction UI | [20.008](./20.008_omp_chase_pull_15_13_delta.md) |
+| OMP 15.12→15.13 | session split, auto-learn, STT/TTS, compaction UI | [20.008](./_fin/20/20.008_omp_chase_pull_15_13_delta.md) |
 
 ## 활성 (`20.NNN`)
 
 | NNN | 문서 | 스코프 | jaw | 상태 |
 |---|---|---|---|---|
 | 001 | [20.001_omp_chase_cycle.md](./20.001_omp_chase_cycle.md) | fetch·regen | struct_har | 🟡 |
-| 002 | [20.002_omp_chase_worker_catalog.md](./20.002_omp_chase_worker_catalog.md) | worker | 100 | ⬜ |
-| 003 | [20.003_omp_chase_memory_skills.md](./20.003_omp_chase_memory_skills.md) | memory·skills | 99.01 | ⬜ |
+| 002 | [20.002_omp_chase_worker_catalog.md](./_fin/20/20.002_omp_chase_worker_catalog.md) | worker | 100 | ✅ _fin |
+| 003 | [20.003_omp_chase_memory_skills.md](./_fin/20/20.003_omp_chase_memory_skills.md) | memory·skills | 99.01 | ✅ _fin |
 | 004 | [20.004_omp_chase_lsp_dap.md](./20.004_omp_chase_lsp_dap.md) | LSP/DAP | 081 | ⬜ |
 | 005 | [20.005_omp_chase_steering_delivery.md](./20.005_omp_chase_steering_delivery.md) | steer/followUp 전달 | session | ⬜ |
 | 006 | [20.006_omp_chase_tui_input_micro_fixes.md](./20.006_omp_chase_tui_input_micro_fixes.md) | Esc·ast status | 082·99.20 | ⬜ |
-| 007 | [20.007_omp_chase_session_modularization.md](./20.007_omp_chase_session_modularization.md) | session modules | 083 | ⬜ |
-| 008 | [20.008_omp_chase_pull_15_13_delta.md](./20.008_omp_chase_pull_15_13_delta.md) | 15.13 index | 횡단 | 🟡 |
+| 007 | [20.007_omp_chase_session_modularization.md](./_fin/20/20.007_omp_chase_session_modularization.md) | session modules | 083 | ✅ _fin |
+| 008 | [20.008_omp_chase_pull_15_13_delta.md](./_fin/20/20.008_omp_chase_pull_15_13_delta.md) | 15.13 index | 횡단 | ✅ _fin |
 | 009+ | _(미할당)_ | | | ⬜ |
 
 ## 완료

@@ -12,7 +12,7 @@
 | 축 | jwc가 **앞서거나 유일** | jwc가 **뒤처지거나 약함** |
 |---|---|---|
 | **gjc** | orchestrate/PABCD, jaw 표면, `.jwc`, lazy `computer_use`, pi-shell·submit gate(10.009·10.010 ✅), goal busy-loop #616 ✅, session compaction/progress ✅ | RPC lifecycle 잔여(008), receipt spool 테스트(011), **registry TS+Py ✅ / UDS ✅**(018), team profile self-heal(007) |
-| **omp** | 4 workflow 번들, jaw 워크플로 | task-agent, session ops, memory, pruning = **참조** ([20.008](./20.008_omp_chase_pull_15_13_delta.md)) |
+| **omp** | 4 workflow 번들, jaw 워크플로 | task-agent, session ops, memory, pruning = **참조** ([20.008](./_fin/20/20.008_omp_chase_pull_15_13_delta.md)) |
 | **자체** | 100 Node 완료, TUI O(n²) 수정, 99.03·99.01·99.07 부분 | 99.02·99.04·99.05·99.06 · M2 110+ |
 
 ## 밴드별
@@ -57,11 +57,11 @@ Executor v2 (260614): **011 YES**, **008/026 RISKY**; **018 registry TS+Py lande
 
 | 영역 | omp | jaw 방향 |
 |---|---|---|
-| 15.13 delta | session split, auto-learn, STT | [20.008](./20.008_omp_chase_pull_15_13_delta.md) |
+| 15.13 delta | session split, auto-learn, STT | [20.008](./_fin/20/20.008_omp_chase_pull_15_13_delta.md) |
 | steering delivery | yield re-poll, stranded drain | [20.005](./20.005_omp_chase_steering_delivery.md) |
 | TUI micro | Esc draft, ast status | [20.006](./20.006_omp_chase_tui_input_micro_fixes.md) |
-| session modules | listing/loader | [20.007](./20.007_omp_chase_session_modularization.md) |
-| memory/skills | mnemopi | [20.003](./20.003_omp_chase_memory_skills.md) |
+| session modules | listing/loader | [20.007](./_fin/20/20.007_omp_chase_session_modularization.md) |
+| memory/skills | mnemopi | [20.003](./_fin/20/20.003_omp_chase_memory_skills.md) |
 | collab/brew | — | **비채택** |
 
 ## 260613–14 jwc 독자 성과 (chase 비대상 완료)

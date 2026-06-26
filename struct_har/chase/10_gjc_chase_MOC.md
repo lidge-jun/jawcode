@@ -58,9 +58,9 @@
 | 019 | [10.019_gjc_chase_gc_file_lock.md](./10.019_gjc_chase_gc_file_lock.md) | gc | P2 | ⬜ |
 | 021 | [10.021_gjc_chase_goal_redteam_review.md](./10.021_gjc_chase_goal_redteam_review.md) | goal red-team | P2 | ⬜ |
 | 023 | [10.023_gjc_chase_task_notification_context.md](./10.023_gjc_chase_task_notification_context.md) | task notify | P2 | ⬜ |
-| 020 | [10.020_gjc_chase_deep_interview_semantics.md](./10.020_gjc_chase_deep_interview_semantics.md) | interview ref | P3 | ⬜ |
+| 020 | [10.020_gjc_chase_deep_interview_semantics.md](./_fin/10/10.020_gjc_chase_deep_interview_semantics.md) | interview ref | P3 | ✅ _fin |
 | 024 | [10.024_gjc_chase_coordinator_mcp_watch.md](./10.024_gjc_chase_coordinator_mcp_watch.md) | coordinator | P3 | ⬜ |
-| 025 | [10.025_gjc_chase_perf_corpus_geobench.md](./10.025_gjc_chase_perf_corpus_geobench.md) | perf ref | P3 | ⬜ |
+| 025 | [10.025_gjc_chase_perf_corpus_geobench.md](./_fin/10/10.025_gjc_chase_perf_corpus_geobench.md) | perf ref | P3 | ✅ _fin |
 | 027+ | _(미할당)_ | | | ⬜ |
 
 ## 완료
