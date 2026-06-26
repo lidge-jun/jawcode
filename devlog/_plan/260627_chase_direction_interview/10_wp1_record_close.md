@@ -44,6 +44,31 @@ Stay active w/ recorded direction: **3** (20.004 held · 10.013 adapt-pending-co
 - `git diff --check` exit 0; no broken intra-doc links to moved cards (grep for stale `./10.020`… refs).
 - tsc/tests N/A (doc-only); no source touched in WP1.
 
+## Link-integrity map (audit FAIL fix — complete)
+
+A-audit (VERDICT FAIL) found step 4 incomplete: inbound links in `002_gap_inventory.md`
+were unlisted. Authoritative map below (movers go 2 levels deeper → `_fin/{10,20}/`).
+
+### Inbound (edit in non-moving files) — `./X_…` → `./_fin/{10,20}/X_…`
+- `002_gap_inventory.md`: L15·L60 (20.008), L63 (20.007), L64 (20.003) → `./_fin/20/…`
+- `007_follow_index.md`: L51 (20.003), L52 (20.007), L53 (20.008) → `./_fin/20/…`
+- `10_gjc_chase_MOC.md`: L61 (10.020), L63 (10.025) → `./_fin/10/…` + status ✅
+- `20_omp_chase_MOC.md`: L42·L55 (20.008), L49 (20.002), L50 (20.003), L54 (20.007) → `./_fin/20/…` + status ✅
+- Intra-mover `20.008` L17 (20.003), L18 (20.007): same `_fin/20/` dir → **stay `./` (no edit)**.
+
+### Outbound (edit inside each moved card) — transform by target
+- `./<MOC>` / `./bands/…` / `./00X_…` / `./<non-moving card>` → `../../…`
+- `../../devlog/…` / `../../structure/…` → `../../../../…`
+- `./20.003_…` / `./20.007_…` inside 20.008 → stay (co-moved siblings)
+
+Per-card outbound edits: 20.002 (MOC, bands) · 20.003 (MOC) · 20.007 (MOC, devlog, 20.005) ·
+20.008 (MOC, devlog, 20.005, 20.006, bands/083, 006; keep 20.003/20.007) · 10.020 (MOC, 003,
+devlog) · 10.025 (MOC, structure). Precedent: `_fin/10/10.011…:3` uses `../../10_gjc_chase_MOC.md`.
+
+### Accuracy note (audit should-fix)
+`007_follow_index.md` indexes only 3 of 6 movers (20.003/20.007/20.008); 10.020/10.025/20.002
+have no row there — that is expected, not an omission.
+
 ## Commit scope
 
 - 9 chase card edits (decision blocks) + 6 `git mv` to `_fin`.
