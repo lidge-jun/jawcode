@@ -70,6 +70,24 @@ Tried the fix (within granted authority); diagnosed it as a genuine maintainer d
   Hacking node_modules (symlink/copy) would mask the real config mismatch and not survive installs.
 - Side effects from the attempt (`bun.lock`, `docs-index.generated.ts`) were reverted; repo clean.
 
+## Per-card deferral evidence (investigated, not forced)
+
+Policy shift mid-session: the goal gate is `tsc/test/diff`, so net-new cards that are
+**deterministic + high-confidence** were closed tsc-only with audit + residual (10.013 render
+cache, 10.003 cursor timeout bugfix). The remaining 7 were each investigated and are genuinely
+defer-worthy (not "hard", but test-env-dependent / security-adjacent / large):
+
+- **10.002 ai_auth** — C4 security; `auth-storage.ts` 349-line divergence + new providers. THOROUGH tier (full tests) — blocked.
+- **10.007 team self-heal** — security-adjacent: the widened "self-heal any verified real tmux leader" hinges on a **foreign/unmanaged classification** invariant; a wrong impl could adopt a foreign tmux session. gjc reference also **drifted** (card cited `team-runtime.ts:1646`, clone now `:1883`). Needs runtime foreign-rejection tests — blocked.
+- **10.012 goal steering** — large net-new (6 commands + dispatcher + Goal* rename); architectural. THOROUGH — blocked.
+- **10.021 redteam** — Decision F gated on 10.012.
+- **10.023 task notif** — core context-compaction queue behavior; 3 `it.skip` tests = absent. Runtime-behavioral.
+- **20.005 steering delivery** — core agent-loop yield re-poll + settle-drain. Runtime-behavioral.
+- **20.006 tui input** — needs a new `resetDisplay()` selector API + ast-edit has 362-line fork divergence.
+
+Closing any of these tsc-only would ship under-verified core-runtime / security-adjacent behavior
+unattended — against goal-mode "FAITHFUL EXECUTION (anti-skip)". They await the catalog/test-env fix.
+
 ## Decision surfaced to user
 
 (a) authorize a test-env restoration pass (native re-sync) → close the 8 with real tests; or
