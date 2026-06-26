@@ -51,7 +51,7 @@
 ## 관련
 
 - [structure/50_status.md](../../structure/50_status.md)
-- [devlog 260614 chase pull](../../devlog/_plan/260614_chase_upstream_pull_priority_report/000_moc.md)
+- [devlog 260614 chase pull](../../devlog/_fin/260614_chase_upstream_pull_priority_report/000_moc.md)
 
 *정본: `struct_har/chase/10_` · `20_`.*
 

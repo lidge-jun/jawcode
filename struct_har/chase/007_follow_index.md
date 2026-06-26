@@ -1,9 +1,9 @@
 # chase — 따라갈 내용 인덱스 (실행 순)
 
-> **부채 스택**: [devlog 02_debt_priority_stack](../../devlog/_plan/260614_chase_upstream_pull_priority_report/02_debt_priority_stack.md)  
-> **pull 델타**: [devlog 01_pull_delta](../../devlog/_plan/260614_chase_upstream_pull_priority_report/01_pull_delta_gjc_omp.md)  
+> **부채 스택**: [devlog 02_debt_priority_stack](../../devlog/_fin/260614_chase_upstream_pull_priority_report/02_debt_priority_stack.md)  
+> **pull 델타**: [devlog 01_pull_delta](../../devlog/_fin/260614_chase_upstream_pull_priority_report/01_pull_delta_gjc_omp.md)  
 > **명명 (필수)**: [008_gjc_jwc_naming_contract.md](./008_gjc_jwc_naming_contract.md) — `jwc` · **`python/jwc-rpc`** · `.jwc`  
-> **RPC 묶음 실현성**: [03_rpc_bundle_feasibility_jwc_rpc](../../devlog/_plan/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md)  
+> **RPC 묶음 실현성**: [03_rpc_bundle_feasibility_jwc_rpc](../../devlog/_fin/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md)  
 > 업데이트: **2026-06-14** (executor v2 · chase refresh)
 > **PABCD devlog**: [260614_chase_rpc_harness_bundle](../../devlog/_plan/260614_chase_rpc_harness_bundle/000_moc.md)
 
@@ -40,7 +40,7 @@
 ```
 
 - **Python**: `python/jwc-rpc` — upstream `gjc_rpc` diff 참조만 ([008](./008_gjc_jwc_naming_contract.md)).
-- **완료 기준**: [03](./../../devlog/_plan/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md) Phase 1 / 1b.
+- **완료 기준**: [03](./../../devlog/_fin/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md) Phase 1 / 1b.
 
 ## G2 — omp 카드 (Tier 3)
 
