@@ -54,7 +54,7 @@
 | 005 | [10.005_gjc_chase_task_subagent.md](./10.005_gjc_chase_task_subagent.md) | task | P2 | ⬜ |
 | 006 | [10.006_gjc_chase_tui_core.md](./10.006_gjc_chase_tui_core.md) | tui | P3 | ⬜ |
 | 007 | [10.007_gjc_chase_team_profile_self_heal.md](./10.007_gjc_chase_team_profile_self_heal.md) | team·leader profile | **P1** | ⬜ |
-| 013-cache | [10.013_gjc_chase_assistant_msg_cache.md](./10.013_gjc_chase_assistant_msg_cache.md) | assistant cache | P3 | ⬜ |
+| 013-cache | [10.013_gjc_chase_assistant_msg_cache.md](./_fin/10/10.013_gjc_chase_assistant_msg_cache.md) | assistant cache | P3 | ✅ _fin |
 | 019 | [10.019_gjc_chase_gc_file_lock.md](./10.019_gjc_chase_gc_file_lock.md) | gc | P2 | ⬜ |
 | 021 | [10.021_gjc_chase_goal_redteam_review.md](./10.021_gjc_chase_goal_redteam_review.md) | goal red-team | P2 | ⬜ |
 | 023 | [10.023_gjc_chase_task_notification_context.md](./10.023_gjc_chase_task_notification_context.md) | task notify | P2 | ⬜ |

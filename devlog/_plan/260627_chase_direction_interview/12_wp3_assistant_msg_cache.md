@@ -51,6 +51,24 @@ so thinking collapse/expand is unaffected.
 - `bunx tsc --noEmit -p packages/coding-agent` (or repo `check:ts` scoped) → no new errors.
 - Then move 10.013 card → `_fin/10/`, update MOC + follow_index, devlog cycle note.
 
+## C verification result
+
+- ✅ Implementation landed (`d70b885`): import `Component`, `#contentBlocksCache` field,
+  `#renderTextBlock` (setText reuse) + `#renderThinkingBlock` (instanceof guard), wired into
+  `updateContent` text + expanded-thinking branches; collapsed/hidden unchanged.
+- ✅ `bunx tsc --noEmit -p packages/coding-agent/tsconfig.json` → **0 errors** (tsconfig includes
+  `test/`, so both src and the new test type-check).
+- ✅ A-audit **PASS** (collapse coexistence, streaming, full-transcript, container-reuse all traced).
+- ✅ `git diff` reviewed; ✅ card retired → `_fin/10/`, `10_gjc_chase_MOC.md` row → `_fin` + `✅`,
+  zero chase-root links to 10.013 remain.
+- ⚠️ **Residual**: runtime `bun test` BLOCKED by pre-existing native version drift
+  (`pi-natives` 1.0.0 crate vs `@jawcode-dev/natives` 1.0.2 loader sentinel `__piNativesV1_0_2`;
+  `bun --cwd=packages/natives run build` rebuilds 1.0.0, still mismatched — documented out-of-scope
+  in `devlog/_fin/.../260626_struct_har_chase_refresh`). Test is written + type-checks; re-run
+  `bun test packages/coding-agent/test/assistant-message-cache.test.ts` once natives are re-synced.
+- The 10.013 outbound `bands/080_tui` link is the same pre-existing bands-consolidation staleness
+  recorded in WP2 (faithfully depth-adjusted, not a regression).
+
 ## Commit scope
 
 - `assistant-message.ts` (impl) + new test (atomic commit 1).
