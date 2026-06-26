@@ -17,7 +17,7 @@ import {
 	writeReport,
 	writeWorkflowEnvelopeAtomic,
 } from "./state-writer";
-import { GJC_TMUX_PROFILE_OPTION, GJC_TMUX_PROFILE_VALUE } from "./tmux-common";
+import { buildJwcTmuxExactOptionTarget, GJC_TMUX_PROFILE_OPTION, GJC_TMUX_PROFILE_VALUE } from "./tmux-common";
 
 export type JwcTeamPhase = "starting" | "running" | "awaiting_integration" | "complete" | "failed" | "cancelled";
 export type JwcTeamTaskStatus = "pending" | "blocked" | "in_progress" | "completed" | "failed";
@@ -1631,7 +1631,7 @@ function buildTeamTmuxLeaderRequirementMessage(detail?: string): string {
 }
 function readJwcTmuxProfileValue(tmuxCommand: string, sessionName: string): string {
 	const result = Bun.spawnSync(
-		[tmuxCommand, "show-options", "-qv", "-t", `=${sessionName}`, GJC_TMUX_PROFILE_OPTION],
+		[tmuxCommand, "show-options", "-qv", "-t", buildJwcTmuxExactOptionTarget(sessionName), GJC_TMUX_PROFILE_OPTION],
 		{
 			stdout: "pipe",
 			stderr: "pipe",
@@ -1639,6 +1639,21 @@ function readJwcTmuxProfileValue(tmuxCommand: string, sessionName: string): stri
 	);
 	if (result.exitCode !== 0) return "";
 	return result.stdout.toString().trim();
+}
+
+function tagJwcTmuxSessionAsLeader(tmuxCommand: string, sessionName: string): boolean {
+	// Write GJC's @gjc-profile ownership tag onto the current session. Uses the
+	// exact-session option target (`=${sessionName}:`) — the same form as
+	// readJwcTmuxProfileValue — so the set/get round-trip targets the same session.
+	// Mirrors gjc tagTmuxSessionAsGjcLeader (gjc-runtime/team-runtime.ts:1829-1845).
+	const result = Bun.spawnSync(
+		[tmuxCommand, "set-option", "-t", buildJwcTmuxExactOptionTarget(sessionName), GJC_TMUX_PROFILE_OPTION, GJC_TMUX_PROFILE_VALUE],
+		{
+			stdout: "pipe",
+			stderr: "pipe",
+		},
+	);
+	return result.exitCode === 0;
 }
 
 function readCurrentTmuxLeaderContext(tmuxCommand: string, env: NodeJS.ProcessEnv): JwcTmuxLeaderContext {
@@ -1652,8 +1667,19 @@ function readCurrentTmuxLeaderContext(tmuxCommand: string, env: NodeJS.ProcessEn
 	const [sessionName = "", windowIndex = ""] = sessionAndWindow.split(":");
 	if (!sessionName || !windowIndex || !leaderPaneId.startsWith("%"))
 		throw new Error(buildTeamTmuxLeaderRequirementMessage(`invalid_tmux_context:${result.stdout.toString().trim()}`));
-	if (readJwcTmuxProfileValue(tmuxCommand, sessionName) !== GJC_TMUX_PROFILE_VALUE)
-		throw new Error(buildTeamTmuxLeaderRequirementMessage(`unmanaged_tmux_session:${sessionName}`));
+	if (readJwcTmuxProfileValue(tmuxCommand, sessionName) !== GJC_TMUX_PROFILE_VALUE) {
+		// Self-heal: adopt any real tmux leader the process is already inside —
+		// including a session created outside `gjc --tmux`, or a `gjc --tmux` pane
+		// that lost its @gjc-profile tag mid-startup — by writing the ownership tag
+		// and reading it back. A real tmux round-trips the user option and is
+		// adopted; a provider that drops it (e.g. psmux, a non-tmux multiplexer)
+		// fails the readback and stays rejected as foreign/unmanaged. The retag is
+		// scoped to the session display-message already resolved for our own pane,
+		// so it is not a foreign-session takeover. (gjc team-runtime.ts:1871-1886)
+		const tagged = tagJwcTmuxSessionAsLeader(tmuxCommand, sessionName);
+		if (!tagged || readJwcTmuxProfileValue(tmuxCommand, sessionName) !== GJC_TMUX_PROFILE_VALUE)
+			throw new Error(buildTeamTmuxLeaderRequirementMessage(`unmanaged_tmux_session:${sessionName}`));
+	}
 	return { sessionName, windowIndex, leaderPaneId, target: `${sessionName}:${windowIndex}` };
 }
 export function resolveJwcWorkerCommand(cwd = process.cwd(), env: NodeJS.ProcessEnv = process.env): string {

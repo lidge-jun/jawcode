@@ -9,6 +9,17 @@ export const GJC_TMUX_BRANCH_OPTION = "@gjc-branch";
 export const GJC_TMUX_BRANCH_SLUG_OPTION = "@gjc-branch-slug";
 export const GJC_TMUX_PROJECT_OPTION = "@gjc-project";
 
+/**
+ * Exact-session target for tmux **option** commands (`set-option` / `show-options`).
+ * The bare exact-match form `=NAME` is rejected by tmux ("no such session: =NAME")
+ * for option/display commands; appending the empty window separator (`=NAME:`) keeps
+ * the exact-session match while giving tmux the window-qualified target those commands
+ * require. (gajae-code#580; verified against tmux 3.6a.)
+ */
+export function buildJwcTmuxExactOptionTarget(sessionName: string): string {
+	return `=${sessionName}:`;
+}
+
 export interface JwcTmuxProfileCommand {
 	description: string;
 	args: string[];
