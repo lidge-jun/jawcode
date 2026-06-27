@@ -2,22 +2,48 @@
 
 완료된 `10.NNN` / `20.NNN` — 본문은 `_fin/10/` · `_fin/20/`.
 
-| NNN | 제목 | 완료일 | 파일 |
-|---|---|---|---|
-| 10.009 | pi-shell bash fixup UTF-8 boundary panic (즉시 채택, 가치 70) | 260613 | [10/10.009](./10/10.009_gjc_chase_pishell_utf8_fixup.md) |
-| 10.010 | harness RPC submit readiness gate (선별 병합, 가치 65) | 260613 | [10/10.010](./10/10.010_gjc_chase_harness_submit_readiness.md) |
-| 10.012 | perf(serialization) StablePrefix identity cache + digest overhaul (가치 70) | 260613 | [10/10.012](./10/10.012_gjc_chase_perf_serialization.md) |
-| 10.013 | perf(compaction) token estimation cache + findCutPoint bugfix (가치 65) | 260613 | [10/10.013](./10/10.013_gjc_chase_perf_compaction.md) |
-| 10.014 | perf(session) EphemeralBlobStore + exportFromFile close (가치 65) | 260613 | [10/10.014](./10/10.014_gjc_chase_perf_session_cache.md) |
-| 10.015 | context maintenance #542+#570 pre-prompt check + estimator split (가치 65) | 260613 | [10/10.015](./10/10.015_gjc_chase_context_maintenance_race.md) |
-| 10.016 | forced tool_choice capability + runtime 400 fallback #561 (가치 65) | 260613 | [10/10.016](./10/10.016_gjc_chase_tool_choice_fallback.md) |
-| 10.017 | retired Fable profiles #dd70181 — N/A (jawcode keeps Fable) | 260613 | [10/10.017](./10/10.017_gjc_retired_fable_na.md) |
-| 10.004 | session compaction pre-send + pruning persistence + progress UX | 260615 | [10/10.004](./10/10.004_gjc_chase_session_compaction.md) |
-| 10.008 | RPC lifecycle stdio Phase 1 (redteam 4/4) | 260615 | [10/10.008](./10/10.008_gjc_chase_rpc_lifecycle.md) |
-| 10.011 | receipt spool exporter | 260615 | [10/10.011](./10/10.011_gjc_chase_receipt_spool.md) |
-| 10.018 | RPC registry + list_sessions + UDS Phase 2 | 260615 | [10/10.018](./10/10.018_gjc_chase_rpc_registry_uds.md) |
-| 10.026 | RPC/unattended issues audit pack — Phase 1 appendix + UDS issue 09 | 260615 | [10/10.026](./10/10.026_gjc_chase_rpc_issues_audit.md) |
-| 10.022 | goal-mode AgentBusyError continuation loop | 260615 | [10/10.022](./10/10.022_gjc_chase_goal_agent_busy_loop.md) |
+> Inventory refreshed 2026-06-28 against actual files: GJC `_fin/10` = 25, OMP `_fin/20` = 6. Duplicate NNNs are intentionally file-level rows.
+
+## GJC `_fin/10`
+
+| NNN | 제목 | 파일 |
+|---|---|---|
+| 10.002 | 10.002 — gjc chase: packages/ai · auth (090) | [10/10.002_gjc_chase_ai_auth](./10/10.002_gjc_chase_ai_auth.md) |
+| 10.003 | 10.003 — gjc chase: cursor (081) | [10/10.003_gjc_chase_cursor](./10/10.003_gjc_chase_cursor.md) |
+| 10.004 | 10.004 — gjc chase: 세션 · compaction · harness | [10/10.004_gjc_chase_session_compaction](./10/10.004_gjc_chase_session_compaction.md) |
+| 10.005 | 10.005 — gjc chase: task · subagent | [10/10.005_gjc_chase_task_subagent](./10/10.005_gjc_chase_task_subagent.md) |
+| 10.007 | 10.007 — gjc chase: team `@gjc-profile` self-heal | [10/10.007_gjc_chase_team_profile_self_heal](./10/10.007_gjc_chase_team_profile_self_heal.md) |
+| 10.008 | 10.008 — gjc chase: RPC lifecycle · `get_state` payload | [10/10.008_gjc_chase_rpc_lifecycle](./10/10.008_gjc_chase_rpc_lifecycle.md) |
+| 10.009 | 10.009 — gjc chase: pi-shell bash fixup UTF-8 boundary panic | [10/10.009_gjc_chase_pishell_utf8_fixup](./10/10.009_gjc_chase_pishell_utf8_fixup.md) |
+| 10.010 | 10.010 — gjc chase: harness RPC submit readiness gate | [10/10.010_gjc_chase_harness_submit_readiness](./10/10.010_gjc_chase_harness_submit_readiness.md) |
+| 10.011 | 10.011 — gjc chase: harness receipt JSONL spool exporter | [10/10.011_gjc_chase_receipt_spool](./10/10.011_gjc_chase_receipt_spool.md) |
+| 10.012 | 10.012 — gjc chase: goal steering subsystem | [10/10.012_gjc_chase_goal_steering](./10/10.012_gjc_chase_goal_steering.md) |
+| 10.012 | 10.012 — gjc chase: perf(serialization) — clone equality 최적화 (#558) | [10/10.012_gjc_chase_perf_serialization](./10/10.012_gjc_chase_perf_serialization.md) |
+| 10.013 | 10.013 — gjc chase: assistant-message content block caching | [10/10.013_gjc_chase_assistant_msg_cache](./10/10.013_gjc_chase_assistant_msg_cache.md) |
+| 10.013 | 10.013 — gjc chase: perf(compaction) — token estimation 캐시 (#557) | [10/10.013_gjc_chase_perf_compaction](./10/10.013_gjc_chase_perf_compaction.md) |
+| 10.014 | 10.014 — gjc chase: perf(session) — resident text cache + EphemeralBlobStore (#548) | [10/10.014_gjc_chase_perf_session_cache](./10/10.014_gjc_chase_perf_session_cache.md) |
+| 10.015 | 10.015 — gjc chase: context maintenance race — task notification overflow 방지 (#570) | [10/10.015_gjc_chase_context_maintenance_race](./10/10.015_gjc_chase_context_maintenance_race.md) |
+| 10.016 | 10.016 — gjc chase: forced tool_choice capability + runtime 400 fallback (#561) | [10/10.016_gjc_chase_tool_choice_fallback](./10/10.016_gjc_chase_tool_choice_fallback.md) |
+| 10.017 | 10.017_gjc_retired_fable_na | [10/10.017_gjc_retired_fable_na](./10/10.017_gjc_retired_fable_na.md) |
+| 10.018 | 10.018 — gjc chase: RPC session registry + persistent UDS server | [10/10.018_gjc_chase_rpc_registry_uds](./10/10.018_gjc_chase_rpc_registry_uds.md) |
+| 10.020 | 10.020 — gjc chase: deep-interview semantics (reference-only) | [10/10.020_gjc_chase_deep_interview_semantics](./10/10.020_gjc_chase_deep_interview_semantics.md) |
+| 10.021 | 10.021 — gjc chase: ultragoal red-team verification + review mode | [10/10.021_gjc_chase_goal_redteam_review](./10/10.021_gjc_chase_goal_redteam_review.md) |
+| 10.022 | 10.022 — gjc chase: goal-mode `AgentBusyError` continuation loop | [10/10.022_gjc_chase_goal_agent_busy_loop](./10/10.022_gjc_chase_goal_agent_busy_loop.md) |
+| 10.023 | 10.023 — gjc chase: task notifications vs pre-prompt context maintenance | [10/10.023_gjc_chase_task_notification_context](./10/10.023_gjc_chase_task_notification_context.md) |
+| 10.024 | 10.024 — gjc chase: coordinator MCP event watch + Hermes snapshot | [10/10.024_gjc_chase_coordinator_mcp_watch](./10/10.024_gjc_chase_coordinator_mcp_watch.md) |
+| 10.025 | 10.025 — gjc chase: perf profiling corpus + geobench (reference) | [10/10.025_gjc_chase_perf_corpus_geobench](./10/10.025_gjc_chase_perf_corpus_geobench.md) |
+| 10.026 | 10.026 — gjc chase: RPC/unattended issues audit pack (design input) | [10/10.026_gjc_chase_rpc_issues_audit](./10/10.026_gjc_chase_rpc_issues_audit.md) |
+
+## OMP `_fin/20`
+
+| NNN | 제목 | 파일 |
+|---|---|---|
+| 20.002 | 20.002 — omp: worker · catalog | [20/20.002_omp_chase_worker_catalog](./20/20.002_omp_chase_worker_catalog.md) |
+| 20.003 | 20.003 — omp: memory · skills | [20/20.003_omp_chase_memory_skills](./20/20.003_omp_chase_memory_skills.md) |
+| 20.005 | 20.005 — omp chase: steering/queued follow-up 전달 보장 | [20/20.005_omp_chase_steering_delivery](./20/20.005_omp_chase_steering_delivery.md) |
+| 20.006 | 20.006 — omp chase: TUI 입력/표시 마이크로 수정 묶음 | [20/20.006_omp_chase_tui_input_micro_fixes](./20/20.006_omp_chase_tui_input_micro_fixes.md) |
+| 20.007 | 20.007 — omp chase: session layer modularization (reference) | [20/20.007_omp_chase_session_modularization](./20/20.007_omp_chase_session_modularization.md) |
+| 20.008 | 20.008 — omp chase: 15.12.3 → 15.13.0 pull delta index | [20/20.008_omp_chase_pull_15_13_delta](./20/20.008_omp_chase_pull_15_13_delta.md) |
 
 ## superseded (devlog)
 
