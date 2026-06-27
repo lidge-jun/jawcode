@@ -36,4 +36,19 @@ describe("notification docs", () => {
 			expect(text).toContain("deferred");
 		}
 	});
+
+	it("keeps Telegram media and file transfer documented as unsupported", async () => {
+		const text = await readDoc("docs/telegram-onboarding.md");
+		const lower = text.toLowerCase();
+
+		expect(lower).toContain("media/file transfer is not implemented yet");
+		expect(lower).toContain("workspace path-confinement");
+		expect(lower).toContain("active authorized telegram sink");
+		expect(lower).toContain("mime and size policy");
+		expect(lower).toContain("logs never include raw file contents");
+		expect(lower).not.toContain("telegram_send is supported");
+		expect(lower).not.toContain("sendphoto is supported");
+		expect(lower).not.toContain("senddocument is supported");
+		expect(lower).not.toContain("inbound telegram media injection is supported");
+	});
 });
