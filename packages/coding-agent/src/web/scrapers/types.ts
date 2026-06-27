@@ -6,6 +6,7 @@ import type TurndownService from "turndown";
 
 import type { AgentStorage } from "../../session/agent-storage";
 import { ToolAbortError } from "../../tools/tool-errors";
+import { assertPublicFetchUrl } from "../public-fetch-url";
 
 export { formatNumber } from "@jawcode-dev/utils";
 
@@ -35,6 +36,8 @@ const USER_AGENTS = [
 	"Mozilla/5.0 (compatible; TextBot/1.0)",
 	"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
 ];
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+const MAX_REDIRECT_HOPS = 10;
 
 function isBotBlocked(status: number, content: string): boolean {
 	if (status === 403 || status === 503) {
@@ -80,6 +83,15 @@ export interface LoadPageResult {
 	status?: number;
 }
 
+function resolveRedirectUrl(currentUrl: string, location: string | null): string | null {
+	if (!location) return null;
+	try {
+		return new URL(location, currentUrl).href;
+	} catch {
+		return null;
+	}
+}
+
 /**
  * Fetch a page with timeout and size limit
  */
@@ -93,26 +105,54 @@ export async function loadPage(url: string, options: LoadPageOptions = {}): Prom
 
 		const userAgent = USER_AGENTS[attempt];
 		const requestSignal = ptree.combineSignals(signal, timeout * 1000);
+		let currentUrl: string;
+		try {
+			currentUrl = assertPublicFetchUrl(url);
+		} catch {
+			return { content: "", contentType: "", finalUrl: url, ok: false, status: 310 };
+		}
 
 		try {
-			const requestInit: RequestInit = {
-				signal: requestSignal,
-				method,
-				headers: {
-					"User-Agent": userAgent,
-					Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-					"Accept-Language": "en-US,en;q=0.5",
-					"Accept-Encoding": "identity", // Cloudflare Markdown-for-Agents returns corrupted bytes when compression is negotiated
-					...headers,
-				},
-				redirect: "follow",
-			};
+			let response: Response | null = null;
+			for (let hop = 0; hop <= MAX_REDIRECT_HOPS; hop++) {
+				const requestInit: RequestInit = {
+					signal: requestSignal,
+					method: hop === 0 ? method : "GET",
+					headers: {
+						"User-Agent": userAgent,
+						Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+						"Accept-Language": "en-US,en;q=0.5",
+						"Accept-Encoding": "identity", // Cloudflare Markdown-for-Agents returns corrupted bytes when compression is negotiated
+						...headers,
+					},
+					redirect: "manual",
+				};
 
-			if (body !== undefined) {
-				requestInit.body = body;
+				if (hop === 0 && body !== undefined) {
+					requestInit.body = body;
+				}
+
+				response = await fetch(currentUrl, requestInit);
+				if (!REDIRECT_STATUSES.has(response.status)) break;
+
+				if (hop === MAX_REDIRECT_HOPS) {
+					return { content: "", contentType: "", finalUrl: currentUrl, ok: false, status: 310 };
+				}
+
+				const nextUrl = resolveRedirectUrl(currentUrl, response.headers.get("location"));
+				if (!nextUrl) {
+					return { content: "", contentType: "", finalUrl: currentUrl, ok: false, status: response.status };
+				}
+				try {
+					currentUrl = assertPublicFetchUrl(nextUrl);
+				} catch {
+					return { content: "", contentType: "", finalUrl: nextUrl, ok: false, status: 310 };
+				}
 			}
 
-			const response = await fetch(url, requestInit);
+			if (!response) {
+				return { content: "", contentType: "", finalUrl: currentUrl, ok: false };
+			}
 
 			const contentType = response.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() ?? "";
 			const finalUrl = response.url;

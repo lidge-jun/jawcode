@@ -3,6 +3,7 @@ import { isRecord, ptree } from "@jawcode-dev/utils";
 export { isRecord };
 
 import { ToolAbortError } from "../../tools/tool-errors";
+import { assertPublicFetchUrl } from "../public-fetch-url";
 import { convertBufferWithMarkit } from "../../utils/markit";
 import { MAX_BYTES } from "./types";
 
@@ -27,6 +28,8 @@ export interface BinaryFetchSuccess {
 }
 
 export type BinaryFetchResult = BinaryFetchSuccess | { ok: false; error?: string };
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+const MAX_REDIRECT_HOPS = 10;
 
 async function readResponseWithLimit(response: Response, maxBytes: number, signal?: AbortSignal): Promise<Uint8Array> {
 	const reader = response.body?.getReader();
@@ -66,13 +69,34 @@ async function readResponseWithLimit(response: Response, maxBytes: number, signa
 export async function fetchBinary(url: string, timeout: number = 20, signal?: AbortSignal): Promise<BinaryFetchResult> {
 	const requestSignal = ptree.combineSignals(signal, timeout * 1000);
 	try {
-		const response = await fetch(url, {
-			signal: requestSignal,
-			headers: {
-				"User-Agent": "Mozilla/5.0 (compatible; TextBot/1.0)",
-			},
-			redirect: "follow",
-		});
+		let currentUrl = assertPublicFetchUrl(url);
+		let response: Response | null = null;
+		for (let hop = 0; hop <= MAX_REDIRECT_HOPS; hop++) {
+			response = await fetch(currentUrl, {
+				signal: requestSignal,
+				headers: {
+					"User-Agent": "Mozilla/5.0 (compatible; TextBot/1.0)",
+				},
+				redirect: "manual",
+			});
+
+			if (!REDIRECT_STATUSES.has(response.status)) break;
+			if (hop === MAX_REDIRECT_HOPS) {
+				return { ok: false, error: "too many redirects" };
+			}
+
+			const location = response.headers.get("location");
+			if (!location) return { ok: false, error: "redirect missing location" };
+			try {
+				currentUrl = assertPublicFetchUrl(new URL(location, currentUrl).href);
+			} catch (err) {
+				return { ok: false, error: err instanceof Error ? err.message : "blocked redirect" };
+			}
+		}
+
+		if (!response) {
+			return { ok: false, error: "Failed to fetch binary" };
+		}
 
 		if (!response.ok) {
 			return { ok: false, error: `HTTP ${response.status}` };

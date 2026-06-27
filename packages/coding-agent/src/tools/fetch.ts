@@ -21,6 +21,7 @@ import { specialHandlers } from "../web/scrapers";
 import type { RenderResult } from "../web/scrapers/types";
 import { finalizeOutput, loadPage, looksLikeHtml, MAX_OUTPUT_CHARS } from "../web/scrapers/types";
 import { convertWithMarkit, fetchBinary } from "../web/scrapers/utils";
+import { assertPublicFetchUrl } from "../web/public-fetch-url";
 import { applyListLimit } from "./list-limit";
 import { formatStyledArtifactReference, type OutputMeta } from "./output-meta";
 import { formatExpandHint, getDomain, replaceTabs } from "./render-utils";
@@ -602,7 +603,8 @@ async function renderHtmlToText(
 	// Try trafilatura (auto-install via uv/pip)
 	const trafilatura = await ensureTool("trafilatura", { signal, silent: true });
 	if (trafilatura) {
-		const result = await ptree.exec([trafilatura, "-u", url, "--output-format", "markdown"], execOptions);
+		const publicUrl = assertPublicFetchUrl(url);
+		const result = await ptree.exec([trafilatura, "-u", publicUrl, "--output-format", "markdown"], execOptions);
 		if (result.ok && result.stdout.trim().length > 100) {
 			return { content: result.stdout, ok: true, method: "trafilatura" };
 		}
@@ -611,7 +613,8 @@ async function renderHtmlToText(
 	// Try lynx (can't auto-install, system package)
 	const lynx = hasCommand("lynx");
 	if (lynx) {
-		const result = await ptree.exec(["lynx", "-dump", "-nolist", "-width", "250", url], execOptions);
+		const publicUrl = assertPublicFetchUrl(url);
+		const result = await ptree.exec(["lynx", "-dump", "-nolist", "-width", "250", publicUrl], execOptions);
 		if (result.ok) {
 			return { content: result.stdout, ok: true, method: "lynx" };
 		}
@@ -737,7 +740,7 @@ async function renderUrl(
 	}
 
 	// Step 0: Normalize URL (ensure scheme for special handlers)
-	url = normalizeUrl(url);
+	url = assertPublicFetchUrl(normalizeUrl(url));
 
 	// Step 1: Try special handlers for known sites (unless raw mode)
 	if (!raw) {
