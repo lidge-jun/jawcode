@@ -52,9 +52,9 @@
 | 영역 | upstream 후보 | jaw 병합 난이도 | 참조 |
 |---|---|---|---|
 | 세션/autocompact | pre-send `#checkEstimatedContextBeforePrompt` | ✅ pre-send + threshold prune persistence + progress UX | [_fin/10.004](./_fin/10/10.004_gjc_chase_session_compaction.md) |
-| RPC lifecycle | malformed JSONL; EOF flush; bridges | **🟡** fast-lane reads ✅; durability diff ⬜ | [10.008](./10.008_gjc_chase_rpc_lifecycle.md) |
+| RPC lifecycle | malformed JSONL; EOF flush; bridges | ✅ `_fin` — fast-lane reads + lifecycle evidence closed | [10.008](./_fin/10/10.008_gjc_chase_rpc_lifecycle.md) |
 | RPC registry/UDS | #589 registry, `--listen` | ✅ TS+`jwc_rpc.list_sessions` + UDS Phase 2 | [10.018](./_fin/10/10.018_gjc_chase_rpc_registry_uds.md) |
-| receipt spool | #554 JSONL exporter | **🟡** core ✅; tests/`_fin` ⬜ | [10.011](./10.011_gjc_chase_receipt_spool.md) |
+| receipt spool | #554 JSONL exporter | ✅ `_fin` — receipt spool closure recorded | [10.011](./_fin/10/10.011_gjc_chase_receipt_spool.md) |
 | goal busy-loop | #616 AgentBusyError | ✅ landed 260615 | [_fin/10.022](./_fin/10/10.022_gjc_chase_goal_agent_busy_loop.md) |
 | team self-heal | #546 `@gjc-profile` | 중 | [10.007](./10.007_gjc_chase_team_profile_self_heal.md) |
 | pi-shell / harness submit | #551 / #549 | ✅ landed 260613 | [_fin/10](./_fin/INDEX.md) |
@@ -95,7 +95,7 @@ Executor v2 (260614): **011 YES**, **008/026 RISKY**; **018 registry TS+Py lande
 |---|---|---|
 | 15.13 delta | session split, auto-learn, STT | [20.008](./_fin/20/20.008_omp_chase_pull_15_13_delta.md) |
 | steering delivery | yield re-poll, stranded drain | [20.005](./_fin/20/20.005_omp_chase_steering_delivery.md) |
-| TUI micro | Esc draft, ast status | [20.006](./20.006_omp_chase_tui_input_micro_fixes.md) |
+| TUI micro | Esc draft, ast status | [20.006](./_fin/20/20.006_omp_chase_tui_input_micro_fixes.md) |
 | session modules | listing/loader | [20.007](./_fin/20/20.007_omp_chase_session_modularization.md) |
 | memory/skills | mnemopi | [20.003](./_fin/20/20.003_omp_chase_memory_skills.md) |
 | collab/brew | — | **비채택** |
@@ -122,15 +122,15 @@ Codex reformation · TUI O(n²) · xAI `/searchengine` · 100 Node · MCP discov
 
 | 항목 | 축 | 가치 | 분류 |
 |---|---|:---:|---|
-| 10.011 spool | gjc | 60 | 🟡 코어 landed |
-| 10.008 RPC | gjc | 60 | 🟡 선별 |
+| 10.011 spool | gjc | 60 | ✅ _fin |
+| 10.008 RPC | gjc | 60 | ✅ _fin |
 | 10.018 registry | gjc | 60 | ✅ _fin |
 | 10.022 busy-loop | gjc | 55 | ✅ _fin |
 | 10.004 session compaction | gjc | 60 | ✅ _fin |
 | 10.026 issues | gjc | 50 | 설계 |
 | 10.002·003 | gjc | 60 | 선별 |
 | 20.005 steering | omp | 60 | 참조 |
-| 20.006 TUI micro | omp | 50 | 선별 |
+| 20.006 TUI micro | omp | 50 | ✅ _fin |
 
 ## 갱신 체크리스트
 

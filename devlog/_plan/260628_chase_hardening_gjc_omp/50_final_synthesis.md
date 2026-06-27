@@ -25,6 +25,9 @@ This goal did documentation hardening only. It did not implement the new upstrea
 | `22f7cf6` | Phase 2 `_fin` inventory | Refreshed `_fin` index counts and moved the top GJC chase baseline to `a791d72a`. |
 | `03e7805` | Phase 3 OMP split | Added OMP cards 20.009-20.015 for latest `cc0c67be..0fc6d136` deltas. |
 | `1b9f46d` | Phase 4 OMP consistency | Aligned gap inventory baselines and verified OMP active/_fin consistency. |
+| `b46b62f` | Phase 5 synthesis | Collected final source coverage, residual risks, and implementation order. |
+| `35edc96` | Phase 60 residual cleanup | Contextualized remaining GJC `f0a8a3eb` references against `a791d72a`. |
+| pending Phase 61 | index/link reconciliation | Repairs `_fin`-only card links for 10.008, 10.011, and 20.006, then harmonizes GJC MOC JWC SHA. |
 
 ## GJC coverage summary
 
@@ -92,6 +95,8 @@ Completed during the hardening loops:
   - `struct_har/chase/002_gap_inventory.md` has no `f0a8a3eb`.
   - OMP `20.009`-`20.015` links remain in MOC, follow index, and gap inventory.
   - No `_fin/20` body file changed in the Phase 4 commit.
+- Phase 60 confirmed the only remaining `f0a8a3eb` references are qualified historical/implementation anchors with `a791d72a` recheck context.
+- Phase 61 reconciles root/index links to `_fin`-only cards and removes the remaining GJC MOC JWC SHA drift.
 
 Final expected local dirty state after this synthesis:
 

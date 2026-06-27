@@ -8,5 +8,7 @@
 6. Phase 3: OMP latest delta split into `20.009`-`20.015` using `cc0c67be..0fc6d136`.
 7. Phase 4: OMP `_fin` and active consistency review, including `_fin/INDEX.md`.
 8. Phase 5: final synthesis, README/source-head reconciliation, residual risk ordering.
+9. Phase 60: residual GJC baseline cleanup for `f0a8a3eb` references.
+10. Phase 61: index link reconciliation for `_fin`-only cards and JWC SHA drift.
 
 Each numbered item after Phase 0 is a complete PABCD cycle with its own plan, audit, build, check, commit, and goal update.

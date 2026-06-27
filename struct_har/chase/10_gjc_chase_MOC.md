@@ -26,7 +26,7 @@
 
 | gjc | jwc |
 |---|---|
-| `a791d72a` (`upstream/dev`) | `a5c7c5c` (worktree, 2026-06-28 doc pass) |
+| `a791d72a` (`upstream/dev`) | `af363c8` (worktree, 2026-06-28 doc pass) |
 
 > OMP head is intentionally not repeated here; see [20_omp_chase_MOC.md](./20_omp_chase_MOC.md).
 

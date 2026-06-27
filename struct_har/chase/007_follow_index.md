@@ -66,8 +66,8 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 
 | 순 | NNN | 문서 | P | 상태 |
 |---|-----|------|---|------|
-| 9 | 011 | [10.011 receipt spool](./10.011_gjc_chase_receipt_spool.md) | P1 | 🟡 코어 landed |
-| 10 | 008 | [10.008 RPC lifecycle](./10.008_gjc_chase_rpc_lifecycle.md) | P1 | 🟡 partial |
+| 9 | 011 | [10.011 receipt spool](./_fin/10/10.011_gjc_chase_receipt_spool.md) | P1 | ✅ _fin · receipt spool |
+| 10 | 008 | [10.008 RPC lifecycle](./_fin/10/10.008_gjc_chase_rpc_lifecycle.md) | P1 | ✅ _fin · lifecycle evidence |
 | 10b | 018 | [10.018 RPC registry/UDS](./_fin/10/10.018_gjc_chase_rpc_registry_uds.md) | P1 | ✅ _fin · TS+Py · UDS P2 |
 | 10c | 026 | [10.026 issues audit](./_fin/10/10.026_gjc_chase_rpc_issues_audit.md) | P2 | ✅ _fin · residual rows documented |
 | 11 | 022 | [10.022 goal busy-loop](./_fin/10/10.022_gjc_chase_goal_agent_busy_loop.md) | P1 | ✅ _fin · busy guard |
