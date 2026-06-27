@@ -123,7 +123,7 @@ Rules:
 2. A dead pid or stale heartbeat is replaceable.
 3. Different token/chat fingerprints cannot reuse the same owner.
 4. `stoppedAt` owner is not live.
-5. Runtime callers must not map `notifications.daemon.idleTimeoutMs` to `ttlMs`. `idleTimeoutMs` is reserved for future daemon idle shutdown semantics; heartbeat freshness stays governed by `DEFAULT_TRANSPORT_HEARTBEAT_TTL_MS` in Phase 2. If runtime-configurable heartbeat TTL is needed later, add a dedicated setting instead of overloading idle timeout.
+5. Runtime callers must not map `notifications.daemon.idleTimeoutMs` to `ttlMs`. `idleTimeoutMs` is reserved for future daemon idle shutdown semantics only; it must not influence owner freshness, stale-owner replacement, scanner behavior, or tests in this phase. Heartbeat freshness stays governed by `DEFAULT_TRANSPORT_HEARTBEAT_TTL_MS` in Phase 2, with tests allowed to pass explicit `ttlMs` values directly to `isFreshLiveTransportOwner()` for deterministic stale/fresh assertions. If runtime-configurable heartbeat TTL is needed later, add a dedicated setting instead of overloading idle timeout.
 6. Default `pidAlive` should treat `EPERM` as alive and `ESRCH` as dead.
 
 ## Root registry
@@ -162,11 +162,18 @@ It may return observations such as:
 }
 ```
 
-Exports:
+Named exports:
 
-- `safeReadTransportEndpoint(stateRoot, file)` returns `{ ok: true; observation }` or `{ ok: false; error }` without throwing for malformed per-file data.
-- `scanTransportSessions(options)` returns observations and bounded errors.
-- `decideTransportInbound(input)` returns `{ mode: "drop"; reason: "authorization_not_implemented" }`.
+- `safeReadTransportEndpoint(stateRoot: string, file: string)` returns `{ ok: true; observation }` or `{ ok: false; error }` without throwing for malformed per-file data.
+- `scanTransportSessions(options: { agentDir: string; now?: number })` reads registered roots with `readTransportRoots(agentDir)`, scans `<stateRoot>/notifications/*.json`, and returns `{ observations, errors }`.
+- `decideTransportInbound(input: unknown)` returns `{ mode: "drop"; reason: "authorization_not_implemented" }`.
+
+Safe-read implementation contract:
+
+1. `safeReadTransportEndpoint()` is the only helper that may call the Phase 1 raw discovery reader (`readNotificationDiscoveryRecord()`) for scanner input.
+2. `safeReadTransportEndpoint()` converts successful records through `toNotificationEndpointDisplay()` before returning an observation.
+3. `scanTransportSessions()` must not call `readNotificationDiscoveryRecord()` directly; it calls `safeReadTransportEndpoint()` per file so one malformed discovery file cannot abort the scan.
+4. All three helpers are named exports from `transport-shell.ts` and re-exported from `notifications/index.ts`.
 
 Safe-read error shape:
 
