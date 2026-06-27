@@ -95,6 +95,7 @@ Each row is a work-phase. Each work-phase must run a complete PABCD cycle and co
 | Cards | 10.039, 10.042, 10.044, 10.045, 10.048, 10.050 |
 | Goal | Evidence rollups, workflow state, plugin boundaries, desktop-control contracts, release/test gates, team/worktree hardening. |
 | Required plan artifact | `80_phase8_workflow_team_packaging_plan.md` |
+| Required split artifacts | `81_phase8_harness_rollup_split.md`, `82_phase8_goal_interview_state_split.md`, `83_phase8_plugin_extensibility_split.md`, `84_phase8_computer_use_native_split.md`, `85_phase8_release_packaging_split.md`, `86_phase8_team_worktree_split.md` |
 | Review | Backend + Docs; Frontend only if TUI files are touched; security review required for 10.045 |
 | Gate | workflow tests, plugin tests, release/check scripts |
 
