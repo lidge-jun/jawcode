@@ -16,24 +16,23 @@ Read-only audit of Phase 4 split artifacts:
 
 | Reviewer | Initial verdict | Required fixes |
 |---|---|---|
-| Docs | NEEDS_FIX | Parent plan omitted `10.033-C` and `10.034-C` candidate slices. |
-| Backend | NEEDS_FIX | Parent plan omitted `10.033-C` and `10.034-C`; threading split did not explicitly fail-close attachment-bearing inbound updates. |
+| Docs | PASS | Non-blocking note: chase `10.031` could mirror attachment fail-closed wording for skim-level consistency. |
+| Backend | PASS | Non-blocking note: clarify that `10.031-C` route decisions are inert classifier outputs, not session injection. |
 
 ## Fixes applied
 
-1. Added `10.033-C` audit ledger schema and `10.034-C` outbound frame schema to the parent candidate inventory in `40_phase4_telegram_split_plan.md`.
-2. Added attachment-only and attachment-bearing inbound fail-closed rules, constraints, and future classifier tests to `40_phase4_telegram_threading_split.md`.
+1. Added chase `10.031` wording that "route" means returning an inert candidate session mapping to a future authorized caller, not injecting text or attachments into a live session.
+2. Mirrored the attachment-bearing inbound deferment in chase `10.031`: attachments stay fail-closed until `10.034` defines storage, MIME, authorization, and ingress policy.
 
 ## Final verdicts
 
 | Reviewer | Final verdict | Evidence |
 |---|---|---|
-| Backend | PASS | Confirmed parent inventory now includes `10.033-C` and `10.034-C`, attachment updates fail closed until `10.034`, and no premature runtime/network/process/file-transfer claims were added. |
 | Docs | PASS | Confirmed parent, child split docs, and chase cards align; all three cards remain active and done-gates stay unchecked. |
+| Backend | PASS | Confirmed route does not imply session injection, attachment updates fail closed until `10.034`, and no premature runtime/network/process/file-transfer claims were added. |
 
 ## Residual notes
 
 - Phase 4 is docs-only and closes no chase done-gate.
 - Future code must run its own PABCD cycle per candidate slice.
 - Attachment-bearing threaded inbound is intentionally blocked until `10.034` defines media storage, MIME, authorization, and ingress policy.
-

@@ -2,7 +2,7 @@
 
 ## B-stage verification
 
-Docs verifier result: DONE.
+Backend/Docs audit result: PASS.
 
 Confirmed:
 
@@ -11,6 +11,8 @@ Confirmed:
 - cards remain active and done-gates stay unchecked;
 - no source/test code files are dirty for this phase;
 - unrelated `devlog/.gitignore` and `devlog/_tmp/` are excluded from intended commit scope.
+- `10.031-C` route decisions are documented as inert classifier outputs, not session injection.
+- attachment-bearing inbound updates are fail-closed and deferred to `10.034` media policy.
 
 Verifier smoke:
 
