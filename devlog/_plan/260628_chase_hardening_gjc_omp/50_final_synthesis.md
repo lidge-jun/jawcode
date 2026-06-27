@@ -28,6 +28,7 @@ This goal did documentation hardening only. It did not implement the new upstrea
 | `b46b62f` | Phase 5 synthesis | Collected final source coverage, residual risks, and implementation order. |
 | `35edc96` | Phase 60 residual cleanup | Contextualized remaining GJC `f0a8a3eb` references against `a791d72a`. |
 | `daa3a87` | Phase 61 index/link reconciliation | Repaired `_fin`-only card links for 10.008, 10.011, and 20.006, then harmonized GJC MOC JWC SHA. |
+| pending Phase 62 | extended `_fin` link sweep | Repairs remaining root links to `_fin`-only 10.004, 10.007, and 10.018 and removes stale residual wording. |
 
 ## GJC coverage summary
 
@@ -44,13 +45,13 @@ Phase 2 and Phase 4 reviewed `_fin` as inventory/baseline consistency work, not 
 - OMP `_fin/20` historical card bodies were intentionally left untouched. In particular, `_fin/20/20.008` can remain historical even though active OMP cards 20.009-20.015 now exist.
 - No `_fin/20` body file was modified in Phase 4.
 
-Residual stale references that were intentionally not rewritten in the final synthesis pass:
+Phase 60 resolved the stale-reference wording without erasing historical anchors:
 
-| File | Residual reference | Reason not changed in this pass |
+| File | Historical anchor retained | Current context |
 |---|---|---|
-| `struct_har/chase/003_reference_from_gjc.md` | GJC `f0a8a3eb` | Reference overview needs a separate source-refresh edit, not a final synthesis-only change. |
-| `struct_har/chase/10.027_gjc_chase_goal_live_artifact_engine.md` | GJC `f0a8a3eb` | Active deferral card was outside the Phase 1A-1C hardening set. |
-| `struct_har/chase/_fin/10/10.012_gjc_chase_goal_steering.md` | GJC `f0a8a3eb` | Completed card body was left historical during `_fin` inventory review. |
+| `struct_har/chase/003_reference_from_gjc.md` | none | Reference overview now reviews through GJC `a791d72a`. |
+| `struct_har/chase/10.027_gjc_chase_goal_live_artifact_engine.md` | GJC `f0a8a3eb` legacy engine anchor | Active split remains deferred, with chase corpus rechecked through `a791d72a`. |
+| `struct_har/chase/_fin/10/10.012_gjc_chase_goal_steering.md` | GJC `f0a8a3eb` implementation anchor | `_fin` body remains historical, with `a791d72a` recheck context and no status reopen. |
 
 ## OMP coverage summary
 
@@ -83,7 +84,7 @@ The GJC cards similarly distinguish source facts from JWC adaptation notes. Futu
 1. Finish the high-signal GJC Telegram/notification stack first, because the user explicitly asked whether JWC can catch up to GJC Telegram behavior.
 2. Handle OMP `20.012` and `20.015` early if implementation work resumes, because bash snapshot/env security and release/test leak hardening are risk reducers.
 3. Defer reference-heavy OMP work (`20.013`, `20.014`) until JWC's plugin and goal/provider architecture owners confirm compatibility.
-4. Revisit the three residual `f0a8a3eb` references as a small follow-up docs cleanup before claiming all chase docs are globally reviewed through `a791d72a`.
+4. Before implementation resumes, use the follow index and MOCs rather than stale root paths; Phase 61/62 reconciled `_fin`-only chase-card links.
 
 ## Verification evidence
 
@@ -108,5 +109,5 @@ Final expected local dirty state after this synthesis:
 ## Residual risk
 
 - The chase corpus is now much more concrete, but active implementation cards remain open. This goal did not prove runtime parity with GJC or OMP.
-- `_fin` body text is historical in several places. That is acceptable for this goal only because the final synthesis records the exact residual references.
+- `_fin` body text is historical in several places. That is acceptable for this goal because historical anchors are now qualified with current review context instead of being treated as unresolved baseline drift.
 - The branch remains ahead of `origin/main`; no push was performed.

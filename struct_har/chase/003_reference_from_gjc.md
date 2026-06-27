@@ -58,9 +58,9 @@ diff -u devlog/_gjc_chase/gajae-code/packages/coding-agent/src/cli.ts packages/c
 | 참조 | 내용 | chase |
 |---|---|---|
 | RPC stdio lifecycle | malformed JSONL recovery, EOF/shutdown `ensureOnDisk`, host bridge cleanup, include-gated `get_state` payload | [10.008](./_fin/10/10.008_gjc_chase_rpc_lifecycle.md) |
-| RPC registry / UDS | session-registry, `--listen`, **`jwc_rpc.list_sessions`** | [10.018](./10.018_gjc_chase_rpc_registry_uds.md) |
+| RPC registry / UDS | session-registry, `--listen`, **`jwc_rpc.list_sessions`** | [10.018](./_fin/10/10.018_gjc_chase_rpc_registry_uds.md) |
 | Python RPC client | upstream `python/gjc-rpc` → jwc **`python/jwc-rpc`** | [008](./008_gjc_jwc_naming_contract.md) · [10.026](./_fin/10/10.026_gjc_chase_rpc_issues_audit.md) |
-| team tmux profile | `GJC_TMUX_LAUNCHED_ENV`-guarded `@gjc-profile` self-heal without foreign-session hijack | [10.007](./10.007_gjc_chase_team_profile_self_heal.md) |
+| team tmux profile | `GJC_TMUX_LAUNCHED_ENV`-guarded `@gjc-profile` self-heal without foreign-session hijack | [10.007](./_fin/10/10.007_gjc_chase_team_profile_self_heal.md) |
 
 ### packages/coding-agent — task
 

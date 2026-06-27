@@ -11,7 +11,7 @@
 
 | 축 | jwc가 **앞서거나 유일** | jwc가 **뒤처지거나 약함** |
 |---|---|---|
-| **gjc** | orchestrate/PABCD, jaw 표면, `.jwc`, lazy `computer_use`, pi-shell·submit gate(10.009·10.010 ✅), goal busy-loop #616 ✅, session compaction/progress ✅ | RPC lifecycle 잔여(008), receipt spool 테스트(011), **registry TS+Py ✅ / UDS ✅**(018), team profile self-heal(007) |
+| **gjc** | orchestrate/PABCD, jaw 표면, `.jwc`, lazy `computer_use`, pi-shell·submit gate(10.009·10.010 ✅), goal busy-loop #616 ✅, session compaction/progress ✅, RPC lifecycle/receipt spool/registry/team profile `_fin`(10.008·10.011·10.018·10.007 ✅) | active GJC upstream/dev chase cards remain in 10.027 and 10.028+ implementation backlog |
 | **omp** | 4 workflow 번들, jaw 워크플로 | task-agent, session ops, memory, pruning = **참조** ([20.008](./_fin/20/20.008_omp_chase_pull_15_13_delta.md)) |
 | **자체** | 100 Node 완료, TUI O(n²) 수정, 99.03·99.01·99.07 부분 | 99.02·99.04·99.05·99.06 · M2 110+ |
 
@@ -56,7 +56,7 @@
 | RPC registry/UDS | #589 registry, `--listen` | ✅ TS+`jwc_rpc.list_sessions` + UDS Phase 2 | [10.018](./_fin/10/10.018_gjc_chase_rpc_registry_uds.md) |
 | receipt spool | #554 JSONL exporter | ✅ `_fin` — receipt spool closure recorded | [10.011](./_fin/10/10.011_gjc_chase_receipt_spool.md) |
 | goal busy-loop | #616 AgentBusyError | ✅ landed 260615 | [_fin/10.022](./_fin/10/10.022_gjc_chase_goal_agent_busy_loop.md) |
-| team self-heal | #546 `@gjc-profile` | 중 | [10.007](./10.007_gjc_chase_team_profile_self_heal.md) |
+| team self-heal | #546 `@gjc-profile` | ✅ _fin | [10.007](./_fin/10/10.007_gjc_chase_team_profile_self_heal.md) |
 | pi-shell / harness submit | #551 / #549 | ✅ landed 260613 | [_fin/10](./_fin/INDEX.md) |
 | model-profiles UX | #553 | 사용자 패치 중 — 카드 없음 | [10.001](./10.001_gjc_chase_cycle.md) |
 | providers/schemas | drift | ai diff; **99.02** | `packages/ai/` |

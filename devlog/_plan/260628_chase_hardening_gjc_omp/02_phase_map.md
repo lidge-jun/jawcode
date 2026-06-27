@@ -10,5 +10,6 @@
 8. Phase 5: final synthesis, README/source-head reconciliation, residual risk ordering.
 9. Phase 60: residual GJC baseline cleanup for `f0a8a3eb` references.
 10. Phase 61: index link reconciliation for `_fin`-only cards and JWC SHA drift.
+11. Phase 62: extended `_fin` link sweep for 10.004/10.007/10.018 and final synthesis cleanup.
 
 Each numbered item after Phase 0 is a complete PABCD cycle with its own plan, audit, build, check, commit, and goal update.
