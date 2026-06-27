@@ -36,6 +36,19 @@
 
 ## G1 — gjc에서 흔히 뒤쳐지는 항목
 
+### Telegram / notifications (upstream/dev `a791d72a`, 2026-06-28)
+
+| 영역 | upstream 후보 | jaw 병합 난이도 | 참조 |
+|---|---|---|---|
+| notifications SDK | loopback WS endpoint, `.gjc/state/notifications`, action/reply protocol | 높음 — Rust/N-API + session gate | [10.028](./10.028_gjc_chase_notifications_sdk.md) |
+| notify config CLI | `gjc notify setup/status`, BotFather token, private-chat pairing | 중 — secret/settings/schema | [10.029](./10.029_gjc_chase_notify_config_cli.md) |
+| Telegram daemon | singleton `getUpdates` poller, roots registry, owner reload/stop | 높음 — long-lived process | [10.030](./10.030_gjc_chase_telegram_managed_daemon.md) |
+| remote answers | inline buttons, free text, Other/custom input, ask race | 높음 — live gate control | [10.032](./10.032_gjc_chase_telegram_remote_answers.md) |
+| threaded surface | per-session topics, identity/context/turn render, inbound fail-closed routing | 높음 — remote routing | [10.031](./10.031_gjc_chase_telegram_threaded_surface.md) |
+| media/file transfer | image/file frames, inbound media, `telegram_send` workspace egress | 높음 — file egress | [10.034](./10.034_gjc_chase_telegram_media_file_transfer.md) |
+| session lifecycle | Telegram create/close/resume/list | 매우 높음 — remote process control | [10.033](./10.033_gjc_chase_telegram_session_lifecycle.md) |
+| adapters/docs | SDK docs, Telegram onboarding, Discord/Slack scaffolding | 중 — product boundary | [10.035](./10.035_gjc_chase_notifications_adapters_docs.md) |
+
 | 영역 | upstream 후보 | jaw 병합 난이도 | 참조 |
 |---|---|---|---|
 | 세션/autocompact | pre-send `#checkEstimatedContextBeforePrompt` | ✅ pre-send + threshold prune persistence + progress UX | [_fin/10.004](./_fin/10/10.004_gjc_chase_session_compaction.md) |

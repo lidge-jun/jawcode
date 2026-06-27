@@ -26,7 +26,7 @@
 
 | gjc | jwc |
 |---|---|
-| `f0a8a3eb` (`upstream/dev`) | `da23db8` (worktree) |
+| `a791d72a` (`upstream/dev`) | `a5c7c5c` (worktree, 2026-06-28 doc pass) |
 
 > OMP head is intentionally not repeated here; see [20_omp_chase_MOC.md](./20_omp_chase_MOC.md).
 
@@ -63,7 +63,15 @@
 | 024 | [10.024_gjc_chase_coordinator_mcp_watch.md](./_fin/10/10.024_gjc_chase_coordinator_mcp_watch.md) | coordinator | P3 | ✅ _fin |
 | 025 | [10.025_gjc_chase_perf_corpus_geobench.md](./_fin/10/10.025_gjc_chase_perf_corpus_geobench.md) | perf ref | P3 | ✅ _fin |
 | 027 | [10.027_gjc_chase_goal_live_artifact_engine.md](./10.027_gjc_chase_goal_live_artifact_engine.md) | live-artifact engine (split←021) | P3 | ⬜ |
-| 028+ | _(미할당)_ | | | ⬜ |
+| 028 | [10.028_gjc_chase_notifications_sdk.md](./10.028_gjc_chase_notifications_sdk.md) | notifications SDK core | **P1** | ⬜ |
+| 029 | [10.029_gjc_chase_notify_config_cli.md](./10.029_gjc_chase_notify_config_cli.md) | notify setup/status config | **P1** | ⬜ |
+| 030 | [10.030_gjc_chase_telegram_managed_daemon.md](./10.030_gjc_chase_telegram_managed_daemon.md) | Telegram managed daemon | **P1** | ⬜ |
+| 031 | [10.031_gjc_chase_telegram_threaded_surface.md](./10.031_gjc_chase_telegram_threaded_surface.md) | threaded session topics/render/inbound | P2 | ⬜ |
+| 032 | [10.032_gjc_chase_telegram_remote_answers.md](./10.032_gjc_chase_telegram_remote_answers.md) | remote ask answers/buttons/free text | **P1** | ⬜ |
+| 033 | [10.033_gjc_chase_telegram_session_lifecycle.md](./10.033_gjc_chase_telegram_session_lifecycle.md) | Telegram-driven session lifecycle | P2 | ⬜ |
+| 034 | [10.034_gjc_chase_telegram_media_file_transfer.md](./10.034_gjc_chase_telegram_media_file_transfer.md) | media/files/telegram_send | P2 | ⬜ |
+| 035 | [10.035_gjc_chase_notifications_adapters_docs.md](./10.035_gjc_chase_notifications_adapters_docs.md) | adapters/docs/release surface | P3 | ⬜ |
+| 036+ | _(미할당)_ | | | ⬜ |
 
 ## 완료
 

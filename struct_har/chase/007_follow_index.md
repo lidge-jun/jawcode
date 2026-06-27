@@ -25,6 +25,21 @@
 
 ## G1 — gjc 카드 (Tier 2)
 
+### Telegram / notifications stack (2026-06-28, upstream/dev `a791d72a`)
+
+| 순 | NNN | 문서 | P | 상태 |
+|---|-----|------|---|------|
+| T1 | 028 | [10.028 notifications SDK](./10.028_gjc_chase_notifications_sdk.md) | **P1** | ⬜ |
+| T2 | 029 | [10.029 notify config CLI](./10.029_gjc_chase_notify_config_cli.md) | **P1** | ⬜ |
+| T3 | 030 | [10.030 Telegram managed daemon](./10.030_gjc_chase_telegram_managed_daemon.md) | **P1** | ⬜ |
+| T4 | 032 | [10.032 Telegram remote answers](./10.032_gjc_chase_telegram_remote_answers.md) | **P1** | ⬜ |
+| T5 | 031 | [10.031 threaded surface](./10.031_gjc_chase_telegram_threaded_surface.md) | P2 | ⬜ |
+| T6 | 034 | [10.034 media/file transfer](./10.034_gjc_chase_telegram_media_file_transfer.md) | P2 | ⬜ |
+| T7 | 033 | [10.033 session lifecycle](./10.033_gjc_chase_telegram_session_lifecycle.md) | P2 | ⬜ |
+| T8 | 035 | [10.035 adapters/docs](./10.035_gjc_chase_notifications_adapters_docs.md) | P3 | ⬜ |
+
+Recommended first user-value path: **028 → 029 → 030 → 032**, then 031/034/033/035.
+
 | 순 | NNN | 문서 | P | 상태 |
 |---|-----|------|---|------|
 | 9 | 011 | [10.011 receipt spool](./10.011_gjc_chase_receipt_spool.md) | P1 | 🟡 코어 landed |
