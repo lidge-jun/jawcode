@@ -432,7 +432,7 @@ export async function dispatchRpcCommand(
 
 		default: {
 			const unknownCommand = command as { type: string };
-			return rpcError(undefined, unknownCommand.type, `Unknown command: ${unknownCommand.type}`);
+			return rpcError(id, unknownCommand.type, `Unknown command: ${unknownCommand.type}`);
 		}
 	}
 }

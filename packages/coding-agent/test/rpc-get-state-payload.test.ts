@@ -93,3 +93,20 @@ describe("RPC get_state payload", () => {
 		expect(isRpcCommand({ type: "get_state", include: "tools" })).toBe(false);
 	});
 });
+
+describe("RPC command dispatch errors", () => {
+	it("preserves the request id when rejecting unknown commands", async () => {
+		const response = await dispatchRpcCommand(
+			{ id: "unknown-1", type: "definitely_unknown" } as never,
+			dispatchContext(),
+		);
+
+		expect(response).toEqual({
+			id: "unknown-1",
+			type: "response",
+			command: "definitely_unknown",
+			success: false,
+			error: "Unknown command: definitely_unknown",
+		});
+	});
+});
