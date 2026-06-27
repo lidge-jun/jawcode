@@ -1,7 +1,7 @@
 # chase — 갭 인벤토리 (횡단)
 
-> 스냅샷: gjc **`f0a8a3eb`** (`upstream/dev`) · jwc **`af363c8`** (worktree) · omp **`0fc6d136`** (`origin/main`) (2026-06-28 **docs sync refresh**).
-> **reviewed through**: GJC `f0a8a3eb` · OMP `0fc6d136` · JWC `af363c8`
+> 스냅샷: gjc **`a791d72a`** (`upstream/dev`) · jwc **`af363c8`** (worktree) · omp **`0fc6d136`** (`origin/main`) (2026-06-28 **docs sync refresh**).
+> **reviewed through**: GJC `a791d72a` · OMP `0fc6d136` · JWC `af363c8`
 > **명명**: [008_gjc_jwc_naming_contract.md](./008_gjc_jwc_naming_contract.md) — Python **`python/jwc-rpc`** (`jwc_rpc`); upstream만 `gjc-rpc`.
 > **RPC 실현성**: [devlog 03_rpc_bundle_feasibility_jwc_rpc](../../devlog/_fin/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md)
 > 상태: `⬜` 미착수 · `🟡` 설계/부분 · `✅` jwc 선행 · `—` 해당 없음
