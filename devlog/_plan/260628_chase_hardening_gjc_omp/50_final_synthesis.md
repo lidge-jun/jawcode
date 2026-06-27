@@ -28,7 +28,7 @@ This goal did documentation hardening only. It did not implement the new upstrea
 | `b46b62f` | Phase 5 synthesis | Collected final source coverage, residual risks, and implementation order. |
 | `35edc96` | Phase 60 residual cleanup | Contextualized remaining GJC `f0a8a3eb` references against `a791d72a`. |
 | `daa3a87` | Phase 61 index/link reconciliation | Repaired `_fin`-only card links for 10.008, 10.011, and 20.006, then harmonized GJC MOC JWC SHA. |
-| pending Phase 62 | extended `_fin` link sweep | Repairs remaining root links to `_fin`-only 10.004, 10.007, and 10.018 and removes stale residual wording. |
+| `6415db6` | Phase 62 extended `_fin` link sweep | Repaired remaining root links to `_fin`-only 10.004, 10.007, and 10.018 and removed stale residual wording. |
 
 ## GJC coverage summary
 
