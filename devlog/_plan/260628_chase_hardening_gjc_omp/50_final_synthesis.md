@@ -27,7 +27,7 @@ This goal did documentation hardening only. It did not implement the new upstrea
 | `1b9f46d` | Phase 4 OMP consistency | Aligned gap inventory baselines and verified OMP active/_fin consistency. |
 | `b46b62f` | Phase 5 synthesis | Collected final source coverage, residual risks, and implementation order. |
 | `35edc96` | Phase 60 residual cleanup | Contextualized remaining GJC `f0a8a3eb` references against `a791d72a`. |
-| pending Phase 61 | index/link reconciliation | Repairs `_fin`-only card links for 10.008, 10.011, and 20.006, then harmonizes GJC MOC JWC SHA. |
+| `daa3a87` | Phase 61 index/link reconciliation | Repaired `_fin`-only card links for 10.008, 10.011, and 20.006, then harmonized GJC MOC JWC SHA. |
 
 ## GJC coverage summary
 
