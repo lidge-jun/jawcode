@@ -1,0 +1,31 @@
+# Telegram Notifications Onboarding
+
+Telegram support in JWC is currently a guarded foundation, not a live runtime.
+
+You can configure the local settings surface:
+
+```sh
+jwc notify setup --token <bot-token> --chat-id <chat-id>
+jwc notify status
+```
+
+This creates JWC notification configuration and allows local code to write discovery records under `.jwc/state/notifications/`.
+
+What works now:
+
+- masked status output
+- private discovery files
+- transport owner/root helper state
+- fail-closed inbound decisions
+- pure remote-answer authorization and idempotency helpers
+
+What is still deferred:
+
+- Telegram `getUpdates`
+- sending messages to Telegram
+- answering a live ask from Telegram
+- remote session start, stop, or reload
+- Discord and Slack notification adapters
+- media and file transfer
+
+Do not treat the Telegram docs as a production bot setup guide until the poller and endpoint connection slices are implemented and verified.

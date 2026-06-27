@@ -25,6 +25,7 @@ export interface NotificationReplyRejectedFrame {
 	type: "reply_rejected";
 	actionId?: string;
 	reason: string;
+	source?: "local" | "telegram";
 }
 
 export interface NotificationServerHelloFrame {
@@ -42,6 +43,7 @@ export interface NotificationReplyFrame {
 	type: "reply";
 	actionId: string;
 	value: string;
+	source?: "local" | "telegram";
 }
 
 export interface NotificationClientHelloFrame {

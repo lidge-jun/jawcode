@@ -3,6 +3,7 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { type NotificationEndpointRecord, writeNotificationDiscoveryRecord } from "../src/notifications/discovery";
+import { buildTelegramCallbackPayload, type RemoteActionContext } from "../src/notifications/remote-answer";
 import {
 	decideTransportInbound,
 	safeReadTransportEndpoint,
@@ -21,6 +22,17 @@ function record(sessionId: string): NotificationEndpointRecord {
 		startedAt: 1782586800000,
 		updatedAt: 1782586800000,
 		pid: 456,
+	};
+}
+
+function actionContext(overrides: Partial<RemoteActionContext> = {}): RemoteActionContext {
+	return {
+		sessionId: "session-1",
+		actionId: "action-1",
+		expectedToken: "connect-token",
+		allowedValues: ["Deploy"],
+		allowFreeText: true,
+		...overrides,
 	};
 }
 
@@ -112,5 +124,45 @@ describe("notification transport shell", () => {
 
 	it("drops inbound messages until authorization and answer routing exist", () => {
 		expect(decideTransportInbound()).toEqual({ mode: "drop", reason: "authorization_not_implemented" });
+	});
+
+	it("drops invalid, contextless, and unauthorized inbound payloads without side effects", () => {
+		const payload = buildTelegramCallbackPayload({
+			sessionId: "session-1",
+			actionId: "action-1",
+			value: "Deploy",
+			nonce: "idem-1",
+		});
+
+		expect(decideTransportInbound({ payload: "bad" })).toEqual({ mode: "drop", reason: "invalid_payload" });
+		expect(decideTransportInbound({ payload })).toEqual({ mode: "drop", reason: "no_active_action" });
+		expect(decideTransportInbound({ payload, context: actionContext(), presentedToken: "wrong" })).toEqual({
+			mode: "drop",
+			reason: "unauthorized",
+		});
+	});
+
+	it("maps authorized inbound payloads to accepted or rejected remote answer decisions", () => {
+		const payload = buildTelegramCallbackPayload({
+			sessionId: "session-1",
+			actionId: "action-1",
+			value: "1. Deploy",
+			nonce: "idem-1",
+		});
+
+		expect(
+			decideTransportInbound({ payload, context: actionContext(), presentedToken: "connect-token" }),
+		).toMatchObject({
+			mode: "accepted",
+			answer: { source: "telegram", value: "Deploy" },
+			contextPatch: { answeredBy: "telegram" },
+		});
+		expect(
+			decideTransportInbound({
+				payload,
+				context: actionContext({ answeredBy: "local" }),
+				presentedToken: "connect-token",
+			}),
+		).toEqual({ mode: "rejected", reason: "already_answered" });
 	});
 });

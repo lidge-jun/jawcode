@@ -2,6 +2,14 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { assertSafeSessionId } from "../harness-control-plane/storage";
 import { type NotificationEndpointRecord, notificationDiscoveryDir, toNotificationEndpointDisplay } from "./discovery";
+import {
+	decideRemoteAnswer,
+	type NormalizedRemoteAnswer,
+	parseRemoteAnswerPayload,
+	type RemoteActionContext,
+	type RemoteActionContextPatch,
+	type RemoteAnswerRejectionReason,
+} from "./remote-answer";
 import { readTransportRoots } from "./transport-state";
 
 export interface TransportSessionObservation {
@@ -32,9 +40,21 @@ export interface ScanTransportSessionsOptions {
 	agentDir: string;
 }
 
-export interface TransportInboundDecision {
-	mode: "drop";
-	reason: "authorization_not_implemented";
+export type TransportDropReason =
+	| "authorization_not_implemented"
+	| "unauthorized"
+	| "no_active_action"
+	| "invalid_payload";
+
+export type TransportInboundDecision =
+	| { mode: "drop"; reason: TransportDropReason }
+	| { mode: "accepted"; answer: NormalizedRemoteAnswer; contextPatch: RemoteActionContextPatch }
+	| { mode: "rejected"; reason: RemoteAnswerRejectionReason };
+
+export interface TransportInboundInput {
+	payload?: unknown;
+	presentedToken?: string;
+	context?: RemoteActionContext;
 }
 
 function isEndpointRecord(value: unknown): value is NotificationEndpointRecord {
@@ -116,6 +136,17 @@ export async function scanTransportSessions(
 	return { observations, errors };
 }
 
-export function decideTransportInbound(): TransportInboundDecision {
-	return { mode: "drop", reason: "authorization_not_implemented" };
+export function decideTransportInbound(input?: TransportInboundInput): TransportInboundDecision {
+	if (!input) return { mode: "drop", reason: "authorization_not_implemented" };
+	const parsed = parseRemoteAnswerPayload(input.payload);
+	if (!parsed.ok) return { mode: "drop", reason: "invalid_payload" };
+	if (!input.context) return { mode: "drop", reason: "no_active_action" };
+	if (!input.presentedToken || input.presentedToken !== input.context.expectedToken) {
+		return { mode: "drop", reason: "unauthorized" };
+	}
+	const decision = decideRemoteAnswer({ ...parsed.input, presentedToken: input.presentedToken }, input.context);
+	if (decision.status === "accepted") {
+		return { mode: "accepted", answer: decision.answer, contextPatch: decision.contextPatch };
+	}
+	return { mode: "rejected", reason: decision.reason };
 }
