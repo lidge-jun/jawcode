@@ -6,3 +6,4 @@ export * from "./session-registry";
 export * from "./threaded-surface";
 export * from "./transport-shell";
 export * from "./transport-state";
+export * from "./workspace-path-confinement";
