@@ -389,6 +389,21 @@ export const SETTINGS_SCHEMA = {
 		default: undefined,
 	},
 
+	"notifications.enabled": { type: "boolean", default: false },
+	"notifications.telegram.botToken": { type: "string", default: undefined },
+	"notifications.telegram.chatId": { type: "string", default: undefined },
+	"notifications.redact": { type: "boolean", default: true },
+	"notifications.verbosity": {
+		type: "enum",
+		values: ["lean", "verbose"] as const,
+		default: "lean",
+	},
+	"notifications.daemon.idleTimeoutMs": {
+		type: "number",
+		default: 300000,
+		validate: (value: number) => Number.isFinite(value) && value > 0,
+	},
+
 	/** @deprecated legacy key — migrated to `jwc.interview.ambiguityThreshold` on load (042 D041-D). */
 	"gjc.deepInterview.ambiguityThreshold": {
 		type: "number",
