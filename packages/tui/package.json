@@ -34,6 +34,7 @@
 		"lint": "biome lint .",
 		"test": "bun test test/*.test.ts",
 		"test:perf": "PI_TUI_PERF_GATES=1 bun test test/perf-gates.test.ts",
+		"build:node-bundle": "bun scripts/build-node-bundle.ts",
 		"fix": "biome check --write --unsafe .",
 		"fmt": "biome format --write ."
 	},

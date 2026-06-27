@@ -702,3 +702,20 @@ npm run check
 # Run the demo
 npx tsx test/chat-simple.ts
 ```
+
+## Standalone Node bundle
+
+The components are written for Bun (native text helpers, `bun:ffi`, the `Bun`
+global). To consume them from a plain Node host, build a single self-contained
+ESM bundle:
+
+```bash
+bun run build:node-bundle   # -> dist/jawcode-tui-bundle.mjs
+```
+
+`@jawcode-dev/natives` is left external so its Node-compatible loader resolves
+the prebuilt addon at runtime — no absolute paths are baked into the output, so
+the bundle is portable across machines. `bun:ffi` and `@jawcode-dev/utils` are
+replaced by the small shims in `scripts/node-bundle/`. The host must install
+`@jawcode-dev/natives` and load its `bun-shim` (which installs the `Bun` global)
+before importing the bundle.
