@@ -33,4 +33,22 @@ exit 0
 
 ## Commit
 
-Pending C-stage staging and commit.
+Staged files:
+
+```text
+devlog/_plan/260628_jwc_native_chase_implementation/110_phase11_lifecycle_command_parser_plan.md
+devlog/_plan/260628_jwc_native_chase_implementation/111_phase11_lifecycle_command_parser_audit.md
+devlog/_plan/260628_jwc_native_chase_implementation/112_phase11_lifecycle_command_parser_build.md
+devlog/_plan/260628_jwc_native_chase_implementation/113_phase11_lifecycle_command_parser_check.md
+devlog/_plan/260628_jwc_native_chase_implementation/59_phase4_lifecycle_command_parser_plan.md
+packages/coding-agent/src/notifications/index.ts
+packages/coding-agent/src/notifications/lifecycle-command-parser.ts
+packages/coding-agent/test/notifications-lifecycle-command-parser.test.ts
+struct_har/chase/10.033_gjc_chase_telegram_session_lifecycle.md
+```
+
+Commit:
+
+```text
+78df89f feat(notifications): add lifecycle command parser
+```
