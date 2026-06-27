@@ -101,4 +101,23 @@ describe("AuthStorage broker sentinel refresh", () => {
 		).rejects.toThrow("must be refreshed via AuthStorage");
 		expect(providerRefresh).not.toHaveBeenCalled();
 	});
+
+	test("exportSnapshot replaces raw refresh tokens with broker sentinel", async () => {
+		if (!authStorage) throw new Error("test setup failed");
+
+		await authStorage.set("anthropic", [
+			{
+				type: "oauth",
+				access: "broker-access",
+				refresh: "raw-refresh-must-not-leak",
+				expires: Date.now() + 60 * 60_000,
+				accountId: "broker-account",
+			},
+		]);
+
+		const snapshotJson = JSON.stringify(authStorage.exportSnapshot());
+
+		expect(snapshotJson).toContain(REMOTE_REFRESH_SENTINEL);
+		expect(snapshotJson).not.toContain("raw-refresh-must-not-leak");
+	});
 });

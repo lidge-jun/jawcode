@@ -8,6 +8,9 @@ const SECRET_MARKERS = [
 	"sk-live-redteam-secret",
 	"BEGIN_ADVERSARIAL_PAYLOAD",
 	"assistant-private-answer",
+	"Authorization: Bearer sk-agent-wire-secret-123456789",
+	"OPENAI_API_KEY=sk-agent-wire-env-secret-123456789",
+	"http://127.0.0.1:9234/private",
 ] as const;
 const LONG_SECRET = `${SECRET_MARKERS.join("::")}::${"x".repeat(1_000)}`;
 
