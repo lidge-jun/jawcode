@@ -1,5 +1,6 @@
 export * from "./config";
 export * from "./discovery";
+export * from "./lifecycle-command-parser";
 export * from "./protocol";
 export * from "./remote-answer";
 export * from "./session-registry";
