@@ -11,7 +11,7 @@ import { formatCrashDiagnosticNotice, writeCrashReport } from "../debug/crash-di
 import { OutputSink } from "../session/streaming-output";
 import { resolveOutputMaxColumns, resolveOutputSinkHeadBytes } from "../tools/output-meta";
 import { getOrCreateSnapshot } from "../utils/shell-snapshot";
-import { NON_INTERACTIVE_ENV } from "./non-interactive-env";
+import { buildNonInteractiveEnv, scrubNonInteractiveEnv } from "./non-interactive-env";
 
 export interface BashExecutorOptions {
 	cwd?: string;
@@ -110,13 +110,14 @@ export function buildMinimizerOptions(group: ShellMinimizerSettings): MinimizerO
 
 export async function executeBash(command: string, options?: BashExecutorOptions): Promise<BashResult> {
 	const settings = await Settings.init();
-	const { shell, env: shellEnv, prefix } = settings.getShellConfig();
+	const { shell, env: rawShellEnv, prefix } = settings.getShellConfig();
+	const shellEnv = scrubNonInteractiveEnv(rawShellEnv) ?? {};
 	const snapshotPath = shell.includes("bash") ? await getOrCreateSnapshot(shell, shellEnv) : null;
 
 	const minimizer = buildMinimizerOptions(settings.getGroup("shellMinimizer"));
 
 	const commandCwd = await resolveShellCwd(options?.cwd);
-	const commandEnv = options?.env ? { ...NON_INTERACTIVE_ENV, ...options.env } : NON_INTERACTIVE_ENV;
+	const commandEnv = buildNonInteractiveEnv(options?.env);
 
 	// Apply command prefix if configured
 	const prefixedCommand = prefix ? `${prefix} ${command}` : command;

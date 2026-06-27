@@ -32,13 +32,17 @@ const MIN_ENV_VALUE_LENGTH = 8;
 /** Env var name patterns that indicate secret values. */
 const SECRET_ENV_PATTERNS = /(?:KEY|SECRET|TOKEN|PASSWORD|PASS|AUTH|CREDENTIAL|PRIVATE|OAUTH)(?:_|$)/i;
 
+export function isSecretEnvName(name: string): boolean {
+	return SECRET_ENV_PATTERNS.test(name);
+}
+
 /** Collect environment variable values that look like secrets. */
 export function collectEnvSecrets(): SecretEntry[] {
 	const entries: SecretEntry[] = [];
 	const seen = new Set<string>();
 	for (const [name, value] of Object.entries(process.env)) {
 		if (!value || value.length < MIN_ENV_VALUE_LENGTH) continue;
-		if (!SECRET_ENV_PATTERNS.test(name)) continue;
+		if (!isSecretEnvName(name)) continue;
 		if (seen.has(value)) continue;
 		seen.add(value);
 		entries.push({ type: "plain", content: value, mode: "obfuscate" });

@@ -1,3 +1,5 @@
+import { isSecretEnvName } from "../secrets";
+
 export const NON_INTERACTIVE_ENV: Readonly<Record<string, string>> = {
 	// Disable pagers so commands don't block on interactive views.
 	PAGER: "cat",
@@ -46,3 +48,26 @@ export const NON_INTERACTIVE_ENV: Readonly<Record<string, string>> = {
 	COMPOSER_NO_INTERACTION: "1",
 	CLOUDSDK_CORE_DISABLE_PROMPTS: "1",
 };
+
+const OPERATIONAL_ENV_ALLOWLIST = new Set(["SSH_AUTH_SOCK", "SSH_AGENT_PID"]);
+
+export function isSensitiveNonInteractiveEnvName(name: string): boolean {
+	return isSecretEnvName(name) && !OPERATIONAL_ENV_ALLOWLIST.has(name);
+}
+
+export function scrubNonInteractiveEnv(
+	env: Record<string, string | undefined> | undefined,
+): Record<string, string> | undefined {
+	if (!env) return undefined;
+	const scrubbed: Record<string, string> = {};
+	for (const [key, value] of Object.entries(env)) {
+		if (value === undefined) continue;
+		if (isSensitiveNonInteractiveEnvName(key)) continue;
+		scrubbed[key] = value;
+	}
+	return Object.keys(scrubbed).length > 0 ? scrubbed : undefined;
+}
+
+export function buildNonInteractiveEnv(env: Record<string, string | undefined> | undefined): Record<string, string> {
+	return { ...(scrubNonInteractiveEnv(env) ?? {}), ...NON_INTERACTIVE_ENV };
+}

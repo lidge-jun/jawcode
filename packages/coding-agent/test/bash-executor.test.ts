@@ -9,6 +9,10 @@ import {
 	executeBash,
 	getShellSessionCount,
 } from "@jawcode-dev/coding-agent/exec/bash-executor";
+import {
+	buildNonInteractiveEnv,
+	isSensitiveNonInteractiveEnvName,
+} from "@jawcode-dev/coding-agent/exec/non-interactive-env";
 import { DEFAULT_MAX_BYTES } from "@jawcode-dev/coding-agent/session/streaming-output";
 import * as shellSnapshot from "@jawcode-dev/coding-agent/utils/shell-snapshot";
 import type { Shell } from "@jawcode-dev/natives";
@@ -105,6 +109,72 @@ describe("executeBash", () => {
 			env: { PI_TEST_ENV: "hello" },
 		});
 		expect(result.output.trim()).toBe("0:hello");
+	});
+
+	it("keeps non-interactive defaults when command env tries to override them", async () => {
+		const result = await executeBash('echo "$GIT_TERMINAL_PROMPT:$SAFE_VALUE"', {
+			cwd: tempDir,
+			timeout: 5000,
+			env: { GIT_TERMINAL_PROMPT: "1", SAFE_VALUE: "kept" },
+		});
+		expect(result.output.trim()).toBe("0:kept");
+	});
+
+	it("scrubs sensitive command env while preserving safe values", async () => {
+		const result = await executeBash(
+			'printf "%s:%s:%s:%s\\n" "$OPENAI_API_KEY" "$JWC_BRIDGE_TOKEN" "$UNSAFE_TOKEN" "$SAFE_VALUE"',
+			{
+				cwd: tempDir,
+				timeout: 5000,
+				env: {
+					OPENAI_API_KEY: "sk-command-secret",
+					JWC_BRIDGE_TOKEN: "bridge-command-secret",
+					UNSAFE_TOKEN: "unsafe-command-secret",
+					SAFE_VALUE: "visible",
+				},
+			},
+		);
+		expect(result.output.trim()).toBe(":::visible");
+		expect(result.output).not.toContain("sk-command-secret");
+		expect(result.output).not.toContain("bridge-command-secret");
+		expect(result.output).not.toContain("unsafe-command-secret");
+	});
+
+	it("scrubs sensitive shell config env before persistent shell startup", async () => {
+		const bashPath = Bun.env.SHELL?.includes("bash") ? Bun.env.SHELL : "/bin/bash";
+		if (!fs.existsSync(bashPath)) {
+			return;
+		}
+		const sshSock = path.join(tempDir, "ssh-agent.sock");
+		vi.spyOn(Settings.prototype, "getShellConfig").mockReturnValue({
+			shell: bashPath,
+			args: ["-l", "-c"],
+			env: {
+				PATH: Bun.env.PATH ?? "",
+				HOME: Bun.env.HOME ?? tempDir,
+				OPENAI_API_KEY: "sk-shell-secret",
+				JWC_AUTH_BROKER_TOKEN: "broker-shell-secret",
+				PI_TEST_ENV: "from-shell",
+				SSH_AUTH_SOCK: sshSock,
+			},
+			prefix: undefined,
+		});
+		const result = await executeBash(
+			'printf "%s:%s:%s:%s\\n" "$OPENAI_API_KEY" "$JWC_AUTH_BROKER_TOKEN" "$PI_TEST_ENV" "$SSH_AUTH_SOCK"',
+			{ cwd: tempDir, timeout: 5000, sessionKey: "shell-env-scrub" },
+		);
+		expect(result.output.trim()).toBe(`::from-shell:${sshSock}`);
+		expect(result.output).not.toContain("sk-shell-secret");
+		expect(result.output).not.toContain("broker-shell-secret");
+	});
+
+	it("classifies sensitive non-interactive env names with operational ssh exceptions", () => {
+		expect(isSensitiveNonInteractiveEnvName("OPENAI_API_KEY")).toBe(true);
+		expect(isSensitiveNonInteractiveEnvName("JWC_AUTH_BROKER_TOKEN")).toBe(true);
+		expect(isSensitiveNonInteractiveEnvName("UNSAFE_TOKEN")).toBe(true);
+		expect(isSensitiveNonInteractiveEnvName("SSH_AUTH_SOCK")).toBe(false);
+		expect(isSensitiveNonInteractiveEnvName("SSH_AGENT_PID")).toBe(false);
+		expect(buildNonInteractiveEnv({ GIT_TERMINAL_PROMPT: "1" }).GIT_TERMINAL_PROMPT).toBe("0");
 	});
 
 	it("invokes onChunk with command output", async () => {
