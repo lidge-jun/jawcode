@@ -83,9 +83,10 @@ Each row is a work-phase. Each work-phase must run a complete PABCD cycle and co
 | Cards | 10.036, 10.038, 10.043, 10.047 |
 | Goal | Auth/model catalog guardrails, RPC control-plane hardening, read-URL/search safety, privacy rules. |
 | Required plan artifact | `70_phase7_security_provider_network_plan.md`; must include `_fin` overlap inventory before 10.038 coding. |
+| Required split artifacts | `71_phase7_provider_auth_catalog_split.md`, `72_phase7_rpc_control_plane_split.md`, `73_phase7_search_url_boundary_split.md`, `74_phase7_security_privacy_split.md` |
 | Risk | C4 security and public contract changes. |
 | Review | Backend + security review |
-| Gate | auth/config tests, RPC negative tests, network allow/deny tests |
+| Gate | auth/config tests, RPC negative tests, network allow/deny tests, and redaction/env scrub regression evidence |
 
 ## Phase 8 — workflow, team, and packaging hardening
 
