@@ -100,6 +100,19 @@ Executor v2 (260614): **011 YES**, **008/026 RISKY**; **018 registry TS+Py lande
 | memory/skills | mnemopi | [20.003](./_fin/20/20.003_omp_chase_memory_skills.md) |
 | collab/brew | — | **비채택** |
 
+
+### OMP 16.1.13 → 16.1.20 latest delta (reference-only)
+
+| 영역 | OMP 후보 | jaw 방향 | 참조 |
+|---|---|---|---|
+| append-only context integrity | `cc0c67be..0fc6d136` | reference-only split | [20.009](./20.009_omp_chase_append_only_context_integrity.md) |
+| AI OAuth/reasoning replay | `cc0c67be..0fc6d136` | reference-only split | [20.010](./20.010_omp_chase_ai_oauth_reasoning_replay.md) |
+| TUI image drafts/terminal edges | `cc0c67be..0fc6d136` | reference-only split | [20.011](./20.011_omp_chase_tui_image_drafts_terminal_edges.md) |
+| bash snapshot/env security | `cc0c67be..0fc6d136` | reference-only split | [20.012](./20.012_omp_chase_bash_snapshot_env_security.md) |
+| plugin virtual registry/bundle | `cc0c67be..0fc6d136` | reference-only split | [20.013](./20.013_omp_chase_plugin_virtual_registry_bundle.md) |
+| goal compaction/provider concurrency | `cc0c67be..0fc6d136` | reference-only split | [20.014](./20.014_omp_chase_goal_compaction_provider_concurrency.md) |
+| release/test leak hardening | `cc0c67be..0fc6d136` | reference-only split | [20.015](./20.015_omp_chase_release_test_leak_hardening.md) |
+
 ## 260613–14 jwc 독자 성과 (chase 비대상 완료)
 
 Codex reformation · TUI O(n²) · xAI `/searchengine` · 100 Node · MCP discovery · 99.xx TUI — [structure/50_status.md](../../structure/50_status.md).  
