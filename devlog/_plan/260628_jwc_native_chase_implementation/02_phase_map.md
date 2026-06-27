@@ -106,6 +106,7 @@ Each row is a work-phase. Each work-phase must run a complete PABCD cycle and co
 | Cards | 10.041, 10.046, 10.049, 10.052 |
 | Goal | Narrow TUI/input improvements, research routing, benchmark corpus, external integration docs. |
 | Required plan artifact | `90_phase9_tui_perf_research_docs_plan.md` |
+| Required split artifacts | `91_phase9_tui_input_render_split.md`, `92_phase9_research_mode_split.md`, `93_phase9_perf_corpus_split.md`, `94_phase9_external_docs_split.md` |
 | Risk | Preserve curated TUI behavior. |
 | Review | Frontend for TUI; Docs for docs-heavy slices |
 | Gate | focused TUI tests or snapshot-equivalent checks, docs link checks |
