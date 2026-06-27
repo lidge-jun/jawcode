@@ -137,10 +137,10 @@ git -C devlog/_gjc_chase/gajae-code log -1 --oneline    # HEAD를 devlog·struct
 | 항목 | 값 | 근거 |
 |---|---|---|
 | Project root | `/Users/jun/Developer/new/700_projects/jawcode` | task instruction |
-HEAD | `da23db8` (`main`) | `git -C /Users/jun/Developer/new/700_projects/jawcode rev-parse --short HEAD` (2026-06-26)
+HEAD | `af363c8` (`main`) | `git -C /Users/jun/Developer/new/700_projects/jawcode rev-parse --short HEAD` (2026-06-28)
 origin fetch/push | `https://github.com/lidge-jun/jawcode` (`main` tracks `origin/main`) | `git -C /Users/jun/Developer/new/700_projects/jawcode remote -v` · `git -C /Users/jun/Developer/new/700_projects/jawcode branch -vv` (2026-06-26)
 upstream baseline (참조 클론) | `https://github.com/Yeachan-Heo/gajae-code` @ `devlog/_gjc_chase/gajae-code/` | §2.2 · `git -C devlog/_gjc_chase/gajae-code rev-parse --short HEAD`
-worktree branch | `main` @ `da23db8` | `git -C /Users/jun/Developer/new/700_projects/jawcode branch -vv`
+worktree branch | `main` @ `af363c8` | `git -C /Users/jun/Developer/new/700_projects/jawcode branch -vv`
 upstream 참조 클론 HEAD | `f0a8a3eb` | `git -C devlog/_gjc_chase/gajae-code rev-parse --short HEAD` (2026-06-26)
 
 ### JWC 표면 정책

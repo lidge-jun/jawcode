@@ -1,5 +1,7 @@
 # status — M1/M2 마감 · 99 밴드 · readiness (정본 통합)
 
+> **Snapshot (2026-06-28, `jawcode@1.0.2`, HEAD `af363c8`):** GJC chase wave active — goal steering, compaction, team tmux, cursor timeout cards closed Jun 27–28. MLB 62 for daily use. Docs: [direction.md](./direction.md) · [roadmap.md](./roadmap.md) · [08-git-commit-history.md](./08-git-commit-history.md).
+>
 > 통합본(260614): 구 `beta_v0.1_closeout.md` + `m1_closeout.md` + `jwc_readiness.md`를 하나로 합침.
 > 질문별 진입: **§1 지금 쓸 수 있나**(readiness) · **§2 무엇을 언제 고쳤나**(99 결정) · **§3 문서 마감**.
 > 패키지 상세: [99.00.00 MOC](../devlog/_plan/260614_cli_jaw_jwc_distribution_strategy/_legacy/260612_jawcode_fork/phase1/99.00.00_moc_stabilization.md).

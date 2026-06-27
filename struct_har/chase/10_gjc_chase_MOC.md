@@ -1,6 +1,6 @@
 # 10 — gjc_chase_MOC
 
-> 상태: 🟡 운영 중 (2026-06-26)
+> 상태: 🟡 운영 중 (2026-06-28 · worktree `af363c8`)
 > **정본 디렉터리**: `struct_har/chase/10_*` · `10.NNN_*`
 > **의미**: `devlog/_gjc_chase/gajae-code` 대비 jwc **뒤쳐짐(G1)** — **1갭 = 문서 1개** (`10.NNN`, `001`~)
 

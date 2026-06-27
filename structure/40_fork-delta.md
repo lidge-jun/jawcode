@@ -162,7 +162,7 @@
 
 ## Fork logic changelog (jawcode vs jawcode upstream)
 
-> **정본**: upstream `f0a8a3eb` (`devlog/_gjc_chase/gajae-code/`, `upstream/dev`) 대비 worktree `da23db8` (`main`)의 **동작·계약·런타임** 변경. 파일 목록은 [fork-delta.md](./40_fork-delta.md), 밴드 스냅샷은 [struct_har/](../struct_har/README.md).
+> **정본**: upstream `f0a8a3eb` (`devlog/_gjc_chase/gajae-code/`, `upstream/dev`) 대비 worktree `af363c8` (`main`)의 **동작·계약·런타임** 변경. 파일 목록은 [fork-delta.md](./40_fork-delta.md), 밴드 스냅샷은 [struct_har/](../struct_har/README.md).
 > **99 잔여 갭**: `99.02` PR/CI 마감·`99.04` HUD·`99.07` 슬래시 패리티 등 — [status.md](./50_status.md) · [099_stabilization](../struct_har/jwc_patched/099_stabilization/02_logic_changes.md).
 > 생성: current worktree + GJC chase clone 기준 주요 커밋 메시지·diff 경로 교차 (2026-06-26).
 

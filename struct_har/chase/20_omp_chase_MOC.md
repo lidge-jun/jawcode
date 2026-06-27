@@ -24,7 +24,7 @@
 
 | omp | jwc |
 |---|---|
-| `0fc6d136` (`origin/main`, v16.1.20) | `da23db8` (worktree) |
+| `0fc6d136` (`origin/main`, v16.1.20) | `af363c8` (worktree) |
 
 > GJC head is intentionally not repeated here; see [10_gjc_chase_MOC.md](./10_gjc_chase_MOC.md).
 

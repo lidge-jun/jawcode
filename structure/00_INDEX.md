@@ -2,7 +2,7 @@
 
 > jawcode(jawcode 0.4.4 lineage)의 코드 지도 **단일 허브**. JWC standalone 개발·cli-jaw 임베딩 때 근거
 > 파일을 빠르게 찾는 진입점. 여기서 시작하세요.
-> public repo root commit `da23db8` · GJC chase clone `devlog/_gjc_chase/gajae-code` @ `f0a8a3eb` (`upstream/dev`) · OMP chase clone `devlog/_omp_chase/oh-my-pi` @ `0fc6d136` (`origin/main`).
+> public repo root commit `af363c8` · GJC chase clone `devlog/_gjc_chase/gajae-code` @ `f0a8a3eb` (`upstream/dev`) · OMP chase clone `devlog/_omp_chase/oh-my-pi` @ `0fc6d136` (`origin/main`).
 
 ## 삼축 정본 (어디가 정본인가)
 
@@ -28,6 +28,10 @@ cite: gjc_origin=`devlog/_gjc_chase/gajae-code/<path>:<line>` · jwc_patched=`70
 | | [scroll.md](./31_scroll.md) | TUI 스크롤/뷰포트/커밋폴딩/렌더 정책 |
 | **4 포크 추적** | [fork-delta.md](./40_fork-delta.md) | 이탈 파일 인덱스(HARD-EDIT/NEW/REMOVED, 체리픽) + **동작·런타임 changelog** + **계보(omp→gjc→jwc)** |
 | **5 상태** | [status.md](./50_status.md) | M1/M2 마감 · 99 밴드 · readiness(MLB) · 착수 순서 |
+| **6 방향** | [direction.md](./direction.md) | 제품 정체성 · 우선순위 · 비목표 |
+| | [roadmap.md](./roadmap.md) | Phase별 구현 순서·완료 기록 |
+| | [06-devlog-map.md](./06-devlog-map.md) | devlog · chase · archive 해석 |
+| | [08-git-commit-history.md](./08-git-commit-history.md) | 최근 1000커밋 요약 · `structure/data/git-log-1000.tsv` |
 
 ## 최신 결정 연결
 
@@ -55,6 +59,7 @@ cite: gjc_origin=`devlog/_gjc_chase/gajae-code/<path>:<line>` · jwc_patched=`70
 | GJC chase clone fetch/pull | `struct_har/gjc_origin/**`, `struct_har/README.md`, `conventions.md` |
 | OMP chase clone fetch/pull | `struct_har/omp_origin/**`, `fork-delta.md`(계보 절) |
 | 포크 밴드 완료 | `structure/*`, `struct_har/jwc_patched/**` |
+| direction.md · roadmap.md · git-history | `direction.md`, `roadmap.md`, `08-git-commit-history.md`, `06-devlog-map.md` |
 | 99 밴드·readiness·MOC | `status.md`, `struct_har/jwc_patched/099_stabilization/**`, `extensibility.md`, `prompt_flow.md` |
 | 99.30 todo UX | `session_storage.md`, `struct_har/jwc_patched/080_tui/` |
 | TUI 스크롤·렌더 경로 | `scroll.md` |
@@ -75,7 +80,8 @@ bun struct_har/_scripts/struct-har-regenerate-omp.ts
 
 그다음 `struct_har/README.md`·`INDEX.md`·`structure/11_conventions.md`에 HEAD 기록.
 
-*마지막 갱신: 2026-06-26. worktree `da23db8` · gjc 클론 `f0a8a3eb` · omp 클론 `0fc6d136`. 24→10 통합: packages_overview·sdk_surface→architecture / gitstructure→conventions /
+*마지막 갱신: 2026-06-28. worktree `af363c8` · gjc 클론 `f0a8a3eb` · omp 클론 `0fc6d136`. 24→10 통합: packages_overview·sdk_surface→architecture / gitstructure→conventions /
 workflows→extensibility / memory_pipeline·todo_pipeline→session_storage / codex_transport·model_patches·
 search→providers / fork_logic_changelog·upstream_lineage→fork-delta / beta·m1·jwc_readiness→status / README→INDEX.
+docs sync 2026-06-28: direction·roadmap·git-history·devlog-map 추가.
 cli-jaw structure 모델(티어 허브) 정렬.*
