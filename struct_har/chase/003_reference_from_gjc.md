@@ -1,7 +1,7 @@
 # chase — gjc 참조 방안
 
 > **플랜 정본**: [10_gjc_chase_MOC](./10_gjc_chase_MOC.md) · `10.001`–`10.008` (+ `10.009`…) · 완료 [_fin/10](./_fin/10/README.md)
-> **정본 클론**: `devlog/_gjc_chase/gajae-code/` · branch `dev` tracking `upstream/dev` · reviewed through **`f0a8a3eb`**
+> **정본 클론**: `devlog/_gjc_chase/gajae-code/` · branch `dev` tracking `upstream/dev` · reviewed through **`a791d72a`** (2026-06-28 chase hardening)
 > **jaw SoT**: worktree `packages/` — 병합 시 [structure/40_fork-delta.md](../../structure/40_fork-delta.md) **CONFLICT-EXPECTED** 열 필수.
 **jwc 포팅 명명**: [008_gjc_jwc_naming_contract.md](./008_gjc_jwc_naming_contract.md) (`jwc-rpc`, `.jwc`, `jwc` CLI).
 
