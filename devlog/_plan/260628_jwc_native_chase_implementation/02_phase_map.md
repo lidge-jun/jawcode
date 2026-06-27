@@ -72,8 +72,9 @@ Each row is a work-phase. Each work-phase must run a complete PABCD cycle and co
 | Cards | 10.037, 10.040, 10.051, 20.009 |
 | Goal | Process lifecycle, compaction memory, composer/toolcall, append-only transcript guards. |
 | Required plan artifact | `60_phase6_runtime_context_plan.md` |
+| Required split artifacts | `61_phase6_runtime_process_split.md`, `62_phase6_compaction_memory_split.md`, `63_phase6_toolcall_context_split.md` |
 | Review | Backend + architecture review |
-| Gate | focused runtime/session tests, transcript mutation regression tests |
+| Gate | focused runtime/session tests, tool-choice queue tests, compaction tests, and append-only context regression evidence |
 
 ## Phase 7 — security, provider, and network guards
 
