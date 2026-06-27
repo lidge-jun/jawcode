@@ -33,4 +33,20 @@ exit 0
 
 ## Commit
 
-Pending C-stage staging and commit.
+Staged files:
+
+```text
+devlog/_plan/260628_jwc_native_chase_implementation/114_phase12_media_policy_docs_plan.md
+devlog/_plan/260628_jwc_native_chase_implementation/115_phase12_media_policy_docs_audit.md
+devlog/_plan/260628_jwc_native_chase_implementation/116_phase12_media_policy_docs_build.md
+devlog/_plan/260628_jwc_native_chase_implementation/117_phase12_media_policy_docs_check.md
+docs/telegram-onboarding.md
+packages/coding-agent/test/notifications-docs.test.ts
+struct_har/chase/10.034_gjc_chase_telegram_media_file_transfer.md
+```
+
+Commit:
+
+```text
+f1948eb docs(notifications): guard telegram media policy
+```
