@@ -60,10 +60,10 @@ Each row is a work-phase. Each work-phase must run a complete PABCD cycle and co
 | Item | Value |
 |---|---|
 | Cards | 20.015 |
-| Goal | Close immediate OMP release/test leak hardening early as a risk reducer before broader runtime changes. |
+| Goal | Record OMP release/test leak overlap evidence and existing JWC guards early as a risk reducer; keep `20.015` reference-only and `10.048` as the release implementation owner unless a later audited code slice is chosen. |
 | Required plan artifact | `50_phase5_release_test_leak_plan.md` with explicit `10.048` overlap cross-check before any `20.015` code |
 | Review | Backend + Docs |
-| Gate | focused leak/regression checks, recorded `10.048` overlap outcome, and relevant package check scripts |
+| Gate | docs audit, recorded `10.048` overlap outcome, and focused smoke of existing JWC guard scripts where appropriate. |
 
 ## Phase 6 — runtime and context integrity
 
