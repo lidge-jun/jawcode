@@ -61,6 +61,29 @@
 | model-profiles UX | #553 | 사용자 패치 중 — 카드 없음 | [10.001](./10.001_gjc_chase_cycle.md) |
 | providers/schemas | drift | ai diff; **99.02** | `packages/ai/` |
 
+
+### Non-Telegram upstream/dev backlog (upstream/dev `a791d72a`, 2026-06-28)
+
+| 영역 | upstream 후보 | jaw 병합 난이도 | 참조 |
+|---|---|---|---|
+| AI/auth/model catalog | provider creds, Codex opaque tokens, forced tool_choice fallback, presets/catalog | 높음 — auth + provider contracts | [10.036](./10.036_gjc_chase_ai_provider_auth_model_catalog.md) |
+| security/privacy guardrails | dotenv exclusion, env override, socket tokens, URL guards, secret redaction | 높음 — C4 review | [10.047](./10.047_gjc_chase_security_privacy_guardrails.md) |
+| runtime lifecycle | natives, shell timeout, eval cleanup, queue dispose, env scrub | 높음 — process/resource leaks | [10.037](./10.037_gjc_chase_runtime_process_lifecycle_hardening.md) |
+| RPC v2 | UDS registry, duplicate refusal, token-cost fail-closed, socket probe | 높음 — local control plane | [10.038](./10.038_gjc_chase_rpc_control_plane_v2.md) |
+| compaction/memory | active provider compaction, blob bounds, tool IO caps, await cache | 높음 — session survivability | [10.040](./10.040_gjc_chase_compaction_pruning_resident_memory.md) |
+| web search/read | native provider search, fallback, local-baseUrl/private guard | 높음 — network boundary | [10.043](./10.043_gjc_chase_web_search_insane_security.md) |
+| agent/composer/toolcalls | anchor/edit discipline, text part normalization, tool IO bounds | 높음 — agent correctness | [10.051](./10.051_gjc_chase_agent_composer_toolcall_integrity.md) |
+| harness/receipts | startup blockers, active-turn persistence, phase rollup | 중 — operator evidence | [10.039](./10.039_gjc_chase_harness_receipts_phase_rollup.md) |
+| TUI/input/psmux | keystroke echo, Windows psmux, selector identity, redraw metrics | 중 — UX/runtime | [10.041](./10.041_gjc_chase_tui_input_render_windows_psmux.md) |
+| goal/interview/ask | HUD sync, red-team review, ralplan continuation, busy guard | 중 — workflow state | [10.042](./10.042_gjc_chase_deep_interview_ask_goal_state.md) |
+| plugin/extensibility | Hermes/OpenClaw/controller docs, generated bundles, MCP bridge | 중 — integration boundary | [10.044](./10.044_gjc_chase_plugin_extensibility_bundle.md) |
+| computer-use | native controller and control readiness docs | 중 — desktop control | [10.045](./10.045_gjc_chase_computer_use_native_control.md) |
+| dev/CI/release | affected-path CI, native build/platform, release metadata | 중 — release hygiene | [10.048](./10.048_gjc_chase_dev_ci_release_packaging.md) |
+| session/tmux/team/worktree | lock GC, psmux, session registry, tmux/worktree lifecycle | 중 — state/process | [10.050](./10.050_gjc_chase_session_tmux_team_worktree.md) |
+| RLM/research mode | research command, venv, autonomous/resume gate | 낮음/중 — separate product lane | [10.046](./10.046_gjc_chase_rlm_research_mode.md) |
+| perf/bench/corpus | optimization suite, redraw repro, geobench/corpus | 낮음 — track/reference | [10.049](./10.049_gjc_chase_performance_bench_corpus.md) |
+| docs/integrations | Grok Build, remote design, Telegram roadmap, OpenClaw notes | 낮음 — docs/reference | [10.052](./10.052_gjc_chase_docs_external_integrations.md) |
+
 ### RPC 한 묶음 (PABCD 권장)
 
 **011 → 008 → 018 → 026** — [007_follow_index](./007_follow_index.md) · [03 feasibility](../../devlog/_fin/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md).  

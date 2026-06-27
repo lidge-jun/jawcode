@@ -71,7 +71,23 @@
 | 033 | [10.033_gjc_chase_telegram_session_lifecycle.md](./10.033_gjc_chase_telegram_session_lifecycle.md) | Telegram-driven session lifecycle | P2 | ⬜ |
 | 034 | [10.034_gjc_chase_telegram_media_file_transfer.md](./10.034_gjc_chase_telegram_media_file_transfer.md) | media/files/telegram_send | P2 | ⬜ |
 | 035 | [10.035_gjc_chase_notifications_adapters_docs.md](./10.035_gjc_chase_notifications_adapters_docs.md) | adapters/docs/release surface | P3 | ⬜ |
-| 036+ | _(미할당)_ | | | ⬜ |
+| 036 | [10.036_gjc_chase_ai_provider_auth_model_catalog.md](./10.036_gjc_chase_ai_provider_auth_model_catalog.md) | AI provider/auth/model catalog | **P1** | ⬜ |
+| 037 | [10.037_gjc_chase_runtime_process_lifecycle_hardening.md](./10.037_gjc_chase_runtime_process_lifecycle_hardening.md) | runtime/process lifecycle | **P1** | ⬜ |
+| 038 | [10.038_gjc_chase_rpc_control_plane_v2.md](./10.038_gjc_chase_rpc_control_plane_v2.md) | RPC control plane v2 | **P1** | ⬜ |
+| 039 | [10.039_gjc_chase_harness_receipts_phase_rollup.md](./10.039_gjc_chase_harness_receipts_phase_rollup.md) | harness receipts/phase rollup | P2 | ⬜ |
+| 040 | [10.040_gjc_chase_compaction_pruning_resident_memory.md](./10.040_gjc_chase_compaction_pruning_resident_memory.md) | compaction/pruning/resident memory | **P1** | ⬜ |
+| 041 | [10.041_gjc_chase_tui_input_render_windows_psmux.md](./10.041_gjc_chase_tui_input_render_windows_psmux.md) | TUI/input/render/Windows psmux | P2 | ⬜ |
+| 042 | [10.042_gjc_chase_deep_interview_ask_goal_state.md](./10.042_gjc_chase_deep_interview_ask_goal_state.md) | deep-interview/ask/goal state | P2 | ⬜ |
+| 043 | [10.043_gjc_chase_web_search_insane_security.md](./10.043_gjc_chase_web_search_insane_security.md) | web-search/read URL hardening | **P1** | ⬜ |
+| 044 | [10.044_gjc_chase_plugin_extensibility_bundle.md](./10.044_gjc_chase_plugin_extensibility_bundle.md) | plugin/extensibility bundle | P2 | ⬜ |
+| 045 | [10.045_gjc_chase_computer_use_native_control.md](./10.045_gjc_chase_computer_use_native_control.md) | computer-use native control | P2 | ⬜ |
+| 046 | [10.046_gjc_chase_rlm_research_mode.md](./10.046_gjc_chase_rlm_research_mode.md) | RLM/research mode | P3 | ⬜ |
+| 047 | [10.047_gjc_chase_security_privacy_guardrails.md](./10.047_gjc_chase_security_privacy_guardrails.md) | security/privacy guardrails | **P1** | ⬜ |
+| 048 | [10.048_gjc_chase_dev_ci_release_packaging.md](./10.048_gjc_chase_dev_ci_release_packaging.md) | dev/CI/release packaging | P2 | ⬜ |
+| 049 | [10.049_gjc_chase_performance_bench_corpus.md](./10.049_gjc_chase_performance_bench_corpus.md) | perf/bench/corpus | P3 | ⬜ |
+| 050 | [10.050_gjc_chase_session_tmux_team_worktree.md](./10.050_gjc_chase_session_tmux_team_worktree.md) | session/tmux/team/worktree | P2 | ⬜ |
+| 051 | [10.051_gjc_chase_agent_composer_toolcall_integrity.md](./10.051_gjc_chase_agent_composer_toolcall_integrity.md) | agent/composer/toolcall integrity | **P1** | ⬜ |
+| 052 | [10.052_gjc_chase_docs_external_integrations.md](./10.052_gjc_chase_docs_external_integrations.md) | docs/external integrations | P3 | ⬜ |
 
 ## 완료
 

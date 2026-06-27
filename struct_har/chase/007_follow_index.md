@@ -40,6 +40,30 @@
 
 Recommended first user-value path: **028 → 029 → 030 → 032**, then 031/034/033/035.
 
+### Non-Telegram upstream/dev backlog (2026-06-28, split from 616-commit delta)
+
+| 순 | NNN | 문서 | P | 상태 |
+|---|-----|------|---|------|
+| U1 | 036 | [10.036 AI provider/auth/model catalog](./10.036_gjc_chase_ai_provider_auth_model_catalog.md) | **P1** | ⬜ |
+| U2 | 047 | [10.047 security/privacy guardrails](./10.047_gjc_chase_security_privacy_guardrails.md) | **P1** | ⬜ |
+| U3 | 037 | [10.037 runtime/process lifecycle](./10.037_gjc_chase_runtime_process_lifecycle_hardening.md) | **P1** | ⬜ |
+| U4 | 038 | [10.038 RPC control plane v2](./10.038_gjc_chase_rpc_control_plane_v2.md) | **P1** | ⬜ |
+| U5 | 040 | [10.040 compaction/pruning/resident memory](./10.040_gjc_chase_compaction_pruning_resident_memory.md) | **P1** | ⬜ |
+| U6 | 043 | [10.043 web-search/read URL hardening](./10.043_gjc_chase_web_search_insane_security.md) | **P1** | ⬜ |
+| U7 | 051 | [10.051 agent/composer/toolcall integrity](./10.051_gjc_chase_agent_composer_toolcall_integrity.md) | **P1** | ⬜ |
+| U8 | 039 | [10.039 harness receipts/phase rollup](./10.039_gjc_chase_harness_receipts_phase_rollup.md) | P2 | ⬜ |
+| U9 | 041 | [10.041 TUI/input/render/Windows psmux](./10.041_gjc_chase_tui_input_render_windows_psmux.md) | P2 | ⬜ |
+| U10 | 042 | [10.042 deep-interview/ask/goal state](./10.042_gjc_chase_deep_interview_ask_goal_state.md) | P2 | ⬜ |
+| U11 | 044 | [10.044 plugin/extensibility bundle](./10.044_gjc_chase_plugin_extensibility_bundle.md) | P2 | ⬜ |
+| U12 | 045 | [10.045 computer-use native control](./10.045_gjc_chase_computer_use_native_control.md) | P2 | ⬜ |
+| U13 | 048 | [10.048 dev/CI/release packaging](./10.048_gjc_chase_dev_ci_release_packaging.md) | P2 | ⬜ |
+| U14 | 050 | [10.050 session/tmux/team/worktree](./10.050_gjc_chase_session_tmux_team_worktree.md) | P2 | ⬜ |
+| U15 | 046 | [10.046 RLM/research mode](./10.046_gjc_chase_rlm_research_mode.md) | P3 | ⬜ |
+| U16 | 049 | [10.049 perf/bench/corpus](./10.049_gjc_chase_performance_bench_corpus.md) | P3 | ⬜ |
+| U17 | 052 | [10.052 docs/external integrations](./10.052_gjc_chase_docs_external_integrations.md) | P3 | ⬜ |
+
+Recommended order after Telegram MVP: **036/047 security-auth first**, then runtime/RPC/compaction, then UX/docs/perf reference cards.
+
 | 순 | NNN | 문서 | P | 상태 |
 |---|-----|------|---|------|
 | 9 | 011 | [10.011 receipt spool](./10.011_gjc_chase_receipt_spool.md) | P1 | 🟡 코어 landed |
