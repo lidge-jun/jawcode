@@ -41,7 +41,7 @@
 | 영역 | upstream 후보 | jaw 병합 난이도 | 참조 |
 |---|---|---|---|
 | notifications SDK | loopback WS endpoint, `.gjc/state/notifications`, action/reply protocol | 높음 — Rust/N-API + session gate | [10.028](./_fin/10/10.028_gjc_chase_notifications_sdk.md) ✅ _fin |
-| notify config CLI | `gjc notify setup/status`, BotFather token, private-chat pairing | 중 — secret/settings/schema | [10.029](./10.029_gjc_chase_notify_config_cli.md) |
+| notify config CLI | `gjc notify setup/status`, BotFather token, private-chat pairing | 중 — secret/settings/schema | [10.029](./_fin/10/10.029_gjc_chase_notify_config_cli.md) ✅ _fin |
 | Telegram daemon | singleton `getUpdates` poller, roots registry, owner reload/stop | 높음 — long-lived process | [10.030](./10.030_gjc_chase_telegram_managed_daemon.md) |
 | remote answers | inline buttons, free text, Other/custom input, ask race | 높음 — live gate control | [10.032](./10.032_gjc_chase_telegram_remote_answers.md) |
 | threaded surface | per-session topics, identity/context/turn render, inbound fail-closed routing | 높음 — remote routing | [10.031](./10.031_gjc_chase_telegram_threaded_surface.md) |
