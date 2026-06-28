@@ -71,7 +71,7 @@
 | 033 | [10.033_gjc_chase_telegram_session_lifecycle.md](./10.033_gjc_chase_telegram_session_lifecycle.md) | Telegram-driven session lifecycle | P2 | ⬜ |
 | 034 | [10.034_gjc_chase_telegram_media_file_transfer.md](./10.034_gjc_chase_telegram_media_file_transfer.md) | media/files/telegram_send | P2 | ⬜ |
 | 035 | [10.035_gjc_chase_notifications_adapters_docs.md](./10.035_gjc_chase_notifications_adapters_docs.md) | adapters/docs/release surface | P3 | ⬜ |
-| 036 | [10.036_gjc_chase_ai_provider_auth_model_catalog.md](./10.036_gjc_chase_ai_provider_auth_model_catalog.md) | AI provider/auth/model catalog | **P1** | ⬜ |
+| 036 | [10.036_gjc_chase_ai_provider_auth_model_catalog.md](./_fin/10/10.036_gjc_chase_ai_provider_auth_model_catalog.md) | AI provider/auth/model catalog | **P1** | ✅ _fin |
 | 037 | [10.037_gjc_chase_runtime_process_lifecycle_hardening.md](./10.037_gjc_chase_runtime_process_lifecycle_hardening.md) | runtime/process lifecycle | **P1** | ⬜ |
 | 038 | [10.038_gjc_chase_rpc_control_plane_v2.md](./10.038_gjc_chase_rpc_control_plane_v2.md) | RPC control plane v2 | **P1** | ⬜ |
 | 039 | [10.039_gjc_chase_harness_receipts_phase_rollup.md](./10.039_gjc_chase_harness_receipts_phase_rollup.md) | harness receipts/phase rollup | P2 | ⬜ |

@@ -66,7 +66,7 @@
 
 | 영역 | upstream 후보 | jaw 병합 난이도 | 참조 |
 |---|---|---|---|
-| AI/auth/model catalog | provider creds, Codex opaque tokens, forced tool_choice fallback, presets/catalog | 높음 — auth + provider contracts | [10.036](./10.036_gjc_chase_ai_provider_auth_model_catalog.md) |
+| AI/auth/model catalog | provider creds, Codex opaque tokens, forced tool_choice fallback, presets/catalog | 높음 — auth + provider contracts | [10.036](./_fin/10/10.036_gjc_chase_ai_provider_auth_model_catalog.md) ✅ _fin |
 | security/privacy guardrails | dotenv exclusion, env override, socket tokens, URL guards, secret redaction | 높음 — C4 review | [10.047](./_fin/10/10.047_gjc_chase_security_privacy_guardrails.md) ✅ _fin |
 | runtime lifecycle | natives, shell timeout, eval cleanup, queue dispose, env scrub | 높음 — process/resource leaks | [10.037](./10.037_gjc_chase_runtime_process_lifecycle_hardening.md) |
 | RPC v2 | UDS registry, duplicate refusal, token-cost fail-closed, socket probe | 높음 — local control plane | [10.038](./10.038_gjc_chase_rpc_control_plane_v2.md) |
