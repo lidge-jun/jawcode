@@ -348,7 +348,7 @@ export async function dispatchRpcCommand(
 		}
 
 		case "get_messages": {
-			return rpcSuccess(id, "get_messages", { messages: session.messages });
+			return rpcSuccess(id, "get_messages", { messages: [...session.messages] });
 		}
 
 		case "get_login_providers": {
