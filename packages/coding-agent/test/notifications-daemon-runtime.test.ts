@@ -110,4 +110,42 @@ describe("runManagedDaemon (10.030 smoke)", () => {
 			await fs.rm(agentDir, { recursive: true, force: true });
 		}
 	});
+
+	it("best-effort deletes active topics on stop and never breaks the clean stop", async () => {
+		const agentDir = await tmpAgentDir();
+		await writeTransportOwner(agentDir, {
+			version: 1,
+			ownerId: "d1",
+			pid: 1,
+			startedAt: 1_000,
+			heartbeatAt: 1_000,
+			tokenFingerprint: fingerprintSecret(TOKEN),
+			chatIdFingerprint: fingerprintSecret(CHAT),
+		});
+		await writeDaemonControl(agentDir, { version: 1, kind: "stop", targetOwnerId: "d1", requestedAt: 2_000 });
+		const deletedThreads: number[] = [];
+		try {
+			const result = await runManagedDaemon({
+				agentDir,
+				token: TOKEN,
+				chatId: CHAT,
+				ownerId: "d1",
+				pid: 1,
+				now: () => 3_000,
+				sleep: noSleep,
+				fetchImpl: fetchOk(),
+				listActiveTopics: () => [{ messageThreadId: 7 }],
+				deleteTopicImpl: (async (opts: { messageThreadId: number }) => {
+					deletedThreads.push(opts.messageThreadId);
+					throw new Error("delete failed"); // failure must not break the stop
+				}) as never,
+			});
+			expect(result.outcome).toBe("stopped");
+			expect(deletedThreads).toEqual([7]);
+			const owner = await readTransportOwner(agentDir);
+			expect(owner?.stoppedAt).toBe(3_000);
+		} finally {
+			await fs.rm(agentDir, { recursive: true, force: true });
+		}
+	});
 });

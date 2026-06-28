@@ -1,6 +1,8 @@
 import { clearDaemonControl, readDaemonControl } from "./daemon-control";
 import { type DaemonPollState, runDaemonTick } from "./daemon-engine";
 import { type DaemonLoopResult, runDaemonLoop } from "./daemon-loop";
+import type { deleteForumTopic } from "./telegram-api";
+import { deleteSessionTopics } from "./threaded-shutdown";
 import { markTransportOwnerStopped, readTransportOwner, writeTransportOwner } from "./transport-state";
 
 export interface RunManagedDaemonOptions {
@@ -17,6 +19,9 @@ export interface RunManagedDaemonOptions {
 	fetchImpl?: typeof fetch;
 	heartbeatTtlMs?: number;
 	pidAlive?: (pid: number) => boolean;
+	/** Active per-session topics to best-effort delete on shutdown (e.g. ThreadTopicRegistry.list()). */
+	listActiveTopics?: () => ReadonlyArray<{ messageThreadId: number }>;
+	deleteTopicImpl?: typeof deleteForumTopic;
 }
 
 const defaultSleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
@@ -42,6 +47,18 @@ export async function runManagedDaemon(options: RunManagedDaemonOptions): Promis
 		onStop: async () => {
 			const owner = await readTransportOwner(options.agentDir);
 			if (owner) await writeTransportOwner(options.agentDir, markTransportOwnerStopped(owner, now()));
+			if (options.listActiveTopics) {
+				try {
+					await deleteSessionTopics({
+						token: options.token,
+						chatId: options.chatId,
+						topics: options.listActiveTopics(),
+						deleteImpl: options.deleteTopicImpl,
+					});
+				} catch (error) {
+					console.error("[notifications] topic cleanup on stop failed", (error as Error).message);
+				}
+			}
 		},
 		tick: async () => {
 			const result = await runDaemonTick({
