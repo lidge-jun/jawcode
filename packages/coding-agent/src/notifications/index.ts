@@ -7,6 +7,7 @@ export * from "./remote-answer";
 export * from "./server";
 export * from "./session-lifecycle";
 export * from "./session-registry";
+export * from "./telegram-pairing";
 export * from "./threaded-surface";
 export * from "./transport-shell";
 export * from "./transport-state";

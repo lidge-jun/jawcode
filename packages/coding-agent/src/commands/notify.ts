@@ -1,7 +1,7 @@
 import { Args, Command, Flags } from "@jawcode-dev/utils/cli";
 import { type NotifyAction, parseNotifyFlags, runNotifyCommand } from "../cli/notify-cli";
 
-const ACTIONS: NotifyAction[] = ["status", "setup"];
+const ACTIONS: NotifyAction[] = ["status", "setup", "verify"];
 
 export default class Notify extends Command {
 	static description = "Manage notification settings";

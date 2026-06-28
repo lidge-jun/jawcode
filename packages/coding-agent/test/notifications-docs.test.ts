@@ -51,4 +51,13 @@ describe("notification docs", () => {
 		expect(lower).not.toContain("senddocument is supported");
 		expect(lower).not.toContain("inbound telegram media injection is supported");
 	});
+
+	it("documents private-chat-only pairing and Threaded Mode fallback", async () => {
+		const text = (await readDoc("docs/telegram-onboarding.md")).toLowerCase();
+		expect(text).toContain("jwc notify verify");
+		expect(text).toContain("private");
+		expect(text).toContain("threaded mode");
+		expect(text).toContain("supergroup");
+		expect(text).toContain("rejected");
+	});
 });

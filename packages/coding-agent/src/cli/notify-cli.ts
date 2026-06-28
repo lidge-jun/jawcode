@@ -5,9 +5,10 @@ import {
 	maskToken,
 	type NotificationVerbosity,
 	toNotificationStatusJson,
+	verifyTelegramPairing,
 } from "../notifications";
 
-export type NotifyAction = "status" | "setup";
+export type NotifyAction = "status" | "setup" | "verify";
 
 export interface NotifyCommandArgs {
 	action: NotifyAction;
@@ -18,6 +19,8 @@ export interface NotifyCommandArgs {
 	flags: {
 		json?: boolean;
 	};
+	/** Injectable for tests; defaults to the global fetch in `verify`. */
+	fetchImpl?: typeof fetch;
 }
 
 function parseBooleanValue(value: string | undefined, name: string): boolean | undefined {
@@ -74,6 +77,34 @@ function formatStatus(config: ReturnType<typeof getNotificationConfig>): string 
 
 export async function runNotifyCommand(cmd: NotifyCommandArgs): Promise<void> {
 	const settings = await Settings.init();
+
+	if (cmd.action === "verify") {
+		if (!cmd.token || !cmd.chatId) {
+			throw new Error("Usage: jwc notify verify --token <token> --chat-id <id>");
+		}
+		const result = await verifyTelegramPairing({ token: cmd.token, chatId: cmd.chatId, fetchImpl: cmd.fetchImpl });
+		if (cmd.flags.json) {
+			console.log(
+				JSON.stringify(
+					{
+						ok: result.ok,
+						chatType: result.chatType,
+						threadedMode: result.threadedMode,
+						chatId: maskChatId(cmd.chatId),
+						reason: result.reason,
+					},
+					null,
+					2,
+				),
+			);
+		} else {
+			console.log(`Pairing: ${result.ok ? "accepted (private chat)" : `rejected (${result.chatType})`}`);
+			console.log(`Threaded Mode: ${result.threadedMode}`);
+			if (result.reason) console.log(`Reason: ${result.reason}`);
+		}
+		if (!result.ok) throw new Error(result.reason ?? "pairing verification failed");
+		return;
+	}
 
 	if (cmd.action === "setup") {
 		if (!cmd.token || !cmd.chatId) {

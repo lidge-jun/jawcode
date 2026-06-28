@@ -93,4 +93,34 @@ describe("notify CLI", () => {
 		expect(parseNotifyFlags({ redact: "false" }).redact).toBe(false);
 		expect(() => parseNotifyFlags({ redact: "maybe" })).toThrow("Invalid redact");
 	});
+
+	it("verify accepts a private chat and labels threaded mode without leaking the token", async () => {
+		const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+		await runNotifyCommand({
+			action: "verify",
+			token: "verify-secret-token",
+			chatId: "private-chat",
+			flags: {},
+			fetchImpl: (async () =>
+				new Response(JSON.stringify({ ok: true, result: { type: "private" } }))) as unknown as typeof fetch,
+		});
+		const output = logSpy.mock.calls.map(call => String(call[0] ?? "")).join("\n");
+		expect(output).toContain("Pairing: accepted (private chat)");
+		expect(output).toContain("Threaded Mode: unknown");
+		expect(output).not.toContain("verify-secret-token");
+	});
+
+	it("verify rejects a non-private chat pairing", async () => {
+		vi.spyOn(console, "log").mockImplementation(() => {});
+		await expect(
+			runNotifyCommand({
+				action: "verify",
+				token: "t",
+				chatId: "group-chat",
+				flags: {},
+				fetchImpl: (async () =>
+					new Response(JSON.stringify({ ok: true, result: { type: "supergroup" } }))) as unknown as typeof fetch,
+			}),
+		).rejects.toThrow(/not a private chat/);
+	});
 });
