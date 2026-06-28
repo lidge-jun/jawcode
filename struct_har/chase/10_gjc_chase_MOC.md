@@ -75,7 +75,7 @@
 | 037 | [10.037_gjc_chase_runtime_process_lifecycle_hardening.md](./10.037_gjc_chase_runtime_process_lifecycle_hardening.md) | runtime/process lifecycle | **P1** | ⬜ |
 | 038 | [10.038_gjc_chase_rpc_control_plane_v2.md](./10.038_gjc_chase_rpc_control_plane_v2.md) | RPC control plane v2 | **P1** | ⬜ |
 | 039 | [10.039_gjc_chase_harness_receipts_phase_rollup.md](./10.039_gjc_chase_harness_receipts_phase_rollup.md) | harness receipts/phase rollup | P2 | ⬜ |
-| 040 | [10.040_gjc_chase_compaction_pruning_resident_memory.md](./10.040_gjc_chase_compaction_pruning_resident_memory.md) | compaction/pruning/resident memory | **P1** | ⬜ |
+| 040 | [10.040_gjc_chase_compaction_pruning_resident_memory.md](./_fin/10/10.040_gjc_chase_compaction_pruning_resident_memory.md) | compaction/pruning/resident memory | **P1** | ✅ _fin |
 | 041 | [10.041_gjc_chase_tui_input_render_windows_psmux.md](./10.041_gjc_chase_tui_input_render_windows_psmux.md) | TUI/input/render/Windows psmux | P2 | ⬜ |
 | 042 | [10.042_gjc_chase_deep_interview_ask_goal_state.md](./10.042_gjc_chase_deep_interview_ask_goal_state.md) | deep-interview/ask/goal state | P2 | ⬜ |
 | 043 | [10.043_gjc_chase_web_search_insane_security.md](./10.043_gjc_chase_web_search_insane_security.md) | web-search/read URL hardening | **P1** | ⬜ |

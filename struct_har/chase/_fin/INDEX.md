@@ -2,7 +2,7 @@
 
 완료된 `10.NNN` / `20.NNN` — 본문은 `_fin/10/` · `_fin/20/`.
 
-> Inventory refreshed 2026-06-28 against actual files: GJC `_fin/10` = 25, OMP `_fin/20` = 6. Duplicate NNNs are intentionally file-level rows.
+> Inventory refreshed 2026-06-28 against actual files: GJC `_fin/10` = 26, OMP `_fin/20` = 6. Duplicate NNNs are intentionally file-level rows.
 
 ## GJC `_fin/10`
 
@@ -33,6 +33,7 @@
 | 10.024 | 10.024 — gjc chase: coordinator MCP event watch + Hermes snapshot | [10/10.024_gjc_chase_coordinator_mcp_watch](./10/10.024_gjc_chase_coordinator_mcp_watch.md) |
 | 10.025 | 10.025 — gjc chase: perf profiling corpus + geobench (reference) | [10/10.025_gjc_chase_perf_corpus_geobench](./10/10.025_gjc_chase_perf_corpus_geobench.md) |
 | 10.026 | 10.026 — gjc chase: RPC/unattended issues audit pack (design input) | [10/10.026_gjc_chase_rpc_issues_audit](./10/10.026_gjc_chase_rpc_issues_audit.md) |
+| 10.040 | 10.040 — gjc chase: compaction pruning and resident memory | [10/10.040_gjc_chase_compaction_pruning_resident_memory](./10/10.040_gjc_chase_compaction_pruning_resident_memory.md) |
 
 ## OMP `_fin/20`
 

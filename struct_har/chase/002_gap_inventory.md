@@ -70,7 +70,7 @@
 | security/privacy guardrails | dotenv exclusion, env override, socket tokens, URL guards, secret redaction | 높음 — C4 review | [10.047](./10.047_gjc_chase_security_privacy_guardrails.md) |
 | runtime lifecycle | natives, shell timeout, eval cleanup, queue dispose, env scrub | 높음 — process/resource leaks | [10.037](./10.037_gjc_chase_runtime_process_lifecycle_hardening.md) |
 | RPC v2 | UDS registry, duplicate refusal, token-cost fail-closed, socket probe | 높음 — local control plane | [10.038](./10.038_gjc_chase_rpc_control_plane_v2.md) |
-| compaction/memory | active provider compaction, blob bounds, tool IO caps, await cache | 높음 — session survivability | [10.040](./10.040_gjc_chase_compaction_pruning_resident_memory.md) |
+| compaction/memory | active provider compaction, blob bounds, tool IO caps, await cache | 높음 — session survivability | [_fin/10.040](./_fin/10/10.040_gjc_chase_compaction_pruning_resident_memory.md) |
 | web search/read | native provider search, fallback, local-baseUrl/private guard | 높음 — network boundary | [10.043](./10.043_gjc_chase_web_search_insane_security.md) |
 | agent/composer/toolcalls | anchor/edit discipline, text part normalization, tool IO bounds | 높음 — agent correctness | [10.051](./10.051_gjc_chase_agent_composer_toolcall_integrity.md) |
 | harness/receipts | startup blockers, active-turn persistence, phase rollup | 중 — operator evidence | [10.039](./10.039_gjc_chase_harness_receipts_phase_rollup.md) |
