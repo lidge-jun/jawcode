@@ -57,6 +57,7 @@ import { SearchToolBm25Tool } from "./search-tool-bm25";
 import { SkillTool } from "./skill";
 import { loadSshTool } from "./ssh";
 import { SubagentTool } from "./subagent";
+import { TelegramSendTool } from "./telegram-send";
 import { type TodoPhase, TodoWriteTool } from "./todo-write";
 import { WriteTool } from "./write";
 import { YieldTool } from "./yield";
@@ -95,6 +96,7 @@ export * from "./search-tool-bm25";
 export * from "./skill";
 export * from "./ssh";
 export * from "./subagent";
+export * from "./telegram-send";
 export * from "./todo-write";
 export * from "./vim";
 export * from "./write";
@@ -369,6 +371,7 @@ export const BUILTIN_TOOLS: Record<string, ToolFactory> = {
 	write: s => new WriteTool(s),
 	skill: SkillTool.createIf,
 	goal: s => new GoalTool(s),
+	telegram_send: s => TelegramSendTool.createIf(s),
 };
 
 const GOAL_MODE_TOOL_NAMES = [] as const;
