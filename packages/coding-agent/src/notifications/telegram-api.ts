@@ -169,3 +169,91 @@ export async function answerTelegramCallbackQuery(opts: {
 		fetchImpl: opts.fetchImpl,
 	});
 }
+
+interface TelegramMultipartCallOptions {
+	token: string;
+	method: string;
+	form: FormData;
+	fetchImpl?: typeof fetch;
+	signal?: AbortSignal;
+}
+
+async function telegramMultipartCall<T>(opts: TelegramMultipartCallOptions): Promise<TelegramCallOutcome<T>> {
+	const fetchImpl = opts.fetchImpl ?? fetch;
+	const sanitize = (text: string): string => (opts.token ? text.split(opts.token).join("***") : text);
+	const url = `${TELEGRAM_API_BASE}/bot${opts.token}/${opts.method}`;
+	try {
+		const response = await fetchImpl(url, { method: "POST", body: opts.form, signal: opts.signal });
+		let body: { ok?: boolean; result?: T } & TelegramErrorBody;
+		try {
+			body = (await response.json()) as typeof body;
+		} catch {
+			body = {};
+		}
+		if (response.ok && body.ok && body.result !== undefined) {
+			return { ok: true, result: body.result };
+		}
+		const classified = classifyTelegramError(response.status, body);
+		return {
+			ok: false,
+			retryable: classified.retryable,
+			status: response.status,
+			retryAfterMs: classified.retryAfterMs,
+			reason: sanitize(classified.reason),
+		};
+	} catch (error) {
+		const classified = classifyTelegramError(undefined, undefined);
+		return {
+			ok: false,
+			retryable: classified.retryable,
+			reason: sanitize(`request failed: ${(error as Error).message}`),
+		};
+	}
+}
+
+export interface SendTelegramFileOptions {
+	token: string;
+	chatId: string;
+	/** Raw file bytes (already workspace-confined and size/MIME-checked by the caller). */
+	data: Uint8Array;
+	fileName: string;
+	caption?: string;
+	messageThreadId?: number;
+	fetchImpl?: typeof fetch;
+	signal?: AbortSignal;
+}
+
+function buildMediaForm(opts: SendTelegramFileOptions, field: "photo" | "document"): FormData {
+	const form = new FormData();
+	form.append("chat_id", opts.chatId);
+	if (opts.messageThreadId !== undefined) form.append("message_thread_id", String(opts.messageThreadId));
+	if (opts.caption !== undefined) form.append("caption", opts.caption);
+	form.append(field, new Blob([opts.data]), opts.fileName);
+	return form;
+}
+
+/** Upload a workspace-confined image as a Telegram photo. Token-safe. */
+export async function sendTelegramPhoto(
+	opts: SendTelegramFileOptions,
+): Promise<TelegramCallOutcome<{ message_id: number }>> {
+	return telegramMultipartCall<{ message_id: number }>({
+		token: opts.token,
+		method: "sendPhoto",
+		form: buildMediaForm(opts, "photo"),
+		fetchImpl: opts.fetchImpl,
+		signal: opts.signal,
+	});
+}
+
+/** Upload a workspace-confined file as a Telegram document. Token-safe. */
+export async function sendTelegramDocument(
+	opts: SendTelegramFileOptions,
+): Promise<TelegramCallOutcome<{ message_id: number }>> {
+	return telegramMultipartCall<{ message_id: number }>({
+		token: opts.token,
+		method: "sendDocument",
+		form: buildMediaForm(opts, "document"),
+		fetchImpl: opts.fetchImpl,
+		signal: opts.signal,
+	});
+}

@@ -146,3 +146,72 @@ describe("telegram forum topics", () => {
 		expect(failed.ok).toBe(false); // caller treats as best-effort
 	});
 });
+
+describe("telegram media senders (multipart)", () => {
+	function capturingFetch(body: unknown, status: number, capture: { url?: string; init?: RequestInit }): typeof fetch {
+		return (async (url: string, init?: RequestInit) => {
+			capture.url = url;
+			capture.init = init;
+			return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+		}) as unknown as typeof fetch;
+	}
+
+	it("sendTelegramDocument POSTs multipart with chat/thread/caption and the file", async () => {
+		const { sendTelegramDocument } = await import("../src/notifications/telegram-api");
+		const cap: { url?: string; init?: RequestInit } = {};
+		const outcome = await sendTelegramDocument({
+			token: "BOT:SECRET",
+			chatId: "123",
+			data: new Uint8Array([1, 2, 3]),
+			fileName: "report.pdf",
+			caption: "see attached",
+			messageThreadId: 7,
+			fetchImpl: capturingFetch({ ok: true, result: { message_id: 9 } }, 200, cap),
+		});
+		expect(outcome).toEqual({ ok: true, result: { message_id: 9 } });
+		expect(cap.url).toContain("/sendDocument");
+		expect(cap.init?.method).toBe("POST");
+		const form = cap.init?.body as FormData;
+		expect(form.get("chat_id")).toBe("123");
+		expect(form.get("message_thread_id")).toBe("7");
+		expect(form.get("caption")).toBe("see attached");
+		expect(form.get("document")).toBeInstanceOf(Blob);
+	});
+
+	it("sendTelegramPhoto uses the photo field and omits optional fields when unset", async () => {
+		const { sendTelegramPhoto } = await import("../src/notifications/telegram-api");
+		const cap: { url?: string; init?: RequestInit } = {};
+		const outcome = await sendTelegramPhoto({
+			token: "t",
+			chatId: "555",
+			data: new Uint8Array([9]),
+			fileName: "shot.png",
+			fetchImpl: capturingFetch({ ok: true, result: { message_id: 1 } }, 200, cap),
+		});
+		expect(outcome.ok).toBe(true);
+		expect(cap.url).toContain("/sendPhoto");
+		const form = cap.init?.body as FormData;
+		expect(form.get("photo")).toBeInstanceOf(Blob);
+		expect(form.get("caption")).toBeNull();
+		expect(form.get("message_thread_id")).toBeNull();
+	});
+
+	it("sanitizes the bot token out of multipart error reasons", async () => {
+		const { sendTelegramDocument } = await import("../src/notifications/telegram-api");
+		const token = "BOT:SUPERSECRET";
+		const outcome = await sendTelegramDocument({
+			token,
+			chatId: "1",
+			data: new Uint8Array([1]),
+			fileName: "f.bin",
+			fetchImpl: (async () => {
+				throw new Error(`connect failed to https://api.telegram.org/bot${token}/sendDocument`);
+			}) as unknown as typeof fetch,
+		});
+		expect(outcome.ok).toBe(false);
+		if (!outcome.ok) {
+			expect(outcome.reason).not.toContain(token);
+			expect(outcome.reason).toContain("***");
+		}
+	});
+});
