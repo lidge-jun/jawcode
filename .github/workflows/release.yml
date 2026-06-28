@@ -90,15 +90,19 @@ jobs:
             exit 1
           fi
 
-      - name: Publish jawcode
+      # Publishes every public workspace package in dependency order
+      # (utils → ai → natives → tui → stats → agent → coding-agent →
+      # cu-mcp-server → jwc → bridge-client) in a single run. The script
+      # rewrites workspace:/catalog: specs to concrete versions, runs each
+      # package's preBuild (jwc bundle/build:node + full smoke matrix),
+      # skips already-published name@version, and publishes with
+      # --provenance via npm OIDC Trusted Publishing.
+      - name: Publish all packages
         run: |
-          cd packages/jwc
-          bun run bundle
-          bun run build:node
           if [ "${{ inputs.dry-run }}" = "true" ]; then
-            npm publish --dry-run --tag ${{ inputs.tag }} --access public --provenance
+            bun scripts/ci-release-publish.ts --dry-run --tag ${{ inputs.tag }}
           else
-            npm publish --tag ${{ inputs.tag }} --access public --provenance
+            bun scripts/ci-release-publish.ts --tag ${{ inputs.tag }}
           fi
 
       - name: Post-publish registry smoke
