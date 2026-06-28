@@ -4,6 +4,7 @@ export * from "./daemon-control";
 export * from "./daemon-engine";
 export * from "./daemon-loop";
 export * from "./daemon-owner";
+export * from "./daemon-runtime";
 export * from "./discovery";
 export * from "./lifecycle-command-parser";
 export * from "./protocol";
