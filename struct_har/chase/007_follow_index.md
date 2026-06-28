@@ -35,7 +35,7 @@
 | T4 | 032 | [10.032 Telegram remote answers](./_fin/10/10.032_gjc_chase_telegram_remote_answers.md) | **P1** | ✅ _fin · phases 44-51 |
 | T5 | 031 | [10.031 threaded surface](./_fin/10/10.031_gjc_chase_telegram_threaded_surface.md) | P2 | ✅ _fin · phases 4,41,42,43 |
 | T6 | 034 | [10.034 media/file transfer](./10.034_gjc_chase_telegram_media_file_transfer.md) | P2 | ⬜ |
-| T7 | 033 | [10.033 session lifecycle](./10.033_gjc_chase_telegram_session_lifecycle.md) | P2 | ⬜ |
+| T7 | 033 | [10.033 session lifecycle](./_fin/10/10.033_gjc_chase_telegram_session_lifecycle.md) | P2 | ✅ _fin · A=ph11, B/C=ph52 |
 | T8 | 035 | [10.035 adapters/docs](./10.035_gjc_chase_notifications_adapters_docs.md) | P3 | ⬜ |
 
 Recommended first user-value path: **028 → 029 → 030 → 032**, then 031/034/033/035.
