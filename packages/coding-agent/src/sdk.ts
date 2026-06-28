@@ -76,6 +76,7 @@ import type { HindsightSessionState } from "./hindsight/state";
 import { LocalProtocolHandler, type LocalProtocolOptions } from "./internal-urls";
 import { LSP_STARTUP_EVENT_CHANNEL, type LspStartupEvent } from "./lsp/startup-events";
 import { resolveMemoryBackend } from "./memory-backend";
+import { maybeStartNotificationServer } from "./notifications/session-lifecycle";
 import asyncResultTemplate from "./prompts/tools/async-result.md" with { type: "text" };
 import { AgentRegistry, MAIN_AGENT_ID } from "./registry/agent-registry";
 import { MCPManager } from "./runtime-mcp";
@@ -1965,6 +1966,16 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 				sessionManager.appendServiceTierChange(initialServiceTier);
 			}
 		}
+
+		// Start the loopback notification server for top-level sessions when enabled.
+		// Failure is isolated inside the helper and never blocks session creation.
+		await maybeStartNotificationServer({
+			settings,
+			sessionId: logicalSessionId,
+			cwd,
+			taskDepth: options.taskDepth,
+			registerCleanup: (name, cleanup) => toolCleanups.set(name, cleanup),
+		});
 
 		session = new AgentSession({
 			agent,
