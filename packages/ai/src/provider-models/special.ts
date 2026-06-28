@@ -1,5 +1,6 @@
 import { once } from "@jawcode-dev/utils";
 import type { ModelManagerOptions } from "../model-manager";
+import type { Model } from "../types";
 import { fetchCodexModels } from "../utils/discovery/codex";
 
 // ---------------------------------------------------------------------------
@@ -80,14 +81,20 @@ export function kiroModelManagerOptions(_config: KiroModelManagerConfig = {}): M
 	return {
 		providerId: "kiro",
 		staticModels: [
-			kiroModel("kiro-auto", "Auto", 200_000, 16_384),
-			kiroModel("claude-sonnet-4.5", "Claude Sonnet 4.5", 200_000, 16_384),
-			kiroModel("claude-sonnet-4", "Claude Sonnet 4", 200_000, 16_384),
+			kiroModel("auto", "Auto", 1_000_000, 16_384),
+			kiroModel("claude-opus-4.8", "Claude Opus 4.8", 1_000_000, 16_384, true),
+			kiroModel("claude-opus-4.7", "Claude Opus 4.7", 1_000_000, 16_384, true),
+			kiroModel("claude-opus-4.6", "Claude Opus 4.6", 1_000_000, 16_384, true),
+			kiroModel("claude-sonnet-4.6", "Claude Sonnet 4.6", 1_000_000, 16_384, true),
+			kiroModel("claude-opus-4.5", "Claude Opus 4.5", 200_000, 16_384, true),
+			kiroModel("claude-sonnet-4.5", "Claude Sonnet 4.5", 200_000, 16_384, true),
+			kiroModel("claude-sonnet-4", "Claude Sonnet 4", 200_000, 16_384, true),
 			kiroModel("claude-haiku-4.5", "Claude Haiku 4.5", 200_000, 16_384),
-			kiroModel("deepseek-3.2", "DeepSeek 3.2", 128_000, 8_192, true),
-			kiroModel("minimax-m2.5", "MiniMax M2.5", 128_000, 8_192),
-			kiroModel("glm-5", "GLM 5", 128_000, 8_192),
-			kiroModel("qwen3-coder-next", "Qwen3 Coder Next", 128_000, 8_192, true),
+			kiroModel("deepseek-3.2", "DeepSeek 3.2", 164_000, 8_192, true),
+			kiroModel("minimax-m2.5", "MiniMax M2.5", 196_000, 8_192),
+			kiroModel("minimax-m2.1", "MiniMax M2.1", 196_000, 8_192),
+			kiroModel("glm-5", "GLM 5", 200_000, 8_192),
+			kiroModel("qwen3-coder-next", "Qwen3 Coder Next", 256_000, 8_192, true),
 		],
 	};
 }
@@ -98,7 +105,7 @@ function kiroModel(
 	contextWindow: number,
 	maxTokens: number,
 	reasoning = false,
-): import("../types").Model<"kiro-streaming"> {
+): Model<"kiro-streaming"> {
 	return {
 		id,
 		name,
