@@ -78,7 +78,7 @@
 | 040 | [10.040_gjc_chase_compaction_pruning_resident_memory.md](./_fin/10/10.040_gjc_chase_compaction_pruning_resident_memory.md) | compaction/pruning/resident memory | **P1** | ✅ _fin |
 | 041 | [10.041_gjc_chase_tui_input_render_windows_psmux.md](./10.041_gjc_chase_tui_input_render_windows_psmux.md) | TUI/input/render/Windows psmux | P2 | ⬜ |
 | 042 | [10.042_gjc_chase_deep_interview_ask_goal_state.md](./10.042_gjc_chase_deep_interview_ask_goal_state.md) | deep-interview/ask/goal state | P2 | ⬜ |
-| 043 | [10.043_gjc_chase_web_search_insane_security.md](./10.043_gjc_chase_web_search_insane_security.md) | web-search/read URL hardening | **P1** | ⬜ |
+| 043 | [10.043_gjc_chase_web_search_insane_security.md](./_fin/10/10.043_gjc_chase_web_search_insane_security.md) | web-search/read URL hardening | **P1** | ✅ _fin |
 | 044 | [10.044_gjc_chase_plugin_extensibility_bundle.md](./10.044_gjc_chase_plugin_extensibility_bundle.md) | plugin/extensibility bundle | P2 | ⬜ |
 | 045 | [10.045_gjc_chase_computer_use_native_control.md](./10.045_gjc_chase_computer_use_native_control.md) | computer-use native control | P2 | ⬜ |
 | 046 | [10.046_gjc_chase_rlm_research_mode.md](./10.046_gjc_chase_rlm_research_mode.md) | RLM/research mode | P3 | ⬜ |
