@@ -1,6 +1,7 @@
 import { once } from "@jawcode-dev/utils";
 import type { ModelManagerOptions } from "../model-manager";
-import type { Model } from "../types";
+import { Effort } from "../model-thinking";
+import type { Model, ThinkingConfig } from "../types";
 import { fetchCodexModels } from "../utils/discovery/codex";
 
 // ---------------------------------------------------------------------------
@@ -99,6 +100,14 @@ export function kiroModelManagerOptions(_config: KiroModelManagerConfig = {}): M
 	};
 }
 
+const KIRO_THINKING: ThinkingConfig = {
+	mode: "effort",
+	minLevel: Effort.Low,
+	maxLevel: Effort.XHigh,
+	levels: [Effort.Low, Effort.Medium, Effort.High, Effort.XHigh],
+	defaultLevel: Effort.High,
+};
+
 function kiroModel(
 	id: string,
 	name: string,
@@ -117,5 +126,6 @@ function kiroModel(
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 		contextWindow,
 		maxTokens,
+		...(reasoning ? { thinking: KIRO_THINKING } : undefined),
 	};
 }

@@ -11,10 +11,12 @@
 import { createHash, randomUUID } from "node:crypto";
 import { hostname, userInfo } from "node:os";
 import { $env, fetchWithRetry } from "@jawcode-dev/utils";
+import type { Effort } from "../model-thinking";
 import type {
 	AssistantMessage,
 	Context,
 	Model,
+	ProviderSessionState,
 	StreamFunction,
 	StreamOptions,
 	TextContent,
@@ -39,6 +41,7 @@ export interface KiroOptions extends StreamOptions {
 	accessToken?: string;
 	profileArn?: string;
 	spoofVersion?: string;
+	reasoning?: Effort;
 }
 
 // ---------------------------------------------------------------------------
@@ -157,6 +160,46 @@ interface KiroHistoryEntry {
 	assistantResponseMessage?: { content: string; toolUses?: KiroToolUse[] };
 }
 
+interface BuildPayloadOptions {
+	currentTurnOnly?: boolean;
+	reasoning?: Effort;
+	maxTokens?: number;
+}
+
+const KIRO_THINKING_RATIO: Record<Effort, number> = {
+	minimal: 0.1,
+	low: 0.2,
+	medium: 0.5,
+	high: 0.8,
+	xhigh: 0.95,
+	max: 0.95,
+};
+
+function kiroThinkingBudget(options?: BuildPayloadOptions): number | undefined {
+	if (!options?.reasoning) return undefined;
+	const ratio = KIRO_THINKING_RATIO[options.reasoning];
+	if (ratio === undefined) return undefined;
+	const maxTokens = options.maxTokens || 4096;
+	return Math.max(1, Math.floor(maxTokens * ratio));
+}
+
+function injectKiroThinkingTags(content: string, options?: BuildPayloadOptions): string {
+	const budget = kiroThinkingBudget(options);
+	if (!budget) return content;
+	const instruction = [
+		"Think in English for better reasoning quality.",
+		"Be thorough and systematic, consider edge cases, challenge assumptions, and verify reasoning before answering.",
+		"After thinking, respond in the user's language.",
+	].join("\n");
+	return [
+		"<thinking_mode>enabled</thinking_mode>",
+		`<max_thinking_length>${budget}</max_thinking_length>`,
+		`<thinking_instruction>${instruction}</thinking_instruction>`,
+		"",
+		content,
+	].join("\n");
+}
+
 /**
  * Build the `conversationState` payload for `GenerateAssistantResponse`.
  *
@@ -178,6 +221,7 @@ export function buildPayload(
 	modelId: string,
 	conversationId: string,
 	profileArn: string,
+	options?: BuildPayloadOptions,
 ): Record<string, unknown> {
 	const kiroTools = context.tools ? convertTools(context.tools) : [];
 
@@ -265,15 +309,22 @@ export function buildPayload(
 		currentEntry = mkUser("(continue)");
 	}
 	const currentUim = currentEntry.userInputMessage!;
+	if (options?.currentTurnOnly) {
+		history.length = 0;
+	}
 
 	// Prepend the system prompt to the earliest user turn (history first, else current).
-	if (systemPrefix) {
+	if (systemPrefix && !options?.currentTurnOnly) {
 		const firstUser = history.find(e => e.userInputMessage)?.userInputMessage;
 		if (firstUser) {
 			firstUser.content = systemPrefix + firstUser.content;
 		} else {
 			currentUim.content = systemPrefix + currentUim.content;
 		}
+	}
+
+	if (!currentUim.userInputMessageContext?.toolResults?.length) {
+		currentUim.content = injectKiroThinkingTags(currentUim.content, options);
 	}
 
 	// Tools are advertised on the current message's context.
@@ -396,6 +447,33 @@ interface CachedAuth {
 	region: string;
 }
 let authCache: CachedAuth | null = null;
+
+const KIRO_PROVIDER_SESSION_STATE_KEY = "kiro";
+
+interface KiroProviderSessionState extends ProviderSessionState {
+	seenConversationKeys: Set<string>;
+}
+
+function createKiroProviderSessionState(): KiroProviderSessionState {
+	const state: KiroProviderSessionState = {
+		seenConversationKeys: new Set(),
+		close: () => {
+			state.seenConversationKeys.clear();
+		},
+	};
+	return state;
+}
+
+function getKiroProviderSessionState(
+	providerSessionState: Map<string, ProviderSessionState> | undefined,
+): KiroProviderSessionState | undefined {
+	if (!providerSessionState) return undefined;
+	const existing = providerSessionState.get(KIRO_PROVIDER_SESSION_STATE_KEY) as KiroProviderSessionState | undefined;
+	if (existing) return existing;
+	const created = createKiroProviderSessionState();
+	providerSessionState.set(KIRO_PROVIDER_SESSION_STATE_KEY, created);
+	return created;
+}
 
 function readKiroCliSqlite(): {
 	token: string;
@@ -616,10 +694,17 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 			const spoofVersion = opts.spoofVersion || $env.KIRO_SPOOF_VERSION || KIRO_IDE_VERSION;
 			const host = KIRO_HOST_TEMPLATE.replace("{region}", region);
 			const url = `${host}/`;
-			const conversationId = stableConversationId(context);
+			const conversationId = stableConversationId(context, opts, model, profileArn);
+			const sessionState = getKiroProviderSessionState(opts.providerSessionState);
+			const sessionKey = kiroSessionKey(opts, model, profileArn, region);
+			const currentTurnOnly = sessionKey ? (sessionState?.seenConversationKeys.has(sessionKey) ?? false) : false;
 			const kiroModelId = mapModelId(model.id);
 
-			const payload = buildPayload(context, kiroModelId, conversationId, profileArn);
+			const payload = buildPayload(context, kiroModelId, conversationId, profileArn, {
+				currentTurnOnly,
+				reasoning: model.reasoning ? opts.reasoning : undefined,
+				maxTokens: opts.maxTokens,
+			});
 			const headers = buildHeaders(token, spoofVersion, profileArn);
 			const body = new TextEncoder().encode(JSON.stringify(payload));
 			kiroDebugLog("request.payload", payload);
@@ -658,6 +743,9 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 			if (!response.body) throw new Error("Kiro response has no body");
 
 			stream.push({ type: "start", partial: output });
+			if (sessionKey) {
+				sessionState?.seenConversationKeys.add(sessionKey);
+			}
 			let currentToolCall: { id: string; name: string; args: string } | null = null;
 			let contentIndex = 0;
 
@@ -837,7 +925,28 @@ function mapModelId(id: string): string {
 	return MODEL_MAP[id] || id;
 }
 
-function stableConversationId(context: Context): string {
+function kiroSessionKey(
+	options: KiroOptions,
+	model: Model<"kiro-streaming">,
+	profileArn: string,
+	region: string,
+): string | undefined {
+	if (!options.sessionId) return undefined;
+	return `${region}:${profileArn}:${model.provider}:${model.id}:${options.sessionId}`;
+}
+
+function stableConversationId(
+	context: Context,
+	options?: KiroOptions,
+	model?: Model<"kiro-streaming">,
+	profileArn = "",
+): string {
+	if (options?.sessionId && model) {
+		return createHash("sha256")
+			.update(`${profileArn}:${model.provider}:${model.id}:${options.sessionId}`)
+			.digest("hex")
+			.slice(0, 16);
+	}
 	if (!context.messages || context.messages.length === 0) return randomUUID().slice(0, 16);
 	const keyMsgs =
 		context.messages.length <= 3

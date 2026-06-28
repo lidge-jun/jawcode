@@ -1,4 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { Effort, getSupportedEfforts } from "../model-thinking";
+import { getBundledModel } from "../models";
+import { kiroModelManagerOptions } from "../provider-models/special";
 import type { AssistantMessage, Context, Message, ToolResultMessage } from "../types";
 import { buildPayload } from "./kiro";
 
@@ -181,6 +184,45 @@ describe("buildPayload — CodeWhisperer wire contract", () => {
 		expect(current.content).not.toContain("SYS A,SYS B");
 	});
 
+	test("current-turn-only payload drops repeated history and fresh-session system prompt", () => {
+		const context: Context = {
+			messages: [user("old"), assistant("old answer"), user("latest")],
+			systemPrompt: ["SYS A", "SYS B"],
+		};
+		const { history, current } = dissect(
+			buildPayload(context, "claude-sonnet-4.5", "conv-current", "arn", { currentTurnOnly: true }),
+		);
+		expect(history).toHaveLength(0);
+		expect(current.content).toBe("latest");
+		expect(current.content).not.toContain("SYS A");
+		expect(current.content).not.toContain("old");
+	});
+
+	test("xhigh injects max-equivalent thinking tags into the current user message only", () => {
+		const { current } = dissect(
+			buildPayload(ctx([user("think hard")]), "claude-sonnet-4.5", "conv-thinking", "arn", {
+				reasoning: Effort.XHigh,
+				maxTokens: 8000,
+			}),
+		);
+		expect(current.content).toContain("<thinking_mode>enabled</thinking_mode>");
+		expect(current.content).toContain("<max_thinking_length>7600</max_thinking_length>");
+		expect(current.content).toContain("think hard");
+	});
+
+	test("tool-result carrier turns do not receive thinking tags", () => {
+		const messages: Message[] = [user("run"), assistant("", [{ id: "t1", name: "read" }]), toolResult("t1", "ok")];
+		const { current } = dissect(
+			buildPayload(ctx(messages), "claude-sonnet-4.5", "conv-tool-thinking", "arn", {
+				reasoning: Effort.XHigh,
+				maxTokens: 8000,
+			}),
+		);
+		expect(current.content).toBe("(tool results)");
+		expect(current.content).not.toContain("<thinking_mode>");
+		expect(current.userInputMessageContext?.toolResults).toHaveLength(1);
+	});
+
 	test("toolUses[].input is a passthrough JSON object, not a stringified JSON", () => {
 		const args = { pattern: "foo", limit: 5 };
 		const messages: Message[] = [
@@ -194,5 +236,21 @@ describe("buildPayload — CodeWhisperer wire contract", () => {
 		expect(input).toEqual(args);
 		// Must NOT be a stringified JSON (the REQUEST_BODY_INVALID root cause).
 		expect(typeof input).not.toBe("string");
+	});
+});
+
+describe("Kiro model thinking metadata", () => {
+	test("reasoning-capable Kiro models expose xhigh but not max", () => {
+		const models = kiroModelManagerOptions().staticModels ?? [];
+		const sonnet = models.find(model => model.id === "claude-sonnet-4.5");
+		expect(sonnet).toBeDefined();
+		expect(getSupportedEfforts(sonnet!)).toEqual([Effort.Low, Effort.Medium, Effort.High, Effort.XHigh]);
+		expect(getSupportedEfforts(sonnet!)).not.toContain(Effort.Max);
+	});
+
+	test("bundled Kiro catalog stays capped at xhigh", () => {
+		const sonnet = getBundledModel("kiro", "claude-sonnet-4.5");
+		expect(getSupportedEfforts(sonnet)).toEqual([Effort.Low, Effort.Medium, Effort.High, Effort.XHigh]);
+		expect(getSupportedEfforts(sonnet)).not.toContain(Effort.Max);
 	});
 });

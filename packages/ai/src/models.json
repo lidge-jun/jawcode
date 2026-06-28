@@ -21091,8 +21091,15 @@
 			"maxTokens": 16384,
 			"thinking": {
 				"mode": "effort",
-				"minLevel": "minimal",
-				"maxLevel": "high"
+				"minLevel": "low",
+				"maxLevel": "xhigh",
+				"levels": [
+					"low",
+					"medium",
+					"high",
+					"xhigh"
+				],
+				"defaultLevel": "high"
 			}
 		},
 		"claude-opus-4.5": {
@@ -21116,8 +21123,15 @@
 			"maxTokens": 16384,
 			"thinking": {
 				"mode": "effort",
-				"minLevel": "minimal",
-				"maxLevel": "high"
+				"minLevel": "low",
+				"maxLevel": "xhigh",
+				"levels": [
+					"low",
+					"medium",
+					"high",
+					"xhigh"
+				],
+				"defaultLevel": "high"
 			}
 		},
 		"claude-opus-4.6": {
@@ -21141,8 +21155,15 @@
 			"maxTokens": 16384,
 			"thinking": {
 				"mode": "effort",
-				"minLevel": "minimal",
-				"maxLevel": "high"
+				"minLevel": "low",
+				"maxLevel": "xhigh",
+				"levels": [
+					"low",
+					"medium",
+					"high",
+					"xhigh"
+				],
+				"defaultLevel": "high"
 			}
 		},
 		"claude-opus-4.7": {
@@ -21166,8 +21187,15 @@
 			"maxTokens": 16384,
 			"thinking": {
 				"mode": "effort",
-				"minLevel": "minimal",
-				"maxLevel": "high"
+				"minLevel": "low",
+				"maxLevel": "xhigh",
+				"levels": [
+					"low",
+					"medium",
+					"high",
+					"xhigh"
+				],
+				"defaultLevel": "high"
 			}
 		},
 		"claude-opus-4.8": {
@@ -21191,8 +21219,15 @@
 			"maxTokens": 16384,
 			"thinking": {
 				"mode": "effort",
-				"minLevel": "minimal",
-				"maxLevel": "high"
+				"minLevel": "low",
+				"maxLevel": "xhigh",
+				"levels": [
+					"low",
+					"medium",
+					"high",
+					"xhigh"
+				],
+				"defaultLevel": "high"
 			}
 		},
 		"claude-sonnet-4": {
@@ -21216,8 +21251,15 @@
 			"maxTokens": 16384,
 			"thinking": {
 				"mode": "effort",
-				"minLevel": "minimal",
-				"maxLevel": "high"
+				"minLevel": "low",
+				"maxLevel": "xhigh",
+				"levels": [
+					"low",
+					"medium",
+					"high",
+					"xhigh"
+				],
+				"defaultLevel": "high"
 			}
 		},
 		"claude-sonnet-4.5": {
@@ -21241,8 +21283,15 @@
 			"maxTokens": 16384,
 			"thinking": {
 				"mode": "effort",
-				"minLevel": "minimal",
-				"maxLevel": "high"
+				"minLevel": "low",
+				"maxLevel": "xhigh",
+				"levels": [
+					"low",
+					"medium",
+					"high",
+					"xhigh"
+				],
+				"defaultLevel": "high"
 			}
 		},
 		"claude-sonnet-4.6": {
@@ -21266,8 +21315,15 @@
 			"maxTokens": 16384,
 			"thinking": {
 				"mode": "effort",
-				"minLevel": "minimal",
-				"maxLevel": "high"
+				"minLevel": "low",
+				"maxLevel": "xhigh",
+				"levels": [
+					"low",
+					"medium",
+					"high",
+					"xhigh"
+				],
+				"defaultLevel": "high"
 			}
 		},
 		"deepseek-3.2": {
@@ -21291,8 +21347,15 @@
 			"maxTokens": 8192,
 			"thinking": {
 				"mode": "effort",
-				"minLevel": "minimal",
-				"maxLevel": "high"
+				"minLevel": "low",
+				"maxLevel": "xhigh",
+				"levels": [
+					"low",
+					"medium",
+					"high",
+					"xhigh"
+				],
+				"defaultLevel": "high"
 			}
 		},
 		"glm-5": {
@@ -21315,8 +21378,15 @@
 			"maxTokens": 8192,
 			"thinking": {
 				"mode": "effort",
-				"minLevel": "minimal",
-				"maxLevel": "high"
+				"minLevel": "low",
+				"maxLevel": "xhigh",
+				"levels": [
+					"low",
+					"medium",
+					"high",
+					"xhigh"
+				],
+				"defaultLevel": "high"
 			}
 		},
 		"minimax-m2.1": {
@@ -21359,8 +21429,15 @@
 			"maxTokens": 8192,
 			"thinking": {
 				"mode": "effort",
-				"minLevel": "minimal",
-				"maxLevel": "high"
+				"minLevel": "low",
+				"maxLevel": "xhigh",
+				"levels": [
+					"low",
+					"medium",
+					"high",
+					"xhigh"
+				],
+				"defaultLevel": "high"
 			}
 		},
 		"qwen3-coder-next": {
