@@ -213,9 +213,28 @@ async function rewriteNativeManifest(pkgDir: string): Promise<PackageManifest> {
 	return manifest;
 }
 
+/**
+ * Whether a preBuild step should run for the current publish mode.
+ *
+ * The `--registry-faithful` smoke installs only the package's own tarball and
+ * resolves its workspace deps (e.g. `@jawcode-dev/natives`) from the live npm
+ * registry at the release version. During a `--dry-run` nothing is published,
+ * so those deps are absent and the smoke can never pass. It is redundant with
+ * the `release.yml` post-publish registry smoke, so it is skipped in dry-runs
+ * to keep dry-run validation green end-to-end.
+ */
+export function preBuildStepEnabled(argv: readonly string[], options: { dryRun: boolean }): boolean {
+	if (options.dryRun && argv.includes("--registry-faithful")) return false;
+	return true;
+}
+
 async function preparePackage(pkg: PublishPackage): Promise<PackageManifest> {
 	const pkgDir = path.join(repoRoot, pkg.dir);
 	for (const argv of pkg.preBuild ?? []) {
+		if (!preBuildStepEnabled(argv, { dryRun: isDryRun })) {
+			console.log(`Skipping dry-run-incompatible preBuild step in ${pkg.dir}: ${argv.join(" ")}`);
+			continue;
+		}
 		await $`${argv}`.cwd(pkgDir);
 	}
 	if (pkg.kind === "native" || pkg.kind === "manifest") {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import * as path from "node:path";
-import { normalizeFileDependencySpec, packages as publishPackages } from "./ci-release-publish";
+import { normalizeFileDependencySpec, packages as publishPackages, preBuildStepEnabled } from "./ci-release-publish";
 
 interface PackageManifest {
 	name: string;
@@ -24,6 +24,23 @@ describe("release publish contract", () => {
 			"file:///tmp/jawcode/packages/ai",
 		);
 		expect(normalizeFileDependencySpec("catalog:")).toBe("catalog:");
+	});
+
+	test("registry-faithful preBuild runs on real publish but is skipped in dry-run", () => {
+		const registryFaithful = ["node", "scripts/smoke-packed-sdk.mjs", "--registry-faithful"] as const;
+		const postinstallMatrix = ["node", "scripts/smoke-packed-sdk.mjs", "--postinstall-matrix"] as const;
+		const localSmoke = ["bun", "run", "smoke:packed-sdk"] as const;
+
+		// Real publish: registry-faithful must run (validates the published-from-registry shape).
+		expect(preBuildStepEnabled(registryFaithful, { dryRun: false })).toBe(true);
+		// Dry-run: registry-faithful needs already-published deps (e.g. @jawcode-dev/natives@<ver>)
+		// which do not exist mid-release, so it is skipped to keep dry-runs green.
+		expect(preBuildStepEnabled(registryFaithful, { dryRun: true })).toBe(false);
+		// Every other preBuild step runs in both modes (they install local tarballs).
+		for (const step of [postinstallMatrix, localSmoke]) {
+			expect(preBuildStepEnabled(step, { dryRun: true })).toBe(true);
+			expect(preBuildStepEnabled(step, { dryRun: false })).toBe(true);
+		}
 	});
 
 });
