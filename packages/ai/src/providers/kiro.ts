@@ -137,36 +137,91 @@ interface KiroToolResult {
 	toolUseId: string;
 }
 
+interface KiroUserInputMessageContext {
+	tools?: KiroToolSpec[];
+	toolResults?: KiroToolResult[];
+}
+
+interface KiroUserInputMessage {
+	content: string;
+	modelId?: string;
+	origin?: string;
+	userInputMessageContext?: KiroUserInputMessageContext;
+}
+
 interface KiroHistoryEntry {
-	userInputMessage?: { content: string; modelId?: string; origin?: string };
+	userInputMessage?: KiroUserInputMessage;
 	assistantResponseMessage?: { content: string; toolUses?: KiroToolUse[] };
 }
 
-function buildPayload(
+/**
+ * Build the `conversationState` payload for `GenerateAssistantResponse`.
+ *
+ * CodeWhisperer enforces two structural rules that a naive flat conversion
+ * violates and that surface as `REQUEST_BODY_INVALID` / "Improperly formed
+ * request" on multi-round or parallel tool-call conversations:
+ *
+ *   1. `history` must strictly alternate user / assistant turns.
+ *   2. Each `toolResult` must ride on the `userInputMessage` that immediately
+ *      follows the `assistantResponseMessage` whose `toolUses` it answers, and
+ *      its `toolUseId` must match that toolUse exactly.
+ *
+ * We therefore interleave tool results back into history (delivering any
+ * outstanding results in their own user turn before the next assistant turn),
+ * and normalize the tool-use id on BOTH sides so they always match.
+ */
+export function buildPayload(
 	context: Context,
 	modelId: string,
 	conversationId: string,
 	profileArn: string,
 ): Record<string, unknown> {
-	const history: KiroHistoryEntry[] = [];
 	const kiroTools = context.tools ? convertTools(context.tools) : [];
-	const toolResults: KiroToolResult[] = [];
 
+	// `systemPrompt` is a string[]; join with blank lines instead of relying on
+	// Array.toString() (which would comma-join multiple system prompts).
 	let systemPrefix = "";
-	if (context.systemPrompt) {
-		systemPrefix = `${context.systemPrompt}\n\n`;
+	if (context.systemPrompt?.length) {
+		systemPrefix = `${context.systemPrompt.join("\n\n")}\n\n`;
 	}
 
+	const mkUser = (content: string): KiroHistoryEntry => ({
+		userInputMessage: { content, modelId, origin: "AI_EDITOR" },
+	});
+
+	const history: KiroHistoryEntry[] = [];
+	let pending: KiroToolResult[] = [];
 	let lastRole = "";
+
+	// Attach buffered tool results (from the preceding assistant turn) to a user entry.
+	const attachPending = (entry: KiroHistoryEntry): void => {
+		if (pending.length === 0) return;
+		const uim = entry.userInputMessage!;
+		uim.userInputMessageContext = { ...(uim.userInputMessageContext ?? {}), toolResults: pending };
+		pending = [];
+	};
+
 	for (const msg of context.messages) {
 		if (msg.role === "user" || msg.role === "developer") {
 			const text = typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content);
-			if (lastRole === "user") {
+			// Only insert a synthetic assistant turn for two genuinely consecutive
+			// user messages — never when this user turn is carrying tool results.
+			if (pending.length === 0 && lastRole === "user") {
 				history.push({ assistantResponseMessage: { content: "(acknowledged)" } });
 			}
-			history.push({ userInputMessage: { content: text, modelId, origin: "AI_EDITOR" } });
+			const entry = mkUser(text);
+			attachPending(entry);
+			history.push(entry);
 			lastRole = "user";
 		} else if (msg.role === "assistant") {
+			// Deliver any outstanding tool results in their own user turn BEFORE the
+			// next assistant turn, so toolUses/toolResults stay adjacent and aligned.
+			if (pending.length > 0) {
+				const carrier = mkUser("(tool results)");
+				attachPending(carrier);
+				history.push(carrier);
+				lastRole = "user";
+			}
 			const aMsg = msg as AssistantMessage;
 			const textParts = (aMsg.content || []).filter((b): b is TextContent => b.type === "text");
 			const text = textParts.map(b => b.text).join("");
@@ -175,10 +230,10 @@ function buildPayload(
 				.map(tc => ({
 					name: tc.name,
 					input: JSON.stringify(tc.arguments ?? {}),
-					toolUseId: tc.id,
+					toolUseId: normalizeToolCallId(tc.id),
 				}));
 			if (lastRole === "assistant") {
-				history.push({ userInputMessage: { content: "(continue)", modelId, origin: "AI_EDITOR" } });
+				history.push(mkUser("(continue)"));
 			}
 			const entry: KiroHistoryEntry = { assistantResponseMessage: { content: text } };
 			if (toolUses.length > 0) entry.assistantResponseMessage!.toolUses = toolUses;
@@ -187,7 +242,7 @@ function buildPayload(
 		} else if (msg.role === "toolResult") {
 			const trMsg = msg as ToolResultMessage;
 			const parts = trMsg.content.map(c => (c.type === "text" ? c.text : "")).filter(Boolean);
-			toolResults.push({
+			pending.push({
 				content: [{ text: parts.join("\n") || "(empty)" }],
 				status: trMsg.isError ? "error" : "success",
 				toolUseId: normalizeToolCallId(trMsg.toolCallId),
@@ -195,44 +250,39 @@ function buildPayload(
 		}
 	}
 
-	// Pop last user message as currentMessage
-	let currentContent: string;
-	if (history.length > 0 && history[history.length - 1].userInputMessage) {
-		const last = history.pop()!;
-		currentContent = last.userInputMessage!.content;
-	} else if (toolResults.length > 0) {
-		currentContent = "(tool results attached)";
+	// Resolve the active (current) user turn.
+	let currentEntry: KiroHistoryEntry;
+	if (pending.length > 0) {
+		// Conversation ended awaiting the model's reply to the latest tool results.
+		currentEntry = mkUser("(tool results)");
+		attachPending(currentEntry);
+	} else if (history.length > 0 && history[history.length - 1].userInputMessage) {
+		currentEntry = history.pop()!;
 	} else {
-		currentContent = "(continue)";
+		currentEntry = mkUser("(continue)");
 	}
+	const currentUim = currentEntry.userInputMessage!;
 
-	// Prepend system prompt
+	// Prepend the system prompt to the earliest user turn (history first, else current).
 	if (systemPrefix) {
-		if (history.length > 0 && history[0].userInputMessage) {
-			history[0].userInputMessage!.content = systemPrefix + history[0].userInputMessage!.content;
+		const firstUser = history.find(e => e.userInputMessage)?.userInputMessage;
+		if (firstUser) {
+			firstUser.content = systemPrefix + firstUser.content;
 		} else {
-			currentContent = systemPrefix + currentContent;
+			currentUim.content = systemPrefix + currentUim.content;
 		}
 	}
 
-	const userInputMessage: Record<string, unknown> = {
-		content: currentContent,
-		modelId,
-		origin: "AI_EDITOR",
-	};
-
-	const userInputMessageContext: Record<string, unknown> = {};
-	if (kiroTools.length > 0) userInputMessageContext.tools = kiroTools;
-	if (toolResults.length > 0) userInputMessageContext.toolResults = toolResults;
-	if (Object.keys(userInputMessageContext).length > 0) {
-		userInputMessage.userInputMessageContext = userInputMessageContext;
+	// Tools are advertised on the current message's context.
+	if (kiroTools.length > 0) {
+		currentUim.userInputMessageContext = { ...(currentUim.userInputMessageContext ?? {}), tools: kiroTools };
 	}
 
 	const payload: Record<string, unknown> = {
 		conversationState: {
 			chatTriggerType: "MANUAL",
 			conversationId,
-			currentMessage: { userInputMessage },
+			currentMessage: { userInputMessage: currentUim },
 			...(history.length > 0 ? { history } : {}),
 		},
 	};
