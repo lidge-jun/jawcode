@@ -327,7 +327,7 @@ interface ParsedKiroEvent {
 	usage?: number;
 }
 
-function parseKiroPayload(raw: Uint8Array): ParsedKiroEvent | null {
+export function parseKiroPayload(raw: Uint8Array): ParsedKiroEvent | null {
 	let text: string;
 	try {
 		text = new TextDecoder().decode(raw);
@@ -347,31 +347,29 @@ function parseKiroPayload(raw: Uint8Array): ParsedKiroEvent | null {
 	if ("content" in parsed && typeof parsed.content === "string") {
 		return { type: "content", data: parsed.content };
 	}
-	if ("name" in parsed && typeof parsed.name === "string") {
+
+	// CodeWhisperer repeats `name` + `toolUseId` on EVERY tool event — the start,
+	// each streamed `input` fragment, AND the final `stop` event. We must therefore
+	// discriminate by `stop`/`input` presence, NOT by `name`. The old code treated
+	// any event with `name` as a fresh tool_start, so every input fragment reset the
+	// accumulator and arguments were lost (the empty-{} bug).
+	const toolUseId = typeof parsed.toolUseId === "string" ? (parsed.toolUseId as string) : undefined;
+	const name = typeof parsed.name === "string" ? (parsed.name as string) : undefined;
+
+	if (parsed.stop === true) {
+		return { type: "tool_stop", toolUseId };
+	}
+	if ("input" in parsed) {
 		const input =
 			typeof parsed.input === "object" && parsed.input !== null
 				? JSON.stringify(parsed.input)
 				: typeof parsed.input === "string"
 					? (parsed.input as string)
 					: "";
-		return {
-			type: "tool_start",
-			name: parsed.name as string,
-			toolUseId: (parsed.toolUseId as string) || `toolu_${randomUUID().slice(0, 8)}`,
-			input,
-		};
+		return { type: "tool_input", input, name, toolUseId };
 	}
-	if ("input" in parsed && !("name" in parsed)) {
-		const input =
-			typeof parsed.input === "object" && parsed.input !== null
-				? JSON.stringify(parsed.input)
-				: typeof parsed.input === "string"
-					? (parsed.input as string)
-					: "";
-		return { type: "tool_input", input };
-	}
-	if ("stop" in parsed && parsed.stop === true) {
-		return { type: "tool_stop" };
+	if (name !== undefined) {
+		return { type: "tool_start", name, toolUseId: toolUseId || `toolu_${randomUUID().slice(0, 8)}`, input: "" };
 	}
 	if ("usage" in parsed) {
 		return { type: "usage", usage: parsed.usage as number };
