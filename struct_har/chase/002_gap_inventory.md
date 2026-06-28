@@ -69,7 +69,7 @@
 | AI/auth/model catalog | provider creds, Codex opaque tokens, forced tool_choice fallback, presets/catalog | 높음 — auth + provider contracts | [10.036](./_fin/10/10.036_gjc_chase_ai_provider_auth_model_catalog.md) ✅ _fin |
 | security/privacy guardrails | dotenv exclusion, env override, socket tokens, URL guards, secret redaction | 높음 — C4 review | [10.047](./_fin/10/10.047_gjc_chase_security_privacy_guardrails.md) ✅ _fin |
 | runtime lifecycle | natives, shell timeout, eval cleanup, queue dispose, env scrub | 높음 — process/resource leaks | [10.037](./_fin/10/10.037_gjc_chase_runtime_process_lifecycle_hardening.md) ✅ _fin |
-| RPC v2 | UDS registry, duplicate refusal, token-cost fail-closed, socket probe | 높음 — local control plane | [10.038](./10.038_gjc_chase_rpc_control_plane_v2.md) |
+| RPC v2 | UDS registry, duplicate refusal, token-cost fail-closed, socket probe | 높음 — local control plane | [10.038](./_fin/10/10.038_gjc_chase_rpc_control_plane_v2.md) ✅ _fin |
 | compaction/memory | active provider compaction, blob bounds, tool IO caps, await cache | 높음 — session survivability | [_fin/10.040](./_fin/10/10.040_gjc_chase_compaction_pruning_resident_memory.md) |
 | web search/read | syntactic private-network read/fetch guards, provider-alias mapping, citation fail-closed; exact local-baseUrl resolver-context guard deferred | 높음 — network boundary | [_fin/10.043](./_fin/10/10.043_gjc_chase_web_search_insane_security.md) |
 | agent/composer/toolcalls | anchor/edit discipline, text part normalization, tool IO bounds | 높음 — agent correctness | [10.051](./10.051_gjc_chase_agent_composer_toolcall_integrity.md) |

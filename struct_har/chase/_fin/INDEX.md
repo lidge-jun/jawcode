@@ -2,7 +2,7 @@
 
 완료된 `10.NNN` / `20.NNN` — 본문은 `_fin/10/` · `_fin/20/`.
 
-> Inventory refreshed 2026-06-28 against actual files: GJC `_fin/10` = 39, OMP `_fin/20` = 7. Duplicate NNNs are intentionally file-level rows.
+> Inventory refreshed 2026-06-28 against actual files: GJC `_fin/10` = 40, OMP `_fin/20` = 7. Duplicate NNNs are intentionally file-level rows.
 
 ## GJC `_fin/10`
 
@@ -43,6 +43,7 @@
 | 10.035 | 10.035 — gjc chase: notification adapters, docs, and release surface | [10/10.035_gjc_chase_notifications_adapters_docs](./10/10.035_gjc_chase_notifications_adapters_docs.md) |
 | 10.036 | 10.036 — gjc chase: AI provider auth and model catalog | [10/10.036_gjc_chase_ai_provider_auth_model_catalog](./10/10.036_gjc_chase_ai_provider_auth_model_catalog.md) |
 | 10.037 | 10.037 — gjc chase: runtime process lifecycle hardening | [10/10.037_gjc_chase_runtime_process_lifecycle_hardening](./10/10.037_gjc_chase_runtime_process_lifecycle_hardening.md) |
+| 10.038 | 10.038 — gjc chase: RPC control plane v2 | [10/10.038_gjc_chase_rpc_control_plane_v2](./10/10.038_gjc_chase_rpc_control_plane_v2.md) |
 | 10.040 | 10.040 — gjc chase: compaction pruning and resident memory | [10/10.040_gjc_chase_compaction_pruning_resident_memory](./10/10.040_gjc_chase_compaction_pruning_resident_memory.md) |
 | 10.043 | 10.043 — gjc chase: web search and public URL hardening | [10/10.043_gjc_chase_web_search_insane_security](./10/10.043_gjc_chase_web_search_insane_security.md) |
 | 10.047 | 10.047 — gjc chase: security/privacy guardrails | [10/10.047_gjc_chase_security_privacy_guardrails](./10/10.047_gjc_chase_security_privacy_guardrails.md) |
