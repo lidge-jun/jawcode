@@ -1,5 +1,6 @@
 export * from "./ask-bridge";
 export * from "./config";
+export * from "./daemon-owner";
 export * from "./discovery";
 export * from "./lifecycle-command-parser";
 export * from "./protocol";
@@ -7,6 +8,7 @@ export * from "./remote-answer";
 export * from "./server";
 export * from "./session-lifecycle";
 export * from "./session-registry";
+export * from "./telegram-api";
 export * from "./telegram-pairing";
 export * from "./threaded-surface";
 export * from "./transport-shell";
