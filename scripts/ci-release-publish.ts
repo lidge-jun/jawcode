@@ -55,6 +55,28 @@ const distTag = (() => {
  */
 const noProvenance = process.argv.includes("--no-provenance");
 /**
+ * `--otp <code>` forwards a one-time password to `npm publish --otp`. npm
+ * accounts with 2FA enforced on writes reject publishes without an OTP, and
+ * the `.quiet()` invocation below cannot surface npm's interactive prompt. A
+ * manual bootstrap run passes a fresh authenticator code so each `npm publish`
+ * authenticates non-interactively. CI never passes this flag.
+ */
+const otp = (() => {
+	const idx = process.argv.indexOf("--otp");
+	if (idx < 0) return undefined;
+	const raw = process.argv[idx + 1];
+	return raw !== undefined && raw.trim().length > 0 ? raw.trim() : undefined;
+})();
+/**
+ * `--interactive` runs each `npm publish` with inherited stdio instead of
+ * capturing its output. npm's default `auth-type=web` 2FA flow prints a login
+ * URL, opens the browser, and blocks until the user confirms — which is
+ * impossible when stdout/stderr/stdin are captured/detached. A manual
+ * bootstrap run passes this flag so the browser-based 2FA prompt is visible
+ * and answerable. CI (non-interactive OIDC) never passes it.
+ */
+const interactive = process.argv.includes("--interactive");
+/**
  * `--only <dir1,dir2,…>` restricts publishing to a subset of `packages`. Each
  * token matches either the full `dir` (`packages/utils`) or its basename
  * (`utils`). Lets a manual bootstrap target exactly the unpublished packages
@@ -296,6 +318,17 @@ async function publishPackage(pkg: PublishPackage): Promise<void> {
 	const publishArgs = ["publish", "--access", "public"];
 	if (!noProvenance) publishArgs.push("--provenance");
 	if (distTag) publishArgs.push("--tag", distTag);
+	if (otp) publishArgs.push("--otp", otp);
+	if (interactive) {
+		// Inherit stdio so npm's web-auth 2FA prompt (login URL + browser open)
+		// is visible and the run blocks until the user confirms in the browser.
+		const result = await Bun.spawn(["npm", ...publishArgs], {
+			cwd: pkgDir,
+			stdio: ["inherit", "inherit", "inherit"],
+		}).exited;
+		if (result !== 0) process.exit(result ?? 1);
+		return;
+	}
 	const result = await $`npm ${publishArgs}`.cwd(pkgDir).quiet().nothrow();
 	const output = `${result.stdout.toString()}${result.stderr.toString()}`.trim();
 	if (output) console.log(output);
