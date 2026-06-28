@@ -1,5 +1,6 @@
 export * from "./ask-bridge";
 export * from "./config";
+export * from "./config-command-parser";
 export * from "./daemon-control";
 export * from "./daemon-engine";
 export * from "./daemon-loop";
