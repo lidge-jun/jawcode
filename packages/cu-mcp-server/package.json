@@ -1,6 +1,11 @@
 {
   "name": "jawcode-cu-mcp-server",
   "version": "1.1.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lidge-jun/jawcode.git",
+    "directory": "packages/cu-mcp-server"
+  },
   "type": "module",
   "bin": { "cu-mcp-server": "./dist/index.js" },
   "files": ["dist", "bin"],

@@ -4,6 +4,11 @@
 	"version": "1.1.0",
 	"description": "Jawcode (jwc) — structured coding-agent runtime CLI for cli-jaw and standalone use",
 	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/lidge-jun/jawcode.git",
+		"directory": "packages/jwc"
+	},
 	"bin": {
 		"jwc": "bin/jwc.js"
 	},
