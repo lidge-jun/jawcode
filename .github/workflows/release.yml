@@ -67,6 +67,9 @@ jobs:
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
+      # npm Trusted Publishing (OIDC) requires Node 22.14+ and npm 11.5.1+.
+      - name: Ensure npm supports trusted publishing (>= 11.5.1)
+        run: npm install -g npm@latest
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: release-${{ runner.os }}
