@@ -297,6 +297,27 @@ export function buildPayload(
 // Response parsing
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Opt-in wire debug — set JWC_KIRO_DEBUG=1 (or =/abs/path.jsonl) to capture the
+// outgoing payload and every raw streaming event for diagnosing tool-arg issues.
+// ---------------------------------------------------------------------------
+function kiroDebugPath(): string | null {
+	const v = process.env.JWC_KIRO_DEBUG;
+	if (!v) return null;
+	return v === "1" || v === "true" ? "/tmp/jwc-kiro-debug.jsonl" : v;
+}
+
+function kiroDebugLog(tag: string, data: unknown): void {
+	const path = kiroDebugPath();
+	if (!path) return;
+	try {
+		const { appendFileSync } = require("node:fs") as typeof import("node:fs");
+		appendFileSync(path, `${JSON.stringify({ t: Date.now(), tag, data })}\n`);
+	} catch {
+		// Never let debug logging break the request path.
+	}
+}
+
 interface ParsedKiroEvent {
 	type: "content" | "tool_start" | "tool_input" | "tool_stop" | "usage";
 	data?: string;
@@ -603,6 +624,7 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 			const payload = buildPayload(context, kiroModelId, conversationId, profileArn);
 			const headers = buildHeaders(token, spoofVersion, profileArn);
 			const body = new TextEncoder().encode(JSON.stringify(payload));
+			kiroDebugLog("request.payload", payload);
 
 			let response = await fetchWithRetry(url, {
 				method: "POST",
@@ -649,8 +671,12 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 				}
 				if (messageType !== "event") continue;
 
+				if (kiroDebugPath()) {
+					kiroDebugLog("event.raw", new TextDecoder().decode(message.payload));
+				}
 				const event = parseKiroPayload(message.payload);
 				if (!event) continue;
+				kiroDebugLog("event.parsed", event);
 
 				switch (event.type) {
 					case "content": {
