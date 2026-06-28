@@ -2,7 +2,7 @@
 
 완료된 `10.NNN` / `20.NNN` — 본문은 `_fin/10/` · `_fin/20/`.
 
-> Inventory refreshed 2026-06-28 against actual files: GJC `_fin/10` = 41, OMP `_fin/20` = 7. Duplicate NNNs are intentionally file-level rows.
+> Inventory refreshed 2026-06-28 against actual files: GJC `_fin/10` = 41, OMP `_fin/20` = 8. Duplicate NNNs are intentionally file-level rows.
 
 ## GJC `_fin/10`
 
@@ -59,6 +59,7 @@
 | 20.006 | 20.006 — omp chase: TUI 입력/표시 마이크로 수정 묶음 | [20/20.006_omp_chase_tui_input_micro_fixes](./20/20.006_omp_chase_tui_input_micro_fixes.md) |
 | 20.007 | 20.007 — omp chase: session layer modularization (reference) | [20/20.007_omp_chase_session_modularization](./20/20.007_omp_chase_session_modularization.md) |
 | 20.008 | 20.008 — omp chase: 15.12.3 → 15.13.0 pull delta index | [20/20.008_omp_chase_pull_15_13_delta](./20/20.008_omp_chase_pull_15_13_delta.md) |
+| 20.010 | 20.010 — omp chase: AI OAuth and reasoning replay (reference audit) | [20/20.010_omp_chase_ai_oauth_reasoning_replay](./20/20.010_omp_chase_ai_oauth_reasoning_replay.md) |
 
 ## superseded (devlog)
 

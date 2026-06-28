@@ -104,7 +104,7 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 | 순 | NNN | 문서 | P | 상태 |
 |---|-----|------|---|------|
 | O1 | 009 | [20.009 append-only context integrity](./20.009_omp_chase_append_only_context_integrity.md) | P2 | ⬜ |
-| O2 | 010 | [20.010 AI OAuth/reasoning replay](./20.010_omp_chase_ai_oauth_reasoning_replay.md) | P2 | ⬜ |
+| O2 | 010 | [20.010 AI OAuth/reasoning replay](./_fin/20/20.010_omp_chase_ai_oauth_reasoning_replay.md) | P2 | ✅ _fin · reference · phases 10,60 |
 | O3 | 011 | [20.011 TUI image drafts/terminal edges](./20.011_omp_chase_tui_image_drafts_terminal_edges.md) | P2 | ⬜ |
 | O4 | 012 | [20.012 bash snapshot/env security](./20.012_omp_chase_bash_snapshot_env_security.md) | P2 | ⬜ |
 | O5 | 013 | [20.013 plugin virtual registry/bundle](./20.013_omp_chase_plugin_virtual_registry_bundle.md) | P2 | ⬜ |
