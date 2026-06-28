@@ -86,7 +86,7 @@
 | 048 | [10.048_gjc_chase_dev_ci_release_packaging.md](./10.048_gjc_chase_dev_ci_release_packaging.md) | dev/CI/release packaging | P2 | ⬜ |
 | 049 | [10.049_gjc_chase_performance_bench_corpus.md](./10.049_gjc_chase_performance_bench_corpus.md) | perf/bench/corpus | P3 | ⬜ |
 | 050 | [10.050_gjc_chase_session_tmux_team_worktree.md](./10.050_gjc_chase_session_tmux_team_worktree.md) | session/tmux/team/worktree | P2 | ⬜ |
-| 051 | [10.051_gjc_chase_agent_composer_toolcall_integrity.md](./10.051_gjc_chase_agent_composer_toolcall_integrity.md) | agent/composer/toolcall integrity | **P1** | ⬜ |
+| 051 | [10.051_gjc_chase_agent_composer_toolcall_integrity.md](./_fin/10/10.051_gjc_chase_agent_composer_toolcall_integrity.md) | agent/composer/toolcall integrity | **P1** | ✅ _fin |
 | 052 | [10.052_gjc_chase_docs_external_integrations.md](./10.052_gjc_chase_docs_external_integrations.md) | docs/external integrations | P3 | ⬜ |
 
 ## 완료

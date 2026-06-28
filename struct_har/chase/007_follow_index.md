@@ -50,7 +50,7 @@ Recommended first user-value path: **028 → 029 → 030 → 032**, then 031/034
 | U4 | 038 | [10.038 RPC control plane v2](./_fin/10/10.038_gjc_chase_rpc_control_plane_v2.md) | **P1** | ✅ _fin · phases 7,20,27,58 |
 | U5 | 040 | [10.040 compaction/pruning/resident memory](./_fin/10/10.040_gjc_chase_compaction_pruning_resident_memory.md) | **P1** | ✅ _fin · phases 21–23 |
 | U6 | 043 | [10.043 web-search/read URL hardening](./_fin/10/10.043_gjc_chase_web_search_insane_security.md) | **P1** | ✅ _fin · phases 24-26, 29 |
-| U7 | 051 | [10.051 agent/composer/toolcall integrity](./10.051_gjc_chase_agent_composer_toolcall_integrity.md) | **P1** | ⬜ |
+| U7 | 051 | [10.051 agent/composer/toolcall integrity](./_fin/10/10.051_gjc_chase_agent_composer_toolcall_integrity.md) | **P1** | ✅ _fin · phases 6,15,19,59 |
 | U8 | 039 | [10.039 harness receipts/phase rollup](./10.039_gjc_chase_harness_receipts_phase_rollup.md) | P2 | ⬜ |
 | U9 | 041 | [10.041 TUI/input/render/Windows psmux](./10.041_gjc_chase_tui_input_render_windows_psmux.md) | P2 | ⬜ |
 | U10 | 042 | [10.042 deep-interview/ask/goal state](./10.042_gjc_chase_deep_interview_ask_goal_state.md) | P2 | ⬜ |

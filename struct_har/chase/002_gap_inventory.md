@@ -72,7 +72,7 @@
 | RPC v2 | UDS registry, duplicate refusal, token-cost fail-closed, socket probe | 높음 — local control plane | [10.038](./_fin/10/10.038_gjc_chase_rpc_control_plane_v2.md) ✅ _fin |
 | compaction/memory | active provider compaction, blob bounds, tool IO caps, await cache | 높음 — session survivability | [_fin/10.040](./_fin/10/10.040_gjc_chase_compaction_pruning_resident_memory.md) |
 | web search/read | syntactic private-network read/fetch guards, provider-alias mapping, citation fail-closed; exact local-baseUrl resolver-context guard deferred | 높음 — network boundary | [_fin/10.043](./_fin/10/10.043_gjc_chase_web_search_insane_security.md) |
-| agent/composer/toolcalls | anchor/edit discipline, text part normalization, tool IO bounds | 높음 — agent correctness | [10.051](./10.051_gjc_chase_agent_composer_toolcall_integrity.md) |
+| agent/composer/toolcalls | anchor/edit discipline, text part normalization, tool IO bounds | 높음 — agent correctness | [10.051](./_fin/10/10.051_gjc_chase_agent_composer_toolcall_integrity.md) ✅ _fin |
 | harness/receipts | startup blockers, active-turn persistence, phase rollup | 중 — operator evidence | [10.039](./10.039_gjc_chase_harness_receipts_phase_rollup.md) |
 | TUI/input/psmux | keystroke echo, Windows psmux, selector identity, redraw metrics | 중 — UX/runtime | [10.041](./10.041_gjc_chase_tui_input_render_windows_psmux.md) |
 | goal/interview/ask | HUD sync, red-team review, ralplan continuation, busy guard | 중 — workflow state | [10.042](./10.042_gjc_chase_deep_interview_ask_goal_state.md) |
