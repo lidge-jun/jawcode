@@ -105,10 +105,10 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 |---|-----|------|---|------|
 | O1 | 009 | [20.009 append-only context integrity](./20.009_omp_chase_append_only_context_integrity.md) | P2 | ⬜ |
 | O2 | 010 | [20.010 AI OAuth/reasoning replay](./_fin/20/20.010_omp_chase_ai_oauth_reasoning_replay.md) | P2 | ✅ _fin · reference · phases 10,60 |
-| O3 | 011 | [20.011 TUI image drafts/terminal edges](./20.011_omp_chase_tui_image_drafts_terminal_edges.md) | P2 | ⬜ |
-| O4 | 012 | [20.012 bash snapshot/env security](./20.012_omp_chase_bash_snapshot_env_security.md) | P2 | ⬜ |
-| O5 | 013 | [20.013 plugin virtual registry/bundle](./20.013_omp_chase_plugin_virtual_registry_bundle.md) | P2 | ⬜ |
-| O6 | 014 | [20.014 goal compaction/provider concurrency](./20.014_omp_chase_goal_compaction_provider_concurrency.md) | P2 | ⬜ |
+| O3 | 011 | [20.011 TUI image drafts/terminal edges](./_fin/20/20.011_omp_chase_tui_image_drafts_terminal_edges.md) | P2 | ✅ _fin · ref · phases 10,61 |
+| O4 | 012 | [20.012 bash snapshot/env security](./_fin/20/20.012_omp_chase_bash_snapshot_env_security.md) | P2 | ✅ _fin · ref · phases 10,61 |
+| O5 | 013 | [20.013 plugin virtual registry/bundle](./_fin/20/20.013_omp_chase_plugin_virtual_registry_bundle.md) | P2 | ✅ _fin · ref · phases 10,61 |
+| O6 | 014 | [20.014 goal compaction/provider concurrency](./_fin/20/20.014_omp_chase_goal_compaction_provider_concurrency.md) | P2 | ✅ _fin · ref · phases 10,61 |
 | O7 | 015 | [20.015 release/test leak hardening](./20.015_omp_chase_release_test_leak_hardening.md) | P3 | ⬜ |
 
 ## 완료 (_fin)

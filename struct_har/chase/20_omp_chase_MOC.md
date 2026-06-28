@@ -55,10 +55,10 @@
 | 008 | [20.008_omp_chase_pull_15_13_delta.md](./_fin/20/20.008_omp_chase_pull_15_13_delta.md) | 15.13 index | 횡단 | ✅ _fin |
 | 009 | [20.009_omp_chase_append_only_context_integrity.md](./20.009_omp_chase_append_only_context_integrity.md) | append-only context integrity | reference | ⬜ |
 | 010 | [20.010_omp_chase_ai_oauth_reasoning_replay.md](./_fin/20/20.010_omp_chase_ai_oauth_reasoning_replay.md) | AI OAuth/reasoning replay | reference | ✅ _fin |
-| 011 | [20.011_omp_chase_tui_image_drafts_terminal_edges.md](./20.011_omp_chase_tui_image_drafts_terminal_edges.md) | TUI image drafts/terminal edges | reference | ⬜ |
-| 012 | [20.012_omp_chase_bash_snapshot_env_security.md](./20.012_omp_chase_bash_snapshot_env_security.md) | bash snapshot/env security | reference | ⬜ |
-| 013 | [20.013_omp_chase_plugin_virtual_registry_bundle.md](./20.013_omp_chase_plugin_virtual_registry_bundle.md) | plugin virtual registry/bundle | reference | ⬜ |
-| 014 | [20.014_omp_chase_goal_compaction_provider_concurrency.md](./20.014_omp_chase_goal_compaction_provider_concurrency.md) | goal compaction/provider concurrency | reference | ⬜ |
+| 011 | [20.011_omp_chase_tui_image_drafts_terminal_edges.md](./_fin/20/20.011_omp_chase_tui_image_drafts_terminal_edges.md) | TUI image drafts/terminal edges | reference | ✅ _fin |
+| 012 | [20.012_omp_chase_bash_snapshot_env_security.md](./_fin/20/20.012_omp_chase_bash_snapshot_env_security.md) | bash snapshot/env security | reference | ✅ _fin |
+| 013 | [20.013_omp_chase_plugin_virtual_registry_bundle.md](./_fin/20/20.013_omp_chase_plugin_virtual_registry_bundle.md) | plugin virtual registry/bundle | reference | ✅ _fin |
+| 014 | [20.014_omp_chase_goal_compaction_provider_concurrency.md](./_fin/20/20.014_omp_chase_goal_compaction_provider_concurrency.md) | goal compaction/provider concurrency | reference | ✅ _fin |
 | 015 | [20.015_omp_chase_release_test_leak_hardening.md](./20.015_omp_chase_release_test_leak_hardening.md) | release/test leak hardening | reference | ⬜ |
 
 ## 완료

@@ -2,7 +2,7 @@
 
 완료된 `10.NNN` / `20.NNN` — 본문은 `_fin/10/` · `_fin/20/`.
 
-> Inventory refreshed 2026-06-28 against actual files: GJC `_fin/10` = 41, OMP `_fin/20` = 8. Duplicate NNNs are intentionally file-level rows.
+> Inventory refreshed 2026-06-28 against actual files: GJC `_fin/10` = 41, OMP `_fin/20` = 12. Duplicate NNNs are intentionally file-level rows.
 
 ## GJC `_fin/10`
 
@@ -60,6 +60,10 @@
 | 20.007 | 20.007 — omp chase: session layer modularization (reference) | [20/20.007_omp_chase_session_modularization](./20/20.007_omp_chase_session_modularization.md) |
 | 20.008 | 20.008 — omp chase: 15.12.3 → 15.13.0 pull delta index | [20/20.008_omp_chase_pull_15_13_delta](./20/20.008_omp_chase_pull_15_13_delta.md) |
 | 20.010 | 20.010 — omp chase: AI OAuth and reasoning replay (reference audit) | [20/20.010_omp_chase_ai_oauth_reasoning_replay](./20/20.010_omp_chase_ai_oauth_reasoning_replay.md) |
+| 20.011 | 20.011 — omp chase: TUI image drafts and terminal edges (reference audit) | [20/20.011_omp_chase_tui_image_drafts_terminal_edges](./20/20.011_omp_chase_tui_image_drafts_terminal_edges.md) |
+| 20.012 | 20.012 — omp chase: bash snapshot and env security (reference audit) | [20/20.012_omp_chase_bash_snapshot_env_security](./20/20.012_omp_chase_bash_snapshot_env_security.md) |
+| 20.013 | 20.013 — omp chase: plugin virtual registry bundle (reference audit) | [20/20.013_omp_chase_plugin_virtual_registry_bundle](./20/20.013_omp_chase_plugin_virtual_registry_bundle.md) |
+| 20.014 | 20.014 — omp chase: goal compaction and provider concurrency (reference audit) | [20/20.014_omp_chase_goal_compaction_provider_concurrency](./20/20.014_omp_chase_goal_compaction_provider_concurrency.md) |
 
 ## superseded (devlog)
 

@@ -107,10 +107,10 @@ Executor v2 (260614): **011 YES**, **008/026 RISKY**; **018 registry TS+Py lande
 |---|---|---|---|
 | append-only context integrity | `cc0c67be..0fc6d136` | reference-only split | [20.009](./20.009_omp_chase_append_only_context_integrity.md) |
 | AI OAuth/reasoning replay | `cc0c67be..0fc6d136` | reference-only split | [20.010](./_fin/20/20.010_omp_chase_ai_oauth_reasoning_replay.md) ✅ _fin |
-| TUI image drafts/terminal edges | `cc0c67be..0fc6d136` | reference-only split | [20.011](./20.011_omp_chase_tui_image_drafts_terminal_edges.md) |
-| bash snapshot/env security | `cc0c67be..0fc6d136` | reference-only split | [20.012](./20.012_omp_chase_bash_snapshot_env_security.md) |
-| plugin virtual registry/bundle | `cc0c67be..0fc6d136` | reference-only split | [20.013](./20.013_omp_chase_plugin_virtual_registry_bundle.md) |
-| goal compaction/provider concurrency | `cc0c67be..0fc6d136` | reference-only split | [20.014](./20.014_omp_chase_goal_compaction_provider_concurrency.md) |
+| TUI image drafts/terminal edges | `cc0c67be..0fc6d136` | reference-only split | [20.011](./_fin/20/20.011_omp_chase_tui_image_drafts_terminal_edges.md) ✅ _fin |
+| bash snapshot/env security | `cc0c67be..0fc6d136` | reference-only split | [20.012](./_fin/20/20.012_omp_chase_bash_snapshot_env_security.md) ✅ _fin |
+| plugin virtual registry/bundle | `cc0c67be..0fc6d136` | reference-only split | [20.013](./_fin/20/20.013_omp_chase_plugin_virtual_registry_bundle.md) ✅ _fin |
+| goal compaction/provider concurrency | `cc0c67be..0fc6d136` | reference-only split | [20.014](./_fin/20/20.014_omp_chase_goal_compaction_provider_concurrency.md) ✅ _fin |
 | release/test leak hardening | `cc0c67be..0fc6d136` | reference-only split | [20.015](./20.015_omp_chase_release_test_leak_hardening.md) |
 
 ## 260613–14 jwc 독자 성과 (chase 비대상 완료)
