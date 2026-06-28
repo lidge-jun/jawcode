@@ -7,6 +7,7 @@ export * from "./daemon-owner";
 export * from "./daemon-runtime";
 export * from "./discovery";
 export * from "./lifecycle-command-parser";
+export * from "./notification-redaction";
 export * from "./protocol";
 export * from "./remote-answer";
 export * from "./reply-bridge";
