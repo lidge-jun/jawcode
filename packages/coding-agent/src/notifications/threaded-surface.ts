@@ -29,6 +29,7 @@ export interface ThreadInboundUpdate {
 	text?: unknown;
 	caption?: unknown;
 	hasAttachment?: boolean;
+	media?: { kind: "photo" | "document"; fileId?: string; fileName?: string };
 }
 
 export type ThreadInboundDropReason =
@@ -43,12 +44,26 @@ export type ThreadInboundDropReason =
 
 export type ThreadInboundDecision =
 	| { mode: "route"; sessionId: string; text: string; updateId: number }
+	| { mode: "route_media"; sessionId: string; media: ThreadInboundMedia; updateId: number }
 	| { mode: "drop"; reason: ThreadInboundDropReason };
+
+export interface ThreadInboundMedia {
+	kind: "photo" | "document";
+	fileId?: string;
+	fileName?: string;
+	caption?: string;
+}
 
 export interface ThreadInboundClassifierContext {
 	expectedChatIdFingerprint: string;
 	isDuplicateUpdate: (updateId: number) => boolean;
 	recordUpdateId?: (updateId: number) => void;
+	/**
+	 * When true, an inbound update carrying media is routed (as `route_media`)
+	 * after all paired-chat/known-topic/dedupe/staleness gates pass. Defaults to
+	 * off, preserving the fail-closed `attachment_not_supported` drop.
+	 */
+	allowMedia?: boolean;
 }
 
 function limitText(value: string | undefined, max: number, fallback = ""): string {
@@ -147,6 +162,21 @@ export function classifyThreadInboundUpdate(
 	const topic = registry.findByThread(ctx.expectedChatIdFingerprint, messageThreadId);
 	if (!topic) return { mode: "drop", reason: "unknown_topic" };
 	if (topic.stale) return { mode: "drop", reason: "stale_topic" };
+
+	// Media routing (gate 5): only reached after the paired-chat + known non-stale
+	// topic + dedupe gates above, so media can never route for an unauthorized chat
+	// or unknown topic. Fail-closed to attachment_not_supported when media is off.
+	if (update.media) {
+		if (!ctx.allowMedia) return { mode: "drop", reason: "attachment_not_supported" };
+		const caption = typeof update.caption === "string" && update.caption.trim() ? update.caption.trim() : undefined;
+		ctx.recordUpdateId?.(updateId);
+		return {
+			mode: "route_media",
+			sessionId: topic.sessionId,
+			media: { kind: update.media.kind, fileId: update.media.fileId, fileName: update.media.fileName, caption },
+			updateId,
+		};
+	}
 	if (update.hasAttachment) return { mode: "drop", reason: "attachment_not_supported" };
 
 	const text = hasRouteableText(update);

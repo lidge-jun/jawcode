@@ -23,6 +23,7 @@ export * from "./telegram-ask-keyboard";
 export * from "./telegram-callback-ingest";
 export * from "./telegram-inbound-router";
 export * from "./telegram-media-policy";
+export * from "./telegram-media-render";
 export * from "./telegram-message-ingest";
 export * from "./telegram-pairing";
 export * from "./threaded-lifecycle";

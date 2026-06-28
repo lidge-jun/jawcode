@@ -124,6 +124,8 @@ function routeMessage(update: TelegramUpdate, ctx: InboundRouterContext): Inboun
 		recordUpdateId: ctx.recordUpdateId,
 	});
 	if (classified.mode === "drop") return [{ kind: "drop", reason: classified.reason }];
+	// This router does not enable media routing; media is not deliverable here.
+	if (classified.mode === "route_media") return [{ kind: "drop", reason: "attachment_not_supported" }];
 
 	const context = ctx.resolveActionContext(classified.sessionId);
 	if (!context) {

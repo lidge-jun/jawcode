@@ -179,4 +179,70 @@ describe("notification threaded surface", () => {
 			),
 		).toEqual({ mode: "drop", reason: "wrong_chat" });
 	});
+
+	it("drops inbound media when allowMedia is off (fail-closed default)", () => {
+		const topics = registry();
+		expect(
+			classifyThreadInboundUpdate(
+				{ updateId: 30, chatId: rawChatId, messageThreadId: 42, media: { kind: "photo", fileId: "f1" } },
+				topics,
+				context(),
+			),
+		).toEqual({ mode: "drop", reason: "attachment_not_supported" });
+	});
+
+	it("routes inbound media to the mapped session when allowMedia is on", () => {
+		const topics = registry();
+		const decision = classifyThreadInboundUpdate(
+			{
+				updateId: 31,
+				chatId: rawChatId,
+				messageThreadId: 42,
+				caption: "  a shot  ",
+				media: { kind: "photo", fileId: "f1", fileName: "a.png" },
+			},
+			topics,
+			{ ...context(), allowMedia: true },
+		);
+		expect(decision).toEqual({
+			mode: "route_media",
+			sessionId: "session-1",
+			media: { kind: "photo", fileId: "f1", fileName: "a.png", caption: "a shot" },
+			updateId: 31,
+		});
+	});
+
+	it("drops inbound media from the wrong chat even with allowMedia on", () => {
+		const topics = registry();
+		expect(
+			classifyThreadInboundUpdate(
+				{ updateId: 32, chatId: "999", messageThreadId: 42, media: { kind: "document", fileId: "f2" } },
+				topics,
+				{ ...context(), allowMedia: true },
+			),
+		).toEqual({ mode: "drop", reason: "wrong_chat" });
+	});
+
+	it("drops inbound media to an unknown topic even with allowMedia on", () => {
+		const topics = registry();
+		expect(
+			classifyThreadInboundUpdate(
+				{ updateId: 33, chatId: rawChatId, messageThreadId: 777, media: { kind: "document", fileId: "f3" } },
+				topics,
+				{ ...context(), allowMedia: true },
+			),
+		).toEqual({ mode: "drop", reason: "unknown_topic" });
+	});
+
+	it("drops a duplicate inbound media update", () => {
+		const topics = registry();
+		const seen = new Set<number>([34]);
+		expect(
+			classifyThreadInboundUpdate(
+				{ updateId: 34, chatId: rawChatId, messageThreadId: 42, media: { kind: "photo", fileId: "f4" } },
+				topics,
+				{ ...context(seen), allowMedia: true },
+			),
+		).toEqual({ mode: "drop", reason: "duplicate_update" });
+	});
 });
