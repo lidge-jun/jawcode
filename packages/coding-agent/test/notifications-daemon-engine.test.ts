@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { type RunDaemonTickOptions, runDaemonTick } from "../src/notifications/daemon-engine";
+import type { NotificationEndpointRecord } from "../src/notifications/discovery";
 import type { TelegramUpdate } from "../src/notifications/telegram-api";
+import { ThreadTopicRegistry } from "../src/notifications/threaded-surface";
 import { fingerprintSecret, type TransportOwnerState } from "../src/notifications/transport-state";
 
 const TOKEN = "BOT:TOKEN";
@@ -106,6 +108,55 @@ describe("runDaemonTick", () => {
 		);
 		expect(result.poll).toMatchObject({ ok: true, updateCount: 0, nextOffset: 42 });
 		expect(result.nextPollState).toEqual({ offset: 42, attempt: 0 });
+	});
+
+	it("routes polled updates through the inbound pipeline when configured", async () => {
+		const chatFp = fingerprintSecret(CHAT);
+		const registry = new ThreadTopicRegistry();
+		registry.upsert({ sessionId: "s1", messageThreadId: 7, chatIdFingerprint: chatFp, title: "t", updatedAt: 1 });
+		const forwards: Array<{ sessionId: string; value: string }> = [];
+		const update: TelegramUpdate = {
+			update_id: 9,
+			message: { message_id: 1, text: "remote answer", from: { id: 1 }, chat: { id: CHAT }, message_thread_id: 7 },
+		};
+		const record: NotificationEndpointRecord = {
+			version: 1,
+			sessionId: "s1",
+			url: "ws://127.0.0.1:1",
+			host: "127.0.0.1",
+			port: 1,
+			token: "tok-s1",
+			startedAt: 1,
+			updatedAt: 1,
+			pid: 1,
+		};
+		const result = await runDaemonTick(
+			baseOptions({
+				getUpdates: async () => ({ ok: true, result: [update] }),
+				inbound: {
+					registry,
+					effects: {
+						answerCallback: async () => {},
+						forwardToSession: async input => {
+							forwards.push(input);
+							return { ok: true };
+						},
+					},
+					isDuplicateUpdate: () => false,
+					loadRecord: async () => record,
+				},
+			}),
+		);
+		expect(result.poll).toMatchObject({ ok: true, updateCount: 1 });
+		expect(result.inbound?.processed).toBe(1);
+		expect(forwards).toEqual([{ sessionId: "s1", value: "remote answer" }]);
+	});
+
+	it("leaves inbound undefined when no inbound config is supplied", async () => {
+		const result = await runDaemonTick(
+			baseOptions({ getUpdates: async () => ({ ok: true, result: [{ update_id: 5 }] as TelegramUpdate[] }) }),
+		);
+		expect(result.inbound).toBeUndefined();
 	});
 
 	it("backs off and increments attempt on a retryable poll error", async () => {

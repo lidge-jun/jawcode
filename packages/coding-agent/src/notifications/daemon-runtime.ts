@@ -1,5 +1,5 @@
 import { clearDaemonControl, readDaemonControl } from "./daemon-control";
-import { type DaemonPollState, runDaemonTick } from "./daemon-engine";
+import { type DaemonInboundConfig, type DaemonPollState, runDaemonTick } from "./daemon-engine";
 import { type DaemonLoopResult, runDaemonLoop } from "./daemon-loop";
 import type { deleteForumTopic } from "./telegram-api";
 import { deleteSessionTopics } from "./threaded-shutdown";
@@ -22,6 +22,8 @@ export interface RunManagedDaemonOptions {
 	/** Active per-session topics to best-effort delete on shutdown (e.g. ThreadTopicRegistry.list()). */
 	listActiveTopics?: () => ReadonlyArray<{ messageThreadId: number }>;
 	deleteTopicImpl?: typeof deleteForumTopic;
+	/** Optional inbound (remote answer) routing+execution config, threaded into every tick. */
+	inbound?: DaemonInboundConfig;
 }
 
 const defaultSleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
@@ -73,6 +75,7 @@ export async function runManagedDaemon(options: RunManagedDaemonOptions): Promis
 				heartbeatTtlMs: options.heartbeatTtlMs,
 				pidAlive: options.pidAlive,
 				fetchImpl: options.fetchImpl,
+				inbound: options.inbound,
 			});
 			pollState = result.nextPollState;
 			return result;

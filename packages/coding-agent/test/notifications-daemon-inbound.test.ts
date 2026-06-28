@@ -3,9 +3,15 @@ import {
 	buildRemoteActionContextFromRecord,
 	executeInboundDispatchPlan,
 	type InboundDispatchEffects,
+	processInboundUpdates,
+	resolveTargetSession,
 } from "../src/notifications/daemon-inbound";
 import type { NotificationEndpointRecord } from "../src/notifications/discovery";
+import type { TelegramUpdate } from "../src/notifications/telegram-api";
+import { buildAskInlineKeyboard } from "../src/notifications/telegram-ask-keyboard";
 import type { InboundDispatchPlan } from "../src/notifications/telegram-inbound-router";
+import { ThreadTopicRegistry } from "../src/notifications/threaded-surface";
+import { fingerprintSecret } from "../src/notifications/transport-state";
 
 function baseRecord(overrides: Partial<NotificationEndpointRecord> = {}): NotificationEndpointRecord {
 	return {
@@ -146,5 +152,120 @@ describe("executeInboundDispatchPlan", () => {
 		expect(result.failed).toBe(1);
 		expect(result.dropped).toBe(1);
 		expect(result.executed[0]).toEqual({ kind: "answer_callback", ok: false, detail: "network down" });
+	});
+});
+
+const CHAT_ID = -100;
+const CHAT_FP = fingerprintSecret(String(CHAT_ID));
+const THREAD = 7;
+const NONCE = "abc123def456";
+const OPTIONS = ["Yes, proceed", "No, stop"];
+
+function registryWithSession(sessionId = "sess-1"): ThreadTopicRegistry {
+	const registry = new ThreadTopicRegistry();
+	registry.upsert({ sessionId, messageThreadId: THREAD, chatIdFingerprint: CHAT_FP, title: "t", updatedAt: 1 });
+	return registry;
+}
+
+function callbackUpdate(data: string, chatId = CHAT_ID, threadId: number | undefined = THREAD): TelegramUpdate {
+	const message: Record<string, unknown> = { chat: { id: chatId } };
+	if (threadId !== undefined) message.message_thread_id = threadId;
+	return { update_id: 100, callback_query: { id: "cbq-1", data, from: { id: 42 }, message } };
+}
+
+function textUpdate(text: string, chatId = CHAT_ID, threadId = THREAD): TelegramUpdate {
+	return {
+		update_id: 200,
+		message: { message_id: 555, text, from: { id: 42 }, chat: { id: chatId }, message_thread_id: threadId },
+	};
+}
+
+function buttonData(index: number): string {
+	return buildAskInlineKeyboard({ options: OPTIONS, nonce: NONCE }).flat()[index].callback_data;
+}
+
+describe("resolveTargetSession", () => {
+	it("resolves a callback update to its mapped session", () => {
+		expect(resolveTargetSession(callbackUpdate(buttonData(0)), registryWithSession(), CHAT_FP)).toBe("sess-1");
+	});
+
+	it("resolves a text update to its mapped session", () => {
+		expect(resolveTargetSession(textUpdate("hi"), registryWithSession(), CHAT_FP)).toBe("sess-1");
+	});
+
+	it("returns undefined for a foreign chat", () => {
+		expect(resolveTargetSession(textUpdate("hi", -999), registryWithSession(), CHAT_FP)).toBeUndefined();
+	});
+
+	it("returns undefined for an unmapped thread", () => {
+		expect(resolveTargetSession(textUpdate("hi", CHAT_ID, 999), registryWithSession(), CHAT_FP)).toBeUndefined();
+	});
+});
+
+describe("processInboundUpdates", () => {
+	function recordWith(pendingAction?: NotificationEndpointRecord["pendingAction"]): NotificationEndpointRecord {
+		return baseRecord({ sessionId: "sess-1", token: "connect-token-xyz", pendingAction });
+	}
+
+	it("routes a button tap into an ack + a forward, loading the published options once", async () => {
+		const effects = spyEffects();
+		let loads = 0;
+		const out = await processInboundUpdates({
+			updates: [callbackUpdate(buttonData(0))],
+			registry: registryWithSession(),
+			expectedChatIdFingerprint: CHAT_FP,
+			loadRecord: async () => {
+				loads += 1;
+				return recordWith({ actionId: "act-1", options: OPTIONS });
+			},
+			isDuplicateUpdate: () => false,
+			effects,
+		});
+		expect(out.processed).toBe(1);
+		expect(loads).toBe(1);
+		expect(effects.acks).toEqual([{ callbackQueryId: "cbq-1", ok: true, text: undefined }]);
+		expect(effects.forwards).toEqual([{ sessionId: "sess-1", value: "Yes, proceed" }]);
+	});
+
+	it("forwards free text even when the session advertises no active ask", async () => {
+		const effects = spyEffects();
+		const out = await processInboundUpdates({
+			updates: [textUpdate("freeform answer")],
+			registry: registryWithSession(),
+			expectedChatIdFingerprint: CHAT_FP,
+			loadRecord: async () => recordWith(undefined),
+			isDuplicateUpdate: () => false,
+			effects,
+		});
+		expect(out.processed).toBe(1);
+		expect(effects.forwards).toEqual([{ sessionId: "sess-1", value: "freeform answer" }]);
+		expect(effects.acks).toHaveLength(0);
+	});
+
+	it("drops a foreign-chat update without loading a record or performing effects", async () => {
+		const effects = spyEffects();
+		let loads = 0;
+		const out = await processInboundUpdates({
+			updates: [textUpdate("intruder", -999)],
+			registry: registryWithSession(),
+			expectedChatIdFingerprint: CHAT_FP,
+			loadRecord: async () => {
+				loads += 1;
+				return recordWith(undefined);
+			},
+			isDuplicateUpdate: () => false,
+			effects,
+		});
+		expect(out.processed).toBe(1);
+		expect(loads).toBe(0);
+		expect(effects.forwards).toHaveLength(0);
+		expect(effects.acks).toHaveLength(0);
+		expect(out.results[0]?.dropped).toBe(1);
+	});
+
+	it("presents each session's own token so the router accepts (build-context sanity)", () => {
+		// expectedToken must equal the per-update presentedToken; both come from the same record.
+		const ctx = buildRemoteActionContextFromRecord(recordWith({ actionId: "act-1", options: OPTIONS }));
+		expect(ctx?.expectedToken).toBe("connect-token-xyz");
 	});
 });

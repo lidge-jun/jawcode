@@ -1,5 +1,8 @@
+import { type InboundDispatchEffects, type ProcessInboundUpdatesResult, processInboundUpdates } from "./daemon-inbound";
 import { decideOwnerClaim, type OwnerClaimDecision } from "./daemon-owner";
+import { type NotificationEndpointRecord, readNotificationDiscoveryRecord } from "./discovery";
 import { getTelegramUpdates, nextBackoffMs } from "./telegram-api";
+import type { ThreadTopicRegistry } from "./threaded-surface";
 import { type ScanTransportSessionsResult, scanTransportSessions } from "./transport-shell";
 import {
 	fingerprintSecret,
@@ -29,6 +32,17 @@ export interface DaemonTickResult {
 	scannedSessions: number;
 	poll?: DaemonPollOutcome;
 	nextPollState: DaemonPollState;
+	inbound?: ProcessInboundUpdatesResult;
+}
+
+/** Inbound (button/free-text remote answer) routing+execution config. When absent, polling is offset-only. */
+export interface DaemonInboundConfig {
+	registry: ThreadTopicRegistry;
+	effects: InboundDispatchEffects;
+	isDuplicateUpdate: (updateId: number) => boolean;
+	recordUpdateId?: (updateId: number) => void;
+	/** Defaults to reading the per-session discovery record under `agentDir`. */
+	loadRecord?: (sessionId: string) => Promise<NotificationEndpointRecord | null>;
 }
 
 export interface RunDaemonTickOptions {
@@ -48,6 +62,7 @@ export interface RunDaemonTickOptions {
 	scan?: (options: { agentDir: string }) => Promise<ScanTransportSessionsResult>;
 	getUpdates?: typeof getTelegramUpdates;
 	fetchImpl?: typeof fetch;
+	inbound?: DaemonInboundConfig;
 }
 
 /**
@@ -105,12 +120,27 @@ export async function runDaemonTick(options: RunDaemonTickOptions): Promise<Daem
 		const updates = outcome.result;
 		const maxId = updates.reduce((max, update) => Math.max(max, update.update_id), -1);
 		const nextOffset = maxId >= 0 ? maxId + 1 : pollState.offset;
+		let inbound: ProcessInboundUpdatesResult | undefined;
+		if (options.inbound && updates.length > 0) {
+			inbound = await processInboundUpdates({
+				updates,
+				registry: options.inbound.registry,
+				expectedChatIdFingerprint: chatIdFingerprint,
+				loadRecord:
+					options.inbound.loadRecord ??
+					(sessionId => readNotificationDiscoveryRecord(options.agentDir, sessionId)),
+				isDuplicateUpdate: options.inbound.isDuplicateUpdate,
+				recordUpdateId: options.inbound.recordUpdateId,
+				effects: options.inbound.effects,
+			});
+		}
 		return {
 			decision,
 			owned: true,
 			scannedSessions,
 			poll: { ok: true, updateCount: updates.length, nextOffset },
 			nextPollState: { offset: nextOffset, attempt: 0 },
+			inbound,
 		};
 	}
 

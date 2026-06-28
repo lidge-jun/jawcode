@@ -1,6 +1,15 @@
 import type { NotificationEndpointRecord } from "./discovery";
 import type { RemoteActionContext } from "./remote-answer";
-import type { InboundDispatchAction, InboundDispatchPlan } from "./telegram-inbound-router";
+import type { TelegramUpdate } from "./telegram-api";
+import { extractTelegramCallbackQuery } from "./telegram-callback-ingest";
+import {
+	type InboundDispatchAction,
+	type InboundDispatchPlan,
+	type InboundRouterContext,
+	routeTelegramInboundUpdate,
+} from "./telegram-inbound-router";
+import type { ThreadTopicRegistry } from "./threaded-surface";
+import { fingerprintSecret } from "./transport-state";
 
 /**
  * Daemon-side inbound bridge + executor (chase 10.032 live path).
@@ -114,4 +123,98 @@ export async function executeInboundDispatchPlan(
 		}
 	}
 	return result;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+	return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
+}
+
+/**
+ * Read-only resolution of which mapped session an inbound update targets, mirroring the router's
+ * chat/topic resolution WITHOUT any dedupe side effect. Returns `undefined` for a foreign/missing chat,
+ * a missing topic, or an unmapped thread. Used only to pick the session whose connect token + context the
+ * daemon should present to the router for that update.
+ */
+export function resolveTargetSession(
+	update: TelegramUpdate,
+	registry: ThreadTopicRegistry,
+	expectedChatIdFingerprint: string,
+): string | undefined {
+	const callback = extractTelegramCallbackQuery(update);
+	if (callback) {
+		if (callback.chatId === undefined) return undefined;
+		if (fingerprintSecret(String(callback.chatId)) !== expectedChatIdFingerprint) return undefined;
+		if (callback.messageThreadId === undefined) return undefined;
+		return registry.findByThread(expectedChatIdFingerprint, callback.messageThreadId)?.sessionId;
+	}
+	const message = asRecord(update.message);
+	if (!message) return undefined;
+	const chatId = asRecord(message.chat)?.id;
+	if (chatId === undefined) return undefined;
+	if (fingerprintSecret(String(chatId)) !== expectedChatIdFingerprint) return undefined;
+	const threadId = message.message_thread_id;
+	if (typeof threadId !== "number") return undefined;
+	return registry.findByThread(expectedChatIdFingerprint, threadId)?.sessionId;
+}
+
+export interface ProcessInboundUpdatesOptions {
+	updates: readonly TelegramUpdate[];
+	registry: ThreadTopicRegistry;
+	expectedChatIdFingerprint: string;
+	/** Load a session's discovery record (its token + published pending-action snapshot). */
+	loadRecord: (sessionId: string) => Promise<NotificationEndpointRecord | null>;
+	isDuplicateUpdate: (updateId: number) => boolean;
+	recordUpdateId?: (updateId: number) => void;
+	effects: InboundDispatchEffects;
+}
+
+export interface ProcessInboundUpdatesResult {
+	processed: number;
+	results: ExecuteInboundResult[];
+}
+
+interface SessionPreload {
+	token?: string;
+	context?: RemoteActionContext;
+}
+
+/**
+ * Route and execute a batch of polled Telegram updates. Pre-loads each mapped session's discovery record
+ * once per call (resolving the router's synchronous `resolveActionContext` seam), then routes every update
+ * with a per-update `presentedToken` set to its target session's connect token. The daemon is pre-authorized
+ * (it read that token from the local discovery file and matched the chat); the session re-validates every
+ * forwarded answer as the final authority. Never throws.
+ */
+export async function processInboundUpdates(opts: ProcessInboundUpdatesOptions): Promise<ProcessInboundUpdatesResult> {
+	const preloads = new Map<string, SessionPreload>();
+	const loadFor = async (sessionId: string): Promise<SessionPreload> => {
+		const cached = preloads.get(sessionId);
+		if (cached) return cached;
+		let preload: SessionPreload = {};
+		try {
+			const record = await opts.loadRecord(sessionId);
+			if (record) preload = { token: record.token, context: buildRemoteActionContextFromRecord(record) };
+		} catch {
+			preload = {};
+		}
+		preloads.set(sessionId, preload);
+		return preload;
+	};
+
+	const results: ExecuteInboundResult[] = [];
+	for (const update of opts.updates) {
+		const sessionId = resolveTargetSession(update, opts.registry, opts.expectedChatIdFingerprint);
+		const preload = sessionId ? await loadFor(sessionId) : {};
+		const ctx: InboundRouterContext = {
+			expectedChatIdFingerprint: opts.expectedChatIdFingerprint,
+			presentedToken: preload.token,
+			registry: opts.registry,
+			isDuplicateUpdate: opts.isDuplicateUpdate,
+			recordUpdateId: opts.recordUpdateId,
+			resolveActionContext: sid => preloads.get(sid)?.context,
+		};
+		const plan = routeTelegramInboundUpdate(update, ctx);
+		results.push(await executeInboundDispatchPlan(plan, opts.effects));
+	}
+	return { processed: opts.updates.length, results };
 }
