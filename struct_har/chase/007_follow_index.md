@@ -29,7 +29,7 @@
 
 | 순 | NNN | 문서 | P | 상태 |
 |---|-----|------|---|------|
-| T1 | 028 | [10.028 notifications SDK](./10.028_gjc_chase_notifications_sdk.md) | **P1** | ⬜ |
+| T1 | 028 | [10.028 notifications SDK](./_fin/10/10.028_gjc_chase_notifications_sdk.md) | **P1** | ✅ _fin · phases 33,34,35 |
 | T2 | 029 | [10.029 notify config CLI](./10.029_gjc_chase_notify_config_cli.md) | **P1** | ⬜ |
 | T3 | 030 | [10.030 Telegram managed daemon](./10.030_gjc_chase_telegram_managed_daemon.md) | **P1** | ⬜ |
 | T4 | 032 | [10.032 Telegram remote answers](./10.032_gjc_chase_telegram_remote_answers.md) | **P1** | ⬜ |

@@ -63,7 +63,7 @@
 | 024 | [10.024_gjc_chase_coordinator_mcp_watch.md](./_fin/10/10.024_gjc_chase_coordinator_mcp_watch.md) | coordinator | P3 | ✅ _fin |
 | 025 | [10.025_gjc_chase_perf_corpus_geobench.md](./_fin/10/10.025_gjc_chase_perf_corpus_geobench.md) | perf ref | P3 | ✅ _fin |
 | 027 | [10.027_gjc_chase_goal_live_artifact_engine.md](./10.027_gjc_chase_goal_live_artifact_engine.md) | live-artifact engine (split←021) | P3 | ⬜ |
-| 028 | [10.028_gjc_chase_notifications_sdk.md](./10.028_gjc_chase_notifications_sdk.md) | notifications SDK core | **P1** | ⬜ |
+| 028 | [10.028_gjc_chase_notifications_sdk.md](./_fin/10/10.028_gjc_chase_notifications_sdk.md) | notifications SDK core | **P1** | ✅ _fin |
 | 029 | [10.029_gjc_chase_notify_config_cli.md](./10.029_gjc_chase_notify_config_cli.md) | notify setup/status config | **P1** | ⬜ |
 | 030 | [10.030_gjc_chase_telegram_managed_daemon.md](./10.030_gjc_chase_telegram_managed_daemon.md) | Telegram managed daemon | **P1** | ⬜ |
 | 031 | [10.031_gjc_chase_telegram_threaded_surface.md](./10.031_gjc_chase_telegram_threaded_surface.md) | threaded session topics/render/inbound | P2 | ⬜ |
