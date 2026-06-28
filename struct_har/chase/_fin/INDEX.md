@@ -2,7 +2,7 @@
 
 완료된 `10.NNN` / `20.NNN` — 본문은 `_fin/10/` · `_fin/20/`.
 
-> Inventory refreshed 2026-06-28 against actual files: GJC `_fin/10` = 33, OMP `_fin/20` = 6. Duplicate NNNs are intentionally file-level rows.
+> Inventory refreshed 2026-06-28 against actual files: GJC `_fin/10` = 34, OMP `_fin/20` = 6. Duplicate NNNs are intentionally file-level rows.
 
 ## GJC `_fin/10`
 
@@ -37,6 +37,7 @@
 | 10.029 | 10.029 — gjc chase: notify setup/status config surface | [10/10.029_gjc_chase_notify_config_cli](./10/10.029_gjc_chase_notify_config_cli.md) |
 | 10.030 | 10.030 — gjc chase: managed Telegram daemon and singleton poller | [10/10.030_gjc_chase_telegram_managed_daemon](./10/10.030_gjc_chase_telegram_managed_daemon.md) |
 | 10.031 | 10.031 — gjc chase: Telegram threaded session surface | [10/10.031_gjc_chase_telegram_threaded_surface](./10/10.031_gjc_chase_telegram_threaded_surface.md) |
+| 10.032 | 10.032 — gjc chase: Telegram remote asks, buttons, free text, redaction | [10/10.032_gjc_chase_telegram_remote_answers](./10/10.032_gjc_chase_telegram_remote_answers.md) |
 | 10.036 | 10.036 — gjc chase: AI provider auth and model catalog | [10/10.036_gjc_chase_ai_provider_auth_model_catalog](./10/10.036_gjc_chase_ai_provider_auth_model_catalog.md) |
 | 10.040 | 10.040 — gjc chase: compaction pruning and resident memory | [10/10.040_gjc_chase_compaction_pruning_resident_memory](./10/10.040_gjc_chase_compaction_pruning_resident_memory.md) |
 | 10.043 | 10.043 — gjc chase: web search and public URL hardening | [10/10.043_gjc_chase_web_search_insane_security](./10/10.043_gjc_chase_web_search_insane_security.md) |

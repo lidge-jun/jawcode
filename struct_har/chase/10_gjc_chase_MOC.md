@@ -67,7 +67,7 @@
 | 029 | [10.029_gjc_chase_notify_config_cli.md](./_fin/10/10.029_gjc_chase_notify_config_cli.md) | notify setup/status config | **P1** | ✅ _fin |
 | 030 | [10.030_gjc_chase_telegram_managed_daemon.md](./_fin/10/10.030_gjc_chase_telegram_managed_daemon.md) | Telegram managed daemon | **P1** | ✅ _fin |
 | 031 | [10.031_gjc_chase_telegram_threaded_surface.md](./_fin/10/10.031_gjc_chase_telegram_threaded_surface.md) | threaded session topics/render/inbound | P2 | ✅ _fin |
-| 032 | [10.032_gjc_chase_telegram_remote_answers.md](./10.032_gjc_chase_telegram_remote_answers.md) | remote ask answers/buttons/free text | **P1** | ⬜ |
+| 032 | [10.032_gjc_chase_telegram_remote_answers.md](./_fin/10/10.032_gjc_chase_telegram_remote_answers.md) | remote ask answers/buttons/free text | **P1** | ✅ _fin |
 | 033 | [10.033_gjc_chase_telegram_session_lifecycle.md](./10.033_gjc_chase_telegram_session_lifecycle.md) | Telegram-driven session lifecycle | P2 | ⬜ |
 | 034 | [10.034_gjc_chase_telegram_media_file_transfer.md](./10.034_gjc_chase_telegram_media_file_transfer.md) | media/files/telegram_send | P2 | ⬜ |
 | 035 | [10.035_gjc_chase_notifications_adapters_docs.md](./10.035_gjc_chase_notifications_adapters_docs.md) | adapters/docs/release surface | P3 | ⬜ |
