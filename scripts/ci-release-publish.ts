@@ -46,6 +46,31 @@ const distTag = (() => {
 	const idx = process.argv.indexOf("--tag");
 	return idx >= 0 ? process.argv[idx + 1] : undefined;
 })();
+/**
+ * `--no-provenance` drops `npm publish --provenance`. Provenance requires a CI
+ * OIDC environment (e.g. GitHub Actions); a local/manual run cannot mint it and
+ * npm errors out. Used for the one-time bootstrap publish that creates packages
+ * on npm so a Trusted Publisher can then be attached. CI never passes this flag,
+ * so real releases keep provenance.
+ */
+const noProvenance = process.argv.includes("--no-provenance");
+/**
+ * `--only <dir1,dir2,…>` restricts publishing to a subset of `packages`. Each
+ * token matches either the full `dir` (`packages/utils`) or its basename
+ * (`utils`). Lets a manual bootstrap target exactly the unpublished packages
+ * without running every other package's preBuild steps.
+ */
+const onlyDirs = (() => {
+	const idx = process.argv.indexOf("--only");
+	if (idx < 0) return undefined;
+	const raw = process.argv[idx + 1];
+	if (raw === undefined) return undefined;
+	const tokens = raw
+		.split(",")
+		.map((token) => token.trim())
+		.filter((token) => token.length > 0);
+	return tokens.length > 0 ? new Set(tokens) : undefined;
+})();
 export const packages: PublishPackage[] = [
 	{ dir: "packages/utils", kind: "typescript" },
 	{ dir: "packages/ai", kind: "typescript" },
@@ -268,7 +293,8 @@ async function publishPackage(pkg: PublishPackage): Promise<void> {
 		return;
 	}
 	console.log(`Publishing ${name}…`);
-	const publishArgs = ["publish", "--access", "public", "--provenance"];
+	const publishArgs = ["publish", "--access", "public"];
+	if (!noProvenance) publishArgs.push("--provenance");
 	if (distTag) publishArgs.push("--tag", distTag);
 	const result = await $`npm ${publishArgs}`.cwd(pkgDir).quiet().nothrow();
 	const output = `${result.stdout.toString()}${result.stderr.toString()}`.trim();
@@ -277,7 +303,13 @@ async function publishPackage(pkg: PublishPackage): Promise<void> {
 }
 
 async function main(): Promise<void> {
-	for (const pkg of packages) {
+	const selected = onlyDirs
+		? packages.filter((pkg) => onlyDirs.has(pkg.dir) || onlyDirs.has(path.basename(pkg.dir)))
+		: packages;
+	if (onlyDirs && selected.length === 0) {
+		throw new Error(`--only matched no packages (got: ${[...onlyDirs].join(", ")})`);
+	}
+	for (const pkg of selected) {
 		await publishPackage(pkg);
 	}
 }
