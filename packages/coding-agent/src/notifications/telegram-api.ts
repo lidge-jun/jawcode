@@ -121,3 +121,31 @@ export async function sendTelegramMessage(opts: {
 		fetchImpl: opts.fetchImpl,
 	});
 }
+
+export async function createForumTopic(opts: {
+	token: string;
+	chatId: string;
+	name: string;
+	fetchImpl?: typeof fetch;
+}): Promise<TelegramCallOutcome<{ message_thread_id: number }>> {
+	return telegramCall<{ message_thread_id: number }>({
+		token: opts.token,
+		method: "createForumTopic",
+		query: { chat_id: opts.chatId, name: opts.name },
+		fetchImpl: opts.fetchImpl,
+	});
+}
+
+export async function deleteForumTopic(opts: {
+	token: string;
+	chatId: string;
+	messageThreadId: number;
+	fetchImpl?: typeof fetch;
+}): Promise<TelegramCallOutcome<true>> {
+	return telegramCall<true>({
+		token: opts.token,
+		method: "deleteForumTopic",
+		query: { chat_id: opts.chatId, message_thread_id: String(opts.messageThreadId) },
+		fetchImpl: opts.fetchImpl,
+	});
+}

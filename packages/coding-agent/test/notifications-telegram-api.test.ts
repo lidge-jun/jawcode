@@ -110,3 +110,39 @@ describe("telegram api client", () => {
 		expect(nextBackoffMs(20)).toBe(30_000);
 	});
 });
+
+describe("telegram forum topics", () => {
+	it("createForumTopic returns the message_thread_id", async () => {
+		const { createForumTopic } = await import("../src/notifications/telegram-api");
+		let captured = "";
+		const outcome = await createForumTopic({
+			token: "BOT:TOKEN",
+			chatId: "123",
+			name: "jwc/main",
+			fetchImpl: fetchReturning({ ok: true, result: { message_thread_id: 42 } }, 200, url => {
+				captured = url;
+			}),
+		});
+		expect(outcome).toEqual({ ok: true, result: { message_thread_id: 42 } });
+		expect(captured).toContain("/createForumTopic");
+	});
+
+	it("deleteForumTopic resolves true and tolerates failure (best-effort)", async () => {
+		const { deleteForumTopic } = await import("../src/notifications/telegram-api");
+		const ok = await deleteForumTopic({
+			token: "t",
+			chatId: "123",
+			messageThreadId: 42,
+			fetchImpl: fetchReturning({ ok: true, result: true }),
+		});
+		expect(ok).toEqual({ ok: true, result: true });
+
+		const failed = await deleteForumTopic({
+			token: "t",
+			chatId: "123",
+			messageThreadId: 42,
+			fetchImpl: fetchReturning({ ok: false, description: "topic not found" }, 400),
+		});
+		expect(failed.ok).toBe(false); // caller treats as best-effort
+	});
+});

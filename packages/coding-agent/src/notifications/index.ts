@@ -14,6 +14,7 @@ export * from "./session-lifecycle";
 export * from "./session-registry";
 export * from "./telegram-api";
 export * from "./telegram-pairing";
+export * from "./threaded-lifecycle";
 export * from "./threaded-surface";
 export * from "./transport-shell";
 export * from "./transport-state";
