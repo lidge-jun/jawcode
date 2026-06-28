@@ -189,4 +189,24 @@ describe("notification loopback server", () => {
 			await fs.rm(stateRoot, { recursive: true, force: true });
 		}
 	});
+
+	it("fires onRemoteResolved with the actionId and value of an accepted remote reply", async () => {
+		const { server, stateRoot } = await startServer("session-cb");
+		const received: Array<[string, string]> = [];
+		server.setOnRemoteResolved((actionId, value) => received.push([actionId, value]));
+		server.enqueueAction({ actionId: "a1", prompt: "Deploy?", options: ["yes", "no"] });
+		const client = new Client(`${server.url}?token=${server.connectToken}`);
+		try {
+			expect(await client.opened()).toBe(true);
+			expect((await client.next()).type).toBe("hello");
+			expect((await client.next()).type).toBe("action_needed");
+			client.send({ type: "reply", actionId: "a1", value: "yes" });
+			expect(await client.next()).toEqual({ type: "action_resolved", actionId: "a1" });
+			expect(received).toEqual([["a1", "yes"]]);
+		} finally {
+			client.close();
+			await server.stop();
+			await fs.rm(stateRoot, { recursive: true, force: true });
+		}
+	});
 });

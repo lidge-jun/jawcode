@@ -49,6 +49,7 @@ export class NotificationLoopbackServer {
 	readonly #sockets = new Set<ServerWebSocket<NotificationWsData>>();
 	readonly #drafts = new Map<string, DraftMeta>();
 	#server: Server<NotificationWsData> | undefined;
+	#onRemoteResolved: ((actionId: string, value: string) => void) | undefined;
 	#stopped = false;
 
 	private constructor(options: NotificationLoopbackServerOptions, connectToken: string) {
@@ -103,6 +104,11 @@ export class NotificationLoopbackServer {
 	/** The per-session connect token. Exposed for host wiring/tests only; never log it. */
 	get connectToken(): string {
 		return this.#connectToken;
+	}
+
+	/** Register a callback fired when a remote reply is accepted (resolves an ask). Single slot. */
+	setOnRemoteResolved(callback: (actionId: string, value: string) => void): void {
+		this.#onRemoteResolved = callback;
 	}
 
 	/** Enqueue an ask and broadcast the resulting action_needed frame to connected clients. */
@@ -181,6 +187,8 @@ export class NotificationLoopbackServer {
 				const result = this.#registry.resolveRemote(this.#toRemoteInput(frame, ws.data.token));
 				if (result.type === "action_resolved") {
 					this.#broadcast(result);
+					// The resolved frame carries no value; source it from the client reply frame.
+					this.#onRemoteResolved?.(frame.actionId, frame.value);
 				} else {
 					this.#sendTo(ws, result);
 				}

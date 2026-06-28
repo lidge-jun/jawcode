@@ -11,6 +11,7 @@ import { GoalTool } from "../goals/tools/goal-tool";
 import type { HindsightSessionState } from "../hindsight/state";
 import { LspTool } from "../lsp";
 import type { WorkflowGateEmitter } from "../modes/shared/agent-wire/unattended-session";
+import type { NotificationLoopbackServer } from "../notifications/server";
 import type { PlanModeState } from "../plan-mode/state";
 import type { AgentRegistry } from "../registry/agent-registry";
 import type {
@@ -204,6 +205,8 @@ export interface ToolSession {
 	getGoalModeState?: () => GoalModeState | undefined;
 	/** Unattended workflow-gate emitter (present only when unattended mode is negotiated). */
 	getWorkflowGateEmitter?: () => WorkflowGateEmitter | undefined;
+	/** Loopback notification server for this session, when notifications are enabled. */
+	getNotificationServer?: () => NotificationLoopbackServer | undefined;
 	/** Goal runtime for the active agent session. */
 	getGoalRuntime?: () => GoalRuntime | undefined;
 	/** Bridge to the connected client (e.g. ACP editor host). Tools should route fs/terminal/permission requests through this when available. */

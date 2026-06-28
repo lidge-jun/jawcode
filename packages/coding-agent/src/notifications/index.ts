@@ -1,3 +1,4 @@
+export * from "./ask-bridge";
 export * from "./config";
 export * from "./discovery";
 export * from "./lifecycle-command-parser";
