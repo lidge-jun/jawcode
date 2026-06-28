@@ -149,3 +149,23 @@ export async function deleteForumTopic(opts: {
 		fetchImpl: opts.fetchImpl,
 	});
 }
+
+/**
+ * Acknowledge a tapped inline-keyboard button so Telegram clears the button
+ * spinner. Optional `text` shows a transient toast to the user. Token-safe.
+ */
+export async function answerTelegramCallbackQuery(opts: {
+	token: string;
+	callbackQueryId: string;
+	text?: string;
+	fetchImpl?: typeof fetch;
+}): Promise<TelegramCallOutcome<true>> {
+	const query: Record<string, string> = { callback_query_id: opts.callbackQueryId };
+	if (opts.text !== undefined) query.text = opts.text;
+	return telegramCall<true>({
+		token: opts.token,
+		method: "answerCallbackQuery",
+		query,
+		fetchImpl: opts.fetchImpl,
+	});
+}

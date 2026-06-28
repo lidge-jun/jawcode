@@ -15,6 +15,7 @@ export * from "./session-lifecycle";
 export * from "./session-registry";
 export * from "./telegram-api";
 export * from "./telegram-ask-keyboard";
+export * from "./telegram-callback-ingest";
 export * from "./telegram-pairing";
 export * from "./threaded-lifecycle";
 export * from "./threaded-shutdown";
