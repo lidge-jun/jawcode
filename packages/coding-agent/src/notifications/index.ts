@@ -3,6 +3,7 @@ export * from "./config";
 export * from "./config-command-parser";
 export * from "./daemon-control";
 export * from "./daemon-engine";
+export * from "./daemon-inbound";
 export * from "./daemon-loop";
 export * from "./daemon-owner";
 export * from "./daemon-runtime";

@@ -4,6 +4,19 @@ import * as path from "node:path";
 import { assertSafeSessionId } from "../harness-control-plane/storage";
 import { maskToken } from "./config";
 
+/**
+ * Operational snapshot of the session's currently-active ask, published into the discovery record so the
+ * out-of-process managed daemon can decode compact button callbacks (which require the ask `options`) and
+ * build a preliminary `RemoteActionContext`. Carries NO token, prompt body, or other secret — only the
+ * routing-relevant action id and answer constraints. The session remains the final authority for
+ * resolution; this is a best-effort hint for the daemon.
+ */
+export interface NotificationPendingActionSnapshot {
+	actionId: string;
+	options?: string[];
+	allowFreeText?: boolean;
+}
+
 export interface NotificationEndpointRecord {
 	version: number;
 	sessionId: string;
@@ -16,6 +29,7 @@ export interface NotificationEndpointRecord {
 	pid: number;
 	stale?: boolean;
 	stoppedAt?: number;
+	pendingAction?: NotificationPendingActionSnapshot;
 }
 
 export interface NotificationEndpointDisplay {

@@ -3,6 +3,7 @@ import type { Server, ServerWebSocket } from "bun";
 import { isNotificationConnectTokenAccepted } from "./config";
 import {
 	type NotificationEndpointRecord,
+	type NotificationPendingActionSnapshot,
 	removeNotificationDiscoveryRecord,
 	writeNotificationDiscoveryRecord,
 } from "./discovery";
@@ -51,6 +52,12 @@ export class NotificationLoopbackServer {
 	#server: Server<NotificationWsData> | undefined;
 	#onRemoteResolved: ((actionId: string, value: string) => void) | undefined;
 	#stopped = false;
+	/** Base discovery record (captured at start); rewritten to publish/clear the active-ask snapshot. */
+	#discoveryRecord: NotificationEndpointRecord | undefined;
+	/** The most recently enqueued unanswered action id whose snapshot is currently published. */
+	#pendingActionId: string | undefined;
+	/** Resolves when the most recent best-effort pending-action publish settles (test/wiring hook). */
+	#lastPublish: Promise<void> = Promise.resolve();
 
 	private constructor(options: NotificationLoopbackServerOptions, connectToken: string) {
 		this.#sessionId = options.sessionId;
@@ -88,6 +95,7 @@ export class NotificationLoopbackServer {
 			pid: process.pid,
 		};
 		await writeNotificationDiscoveryRecord(options.stateRoot, record);
+		self.#discoveryRecord = record;
 		return self;
 	}
 
@@ -115,6 +123,12 @@ export class NotificationLoopbackServer {
 	enqueueAction(draft: NotificationActionDraft): NotificationActionNeededFrame {
 		this.#drafts.set(draft.actionId, { options: draft.options, allowFreeText: draft.allowFreeText });
 		const frame = this.#registry.enqueueAction(draft);
+		this.#pendingActionId = draft.actionId;
+		this.#publishPendingAction({
+			actionId: draft.actionId,
+			options: draft.options ? [...draft.options] : undefined,
+			allowFreeText: draft.allowFreeText,
+		});
 		this.#broadcast(frame);
 		return frame;
 	}
@@ -122,8 +136,40 @@ export class NotificationLoopbackServer {
 	/** Resolve an ask locally (local answer wins the race) and broadcast action_resolved. */
 	resolveLocal(actionId: string): NotificationServerFrame {
 		const frame = this.#registry.resolveLocal(actionId);
+		this.#clearPendingActionIfActive(actionId);
 		this.#broadcast(frame);
 		return frame;
+	}
+
+	/**
+	 * Resolves when the most recent pending-action discovery publish settles. The publish is best-effort
+	 * and never blocks an ask, so production code does not await it; tests/wiring use this to observe it.
+	 */
+	async whenPendingActionPublished(): Promise<void> {
+		await this.#lastPublish;
+	}
+
+	/**
+	 * Best-effort rewrite of the discovery record's active-ask snapshot. A write failure must never block
+	 * or fail an ask, so errors are swallowed (logged without the token). `snapshot === undefined` clears
+	 * the field (omitted on serialization).
+	 */
+	#publishPendingAction(snapshot: NotificationPendingActionSnapshot | undefined): void {
+		const base = this.#discoveryRecord;
+		if (!base) return;
+		const updated: NotificationEndpointRecord = { ...base, updatedAt: this.#now(), pendingAction: snapshot };
+		this.#discoveryRecord = updated;
+		this.#lastPublish = writeNotificationDiscoveryRecord(this.#stateRoot, updated)
+			.then(() => {})
+			.catch(error => {
+				console.error("[notifications] pending-action publish failed", (error as Error).message);
+			});
+	}
+
+	#clearPendingActionIfActive(actionId: string): void {
+		if (this.#pendingActionId !== actionId) return;
+		this.#pendingActionId = undefined;
+		this.#publishPendingAction(undefined);
 	}
 
 	async stop(): Promise<void> {
@@ -187,6 +233,7 @@ export class NotificationLoopbackServer {
 				const result = this.#registry.resolveRemote(this.#toRemoteInput(frame, ws.data.token));
 				if (result.type === "action_resolved") {
 					this.#broadcast(result);
+					this.#clearPendingActionIfActive(frame.actionId);
 					// The resolved frame carries no value; source it from the client reply frame.
 					this.#onRemoteResolved?.(frame.actionId, frame.value);
 				} else {

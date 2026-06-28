@@ -209,4 +209,60 @@ describe("notification loopback server", () => {
 			await fs.rm(stateRoot, { recursive: true, force: true });
 		}
 	});
+
+	it("publishes the active-ask snapshot into the discovery record on enqueue", async () => {
+		const { server, stateRoot } = await startServer("session-pub");
+		try {
+			server.enqueueAction({
+				actionId: "a1",
+				prompt: "Ship it?",
+				options: ["Approve", "Reject"],
+				allowFreeText: true,
+			});
+			await server.whenPendingActionPublished();
+			const record = await readNotificationDiscoveryRecord(stateRoot, "session-pub");
+			expect(record?.pendingAction).toEqual({ actionId: "a1", options: ["Approve", "Reject"], allowFreeText: true });
+			// The connect token is never part of the routing snapshot itself.
+			expect(JSON.stringify(record?.pendingAction)).not.toContain(server.connectToken);
+		} finally {
+			await server.stop();
+			await fs.rm(stateRoot, { recursive: true, force: true });
+		}
+	});
+
+	it("clears the snapshot when the active ask is resolved locally", async () => {
+		const { server, stateRoot } = await startServer("session-clear-local");
+		try {
+			server.enqueueAction({ actionId: "a1", prompt: "Ship it?", options: ["yes"] });
+			await server.whenPendingActionPublished();
+			server.resolveLocal("a1");
+			await server.whenPendingActionPublished();
+			const record = await readNotificationDiscoveryRecord(stateRoot, "session-clear-local");
+			expect(record?.pendingAction).toBeUndefined();
+		} finally {
+			await server.stop();
+			await fs.rm(stateRoot, { recursive: true, force: true });
+		}
+	});
+
+	it("clears the snapshot when the active ask is resolved by a remote reply", async () => {
+		const { server, stateRoot } = await startServer("session-clear-remote");
+		server.enqueueAction({ actionId: "a1", prompt: "Deploy?", options: ["yes", "no"] });
+		await server.whenPendingActionPublished();
+		const client = new Client(`${server.url}?token=${server.connectToken}`);
+		try {
+			expect(await client.opened()).toBe(true);
+			expect((await client.next()).type).toBe("hello");
+			expect((await client.next()).type).toBe("action_needed");
+			client.send({ type: "reply", actionId: "a1", value: "yes" });
+			expect(await client.next()).toEqual({ type: "action_resolved", actionId: "a1" });
+			await server.whenPendingActionPublished();
+			const record = await readNotificationDiscoveryRecord(stateRoot, "session-clear-remote");
+			expect(record?.pendingAction).toBeUndefined();
+		} finally {
+			client.close();
+			await server.stop();
+			await fs.rm(stateRoot, { recursive: true, force: true });
+		}
+	});
 });
