@@ -9,6 +9,7 @@ export * from "./discovery";
 export * from "./lifecycle-command-parser";
 export * from "./protocol";
 export * from "./remote-answer";
+export * from "./reply-bridge";
 export * from "./server";
 export * from "./session-lifecycle";
 export * from "./session-registry";
