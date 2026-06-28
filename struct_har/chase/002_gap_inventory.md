@@ -44,7 +44,7 @@
 | notify config CLI | `gjc notify setup/status`, BotFather token, private-chat pairing | 중 — secret/settings/schema | [10.029](./_fin/10/10.029_gjc_chase_notify_config_cli.md) ✅ _fin |
 | Telegram daemon | singleton `getUpdates` poller, roots registry, owner reload/stop | 높음 — long-lived process | [10.030](./_fin/10/10.030_gjc_chase_telegram_managed_daemon.md) ✅ _fin |
 | remote answers | inline buttons, free text, Other/custom input, ask race | 높음 — live gate control | [10.032](./10.032_gjc_chase_telegram_remote_answers.md) |
-| threaded surface | per-session topics, identity/context/turn render, inbound fail-closed routing | 높음 — remote routing | [10.031](./10.031_gjc_chase_telegram_threaded_surface.md) |
+| threaded surface | per-session topics, identity/context/turn render, inbound fail-closed routing | 높음 — remote routing | [10.031](./_fin/10/10.031_gjc_chase_telegram_threaded_surface.md) ✅ _fin |
 | media/file transfer | image/file frames, inbound media, `telegram_send` workspace egress | 높음 — file egress | [10.034](./10.034_gjc_chase_telegram_media_file_transfer.md) |
 | session lifecycle | Telegram create/close/resume/list | 매우 높음 — remote process control | [10.033](./10.033_gjc_chase_telegram_session_lifecycle.md) |
 | adapters/docs | SDK docs, Telegram onboarding, Discord/Slack scaffolding | 중 — product boundary | [10.035](./10.035_gjc_chase_notifications_adapters_docs.md) |
