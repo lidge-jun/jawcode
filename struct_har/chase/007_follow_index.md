@@ -45,7 +45,7 @@ Recommended first user-value path: **028 → 029 → 030 → 032**, then 031/034
 | 순 | NNN | 문서 | P | 상태 |
 |---|-----|------|---|------|
 | U1 | 036 | [10.036 AI provider/auth/model catalog](./10.036_gjc_chase_ai_provider_auth_model_catalog.md) | **P1** | ⬜ |
-| U2 | 047 | [10.047 security/privacy guardrails](./10.047_gjc_chase_security_privacy_guardrails.md) | **P1** | ⬜ |
+| U2 | 047 | [10.047 security/privacy guardrails](./_fin/10/10.047_gjc_chase_security_privacy_guardrails.md) | **P1** | ✅ _fin · phases 14/16/17, 30 |
 | U3 | 037 | [10.037 runtime/process lifecycle](./10.037_gjc_chase_runtime_process_lifecycle_hardening.md) | **P1** | ⬜ |
 | U4 | 038 | [10.038 RPC control plane v2](./10.038_gjc_chase_rpc_control_plane_v2.md) | **P1** | ⬜ |
 | U5 | 040 | [10.040 compaction/pruning/resident memory](./_fin/10/10.040_gjc_chase_compaction_pruning_resident_memory.md) | **P1** | ✅ _fin · phases 21–23 |

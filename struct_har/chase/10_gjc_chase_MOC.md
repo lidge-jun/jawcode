@@ -82,7 +82,7 @@
 | 044 | [10.044_gjc_chase_plugin_extensibility_bundle.md](./10.044_gjc_chase_plugin_extensibility_bundle.md) | plugin/extensibility bundle | P2 | ⬜ |
 | 045 | [10.045_gjc_chase_computer_use_native_control.md](./10.045_gjc_chase_computer_use_native_control.md) | computer-use native control | P2 | ⬜ |
 | 046 | [10.046_gjc_chase_rlm_research_mode.md](./10.046_gjc_chase_rlm_research_mode.md) | RLM/research mode | P3 | ⬜ |
-| 047 | [10.047_gjc_chase_security_privacy_guardrails.md](./10.047_gjc_chase_security_privacy_guardrails.md) | security/privacy guardrails | **P1** | ⬜ |
+| 047 | [10.047_gjc_chase_security_privacy_guardrails.md](./_fin/10/10.047_gjc_chase_security_privacy_guardrails.md) | security/privacy guardrails | **P1** | ✅ _fin |
 | 048 | [10.048_gjc_chase_dev_ci_release_packaging.md](./10.048_gjc_chase_dev_ci_release_packaging.md) | dev/CI/release packaging | P2 | ⬜ |
 | 049 | [10.049_gjc_chase_performance_bench_corpus.md](./10.049_gjc_chase_performance_bench_corpus.md) | perf/bench/corpus | P3 | ⬜ |
 | 050 | [10.050_gjc_chase_session_tmux_team_worktree.md](./10.050_gjc_chase_session_tmux_team_worktree.md) | session/tmux/team/worktree | P2 | ⬜ |
