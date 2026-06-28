@@ -8,12 +8,15 @@ import { buildPayload } from "./kiro";
 
 const user = (text: string): Message => ({ role: "user", content: text, timestamp: 0 });
 
-const assistant = (text: string, toolCalls: Array<{ id: string; name: string }> = []): AssistantMessage =>
+const assistant = (
+	text: string,
+	toolCalls: Array<{ id: string; name: string; args?: Record<string, unknown> }> = [],
+): AssistantMessage =>
 	({
 		role: "assistant",
 		content: [
 			...(text ? [{ type: "text" as const, text }] : []),
-			...toolCalls.map(tc => ({ type: "toolCall" as const, id: tc.id, name: tc.name, arguments: {} })),
+			...toolCalls.map(tc => ({ type: "toolCall" as const, id: tc.id, name: tc.name, arguments: tc.args ?? {} })),
 		],
 		api: "kiro-streaming",
 		provider: "kiro",
@@ -51,7 +54,7 @@ interface UIM {
 }
 interface ARM {
 	content: string;
-	toolUses?: Array<{ toolUseId: string }>;
+	toolUses?: Array<{ toolUseId: string; input?: unknown }>;
 }
 interface HEntry {
 	userInputMessage?: UIM;
@@ -176,5 +179,20 @@ describe("buildPayload — CodeWhisperer wire contract", () => {
 		const { current } = dissect(buildPayload(context, "claude-sonnet-4.5", "conv5", "arn"));
 		expect(current.content).toBe("SYS A\n\nSYS B\n\nhi");
 		expect(current.content).not.toContain("SYS A,SYS B");
+	});
+
+	test("toolUses[].input is a passthrough JSON object, not a stringified JSON", () => {
+		const args = { pattern: "foo", limit: 5 };
+		const messages: Message[] = [
+			user("search"),
+			assistant("", [{ id: "t1", name: "grep", args }]),
+			toolResult("t1", "ok"),
+		];
+		const { history } = dissect(buildPayload(ctx(messages), "claude-sonnet-4.5", "conv6", "arn"));
+		const input = history[1].assistantResponseMessage?.toolUses?.[0]?.input;
+		expect(typeof input).toBe("object");
+		expect(input).toEqual(args);
+		// Must NOT be a stringified JSON (the REQUEST_BODY_INVALID root cause).
+		expect(typeof input).not.toBe("string");
 	});
 });

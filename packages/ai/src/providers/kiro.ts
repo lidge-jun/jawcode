@@ -127,7 +127,10 @@ function convertTools(tools: Tool[]): KiroToolSpec[] {
 
 interface KiroToolUse {
 	name: string;
-	input: string;
+	// CodeWhisperer expects `input` as a JSON object (document), not a stringified
+	// JSON. Sending a string here produces `"input": "{...}"` and the server
+	// rejects the whole request with REQUEST_BODY_INVALID.
+	input: Record<string, unknown>;
 	toolUseId: string;
 }
 
@@ -229,7 +232,7 @@ export function buildPayload(
 				.filter((b): b is ToolCall => b.type === "toolCall")
 				.map(tc => ({
 					name: tc.name,
-					input: JSON.stringify(tc.arguments ?? {}),
+					input: (tc.arguments ?? {}) as Record<string, unknown>,
 					toolUseId: normalizeToolCallId(tc.id),
 				}));
 			if (lastRole === "assistant") {
