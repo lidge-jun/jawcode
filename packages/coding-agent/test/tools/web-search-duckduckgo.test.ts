@@ -237,6 +237,16 @@ describe("resolveProviderChain — active-model-gated resolution", () => {
 		// stray OpenAI OAuth credential was selected. It must now resolve to DuckDuckGo.
 		expect(await chainIds(fakeAuth({ oauth: ["openai-codex"] }), "auto", "my-custom-llm")).toEqual(["duckduckgo"]);
 	});
+
+	it.each([
+		"ollama",
+		"llama.cpp",
+		"lm-studio",
+	])("keeps local registry provider %s on DuckDuckGo instead of hosted Codex", async activeModelProvider => {
+		expect(await chainIds(fakeAuth({ oauth: ["openai-codex"] }), "auto", activeModelProvider)).toEqual([
+			"duckduckgo",
+		]);
+	});
 });
 
 describe("executeSearch fallback", () => {
