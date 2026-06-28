@@ -47,7 +47,7 @@
 | threaded surface | per-session topics, identity/context/turn render, inbound fail-closed routing | 높음 — remote routing | [10.031](./_fin/10/10.031_gjc_chase_telegram_threaded_surface.md) ✅ _fin |
 | media/file transfer | image/file frames, inbound media, `telegram_send` workspace egress | 높음 — file egress | [10.034](./_fin/10/10.034_gjc_chase_telegram_media_file_transfer.md) ✅ _fin |
 | session lifecycle | Telegram create/close/resume/list | 매우 높음 — remote process control | [10.033](./_fin/10/10.033_gjc_chase_telegram_session_lifecycle.md) ✅ _fin (safe surface; execution deferred) |
-| adapters/docs | SDK docs, Telegram onboarding, Discord/Slack scaffolding | 중 — product boundary | [10.035](./10.035_gjc_chase_notifications_adapters_docs.md) |
+| adapters/docs | SDK docs, Telegram onboarding, Discord/Slack scaffolding | 중 — product boundary | [10.035](./_fin/10/10.035_gjc_chase_notifications_adapters_docs.md) ✅ _fin |
 
 | 영역 | upstream 후보 | jaw 병합 난이도 | 참조 |
 |---|---|---|---|
