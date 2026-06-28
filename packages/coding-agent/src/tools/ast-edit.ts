@@ -428,7 +428,12 @@ export const astEditToolRenderer = {
 		const rewriteCount = args.ops?.length ?? 0;
 		if (rewriteCount > 1) meta.push(`${rewriteCount} rewrites`);
 
-		const description = rewriteCount === 1 ? args.ops?.[0]?.pat?.replace(/\s+/g, " ").trim() : rewriteCount ? `${rewriteCount} rewrites` : "?";
+		const description =
+			rewriteCount === 1
+				? args.ops?.[0]?.pat?.replace(/\s+/g, " ").trim()
+				: rewriteCount
+					? `${rewriteCount} rewrites`
+					: "?";
 		const text = renderStatusLine({ icon: "pending", title: "AST Edit", description, meta }, uiTheme);
 		return new Text(text, 0, 0);
 	},

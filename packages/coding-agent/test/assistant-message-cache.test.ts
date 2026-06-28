@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import type { AssistantMessage } from "@jawcode-dev/ai";
-import { Markdown } from "@jawcode-dev/tui";
 import { resetSettingsForTest, Settings } from "@jawcode-dev/coding-agent/config/settings";
 import { AssistantMessageComponent } from "@jawcode-dev/coding-agent/modes/components/assistant-message";
 import { initTheme } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import { Markdown } from "@jawcode-dev/tui";
 
 /**
  * Content-block render cache (chase 10.013): `AssistantMessageComponent` caches the rendered

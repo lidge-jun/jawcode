@@ -1496,7 +1496,11 @@ async function addGoalSubgoalToPlan(input: {
 	const kind = "add_subgoal";
 	const title = requireSteeringText(input.title, "title", kind);
 	const objective = requireSteeringText(input.objective, "objective", kind);
-	const { evidence, rationale } = requireSteeringEvidence({ kind, evidence: input.evidence, rationale: input.rationale });
+	const { evidence, rationale } = requireSteeringEvidence({
+		kind,
+		evidence: input.evidence,
+		rationale: input.rationale,
+	});
 	const now = new Date().toISOString();
 	const nextId = nextGoalId(input.plan);
 	input.plan.goals.push({
@@ -1523,7 +1527,11 @@ async function splitGoalSubgoal(input: {
 	rationale: string;
 }): Promise<{ plan: GoalPlan; goalId: string; replacementGoalIds: string[] }> {
 	const kind = "split_subgoal";
-	const { evidence, rationale } = requireSteeringEvidence({ kind, evidence: input.evidence, rationale: input.rationale });
+	const { evidence, rationale } = requireSteeringEvidence({
+		kind,
+		evidence: input.evidence,
+		rationale: input.rationale,
+	});
 	const target = findGoalOrThrow(input.plan, input.goalId, kind);
 	requireGoalStatus(target, ["pending"], kind);
 	const replacements = parseReplacementSpecs(input.replacementsJson, kind);
@@ -1567,7 +1575,11 @@ async function reorderPendingGoals(input: {
 	rationale: string;
 }): Promise<{ plan: GoalPlan; pendingGoalIds: string[] }> {
 	const kind = "reorder_pending";
-	const { evidence, rationale } = requireSteeringEvidence({ kind, evidence: input.evidence, rationale: input.rationale });
+	const { evidence, rationale } = requireSteeringEvidence({
+		kind,
+		evidence: input.evidence,
+		rationale: input.rationale,
+	});
 	const pendingGoalIds = input.plan.goals.filter(goal => goal.status === "pending").map(goal => goal.id);
 	const requestedOrder = parsePendingOrder(input.orderJson, kind);
 	const pendingSet = new Set(pendingGoalIds);
@@ -1608,12 +1620,17 @@ async function revisePendingGoalWording(input: {
 	rationale: string;
 }): Promise<{ plan: GoalPlan; goalId: string; changedFields: string[] }> {
 	const kind = "revise_pending_wording";
-	const { evidence, rationale } = requireSteeringEvidence({ kind, evidence: input.evidence, rationale: input.rationale });
+	const { evidence, rationale } = requireSteeringEvidence({
+		kind,
+		evidence: input.evidence,
+		rationale: input.rationale,
+	});
 	const goal = findGoalOrThrow(input.plan, input.goalId, kind);
 	requireGoalStatus(goal, ["pending"], kind);
 	const title = input.title === undefined ? undefined : input.title.trim();
 	const objective = input.objective === undefined ? undefined : input.objective.trim();
-	if (input.title !== undefined && !title) throw new Error("steer --title must be non-empty for revise_pending_wording");
+	if (input.title !== undefined && !title)
+		throw new Error("steer --title must be non-empty for revise_pending_wording");
 	if (input.objective !== undefined && !objective)
 		throw new Error("steer --objective must be non-empty for revise_pending_wording");
 	if (!title && !objective) throw new Error("revise_pending_wording requires --title and/or --objective");
@@ -1649,7 +1666,11 @@ async function annotateGoalLedger(input: {
 	rationale: string;
 }): Promise<{ plan: GoalPlan }> {
 	const kind = "annotate_ledger";
-	const { evidence, rationale } = requireSteeringEvidence({ kind, evidence: input.evidence, rationale: input.rationale });
+	const { evidence, rationale } = requireSteeringEvidence({
+		kind,
+		evidence: input.evidence,
+		rationale: input.rationale,
+	});
 	await appendLedger(input.cwd, { event: "steering_accepted", kind, evidence, rationale });
 	return { plan: input.plan };
 }
@@ -1662,7 +1683,11 @@ async function markBlockedGoalSuperseded(input: {
 	rationale: string;
 }): Promise<{ plan: GoalPlan; goalId: string }> {
 	const kind = "mark_blocked_superseded";
-	const { evidence, rationale } = requireSteeringEvidence({ kind, evidence: input.evidence, rationale: input.rationale });
+	const { evidence, rationale } = requireSteeringEvidence({
+		kind,
+		evidence: input.evidence,
+		rationale: input.rationale,
+	});
 	const goal = findGoalOrThrow(input.plan, input.goalId, kind);
 	requireGoalStatus(goal, ["blocked", "review_blocked"], kind);
 	const remainingRequiredGoals = requiredGoalEntries(input.plan).filter(item => item.id !== goal.id);

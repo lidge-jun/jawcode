@@ -3,8 +3,8 @@ import { isRecord, ptree } from "@jawcode-dev/utils";
 export { isRecord };
 
 import { ToolAbortError } from "../../tools/tool-errors";
-import { assertPublicFetchUrl } from "../public-fetch-url";
 import { convertBufferWithMarkit } from "../../utils/markit";
+import { assertPublicFetchUrl } from "../public-fetch-url";
 import { MAX_BYTES } from "./types";
 
 export function asRecord(value: unknown): Record<string, unknown> | null {

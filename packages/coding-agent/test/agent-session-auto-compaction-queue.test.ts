@@ -424,7 +424,9 @@ describe("AgentSession auto-compaction queue resume", () => {
 	it("runs pre-prompt handoff maintenance before sending the oversized prompt", async () => {
 		vi.useRealTimers();
 		session.settings.set("compaction.strategy", "handoff");
-		session.setTodoPhases([{ name: "Execution", tasks: [{ content: "Finish pending task", status: "in_progress" }] }]);
+		session.setTodoPhases([
+			{ name: "Execution", tasks: [{ content: "Finish pending task", status: "in_progress" }] },
+		]);
 		session.settings.set("compaction.thresholdTokens", 1000);
 		const continueSpy = vi.spyOn(session.agent, "continue").mockResolvedValue();
 

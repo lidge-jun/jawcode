@@ -67,7 +67,14 @@ describe("AgentSession stranded steer/follow-up delivery (20.005)", () => {
 	function userTexts(s: AgentSession): string[] {
 		return s.agent.state.messages
 			.filter((m): m is Extract<AgentMessage, { role: "user" }> => m.role === "user")
-			.map(m => (typeof m.content === "string" ? m.content : m.content.filter((c): c is TextContent => c.type === "text").map(c => c.text).join("")));
+			.map(m =>
+				typeof m.content === "string"
+					? m.content
+					: m.content
+							.filter((c): c is TextContent => c.type === "text")
+							.map(c => c.text)
+							.join(""),
+			);
 	}
 
 	it("delivers a steer that lands at the settle window without a manual prompt", async () => {

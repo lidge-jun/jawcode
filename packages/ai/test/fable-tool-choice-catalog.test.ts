@@ -1,9 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { getBundledModel } from "../src/models";
-import {
-	deriveToolChoiceSupport,
-	isClaudeForcedToolChoiceIncapableModelId,
-} from "../src/utils/tool-choice-capability";
+import { deriveToolChoiceSupport, isClaudeForcedToolChoiceIncapableModelId } from "../src/utils/tool-choice-capability";
 
 // chase 10.036-B — model catalog/profile drift guard for JWC-supported providers.
 // Pins GJC #482 (0622573c "Fix Anthropic Fable forced tool_choice 400s") in JWC terms:

@@ -1647,7 +1647,14 @@ function tagJwcTmuxSessionAsLeader(tmuxCommand: string, sessionName: string): bo
 	// readJwcTmuxProfileValue — so the set/get round-trip targets the same session.
 	// Mirrors gjc tagTmuxSessionAsGjcLeader (gjc-runtime/team-runtime.ts:1829-1845).
 	const result = Bun.spawnSync(
-		[tmuxCommand, "set-option", "-t", buildJwcTmuxExactOptionTarget(sessionName), GJC_TMUX_PROFILE_OPTION, GJC_TMUX_PROFILE_VALUE],
+		[
+			tmuxCommand,
+			"set-option",
+			"-t",
+			buildJwcTmuxExactOptionTarget(sessionName),
+			GJC_TMUX_PROFILE_OPTION,
+			GJC_TMUX_PROFILE_VALUE,
+		],
 		{
 			stdout: "pipe",
 			stderr: "pipe",
