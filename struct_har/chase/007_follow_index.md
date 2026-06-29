@@ -64,6 +64,18 @@ Recommended first user-value path: **028 → 029 → 030 → 032**, then 031/034
 
 Recommended order after Telegram MVP: **036/047 security-auth first**, then runtime/RPC/compaction, then UX/docs/perf reference cards.
 
+### 10.053 cluster (v0.7.7 split, 2026-06-29)
+
+10.053 umbrella split into 054-058 by cluster. Replay/data-integrity card 055 closed.
+
+| 순 | NNN | 문서 | P | 상태 |
+|---|-----|------|---|------|
+| R1 | 055 | [10.055 Codex/AI replay stability](./_fin/10/10.055_gjc_chase_codex_replay_stability.md) | **P1** | ✅ _fin 260629 · 1 import (`29f4621`), 1 defer (`16d4e2b`), 3 confirm already-shipped, 1 defer; goal `65f1dc1a-373` |
+| R2 | 054 | [10.054 local provider discovery](./10.054_gjc_chase_local_provider_discovery.md) | P2 | ⬜ |
+| R3 | 056 | [10.056 terminal bell/completion hook](./10.056_gjc_chase_terminal_bell_notifications.md) | P3 | ⬜ |
+| R4 | 057 | [10.057 Windows hardening](./10.057_gjc_chase_windows_hardening.md) | P3 | ⬜ |
+| R5 | 058 | [10.058 status line + misc tooling](./10.058_gjc_chase_status_line_misc_tooling.md) | P3 | ⬜ (incl. memory GC bounds, web-search hard timeout) |
+
 | 순 | NNN | 문서 | P | 상태 |
 |---|-----|------|---|------|
 | 9 | 011 | [10.011 receipt spool](./_fin/10/10.011_gjc_chase_receipt_spool.md) | P1 | ✅ _fin · receipt spool |
