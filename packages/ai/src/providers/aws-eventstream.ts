@@ -22,6 +22,9 @@ const PRELUDE_CRC_LEN = 4;
 const MESSAGE_CRC_LEN = 4;
 const HEADER_BLOCK_OFFSET = PRELUDE_LEN + PRELUDE_CRC_LEN;
 const MIN_MESSAGE_LEN = HEADER_BLOCK_OFFSET + MESSAGE_CRC_LEN;
+// Hard cap on a single eventstream frame. Bedrock/CodeWhisperer frames are far smaller; this bounds
+// memory if a malformed/hostile upstream advertises a huge `total` so we never buffer unboundedly.
+const MAX_MESSAGE_LEN = 16 * 1024 * 1024;
 
 export interface EventStreamMessage {
 	/** Lower-cased copy is *not* applied — Bedrock uses casing like `:event-type` verbatim. */
@@ -57,7 +60,9 @@ export function decodeMessage(frame: Uint8Array): EventStreamMessage {
 	const view = new DataView(frame.buffer, frame.byteOffset, frame.byteLength);
 	const total = view.getUint32(0, false);
 	if (total !== frame.length) throw new Error(`eventstream: framed length ${total} != buffer ${frame.length}`);
+	if (total > MAX_MESSAGE_LEN) throw new Error(`eventstream: total length ${total} exceeds maximum`);
 	const headersLen = view.getUint32(4, false);
+	if (headersLen > total - MIN_MESSAGE_LEN) throw new Error("eventstream: headers length exceeds frame payload");
 	const preludeCrc = view.getUint32(8, false);
 	const computedPreludeCrc = crc32(frame.subarray(0, PRELUDE_LEN));
 	if (computedPreludeCrc !== preludeCrc) throw new Error("eventstream: prelude CRC mismatch");
@@ -75,11 +80,19 @@ function parseHeaders(buf: Uint8Array): Record<string, string> {
 	const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
 	const decoder = new TextDecoder();
 	let p = 0;
+	// Bounds-check every read so a malformed header block fails with a clean decoder error instead
+	// of a low-level RangeError from reading past the buffer.
+	const need = (n: number): void => {
+		if (p + n > buf.length) throw new Error("eventstream: malformed header block");
+	};
 	while (p < buf.length) {
+		need(1);
 		const nameLen = view.getUint8(p);
 		p += 1;
+		need(nameLen);
 		const name = decoder.decode(buf.subarray(p, p + nameLen));
 		p += nameLen;
+		need(1);
 		const type = view.getUint8(p);
 		p += 1;
 		switch (type) {
@@ -107,16 +120,20 @@ function parseHeaders(buf: Uint8Array): Record<string, string> {
 				break;
 			case 6: {
 				// byte array — base64 for safe transport
+				need(2);
 				const len = view.getUint16(p, false);
 				p += 2;
+				need(len);
 				out[name] = Buffer.from(buf.buffer, buf.byteOffset + p, len).toString("base64");
 				p += len;
 				break;
 			}
 			case 7: {
 				// string
+				need(2);
 				const len = view.getUint16(p, false);
 				p += 2;
+				need(len);
 				out[name] = decoder.decode(buf.subarray(p, p + len));
 				p += len;
 				break;
@@ -170,12 +187,16 @@ export async function* decodeEventStream(source: ReadableStream<Uint8Array>): As
 				const dv = new DataView(buf.buffer, buf.byteOffset + offset, buf.length - offset);
 				const total = dv.getUint32(0, false);
 				if (total < MIN_MESSAGE_LEN) throw new Error(`eventstream: total length ${total} below minimum`);
+				if (total > MAX_MESSAGE_LEN) throw new Error(`eventstream: total length ${total} exceeds maximum`);
 				if (buf.length - offset < total) break;
 				const frame = buf.subarray(offset, offset + total);
 				yield decodeMessage(frame);
 				offset += total;
 			}
 			if (offset > 0) buf = buf.slice(offset);
+			// Guard against an advertised-but-never-completed huge frame growing the buffer unboundedly.
+			if (buf.length > MAX_MESSAGE_LEN)
+				throw new Error(`eventstream: buffered frame exceeds maximum ${MAX_MESSAGE_LEN}`);
 			if (done) break;
 		}
 		if (buf.length > 0) throw new Error("eventstream: truncated message at end of stream");

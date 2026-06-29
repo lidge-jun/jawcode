@@ -156,4 +156,23 @@ describe("aws-eventstream", () => {
 		frame[frame.length - 1] ^= 0xff;
 		expect(() => decodeMessage(frame)).toThrow(/message CRC/);
 	});
+
+	test("rejects a frame advertising a total above the maximum", async () => {
+		// First 4 bytes = total length. Advertise an absurd size; the streaming decoder must throw
+		// rather than buffer toward it forever.
+		const bad = new Uint8Array(16);
+		new DataView(bad.buffer).setUint32(0, 0x7fffffff, false);
+		await expect(collect(streamFrom([bad]))).rejects.toThrow(/exceeds maximum/);
+	});
+
+	test("rejects a header block length larger than the frame", () => {
+		const frame = encodeFrame({ ":event-type": "x" }, new TextEncoder().encode("{}"));
+		// Overwrite headersLen (bytes 4..8) with a value bigger than the frame payload, then fix the
+		// prelude CRC so we exercise the headers-length guard rather than the CRC check.
+		const view = new DataView(frame.buffer);
+		view.setUint32(4, 0xffff, false);
+		view.setUint32(8, crc32(frame.subarray(0, 8)), false);
+		view.setUint32(frame.length - 4, crc32(frame.subarray(0, frame.length - 4)), false);
+		expect(() => decodeMessage(frame)).toThrow(/headers length exceeds/);
+	});
 });
