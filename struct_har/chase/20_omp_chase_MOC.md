@@ -24,7 +24,7 @@
 
 | omp | jwc |
 |---|---|
-| `0fc6d136` (`origin/main`, v16.1.20) | `af363c8` (worktree) |
+| `ca9f2847e` (`origin/main`, v16.2.5) | `ef28a98` (worktree, 2026-06-29) |
 
 > GJC head is intentionally not repeated here; see [10_gjc_chase_MOC.md](./10_gjc_chase_MOC.md).
 
@@ -32,6 +32,8 @@
 
 | 영역 | OMP source facts | jwc 처리 |
 |---|---|---|
+| multi-advisor runtime | concurrent advisors with TUI mgmt (`fbad280b5`); advisors use mutating tools (`0501addbd`); advisor model role with independent resolution (`8bc99a616`); project-context injection (`a6ac86fe7`) | 016 참조; jwc에 advisor 개념 없음 — 미래 설계 입력 |
+| pi dialect removal + thinking normalization | REMOVED pi dialect entirely (`053da98dd`); universal thinking tag healing (`3e06557c2`); cross-provider thinking demotion to canonical dialect (`b08d95111`); Gemini reasoning runaway detection (`71e044cfe`) | 016 참조; jwc에 pi dialect 없었으므로 무조치; thinking normalization은 ai provider 표면 대비 평가 필요 |
 | task-agent discovery | `.omp/agents` roots and Claude plugin roots; first-wins exact-name dedup; execution-time rediscovery; `read-summarize: false`; plan-mode tool narrowing (`devlog/_omp_chase/oh-my-pi/docs/task-agent-discovery.md:38,59,68-77,114,126-130,180-186`) | 030/099 참조; jwc role-agent 4종 표면 유지 |
 | task tool lifecycle | batch default-on, required shared `context`, no per-call `schema`, async jobs, `agent://`/`history://`, yield-required finish, idle/parked revival, semaphore/recursion gates, IRC follow-up (`docs/tools/task.md:29-46,52-58,69-71,76-97,132-140,157-163`) | subagent UX/contract gap으로만 분해 |
 | session ops | export `subSessions`, custom share failure no-fallback, encrypted share, fork parentSession metadata, cross-project resume re-root/fork, rollback switch caveats (`docs/session-operations-export-share-fork-resume.md:21-28,45,115-130,181-190,236-249,257-277,313-327`) | operator semantics 후보 |
@@ -60,6 +62,7 @@
 | 013 | [20.013_omp_chase_plugin_virtual_registry_bundle.md](./_fin/20/20.013_omp_chase_plugin_virtual_registry_bundle.md) | plugin virtual registry/bundle | reference | ✅ _fin |
 | 014 | [20.014_omp_chase_goal_compaction_provider_concurrency.md](./_fin/20/20.014_omp_chase_goal_compaction_provider_concurrency.md) | goal compaction/provider concurrency | reference | ✅ _fin |
 | 015 | [20.015_omp_chase_release_test_leak_hardening.md](./20.015_omp_chase_release_test_leak_hardening.md) | release/test leak hardening | reference | ⬜ |
+| 016 | [20.016_omp_chase_advisor_thinking_dialect_session_title.md](./20.016_omp_chase_advisor_thinking_dialect_session_title.md) | advisor·thinking-dialect·session-title·v2-stream·ssh-tools | reference | ⬜ |
 
 ## 완료
 
