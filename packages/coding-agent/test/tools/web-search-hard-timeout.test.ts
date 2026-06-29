@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import {
+	getSearchHardTimeoutMs,
 	MAX_SEARCH_HARD_TIMEOUT_MS,
 	MIN_SEARCH_HARD_TIMEOUT_MS,
 	SEARCH_HARD_TIMEOUT_MS,
-	getSearchHardTimeoutMs,
 	setSearchHardTimeoutMs,
 	withHardTimeout,
 } from "../../src/web/search/providers/utils";

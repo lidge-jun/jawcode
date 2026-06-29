@@ -168,7 +168,10 @@ export async function resolveProviderModels<TApi extends Api = Api, TModelsDevPa
 			? buildUnlistedTagger<TApi>(dynamicModels)
 			: null;
 	const mergedWithCache = mergeDynamicModels(staticBaseModels, cacheModels, staticTransports);
-	const models = applyUnlistedTagger(mergeDynamicModels(mergedWithCache, dynamicModels, staticTransports), unlistedTagger);
+	const models = applyUnlistedTagger(
+		mergeDynamicModels(mergedWithCache, dynamicModels, staticTransports),
+		unlistedTagger,
+	);
 	const dynamicAuthoritative = !hasDynamicFetcher || dynamicFetchSucceeded || shouldUseFreshCacheAsAuthoritative;
 	if (shouldFetchFromNetwork) {
 		if (dynamicFetchSucceeded) {
