@@ -86,3 +86,44 @@ describe("isContextOverflow - 400/413 no-body (Cerebras, Mistral, proxy wrappers
 		expect(isContextOverflow(createErrorMessage("429 status code (no body)"))).toBe(false);
 	});
 });
+
+describe("isContextOverflow - estimated usage guard (Case 2)", () => {
+	function createUsageMessage(input: number, estimated: boolean): AssistantMessage {
+		return {
+			role: "assistant",
+			content: [{ type: "text", text: "ok" }],
+			api: "kiro-streaming",
+			provider: "kiro",
+			model: "claude-opus-4.8",
+			usage: {
+				input,
+				output: 10,
+				cacheRead: 0,
+				cacheWrite: 0,
+				totalTokens: input + 10,
+				estimated,
+				cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+			},
+			stopReason: "stop",
+			timestamp: Date.now(),
+		};
+	}
+
+	it("does NOT flag usage-based overflow when usage is estimated (heuristic)", () => {
+		// Kiro reports no real token counts; the estimate over-counted a greeting to >1M input and
+		// falsely tripped context-overflow recovery on a first turn. Estimated usage must not drive
+		// the usage-based overflow path.
+		const message = createUsageMessage(1_344_086, true);
+		expect(isContextOverflow(message, 1_000_000)).toBe(false);
+	});
+
+	it("still flags usage-based overflow when usage is real (provider-reported)", () => {
+		const message = createUsageMessage(1_344_086, false);
+		expect(isContextOverflow(message, 1_000_000)).toBe(true);
+	});
+
+	it("real usage under the window is not overflow", () => {
+		const message = createUsageMessage(500_000, false);
+		expect(isContextOverflow(message, 1_000_000)).toBe(false);
+	});
+});

@@ -73,6 +73,29 @@ describe("kiro usage estimation", () => {
 		expect(estimateKiroInputTokens(ctx, "claude-sonnet-4.5")).toBe(estimateKiroTokens("again", "claude-sonnet-4.5"));
 	});
 
+	test("estimateKiroInputTokens: counts only the tool wire surface, not handler/metadata bloat", () => {
+		// Regression: factory tools carry handler closures + framework metadata. Counting the whole
+		// object (JSON.stringify(context.tools)) over-estimated a greeting to >1M tokens and tripped
+		// the usage-based context-overflow check. Only name/description/parameters are on the wire.
+		const bloat = "X".repeat(200_000); // simulates non-wire fields on a factory tool object
+		const wireTool = { name: "read", description: "read a file", parameters: { type: "object", properties: {} } };
+		const fatTool = { ...wireTool, handler: () => {}, __huge: bloat } as unknown as NonNullable<
+			Context["tools"]
+		>[number];
+		const ctxFat: Context = { systemPrompt: ["sys"], tools: [fatTool], messages: [user("hi")] };
+		const ctxWire: Context = {
+			systemPrompt: ["sys"],
+			tools: [wireTool] as unknown as Context["tools"],
+			messages: [user("hi")],
+		};
+		// The 200k-char bloat field must NOT inflate the estimate; both should match the wire surface.
+		expect(estimateKiroInputTokens(ctxFat, "claude-sonnet-4.5")).toBe(
+			estimateKiroInputTokens(ctxWire, "claude-sonnet-4.5"),
+		);
+		// And the estimate must be tiny (well under any context window), not ~57k from the bloat.
+		expect(estimateKiroInputTokens(ctxFat, "claude-sonnet-4.5")).toBeLessThan(1_000);
+	});
+
 	test("finalizeKiroUsage: marks estimated and prefers contextUsagePercentage for total", () => {
 		const usage = freshUsage();
 		finalizeKiroUsage(usage, {

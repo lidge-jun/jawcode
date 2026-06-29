@@ -119,7 +119,12 @@ export function isContextOverflow(message: AssistantMessage, contextWindow?: num
 	}
 
 	// Case 2: Usage-based overflow (silent or provider-specific)
-	if (contextWindow) {
+	// Skip when the usage is a heuristic estimate (e.g. Kiro/CodeWhisperer, which reports no real
+	// token counts). An estimate is not a trustworthy "actual input exceeded the window" signal:
+	// over-counting it would falsely trigger context-overflow recovery on a turn that the provider
+	// in fact accepted (observed: a first-turn greeting estimated >1M input and tripped this path).
+	// True silent-overflow detection only applies to providers that report real input usage.
+	if (contextWindow && !message.usage.estimated) {
 		const inputTokens = message.usage.input + message.usage.cacheRead + message.usage.cacheWrite;
 		if (inputTokens > contextWindow) {
 			return true;
