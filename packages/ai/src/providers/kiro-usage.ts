@@ -12,7 +12,8 @@
  * (cost/usage slightly high); under-counting would risk hiding real context pressure.
  */
 
-import type { Context, Message, Usage } from "../types";
+import type { Context, Message, Tool, Usage } from "../types";
+import { toolWireSchema } from "../utils/schema/wire";
 
 /** Generic English-prose fallback ratio (chars per token). */
 const DEFAULT_CHARS_PER_TOKEN = 4;
@@ -67,6 +68,25 @@ function currentTurnMessages(messages: Message[]): Message[] {
 }
 
 /**
+ * Serialize a tool to ONLY its wire surface (name + description + parameter schema) for token
+ * estimation. jawcode's `context.tools` are factory-built objects carrying handler closures and
+ * framework metadata; `JSON.stringify`-ing the whole array produced absurd sizes (a greeting turn
+ * estimated ~1.34M input tokens), which then tripped the usage-based context-overflow check. Only
+ * the wire-visible fields are actually sent to the model, so only those should be counted.
+ */
+function toolWireText(tool: Tool): string {
+	try {
+		return JSON.stringify({
+			name: tool.name,
+			description: tool.description,
+			parameters: toolWireSchema(tool),
+		});
+	} catch {
+		return `${tool.name}\n${tool.description ?? ""}`;
+	}
+}
+
+/**
  * Estimate the current-turn input tokens. On a fresh session (no prior assistant turn) the stable
  * system-prompt + tool-schema overhead is counted once; on resumed turns only the new user/tool
  * messages are counted so the input delta is not inflated by repeated history.
@@ -77,11 +97,8 @@ export function estimateKiroInputTokens(context: Context, modelId: string): numb
 	if (freshSession) {
 		if (context.systemPrompt?.length) parts.push(...context.systemPrompt);
 		if (context.tools?.length) {
-			try {
-				parts.push(JSON.stringify(context.tools));
-			} catch {
-				// ignore unserializable tool specs
-			}
+			// Count only the wire surface that is actually sent, NOT the full factory tool objects.
+			for (const tool of context.tools) parts.push(toolWireText(tool));
 		}
 	}
 	return estimateKiroTokens(parts.join("\n"), modelId);
