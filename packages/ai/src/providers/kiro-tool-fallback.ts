@@ -9,8 +9,8 @@
  * user/assistant turn instead. Parity with opencodex `kiro-tool-fallback.ts` (commit a63aa76).
  */
 
+import type { ImageContent, TextContent, ToolCall, ToolResultMessage } from "../types";
 import { normalizeToolCallId } from "../utils";
-import type { TextContent, ImageContent, ToolCall, ToolResultMessage } from "../types";
 
 function stringifyValue(value: unknown): string {
 	try {
