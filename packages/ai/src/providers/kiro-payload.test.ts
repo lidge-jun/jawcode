@@ -73,7 +73,16 @@ const toolResultWithImage = (
 	timestamp: 0,
 });
 
-const ctx = (messages: Message[]): Context => ({ messages });
+// Tool conversations are only valid on the wire when the matching tools are advertised — a model
+// never emits a toolUse for a tool the request didn't offer. Default the context to advertising the
+// tools these fixtures reference so structured toolUses/toolResults are produced (matching real
+// usage and opencodex's structuredToolIds gating). Pass `tools` explicitly (e.g. []) to exercise
+// the tool-less fallback path.
+const DEFAULT_TEST_TOOLS = [
+	{ name: "read", description: "read a file", parameters: { type: "object", properties: {} } },
+	{ name: "grep", description: "search", parameters: { type: "object", properties: {} } },
+] as unknown as Context["tools"];
+const ctx = (messages: Message[], tools: Context["tools"] = DEFAULT_TEST_TOOLS): Context => ({ messages, tools });
 
 // ---------------------------------------------------------------------------
 // Structural extractors / invariants
@@ -200,7 +209,7 @@ describe("buildPayload — CodeWhisperer wire contract", () => {
 	});
 
 	test("plain user turn (no tools) produces a clean single current message", () => {
-		const { history, current } = dissect(buildPayload(ctx([user("hi")]), "claude-sonnet-4.5", "conv4", "arn"));
+		const { history, current } = dissect(buildPayload(ctx([user("hi")], []), "claude-sonnet-4.5", "conv4", "arn"));
 		expect(history).toHaveLength(0);
 		expect(current.content).toBe("hi");
 		expect(current.userInputMessageContext).toBeUndefined();
@@ -238,6 +247,7 @@ describe("buildPayload — CodeWhisperer wire contract", () => {
 				assistant("", [{ id: "t1", name: "read" }]),
 				toolResult("t1", "tool output"),
 			],
+			tools: DEFAULT_TEST_TOOLS,
 		};
 		const { history, current } = dissect(
 			buildPayload(context, "claude-sonnet-4.5", "conv-resume-tr", "arn", { currentTurnOnly: true }),
@@ -254,7 +264,7 @@ describe("buildPayload — CodeWhisperer wire contract", () => {
 
 	test("xhigh injects max-equivalent thinking tags into the current user message only", () => {
 		const { current } = dissect(
-			buildPayload(ctx([user("think hard")]), "claude-sonnet-4.5", "conv-thinking", "arn", {
+			buildPayload(ctx([user("think hard")], []), "claude-sonnet-4.5", "conv-thinking", "arn", {
 				reasoning: Effort.XHigh,
 				maxTokens: 8000,
 			}),
@@ -321,6 +331,40 @@ describe("buildPayload — CodeWhisperer wire contract", () => {
 		expect(input).toEqual(args);
 		// Must NOT be a stringified JSON (the REQUEST_BODY_INVALID root cause).
 		expect(typeof input).not.toBe("string");
+	});
+
+	test("tool history with NO tools advertised is serialized as fallback prose (no structured toolResults)", () => {
+		// Resumed turn that dropped tools: structured toolUses/toolResults would trip
+		// REQUEST_BODY_INVALID, so calls/results must degrade to prose on plain turns.
+		const messages: Message[] = [
+			user("search"),
+			assistant("", [{ id: "t1", name: "grep", args: { pattern: "foo" } }]),
+			toolResult("t1", "match found"),
+		];
+		const { history, current } = dissect(buildPayload(ctx(messages, []), "claude-sonnet-4.5", "conv-fb", "arn"));
+		assertAlternation(history);
+		// No structured toolUses or toolResults anywhere.
+		const allEntries = [...history, { userInputMessage: current } as HEntry];
+		for (const e of allEntries) {
+			expect(e.assistantResponseMessage?.toolUses).toBeUndefined();
+			expect(e.userInputMessage?.userInputMessageContext?.toolResults).toBeUndefined();
+		}
+		// The call + result survive as prose.
+		const blob = JSON.stringify({ history, current });
+		expect(blob).toContain("Tool call fallback (grep");
+		expect(blob).toContain("Tool result fallback (read"); // toolResult helper uses toolName "read"
+		expect(blob).toContain("match found");
+	});
+
+	test("orphaned tool result (id not from an advertised structured toolUse) becomes fallback prose", () => {
+		// Tools ARE advertised, but the result's id has no matching structured toolUse this request.
+		const messages: Message[] = [user("hello"), toolResult("ghost-id", "stray output")];
+		const { history, current } = dissect(buildPayload(ctx(messages), "claude-sonnet-4.5", "conv-orphan", "arn"));
+		const allEntries = [...history, { userInputMessage: current } as HEntry];
+		for (const e of allEntries) {
+			expect(e.userInputMessage?.userInputMessageContext?.toolResults).toBeUndefined();
+		}
+		expect(JSON.stringify({ history, current })).toContain("Tool result fallback");
 	});
 });
 

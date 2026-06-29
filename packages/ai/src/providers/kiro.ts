@@ -35,6 +35,7 @@ import { toolWireSchema } from "../utils/schema/wire";
 import { decodeEventStream } from "./aws-eventstream";
 import { safeKiroErrorMessage, safeKiroHttpErrorMessage } from "./kiro-errors";
 import { KiroThinkingParser } from "./kiro-thinking";
+import { appendFallbackText, toolCallFallbackText, toolResultFallbackText } from "./kiro-tool-fallback";
 import { isCompleteKiroToolInput, kiroTruncationErrorMessage, kiroTruncationReason } from "./kiro-truncation";
 import { estimateKiroInputTokens, finalizeKiroUsage } from "./kiro-usage";
 import { NON_VISION_IMAGE_PLACEHOLDER } from "./vision-guard";
@@ -399,6 +400,14 @@ export function buildPayload(
 	let pending: KiroToolResult[] = [];
 	let pendingImages: KiroImage[] = [];
 	let lastRole = "";
+	// Tool ids that were emitted as STRUCTURED assistant toolUses on this request (only possible when
+	// tools are advertised). A toolResult whose id is not in this set has no matching structured
+	// toolUse, so it must be sent as fallback prose, not a structured toolResult (CodeWhisperer
+	// REQUEST_BODY_INVALID otherwise). Parity with opencodex.
+	const structuredToolIds = new Set<string>();
+	// User entries that carry fallback prose (not real user intent) — excluded from thinking-tag
+	// injection.
+	const fallbackEntries = new WeakSet<KiroHistoryEntry>();
 
 	// Attach buffered tool results (from the preceding assistant turn) to a user entry.
 	const attachPending = (entry: KiroHistoryEntry): void => {
@@ -410,6 +419,17 @@ export function buildPayload(
 		if (pendingImages.length > 0) uim.images = [...(uim.images ?? []), ...pendingImages];
 		pending = [];
 		pendingImages = [];
+	};
+
+	// Push a user entry, first flushing any buffered tool results onto it and inserting a synthetic
+	// assistant turn between two genuinely consecutive user turns (kept role-alternating).
+	const pushUserEntry = (entry: KiroHistoryEntry): void => {
+		if (pending.length === 0 && lastRole === "user") {
+			history.push({ assistantResponseMessage: { content: "(acknowledged)" } });
+		}
+		attachPending(entry);
+		history.push(entry);
+		lastRole = "user";
 	};
 
 	for (const msg of context.messages) {
@@ -425,34 +445,34 @@ export function buildPayload(
 				text = textParts.join("\n");
 				if (omittedImages) text = [text, NON_VISION_IMAGE_PLACEHOLDER].filter(Boolean).join("\n");
 			}
-			// Only insert a synthetic assistant turn for two genuinely consecutive
-			// user messages — never when this user turn is carrying tool results.
-			if (pending.length === 0 && lastRole === "user") {
-				history.push({ assistantResponseMessage: { content: "(acknowledged)" } });
-			}
-			const entry = mkUser(text, images);
-			attachPending(entry);
-			history.push(entry);
-			lastRole = "user";
+			pushUserEntry(mkUser(text, images));
 		} else if (msg.role === "assistant") {
 			// Deliver any outstanding tool results in their own user turn BEFORE the
 			// next assistant turn, so toolUses/toolResults stay adjacent and aligned.
 			if (pending.length > 0) {
-				const carrier = mkUser("(tool results)");
-				attachPending(carrier);
-				history.push(carrier);
-				lastRole = "user";
+				pushUserEntry(mkUser("(tool results)"));
 			}
 			const aMsg = msg as AssistantMessage;
 			const textParts = (aMsg.content || []).filter((b): b is TextContent => b.type === "text");
-			const text = textParts.map(b => b.text).join("");
-			const toolUses: KiroToolUse[] = (aMsg.content || [])
-				.filter((b): b is ToolCall => b.type === "toolCall")
-				.map(tc => ({
-					name: tc.name,
-					input: (tc.arguments ?? {}) as Record<string, unknown>,
-					toolUseId: normalizeToolCallId(tc.id),
-				}));
+			let text = textParts.map(b => b.text).join("");
+			const toolCalls = (aMsg.content || []).filter((b): b is ToolCall => b.type === "toolCall");
+			// Structured toolUses are only valid when tools are advertised. With no tools advertised,
+			// serialize the calls into prose so the turn stays a valid plain assistant message.
+			const toolUses: KiroToolUse[] =
+				kiroTools.length > 0
+					? toolCalls.map(tc => {
+							const toolUseId = normalizeToolCallId(tc.id);
+							structuredToolIds.add(toolUseId);
+							return {
+								name: tc.name,
+								input: (tc.arguments ?? {}) as Record<string, unknown>,
+								toolUseId,
+							};
+						})
+					: [];
+			if (kiroTools.length === 0) {
+				for (const toolCall of toolCalls) text = appendFallbackText(text, toolCallFallbackText(toolCall));
+			}
 			if (lastRole === "assistant") {
 				history.push(mkUser("(continue)"));
 			}
@@ -467,12 +487,24 @@ export function buildPayload(
 			const omittedImages = !supportsImages && trMsg.content.some(c => c.type === "image");
 			let resultText = parts.join("\n");
 			if (omittedImages) resultText = [resultText, NON_VISION_IMAGE_PLACEHOLDER].filter(Boolean).join("\n");
-			pending.push({
-				content: [{ text: resultText || "(empty)" }],
-				status: trMsg.isError ? "error" : "success",
-				toolUseId: normalizeToolCallId(trMsg.toolCallId),
-			});
-			if (images.length > 0) pendingImages.push(...images);
+			const toolUseId = normalizeToolCallId(trMsg.toolCallId);
+			if (kiroTools.length > 0 && structuredToolIds.has(toolUseId)) {
+				// Matches a structured toolUse emitted this request — send as a structured toolResult.
+				pending.push({
+					content: [{ text: resultText || "(empty)" }],
+					status: trMsg.isError ? "error" : "success",
+					toolUseId,
+				});
+				if (images.length > 0) pendingImages.push(...images);
+			} else {
+				// No matching advertised structured toolUse (tools dropped this turn, or orphaned
+				// result). A structured toolResult here would trip REQUEST_BODY_INVALID; serialize it
+				// as fallback prose on its own user turn instead.
+				if (pending.length > 0) pushUserEntry(mkUser("(tool results)"));
+				const fallback = mkUser(toolResultFallbackText(trMsg), images);
+				fallbackEntries.add(fallback);
+				pushUserEntry(fallback);
+			}
 		}
 	}
 
@@ -528,7 +560,7 @@ export function buildPayload(
 	// tool/exec event), or (c) the turn is the empty "(continue)" placeholder. Natural leading
 	// <thinking> blocks emitted by the model are still routed by KiroThinkingParser on the way back.
 	// Parity with opencodex `shouldInjectKiroThinkingTags` (commit b496629).
-	if (shouldInjectKiroThinkingTags(currentUim, kiroTools.length > 0)) {
+	if (!fallbackEntries.has(currentEntry) && shouldInjectKiroThinkingTags(currentUim, kiroTools.length > 0)) {
 		currentUim.content = injectKiroThinkingTags(currentUim.content, options);
 	}
 
