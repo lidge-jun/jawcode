@@ -1,7 +1,7 @@
 {
 	"type": "module",
 	"name": "@jawcode-dev/stats",
-	"version": "1.1.1",
+	"version": "1.1.2",
 	"description": "Local observability dashboard for pi AI usage statistics",
 	"homepage": "https://gaebal-gajae.dev",
 	"author": "Yeachan-Heo",
