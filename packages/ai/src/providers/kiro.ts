@@ -12,6 +12,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { hostname, userInfo } from "node:os";
 import { $env, fetchWithRetry } from "@jawcode-dev/utils";
 import type { Effort } from "../model-thinking";
+import { calculateCost } from "../models";
 import type {
 	AssistantMessage,
 	Context,
@@ -34,6 +35,7 @@ import { toolWireSchema } from "../utils/schema/wire";
 import { decodeEventStream } from "./aws-eventstream";
 import { safeKiroErrorMessage, safeKiroHttpErrorMessage } from "./kiro-errors";
 import { KiroThinkingParser } from "./kiro-thinking";
+import { estimateKiroInputTokens, finalizeKiroUsage } from "./kiro-usage";
 import { NON_VISION_IMAGE_PLACEHOLDER } from "./vision-guard";
 
 // ---------------------------------------------------------------------------
@@ -572,12 +574,13 @@ function kiroDebugLog(tag: string, data: unknown): void {
 }
 
 interface ParsedKiroEvent {
-	type: "content" | "tool_start" | "tool_input" | "tool_stop" | "usage";
+	type: "content" | "tool_start" | "tool_input" | "tool_stop" | "usage" | "context_usage";
 	data?: string;
 	name?: string;
 	toolUseId?: string;
 	input?: string;
 	usage?: number;
+	contextUsagePercentage?: number;
 }
 
 export function parseKiroPayload(raw: Uint8Array): ParsedKiroEvent | null {
@@ -623,6 +626,11 @@ export function parseKiroPayload(raw: Uint8Array): ParsedKiroEvent | null {
 	}
 	if (name !== undefined) {
 		return { type: "tool_start", name, toolUseId: toolUseId || `toolu_${randomUUID().slice(0, 8)}`, input: "" };
+	}
+	if (typeof parsed.contextUsagePercentage === "number" && Number.isFinite(parsed.contextUsagePercentage)) {
+		// CodeWhisperer periodically reports how full the context window is (0-100). It is the only
+		// server-side usage signal CW emits; we convert it to an absolute total-token count on done.
+		return { type: "context_usage", contextUsagePercentage: parsed.contextUsagePercentage };
 	}
 	if ("usage" in parsed) {
 		return { type: "usage", usage: parsed.usage as number };
@@ -955,6 +963,11 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 			}
 			let currentToolCall: { id: string; name: string; args: string } | null = null;
 			let contentIndex = 0;
+			// CodeWhisperer reports no token usage; we accumulate the assistant output text/thinking +
+			// tool-call argument length and convert to a heuristic estimate on done. `context_usage`
+			// events (window-fullness %) give a more precise total when present.
+			let outputChars = "";
+			let contextUsagePercentage: number | undefined;
 			const thinkingParser = new KiroThinkingParser();
 			// Track the kind of the currently open content block so consecutive same-kind chunks append.
 			let openBlock: "text" | "thinking" | null = null;
@@ -976,6 +989,7 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 
 			const pushThinkingChunk = (chunk: { kind: "thinking" | "text"; text: string }): void => {
 				if (!chunk.text) return;
+				outputChars += chunk.text;
 				if (!firstTokenTime) firstTokenTime = Date.now();
 				if (openBlock && openBlock !== chunk.kind) closeOpenBlock();
 				const last = output.content[output.content.length - 1];
@@ -1009,6 +1023,8 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 			// and end-of-stream cleanup so a buffered tool call is never silently dropped.
 			const finalizeToolCall = (): void => {
 				if (!currentToolCall) return;
+				// Tool-call argument tokens count toward output usage (parity with opencodex).
+				outputChars += `${currentToolCall.name}\n${currentToolCall.args}`;
 				let parsedArgs: Record<string, unknown> = {};
 				try {
 					parsedArgs = JSON.parse(currentToolCall.args || "{}");
@@ -1095,7 +1111,13 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 						finalizeToolCall();
 						break;
 					}
+					case "context_usage":
+						if (event.contextUsagePercentage !== undefined && event.contextUsagePercentage > 0) {
+							contextUsagePercentage = event.contextUsagePercentage;
+						}
+						break;
 					case "usage":
+						// CW does not report real token counts here; the estimate is finalized on done.
 						break;
 				}
 			}
@@ -1107,6 +1129,17 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 
 			// Finalize a tool call left open at end-of-stream (no trailing stop frame).
 			finalizeToolCall();
+
+			// CodeWhisperer reports no usage; fill a heuristic estimate so the cost line and any
+			// usage-percentage UI engage. A server-sent contextUsagePercentage yields a precise total.
+			finalizeKiroUsage(usage, {
+				inputTokens: estimateKiroInputTokens(context, kiroModelId),
+				outputChars,
+				modelId: kiroModelId,
+				contextUsagePercentage,
+				contextWindow: model.contextWindow,
+			});
+			usage.cost = calculateCost(model, usage);
 
 			output.duration = Date.now() - startTime;
 			if (firstTokenTime) output.ttft = firstTokenTime - startTime;

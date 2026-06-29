@@ -56,11 +56,13 @@ const model = {
 	api: "kiro-streaming",
 	input: ["text", "image"],
 	reasoning: false,
+	contextWindow: 200_000,
+	cost: { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
 } as unknown as Model<"kiro-streaming">;
 
 const ctx: Context = { messages: [{ role: "user", content: "hi", timestamp: 0 }] };
 
-async function collectToolCalls(frames: Uint8Array[]): Promise<ToolCall[]> {
+async function collectToolCalls(): Promise<ToolCall[]> {
 	const stream = streamKiro(model, ctx, { accessToken: "tok", profileArn: "arn", region: "us-east-1" });
 	let final: AssistantMessage | undefined;
 	for await (const ev of stream) {
@@ -68,6 +70,16 @@ async function collectToolCalls(frames: Uint8Array[]): Promise<ToolCall[]> {
 		else if (ev.type === "error") final = ev.error;
 	}
 	return (final?.content ?? []).filter(b => b.type === "toolCall") as ToolCall[];
+}
+
+async function collectFinal(): Promise<AssistantMessage | undefined> {
+	const stream = streamKiro(model, ctx, { accessToken: "tok", profileArn: "arn", region: "us-east-1" });
+	let final: AssistantMessage | undefined;
+	for await (const ev of stream) {
+		if (ev.type === "done") final = ev.message;
+		else if (ev.type === "error") final = ev.error;
+	}
+	return final;
 }
 
 const origFetch = globalThis.fetch;
@@ -89,7 +101,7 @@ describe("streamKiro — tool call stream robustness", () => {
 			encodeEventFrame({ input: 'ho hi"}', name: "bash", toolUseId: "t1" }),
 			encodeEventFrame({ name: "bash", stop: true, toolUseId: "t1" }),
 		];
-		const calls = await collectToolCalls(queuedFrames);
+		const calls = await collectToolCalls();
 		expect(calls).toHaveLength(1);
 		expect(calls[0].name).toBe("bash");
 		expect(calls[0].arguments).toEqual({ command: "echo hi" });
@@ -104,7 +116,7 @@ describe("streamKiro — tool call stream robustness", () => {
 			encodeEventFrame({ input: '{"pattern":"b"}', name: "grep", toolUseId: "t2" }),
 			encodeEventFrame({ name: "grep", stop: true, toolUseId: "t2" }),
 		];
-		const calls = await collectToolCalls(queuedFrames);
+		const calls = await collectToolCalls();
 		expect(calls.map(c => c.name)).toEqual(["bash", "grep"]);
 		expect(calls[0].arguments).toEqual({ command: "a" });
 		expect(calls[1].arguments).toEqual({ pattern: "b" });
@@ -118,7 +130,7 @@ describe("streamKiro — tool call stream robustness", () => {
 			encodeEventFrame({ input: '{"pattern":"b"}', name: "grep", toolUseId: "t2" }),
 			encodeEventFrame({ name: "grep", stop: true, toolUseId: "t2" }),
 		];
-		const calls = await collectToolCalls(queuedFrames);
+		const calls = await collectToolCalls();
 		expect(calls.map(c => c.name)).toEqual(["bash", "grep"]);
 		expect(calls[0].arguments).toEqual({ command: "a" });
 		expect(calls[1].arguments).toEqual({ pattern: "b" });
@@ -130,8 +142,27 @@ describe("streamKiro — tool call stream robustness", () => {
 			encodeEventFrame({ input: '{"command":"x"}', name: "bash", toolUseId: "t1" }),
 			// stream ends with no stop frame
 		];
-		const calls = await collectToolCalls(queuedFrames);
+		const calls = await collectToolCalls();
 		expect(calls).toHaveLength(1);
 		expect(calls[0].arguments).toEqual({ command: "x" });
+	});
+});
+
+describe("streamKiro — estimated usage", () => {
+	test("text-only response fills a non-zero estimated usage with input+output total", async () => {
+		queuedFrames = [encodeEventFrame({ content: "hello there, this is a longer reply" })];
+		const final = await collectFinal();
+		expect(final?.usage.estimated).toBe(true);
+		expect(final?.usage.input).toBeGreaterThan(0);
+		expect(final?.usage.output).toBeGreaterThan(0);
+		expect(final?.usage.totalTokens).toBe((final?.usage.input ?? 0) + (final?.usage.output ?? 0));
+	});
+
+	test("a contextUsagePercentage frame drives totalTokens off the model context window", async () => {
+		queuedFrames = [encodeEventFrame({ content: "hi" }), encodeEventFrame({ contextUsagePercentage: 10 })];
+		const final = await collectFinal();
+		// 10% of the test model's 200k window.
+		expect(final?.usage.totalTokens).toBe(20_000);
+		expect(final?.usage.estimated).toBe(true);
 	});
 });
