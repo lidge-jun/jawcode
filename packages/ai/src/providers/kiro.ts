@@ -697,6 +697,31 @@ export function parseKiroPayload(raw: Uint8Array): ParsedKiroEvent | null {
 
 const KIRO_REFRESH_URL = "https://prod.{region}.auth.desktop.kiro.dev/refreshToken";
 const TOKEN_KEYS = ["kirocli:social:token", "kirocli:odic:token", "codewhisperer:odic:token"];
+// AWS region shape, e.g. us-east-1, ap-northeast-2, eu-central-1. Used to reject a malformed region
+// from an imported credential before it is interpolated into the refresh URL.
+const KIRO_REGION_PATTERN = /^[a-z]{2}(?:-[a-z]+)+-\d$/;
+
+/** Return the region only if it is a well-formed AWS region; otherwise undefined. */
+export function normalizeKiroRegion(region: string | undefined): string | undefined {
+	const trimmed = region?.trim();
+	return trimmed && KIRO_REGION_PATTERN.test(trimmed) ? trimmed : undefined;
+}
+
+/** Infer the region from a profile ARN (`arn:aws:...:<region>:...`) when valid. */
+export function inferRegionFromProfileArn(arn: string | undefined): string | undefined {
+	if (!arn) return undefined;
+	return normalizeKiroRegion(arn.split(":")[3]);
+}
+
+/**
+ * Resolve a usable region from a credential: prefer the explicit (validated) region, then the
+ * region embedded in the profile ARN, then the default. Guarantees a well-formed value so the
+ * refresh URL is never built from unvalidated input.
+ */
+function resolveKiroRegion(region: string | undefined, profileArn: string | undefined): string {
+	return normalizeKiroRegion(region) ?? inferRegionFromProfileArn(profileArn) ?? DEFAULT_REGION;
+}
+
 const DB_PATHS = () => {
 	const home = process.env.HOME || "";
 	return [`${home}/Library/Application Support/kiro-cli/data.sqlite3`, `${home}/.kiro/sso/cache.db`];
@@ -768,7 +793,7 @@ function readKiroCliSqlite(): {
 						refreshToken: data.refresh_token || "",
 						profileArn: data.profile_arn || "",
 						expiresAt: data.expires_at ? new Date(data.expires_at).getTime() : Date.now() + 3600_000,
-						region: data.region || DEFAULT_REGION,
+						region: resolveKiroRegion(data.region, data.profile_arn),
 					};
 				}
 			}
@@ -785,7 +810,8 @@ async function refreshKiroDesktopToken(
 	refreshToken: string,
 	region: string,
 ): Promise<{ accessToken: string; refreshToken: string; expiresIn: number }> {
-	const url = KIRO_REFRESH_URL.replace("{region}", region);
+	// Never interpolate an unvalidated region into the refresh URL; fall back to the default.
+	const url = KIRO_REFRESH_URL.replace("{region}", normalizeKiroRegion(region) ?? DEFAULT_REGION);
 	const res = await fetch(url, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
@@ -858,7 +884,7 @@ async function resolveKiroAuth(options: KiroOptions): Promise<{ token: string; p
 				refreshToken: raw.refreshToken || "",
 				profileArn: raw.profileArn || "",
 				expiresAt: raw.expiresAt || Date.now() + 3600_000,
-				region: raw.region || DEFAULT_REGION,
+				region: resolveKiroRegion(raw.region, raw.profileArn),
 			};
 			if (Date.now() >= authCache.expiresAt - 60_000 && authCache.refreshToken) {
 				const refreshed = await refreshKiroDesktopToken(authCache.refreshToken, authCache.region);
