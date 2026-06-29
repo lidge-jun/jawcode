@@ -2262,6 +2262,23 @@ export const SETTINGS_SCHEMA = {
 			description: "How much web content to include (codex provider)",
 		},
 	},
+	"web_search.timeout": {
+		type: "number",
+		default: 300,
+		validate: (value: number) => Number.isFinite(value) && value >= 5 && value <= 600,
+		ui: {
+			tab: "tools",
+			label: "Search Timeout",
+			description: "Hard timeout (seconds) for a single web-search round-trip. Clamped 5-600s.",
+			options: [
+				{ value: "30", label: "30s", description: "Aggressive — fast APIs only" },
+				{ value: "60", label: "60s", description: "Legacy default" },
+				{ value: "120", label: "120s", description: "Tolerant of slower LLM-mediated search" },
+				{ value: "300", label: "300s", description: "Default; slow Responses-API endpoints" },
+				{ value: "600", label: "600s", description: "Maximum" },
+			],
+		},
+	},
 
 	"browser.enabled": {
 		type: "boolean",

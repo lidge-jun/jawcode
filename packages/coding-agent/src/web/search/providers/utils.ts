@@ -55,6 +55,40 @@ export function findCredential(
  */
 export const SEARCH_HARD_TIMEOUT_MS = 60_000;
 
+/** Lower bound for the configurable hard timeout (5s) — guards against a
+ *  near-zero setting that would abort every request before it can settle. */
+export const MIN_SEARCH_HARD_TIMEOUT_MS = 5_000;
+/** Upper bound for the configurable hard timeout (600s) — keeps a stalled
+ *  request from holding the session open indefinitely. */
+export const MAX_SEARCH_HARD_TIMEOUT_MS = 600_000;
+
+/**
+ * Runtime-configurable hard timeout, seeded from the compile-time default.
+ *
+ * No-argument {@link withHardTimeout} call sites (duckduckgo, parallel, kimi,
+ * zai, jina, perplexity) read this through {@link getSearchHardTimeoutMs} so a
+ * `web_search.timeout` setting change reaches every provider, not just those
+ * that thread an explicit `timeoutMs`.
+ */
+let searchHardTimeoutMs = SEARCH_HARD_TIMEOUT_MS;
+
+/** Current effective hard timeout in milliseconds. */
+export function getSearchHardTimeoutMs(): number {
+	return searchHardTimeoutMs;
+}
+
+/**
+ * Override the global web-search hard timeout. The value is clamped to
+ * [{@link MIN_SEARCH_HARD_TIMEOUT_MS}, {@link MAX_SEARCH_HARD_TIMEOUT_MS}];
+ * a non-finite input is ignored so a malformed setting cannot disable the
+ * safety net. Returns the value actually applied.
+ */
+export function setSearchHardTimeoutMs(ms: number): number {
+	if (!Number.isFinite(ms)) return searchHardTimeoutMs;
+	searchHardTimeoutMs = Math.min(MAX_SEARCH_HARD_TIMEOUT_MS, Math.max(MIN_SEARCH_HARD_TIMEOUT_MS, ms));
+	return searchHardTimeoutMs;
+}
+
 /**
  * Compose a caller-supplied {@link AbortSignal} with a hard timeout so an
  * outbound `fetch()` is guaranteed to settle within `ms` even when the
@@ -66,9 +100,10 @@ export const SEARCH_HARD_TIMEOUT_MS = 60_000;
  * because the user's Esc is never delivered to the native layer.
  *
  * @param signal - Caller cancellation signal, if any.
- * @param ms - Hard timeout in milliseconds. Defaults to {@link SEARCH_HARD_TIMEOUT_MS}.
+ * @param ms - Hard timeout in milliseconds. Defaults to the runtime-configured
+ *   value from {@link getSearchHardTimeoutMs} (initially {@link SEARCH_HARD_TIMEOUT_MS}).
  */
-export function withHardTimeout(signal: AbortSignal | undefined, ms: number = SEARCH_HARD_TIMEOUT_MS): AbortSignal {
+export function withHardTimeout(signal: AbortSignal | undefined, ms: number = getSearchHardTimeoutMs()): AbortSignal {
 	const timeout = AbortSignal.timeout(ms);
 	return signal ? AbortSignal.any([signal, timeout]) : timeout;
 }

@@ -1741,6 +1741,11 @@
 					"type": "string",
 					"description": "How much web content to include (codex provider)",
 					"default": "high"
+				},
+				"timeout": {
+					"type": "number",
+					"description": "Hard timeout (seconds) for a single web-search round-trip. Clamped 5-600s.",
+					"default": 300
 				}
 			},
 			"additionalProperties": false
