@@ -34,7 +34,7 @@
 
 | NNN | upstream fact | jwc 처리 |
 |---|---|---|
-| 053 | local OpenAI-compatible provider (#1257,#1260-#1263), terminal bell (#1278), Windows npm shims (#1274), replay encrypted sanitization (#1208,#1214,#1218), harmony invoke-envelope leak (#1219), GPT-5.5 context cap (#1231) — 55 commits `a791d72a..fa995807` (v0.7.4→0.7.7) | ⬜ split 5-way |
+| 053 | local OpenAI-compatible provider (#1257,#1260-#1263), terminal bell (#1278), Windows npm shims (#1274), replay encrypted sanitization (#1208,#1214,#1218), harmony invoke-envelope leak (#1219), GPT-5.5 context cap (#1231) — 55 commits `a791d72a..fa995807` (v0.7.4→0.7.7) | ✅ split → 054-058 |
 | 004 | pre-send `#checkEstimatedContextBeforePrompt()` before message packing; pruning/compaction at sanctioned maintenance boundary (`devlog/_gjc_chase/gajae-code/packages/coding-agent/src/session/agent-session.ts:4747-4756,6517-6533,6537-6558`) | ✅ **_fin** [10.004](./_fin/10/10.004_gjc_chase_session_compaction.md) |
 | 007 | `GJC_TMUX_LAUNCHED_ENV`-guarded `@gjc-profile` retag only for genuinely launched leaders (`team-runtime.ts:1646-1683`; changelog `:17-18`) | ownership invariant; rebrand-safe team gap |
 | 008 | RPC lifecycle stdio | ✅ **_fin** [10.008](./_fin/10/10.008_gjc_chase_rpc_lifecycle.md) |
@@ -89,7 +89,12 @@
 | 050 | [10.050_gjc_chase_session_tmux_team_worktree.md](./10.050_gjc_chase_session_tmux_team_worktree.md) | session/tmux/team/worktree | P2 | ⬜ |
 | 051 | [10.051_gjc_chase_agent_composer_toolcall_integrity.md](./_fin/10/10.051_gjc_chase_agent_composer_toolcall_integrity.md) | agent/composer/toolcall integrity | **P1** | ✅ _fin |
 | 052 | [10.052_gjc_chase_docs_external_integrations.md](./10.052_gjc_chase_docs_external_integrations.md) | docs/external integrations | P3 | ⬜ |
-| 053 | [10.053_gjc_chase_local_provider_terminal_bell_windows.md](./10.053_gjc_chase_local_provider_terminal_bell_windows.md) | local-provider·bell·windows·status-line·replay | P2 | ⬜ |
+| 053 | [10.053_gjc_chase_local_provider_terminal_bell_windows.md](./10.053_gjc_chase_local_provider_terminal_bell_windows.md) | split index → 054-058 | P2 | ✅ split |
+| 054 | [10.054_gjc_chase_local_provider_discovery.md](./10.054_gjc_chase_local_provider_discovery.md) | local provider discovery + fallback (split←053) | P2 | ⬜ |
+| 055 | [10.055_gjc_chase_codex_replay_stability.md](./10.055_gjc_chase_codex_replay_stability.md) | Codex/AI replay stability + sanitization (split←053) | **P1** | ⬜ |
+| 056 | [10.056_gjc_chase_terminal_bell_notifications.md](./10.056_gjc_chase_terminal_bell_notifications.md) | terminal bell + completion hook (split←053) | P3 | ⬜ |
+| 057 | [10.057_gjc_chase_windows_hardening.md](./10.057_gjc_chase_windows_hardening.md) | Windows hardening: shims·workers·psmux (split←053) | P3 | ⬜ |
+| 058 | [10.058_gjc_chase_status_line_misc_tooling.md](./10.058_gjc_chase_status_line_misc_tooling.md) | status line + misc tooling (split←053) | P3 | ⬜ |
 
 ## 완료
 
