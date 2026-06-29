@@ -1,6 +1,6 @@
 # 100_node — 01 overview (gjc_origin)
 
-> upstream `devlog/_upstream_gjc/` @ `269387babcbf02e33613032bc8e41ea395aa10ec`
+> upstream `devlog/_gjc_chase/gajae-code/` @ `f0a8a3eb6e619392af4965273c3cf95c3faf4345`
 > MOC: [`100_moc_node_porting.md`](../../../devlog/_plan/260612_jawcode_fork/100_moc_node_porting.md)
 
 ## Node 포팅 (M2)

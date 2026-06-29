@@ -504,6 +504,12 @@ export interface Usage {
 	/** Copilot premium-request counter, when applicable. */
 	premiumRequests?: number;
 	/**
+	 * True when the token counts are a heuristic estimate rather than provider-reported usage.
+	 * Set by providers whose wire protocol returns no usage (notably Kiro / CodeWhisperer), so
+	 * consumers can label or discount the numbers. Absent/undefined means provider-reported.
+	 */
+	estimated?: boolean;
+	/**
 	 * Reasoning/thinking tokens included in `output`, when the provider reports them
 	 * (OpenAI `output_tokens_details.reasoning_tokens`, Google `thoughtsTokenCount`).
 	 * Always a subset of `output` — non-reasoning output is `output - reasoningTokens`.

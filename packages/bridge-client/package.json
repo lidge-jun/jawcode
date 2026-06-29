@@ -1,7 +1,7 @@
 {
 	"type": "module",
 	"name": "@jawcode-dev/bridge-client",
-	"version": "1.0.2",
+	"version": "1.1.2",
 	"description": "TypeScript client SDK for the GJC backend bridge protocol",
 	"homepage": "https://gaebal-gajae.dev",
 	"author": "Yeachan-Heo",

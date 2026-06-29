@@ -6,8 +6,8 @@
 
 ```text
 pi-mono (badlogic)
-    └── oh-my-pi (omp)     ← devlog/_upstream_omp
-            └── gajae-code (gjc)   ← devlog/_upstream_gjc
+    └── oh-my-pi (omp)     ← devlog/_omp_chase/oh-my-pi
+            └── gajae-code (gjc)   ← devlog/_gjc_chase/gajae-code
                     └── jawcode (jwc surface)   ← worktree
 ```
 

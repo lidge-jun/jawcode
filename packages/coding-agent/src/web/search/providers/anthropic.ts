@@ -191,6 +191,13 @@ function parseResponse(response: AnthropicApiResponse): SearchResponse {
 			}
 		} else if (block.type === "web_search_tool_result" && block.content) {
 			// Search results
+			if (!Array.isArray(block.content)) {
+				throw new SearchProviderError(
+					"anthropic",
+					`Anthropic web search failed: ${block.content.error_code ?? "unknown_error"}`,
+					424,
+				);
+			}
 			for (const result of block.content) {
 				if (result.type === "web_search_result") {
 					sources.push({

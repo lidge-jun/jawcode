@@ -33,7 +33,7 @@ function runGit(cwd: string, args: string[]): string {
 
 async function createFakeTmuxBin(
 	root: string,
-	options: { failDisplay?: boolean; failSplit?: boolean; gjcProfile?: boolean } = {},
+	options: { failDisplay?: boolean; failSplit?: boolean; gjcProfile?: boolean; profileSelfHeal?: boolean } = {},
 ): Promise<string> {
 	const binDir = path.join(root, ".test-bin");
 	await fs.mkdir(binDir, { recursive: true });
@@ -63,8 +63,12 @@ case "$1" in
 }
     ;;
   show-options)
-    if [ "${options.gjcProfile === false ? "0" : "1"}" = "1" ]; then echo "1"; exit 0; fi
+    ${options.profileSelfHeal ? `pf=${JSON.stringify(path.join(root, "tmux-profile"))}; [ -f "$pf" ] && [ "$(cat "$pf")" = "1" ] && echo "1" && exit 0` : `[ "${options.gjcProfile === false ? "0" : "1"}" = "1" ] && echo "1" && exit 0`}
     exit 1
+    ;;
+  set-option)
+    ${options.profileSelfHeal ? `case "$*" in *@gjc-profile*) pf=${JSON.stringify(path.join(root, "tmux-profile"))}; echo "1" > "$pf" ;; esac` : ""}
+    exit 0
     ;;
   split-window)
     ${options.failSplit ? "echo split failed >&2; exit 1" : ""}
@@ -577,7 +581,7 @@ describe("native gjc team runtime", () => {
 		).toBe(false);
 	});
 
-	it("rejects unmanaged tmux sessions before state, worktree, split, or profile mutation", async () => {
+	it("rejects a foreign tmux leader that does not round-trip @gjc-profile (after a bounded self-heal probe)", async () => {
 		cleanupRoot = await createGitRepo();
 		const fakeTmux = await createFakeTmuxBin(cleanupRoot, { gjcProfile: false });
 
@@ -602,9 +606,53 @@ describe("native gjc team runtime", () => {
 		).toBe(false);
 		const tmuxLog = await Bun.file(path.join(cleanupRoot, "tmux.log")).text();
 		expect(tmuxLog).toContain("display-message -p #S:#I #{pane_id}");
-		expect(tmuxLog).toContain("show-options -qv -t =test-session @gjc-profile");
+		expect(tmuxLog).toContain("show-options -qv -t =test-session: @gjc-profile");
+		// Self-heal probe IS attempted (write the @gjc-profile tag, then read it back);
+		// the fake foreign provider does not round-trip the option, so the readback
+		// fails and the leader is strictly rejected. (Old code rejected with no set-option.)
+		expect(tmuxLog).toContain("set-option -t =test-session: @gjc-profile");
+		// ...but no layout/state mutation: no mouse/clipboard set-option, split, or worktree.
 		expect(tmuxLog).not.toContain("split-window");
 		expect(tmuxLog).not.toContain("set-option -t test-session:0");
+	});
+
+	it("adopts an already-tagged tmux leader without re-tagging @gjc-profile", async () => {
+		cleanupRoot = await createGitRepo();
+		const fakeTmux = await createFakeTmuxBin(cleanupRoot, { gjcProfile: true });
+		const snapshot = await startJwcTeam({
+			workerCount: 1,
+			agentType: "executor",
+			task: "Adopt a tagged leader",
+			teamName: "tagged-team",
+			cwd: cleanupRoot,
+			env: { PATH: process.env.PATH ?? "", GJC_TEAM_WORKER_COMMAND: "true", GJC_TEAM_TMUX_COMMAND: fakeTmux },
+		});
+
+		expect(snapshot.tmux_target).toBe("test-session:0");
+		const tmuxLog = await Bun.file(path.join(cleanupRoot, "tmux.log")).text();
+		// Already tagged: profile is read once and accepted; no self-heal write is needed.
+		expect(tmuxLog).toContain("show-options -qv -t =test-session: @gjc-profile");
+		expect(tmuxLog).not.toContain("set-option -t =test-session: @gjc-profile");
+	});
+
+	it("self-heals an untagged real tmux leader by writing and re-reading @gjc-profile", async () => {
+		cleanupRoot = await createGitRepo();
+		const fakeTmux = await createFakeTmuxBin(cleanupRoot, { profileSelfHeal: true });
+		const snapshot = await startJwcTeam({
+			workerCount: 1,
+			agentType: "executor",
+			task: "Self-heal an untagged leader",
+			teamName: "selfheal-team",
+			cwd: cleanupRoot,
+			env: { PATH: process.env.PATH ?? "", GJC_TEAM_WORKER_COMMAND: "true", GJC_TEAM_TMUX_COMMAND: fakeTmux },
+		});
+
+		// An untagged real tmux that round-trips the user option is adopted as leader.
+		expect(snapshot.tmux_target).toBe("test-session:0");
+		expect(snapshot.workers).toHaveLength(1);
+		const tmuxLog = await Bun.file(path.join(cleanupRoot, "tmux.log")).text();
+		// The ownership tag was written (self-heal) and the readback succeeded -> adopted.
+		expect(tmuxLog).toContain("set-option -t =test-session: @gjc-profile 1");
 	});
 
 	it("cleans partial worker worktrees without killing the leader session when pane startup fails", async () => {

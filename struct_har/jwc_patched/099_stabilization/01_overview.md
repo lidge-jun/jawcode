@@ -2,7 +2,7 @@
 
 > **역할**: struct_har용 **99 밴드 요약 인덱스**. 수치·상태·착수 순서의 **단일 정본**은 [`structure/50_status.md`](../../../structure/50_status.md) (260614 통합).
 > MOC 상세: [99.00.00](../devlog/_plan/260614_cli_jaw_jwc_distribution_strategy/_legacy/260612_jawcode_fork/phase1/99.00.00_moc_stabilization.md).
-> worktree @ `d60b7822` · gjc 클론 `269387ba` (2026-06-14 문서 동기화).
+> worktree @ `da23db8` · gjc 클론 `f0a8a3eb` (2026-06-26 struct_har chase baseline refresh).
 
 ## 로드맵 축 (정본: 50_status §로드맵)
 

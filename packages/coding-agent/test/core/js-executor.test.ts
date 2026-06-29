@@ -463,4 +463,22 @@ describe("executeJs", () => {
 		expect(result.exitCode).toBeUndefined();
 		expect(result.output).toContain("Command timed out");
 	});
+
+	it("cancels execution when the caller aborts", async () => {
+		const controller = new AbortController();
+		const promise = executeJs("await new Promise(() => {})", {
+			sessionId,
+			session,
+			sessionFile,
+			signal: controller.signal,
+		});
+
+		await Bun.sleep(0);
+		controller.abort(Object.assign(new Error("caller aborted"), { name: "AbortError" }));
+
+		const result = await promise;
+		expect(result.cancelled).toBe(true);
+		expect(result.exitCode).toBeUndefined();
+		expect(result.output).not.toContain("Command timed out");
+	});
 });

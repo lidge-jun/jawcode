@@ -160,6 +160,19 @@ function formatMcpToolErrorMessage(toolName: string, availableTools: string[]): 
 	return `MCP tool "${toolName}" not found. Available tools: ${list}`;
 }
 
+/**
+ * Cursor's wire protocol carries shell timeouts in milliseconds — the model-facing parameter is
+ * `block_until_ms` and `ShellArgs.hard_timeout` is likewise documented in ms — while the bash
+ * tool's `timeout` is seconds. Passing the raw value through made a requested 30 s wait (30000 ms)
+ * arrive as 30000 s and clamp to the 3600 s ceiling, i.e. an accidental 1-hour timeout on a
+ * blocking command. Convert, rounding sub-second values up to 1 s so a tiny requested wait does
+ * not collapse to "no timeout" (chase 10.003).
+ */
+function shellTimeoutSeconds(timeout: number | undefined): number | undefined {
+	if (!timeout || timeout <= 0) return undefined;
+	return Math.max(1, Math.ceil(timeout / 1000));
+}
+
 export class CursorExecHandlers implements ICursorExecHandlers {
 	constructor(private options: CursorExecBridgeOptions) {}
 
@@ -221,7 +234,7 @@ export class CursorExecHandlers implements ICursorExecHandlers {
 
 	async shell(args: Parameters<NonNullable<ICursorExecHandlers["shell"]>>[0]) {
 		const toolCallId = decodeToolCallId(args.toolCallId);
-		const timeoutSeconds = args.timeout && args.timeout > 0 ? args.timeout : undefined;
+		const timeoutSeconds = shellTimeoutSeconds(args.timeout);
 		const toolResultMessage = await executeTool(this.#optionsForCall(), "bash", toolCallId, {
 			command: args.command,
 			cwd: args.workingDirectory || undefined,
@@ -243,7 +256,7 @@ export class CursorExecHandlers implements ICursorExecHandlers {
 			return createToolResultMessage(toolCallId, toolName, result, true);
 		}
 
-		const timeoutSeconds = args.timeout && args.timeout > 0 ? args.timeout : undefined;
+		const timeoutSeconds = shellTimeoutSeconds(args.timeout);
 		const toolArgs: Record<string, unknown> = {
 			command: args.command,
 			cwd: args.workingDirectory || undefined,

@@ -1,20 +1,20 @@
 # struct_har INDEX (lexicographic)
 
-> 생성: 2026-03-13 · **전수 갱신: 2026-06-14** · fork `d60b78223d5d5f5b3f82b3d0ccfe95620f754eb5` · gjc `269387babcbf02e33613032bc8e41ea395aa10ec` · omp `7e8122000`
+> 생성: 2026-03-13 · **전수 갱신: 2026-06-26** · fork `da23db8f217637412552c7a7b1e411a180c5ecc8` · gjc `f0a8a3eb6e619392af4965273c3cf95c3faf4345` · omp `0fc6d136c34a279a711a2d3f2df9d64e0fa06cee`
 
 ## upstream 기준선
 
 | 항목 | 값 |
 |---|---|
-| 클론 경로 | [`devlog/_upstream_gjc/`](../devlog/_upstream_gjc/) |
-| 절대경로 | `/Users/jun/Developer/new/700_projects/jawcode/devlog/_upstream_gjc/` |
-| HEAD (gjc) | `269387babcbf02e33613032bc8e41ea395aa10ec` |
-| remote | `https://github.com/Yeachan-Heo/gajae-code` |
+| 클론 경로 | [`devlog/_gjc_chase/gajae-code/`](../devlog/_gjc_chase/gajae-code/) |
+| 절대경로 | `/Users/jun/Developer/new/700_projects/jawcode/devlog/_gjc_chase/gajae-code/` |
+| HEAD (gjc) | `f0a8a3eb6e619392af4965273c3cf95c3faf4345` |
+| remote | `upstream` → `https://github.com/Yeachan-Heo/gajae-code` (`dev`) |
 | gjc_origin | 위 클론 = code facts 정본 |
 | jwc_patched | jawcode worktree root |
-| HEAD (jwc) | `d60b78223d5d5f5b3f82b3d0ccfe95620f754eb5` |
-| omp 클론 | [`devlog/_upstream_omp/`](../devlog/_upstream_omp/) — oh-my-pi |
-| HEAD (omp) | `7e8122000` |
+| HEAD (jwc) | `da23db8f217637412552c7a7b1e411a180c5ecc8` |
+| omp 클론 | [`devlog/_omp_chase/oh-my-pi/`](../devlog/_omp_chase/oh-my-pi/) — oh-my-pi |
+| HEAD (omp) | `0fc6d136c34a279a711a2d3f2df9d64e0fa06cee` |
 
 ## gjc_origin
 

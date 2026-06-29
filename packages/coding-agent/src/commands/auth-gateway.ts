@@ -1,5 +1,5 @@
 /**
- * `gjc auth-gateway` — run a forward proxy that injects auth from the broker.
+ * `jwc auth-gateway` — run a forward proxy that injects auth from the broker.
  */
 import { Args, Command, Flags, renderCommandHelp } from "@jawcode-dev/utils/cli";
 import {
@@ -32,20 +32,20 @@ export default class AuthGateway extends Command {
 	};
 
 	static examples = [
-		"# Boot the gateway against the configured broker\n  gjc auth-gateway serve",
-		"# Boot on a non-default port\n  gjc auth-gateway serve --bind=127.0.0.1:4000",
-		"# Print the gateway bearer token (creates one on first run)\n  gjc auth-gateway token",
-		"# Rotate the gateway bearer token\n  gjc auth-gateway token --regenerate",
-		"# Run on loopback without any bearer (anyone on this host can call)\n  gjc auth-gateway serve --no-auth",
-		"# Show local gateway + broker config status\n  gjc auth-gateway status",
-		"# Probe each broker credential to see which one is producing 401s\n  gjc auth-gateway check",
-		"# Same, machine-readable for scripts\n  gjc auth-gateway check --json",
+		"# Boot the gateway against the configured broker\n  jwc auth-gateway serve",
+		"# Boot on a non-default port\n  jwc auth-gateway serve --bind=127.0.0.1:4000",
+		"# Print the gateway bearer token (creates one on first run)\n  jwc auth-gateway token",
+		"# Rotate the gateway bearer token\n  jwc auth-gateway token --regenerate",
+		"# Run on loopback without any bearer (anyone on this host can call)\n  jwc auth-gateway serve --no-auth",
+		"# Show local gateway + broker config status\n  jwc auth-gateway status",
+		"# Probe each broker credential to see which one is producing 401s\n  jwc auth-gateway check",
+		"# Same, machine-readable for scripts\n  jwc auth-gateway check --json",
 	];
 
 	async run(): Promise<void> {
 		const { args, flags } = await this.parse(AuthGateway);
 		if (!args.action) {
-			renderCommandHelp("gjc", "auth-gateway", AuthGateway);
+			renderCommandHelp("jwc", "auth-gateway", AuthGateway);
 			return;
 		}
 		const cmd: AuthGatewayCommandArgs = {

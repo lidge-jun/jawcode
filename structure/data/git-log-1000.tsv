@@ -1,0 +1,122 @@
+af363c8|2026-06-28|docs(chase): split gjc upstream dev backlog
+393a623|2026-06-28|docs(chase): split gjc telegram notification gaps
+a5c7c5c|2026-06-27|docs(chase): normalize 20.008 header glyph to ✅ _fin (index card)
+94912bb|2026-06-27|docs(chase): retire 10.002 to _fin (C4 auth split-decision, security-audited)
+417cc49|2026-06-27|docs(chase): WP14 plan — 10.002 ai auth scoped split-decision (no migration)
+dd5d7b0|2026-06-27|fix(tmux): use exact-option target form in readProfileForExactTarget
+cdfccc9|2026-06-27|docs(chase): retire 10.007 to _fin (team self-heal + =NAME: form fix, tested)
+7cc3f31|2026-06-27|feat(team): self-heal untagged tmux leader; fix exact-option target form (chase 10.007)
+18c60f4|2026-06-27|docs(chase): WP13 plan — 10.007 team @gjc-profile self-heal (gjc adapt)
+b3fa775|2026-06-27|docs(chase): retire 20.006 to _fin (TUI input micro-fixes, tested)
+a291199|2026-06-27|feat(input): clear typed draft on Esc; collapse ast-edit status pattern (chase 20.006)
+97f768c|2026-06-27|docs(chase): WP12 plan — 20.006 TUI input micro-fixes (esc+ast)
+e1e701d|2026-06-27|docs(chase): retire 10.021 to _fin, split live-artifact engine to 10.027
+cdee4f7|2026-06-27|feat(goal): reject inline-only evidence for live surfaces (chase 10.021)
+7923be3|2026-06-27|docs(chase): retire 10.012 to _fin (goal steering port, tested)
+0974e20|2026-06-27|feat(goal): port gjc steering subsystem to native goal engine (chase 10.012)
+f411e98|2026-06-27|docs(chase): WP10 plan — 10.012 goal steering subsystem port
+c9797e5|2026-06-27|docs(chase): retire 20.005 to _fin (stranded steer drain, tested)
+055aee8|2026-06-27|fix(session): drain stranded steer/follow-up at settle (chase 20.005)
+eb9d267|2026-06-27|docs(chase): WP9 plan — 20.005 settle-time stranded queue drain
+7c94022|2026-06-27|docs(chase): retire 10.023 to _fin (omp 0.5.1 pre-prompt maintenance, tested)
+e80075b|2026-06-27|fix(compaction): count custom messages + feed pre-prompt check (chase 10.023)
+b53ac54|2026-06-27|docs(chase): WP8 plan — 10.023 pre-prompt maintenance (custom msg counting)
+f53f285|2026-06-27|fix(deps): catalog @jawcode-dev/natives 1.0.2 -> workspace:* (unblock tests)
+1919185|2026-06-27|docs(chase): per-card deferral evidence for remaining 7 (investigated)
+96aae8c|2026-06-27|docs(chase): retire 10.003 cursor to _fin (timeout fix adopted)
+4eeffb7|2026-06-27|fix(cursor): convert shell timeout ms->s, not raw passthrough (chase 10.003)
+245eef9|2026-06-27|docs(chase): WP6 plan — 10.003 cursor shell-timeout ms->s bugfix
+ff74f53|2026-06-27|docs(chase): reconcile 007_follow_index with 260627 session state
+9bddc7d|2026-06-27|docs(chase): precise native-blocker root cause (catalog 1.0.2 pin vs workspace 1.0.6)
+b035048|2026-06-27|docs(chase): pause audit (gate 2/2) — 8 remaining cards blocked on test-env
+ea2aa28|2026-06-27|docs(chase): retire 10.005 task_subagent to _fin (jwc-adequate)
+ae56fd2|2026-06-27|docs(chase): WP5 plan — close 10.005 (jwc-adequate doc-judgment)
+cd09517|2026-06-27|docs(chase): retire 10.024 coordinator_mcp_watch to _fin (decision-recorded)
+586f2ea|2026-06-27|docs(chase): WP4 plan — close 10.024 (decision-recorded doc-judgment)
+c9f9bed|2026-06-27|docs(chase): assess remaining-loop blocker (broad test-env drift vs C3/C4 rigor)
+aad3635|2026-06-27|docs(chase): retire 10.013 to _fin (implemented + tsc-verified)
+d70b885|2026-06-27|perf(tui): cache assistant-message content blocks (chase 10.013)
+5b1643e|2026-06-27|docs(chase): WP3 plan — 10.013 assistant-message content-block cache
+68e6d85|2026-06-27|docs(chase): WP2 C-verification + record pre-existing bands staleness
+8b3f820|2026-06-27|fix(chase): refresh stale devlog _plan -> _fin links (260614 pull priority report)
+91097b0|2026-06-27|docs(chase): retire 6 reference-decided cards to _fin (WP2)
+70fddb3|2026-06-27|docs(chase): WP2 plan — retire 6 reference cards to _fin + link surgery
+0c55f1b|2026-06-27|docs(chase): record 2026-06-27 interview directions in 9 cards
+5faf538|2026-06-27|docs(chase): WP1 plan fix — complete link-integrity map per A-audit FAIL
+a2de2d8|2026-06-27|docs(chase): WP1 plan — record 9 directions + retire 6 reference cards
+24f5b92|2026-06-27|docs(chase): pre-draft paste-ready A-H decision blocks for 9 undecided cards
+0e03cfa|2026-06-27|docs(chase): record direction-interview research + open decisions
+fc3d0d7|2026-06-27|docs(chase): record remaining direction decisions
+3241282|2026-06-26|docs(chase): record interview decisions
+25ee794|2026-06-26|docs(struct_har): expand chase jawdev guidance
+0b7b0ee|2026-06-26|docs(struct_har): refresh chase baselines
+da23db8|2026-06-17|fix(tui): preserve bg panel ESC handler across editor hot-swap
+88c420b|2026-06-17|fix(tui): ESC closes bg detail, Enter submits when panel open with text
+bc50cef|2026-06-16|chore(dev): dev marker
+4a92e3f|2026-06-16|docs: add nodejs + git to WSL prerequisites, full setup guide
+3d50146|2026-06-16|chore(dev): dev marker
+13227b1|2026-06-16|docs: fix WSL install (needs unzip) + add release publishing guide
+08f3690|2026-06-16|release: natives 1.0.6 + jawcode 1.0.9
+2207a48|2026-06-16|release: jawcode 1.0.8 — rebuilt bundle with correct branding + all platform natives
+89bd221|2026-06-16|release: natives 1.0.5 (pinned sentinel), jawcode 1.0.7
+9deb7be|2026-06-16|chore(dev): dev marker
+c0c03a6|2026-06-16|ci: skip darwin-x64-baseline (slow runner), build 5 targets only
+8d8a3b1|2026-06-16|chore(dev): dev marker
+796028c|2026-06-16|fix(natives): align version sentinel to 1.0.4 and rebuild darwin-arm64
+de10d21|2026-06-16|release: natives 1.0.4 (darwin-arm64 + linux-x64 + win32-x64 prebuilds), jawcode 1.0.6
+f9fb9f2|2026-06-16|chore(dev): dev marker
+d3af994|2026-06-16|fix(ci): override bunfig.toml minimumReleaseAge for natives build
+adbb402|2026-06-16|chore(dev): dev marker
+f96849c|2026-06-16|fix(ci): remove frozen-lockfile + set minimum-release-age=0 for natives build
+28e6d60|2026-06-16|chore(dev): dev marker
+a24878a|2026-06-16|ci: add build-natives workflow for cross-platform prebuilt binaries
+33a12d3|2026-06-16|chore(dev): dev marker
+41bd4ad|2026-06-16|fix(natives): graceful degradation on unsupported platforms
+4f6b33a|2026-06-16|chore(dev): dev marker
+dae4165|2026-06-16|release: jawcode 1.0.4 — native addons as optionalDependencies
+31f1b86|2026-06-16|chore(dev): dev marker
+c09a5bf|2026-06-16|release: jawcode 1.0.3 (fix optionalDeps for natives)
+45c9bd0|2026-06-16|chore(dev): dev marker
+0ec4a67|2026-06-16|fix(jwc): move @jawcode-dev/natives to optionalDependencies
+adb8686|2026-06-16|chore(dev): dev marker
+21ff023|2026-06-16|release: bump all packages to 1.0.2
+25a2668|2026-06-16|chore(dev): dev marker
+55e2eb5|2026-06-16|chore: update goal ledger state
+da9bf3f|2026-06-16|fix(goal): goal runtime improvements
+1205b72|2026-06-16|docs(struct_har): update @gajae-code → @jawcode-dev in current-state references
+28c86d5|2026-06-16|fix: update G002 gates for @jawcode-dev scope rename
+3b11a5e|2026-06-16|fix: update rebrand-inventory gates for @jawcode-dev scope + format fixes
+8490db3|2026-06-16|refactor: rename @gajae-code → @jawcode-dev across all source, tests, docs, scripts (Phase 2-4)
+21a0f37|2026-06-16|refactor: rename @gajae-code → @jawcode-dev in all package.json (Phase 1)
+bd753ec|2026-06-16|plan: @gajae-code → @jawcode loop plan MOC (3 PABCD cycles)
+af73e89|2026-06-16|plan: @gajae-code → @jawcode scope rename (5,200+ refs, ~300 files)
+22db585|2026-06-16|devlog: @gajae-code → @jawcode scope rename plan
+7be0907|2026-06-16|chore(dev): dev marker
+ee9f058|2026-06-16|chore: regenerate JSON schemas after lsp.enabled default change
+19e7782|2026-06-16|docs: add platform-specific bun install instructions to README
+be88cb7|2026-06-16|chore(dev): advance dev marker
+6493099|2026-06-16|fix(lsp): respect lsp.enabled setting in all enableLsp fallbacks
+8ec0c92|2026-06-16|fix(bin): set JWC_PACKAGE_VERSION in dev bash wrapper
+1eb6e3e|2026-06-16|chore: agent prompt and test updates
+9cd6065|2026-06-16|chore(dev): advance dev marker
+6a8137c|2026-06-16|perf: disable LSP by default, activate on demand via search_tool_bm25
+ead4144|2026-06-16|Merge branch 'main' into dev
+2e6675b|2026-06-16|fix(release): publish jawcode only via OIDC trusted publishing
+edceb9c|2026-06-16|chore(dev): dev branch marker
+6148704|2026-06-16|chore: prompt formatting, SDK skills test expansion, PABCD loop concept devlog
+4ad638b|2026-06-16|feat(prompt): add PABCD loop execution concept to orchestrate prompts
+36fdbea|2026-06-16|chore: move completed devlogs to _fin (cicd_overhaul, monitor_enhancement)
+2ec24f0|2026-06-16|feat(background): absorb monitor as op:start_monitor
+03a98b8|2026-06-16|refactor(tools): remove job/monitor from builtin tools, background always-active
+da710a1|2026-06-16|feat(monitor): add silent + deduplicate options, auto-enable for poll kind
+58c8f5e|2026-06-16|feat(task): auto fresh-spawn fallback when PABCD actor resume fails
+6e8f38b|2026-06-16|ci: run mac-native-probes in parallel with check-and-package
+298cbbd|2026-06-16|fix(ci): overhaul CI/CD pipeline — fix gjc/0.4.4, optimize timing, clean gjc remnants
+bf24641|2026-06-16|fix(tui): commit internal read tool results
+c6ae247|2026-06-16|docs: bun install as primary, npm as alternative
+5175a14|2026-06-16|fix(ci): move registry-faithful smoke to post-publish, fix release pipeline
+b262416|2026-06-16|ci: allow validate soft-fail for initial 1.0.0 publish
+a5247a5|2026-06-16|chore: bump version to 1.0.0
+4e7f916|2026-06-16|fix(ci): allow upstream attribution in legacy zero gate
+accb264|2026-06-16|fix(ci): graceful fallback for orphan/rebase diff range
+5892f59|2026-06-16|Jawcode — coding agent runner with IPABCD workflow

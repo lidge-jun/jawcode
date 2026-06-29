@@ -389,6 +389,21 @@ export const SETTINGS_SCHEMA = {
 		default: undefined,
 	},
 
+	"notifications.enabled": { type: "boolean", default: false },
+	"notifications.telegram.botToken": { type: "string", default: undefined },
+	"notifications.telegram.chatId": { type: "string", default: undefined },
+	"notifications.redact": { type: "boolean", default: true },
+	"notifications.verbosity": {
+		type: "enum",
+		values: ["lean", "verbose"] as const,
+		default: "lean",
+	},
+	"notifications.daemon.idleTimeoutMs": {
+		type: "number",
+		default: 300000,
+		validate: (value: number) => Number.isFinite(value) && value > 0,
+	},
+
 	/** @deprecated legacy key — migrated to `jwc.interview.ambiguityThreshold` on load (042 D041-D). */
 	"gjc.deepInterview.ambiguityThreshold": {
 		type: "number",
@@ -2245,6 +2260,23 @@ export const SETTINGS_SCHEMA = {
 			tab: "tools",
 			label: "Search Context Size",
 			description: "How much web content to include (codex provider)",
+		},
+	},
+	"web_search.timeout": {
+		type: "number",
+		default: 300,
+		validate: (value: number) => Number.isFinite(value) && value >= 5 && value <= 600,
+		ui: {
+			tab: "tools",
+			label: "Search Timeout",
+			description: "Hard timeout (seconds) for a single web-search round-trip. Clamped 5-600s.",
+			options: [
+				{ value: "30", label: "30s", description: "Aggressive — fast APIs only" },
+				{ value: "60", label: "60s", description: "Legacy default" },
+				{ value: "120", label: "120s", description: "Tolerant of slower LLM-mediated search" },
+				{ value: "300", label: "300s", description: "Default; slow Responses-API endpoints" },
+				{ value: "600", label: "600s", description: "Maximum" },
+			],
 		},
 	},
 

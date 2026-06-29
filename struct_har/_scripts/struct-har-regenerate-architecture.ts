@@ -33,7 +33,7 @@ for (const side of ["gjc_origin", "jwc_patched"] as const) {
 			: "(structure file missing)";
 		const content = `# architecture / ${harName} (${side})
 
-> **스냅샷 (2026-06-13)**: patched SoT는 [\`structure/${structName}\`](../../../structure/${structName}).
+> **스냅샷 (2026-06-26)**: patched SoT는 [\`structure/${structName}\`](../../../structure/${structName}).
 > fork \`${FORK_HEAD}\` · gjc clone \`${GJC_HEAD}\`.
 
 ## structure/ 발췌 (첫 12줄)

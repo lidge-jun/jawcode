@@ -4,10 +4,11 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { resolveForkHead, resolveGjcHead } from "./resolve-heads.ts";
+import { resolveForkHead, resolveGjcClonePath, resolveGjcHead } from "./resolve-heads.ts";
 
 const ROOT = path.resolve(import.meta.dir, "../..");
-const GJC_CLONE = path.join(ROOT, "devlog/_upstream_gjc");
+const GJC_CLONE = resolveGjcClonePath();
+const GJC_CLONE_REL = path.relative(ROOT, GJC_CLONE);
 const STRUCT = path.join(ROOT, "struct_har");
 
 const FORK_HEAD = resolveForkHead();
@@ -204,10 +205,10 @@ function body(side: "gjc_origin" | "jwc_patched", band: BandDef): string {
 	const isGjc = side === "gjc_origin";
 	const title = `# ${band.id} — code facts (${side})`;
 	const header = isGjc
-		? `> **upstream 클론**: \`devlog/_upstream_gjc/\` @ \`${GJC_HEAD}\`
+		? `> **upstream 클론**: \`${GJC_CLONE_REL}/\` @ \`${GJC_HEAD}\`
 > MOC: \`devlog/_plan/260612_jawcode_fork/${band.moc}\``
 		: `> **worktree**: jawcode @ \`${FORK_HEAD}\`
-> **gjc 대조**: \`devlog/_upstream_gjc/\` @ \`${GJC_HEAD}\`
+> **gjc 대조**: \`${GJC_CLONE_REL}/\` @ \`${GJC_HEAD}\`
 > MOC: \`devlog/_plan/260612_jawcode_fork/${band.moc}\``;
 
 	const base = isGjc ? GJC_CLONE : ROOT;
@@ -224,9 +225,9 @@ function body(side: "gjc_origin" | "jwc_patched", band: BandDef): string {
 		`## ${isGjc ? "2" : "3"}. 검증
 
 \`\`\`bash
-git -C devlog/_upstream_gjc rev-parse --short HEAD   # ${GJC_HEAD}
+git -C ${GJC_CLONE_REL} rev-parse --short HEAD   # ${GJC_HEAD}
 git rev-parse --short HEAD               # ${FORK_HEAD}
-diff -u devlog/_upstream_gjc/${anchors[0] ?? "packages/coding-agent/package.json"} ${anchors[0] ?? "packages/coding-agent/package.json"} | head
+diff -u ${GJC_CLONE_REL}/${anchors[0] ?? "packages/coding-agent/package.json"} ${anchors[0] ?? "packages/coding-agent/package.json"} | head
 \`\`\`
 `,
 		`## 부록

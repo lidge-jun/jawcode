@@ -219,7 +219,12 @@ export const PROVIDER_DESCRIPTORS: readonly ProviderDescriptor[] = [
 		config => kimiCodeModelManagerOptions(config),
 		catalog("Kimi Code", ["KIMI_API_KEY"]),
 	),
-	catalogDescriptor("kiro", "kiro-auto", () => kiroModelManagerOptions(), catalog("Kiro", ["KIRO_ACCESS_TOKEN"])),
+	catalogDescriptor(
+		"kiro",
+		"auto",
+		() => kiroModelManagerOptions(),
+		catalog("Kiro", ["KIRO_ACCESS_TOKEN"], { allowUnauthenticated: true }),
+	),
 	catalogDescriptor(
 		"qwen-portal",
 		"coder-model",

@@ -1,6 +1,6 @@
 # fork-delta — lidge-jun/jawcode lineage delta index (체리픽 정본)
 
-> upstream lineage: `Yeachan-Heo/jawcode` · public repo: `lidge-jun/jawcode`. 본 문서는 업스트림 계열 코드에서 Jawcode가 이탈한 파일의 **단일 카노니컬 인덱스**다 — 리베이스/체리픽 전 충돌 예상 분석의 첫 진입점. 설계 정본: `devlog/_plan/260614_cli_jaw_jwc_distribution_strategy/_legacy/260612_jawcode_fork/phase1/067.1_plan_structure_fork_delta.md`.
+> upstream lineage: `Yeachan-Heo/gajae-code` (`dev`) · public repo: `lidge-jun/jawcode`. 본 문서는 업스트림 계열 코드에서 Jawcode가 이탈한 파일의 **단일 카노니컬 인덱스**다 — clone diff/체리픽 전 충돌 예상 분석의 첫 진입점. 설계 정본: `devlog/_plan/260614_cli_jaw_jwc_distribution_strategy/_legacy/260612_jawcode_fork/phase1/067.1_plan_structure_fork_delta.md`.
 > 갱신 규칙: HARD-EDIT·INVERTED-GUARD·REMOVED·NEW 파일이 포함된 커밋은 본 문서를 **동행 갱신**한다 (SOFT-EDIT는 밴드 일괄 허용). 커밋 트레일러 `Fork-Delta: <종류> <경로>` 규약은 `structure/11_conventions.md` 참조.
 
 ## 종류 정의
@@ -148,7 +148,7 @@
 
 ## 리베이스/체리픽 절차 (요약 — 상세: 067.1 §5)
 
-- 리베이스 전: `grep "CONFLICT-EXPECTED" structure/40_fork-delta.md` ↔ `git diff upstream/main --name-only` 대조
+- 리베이스/체리픽 전: `grep "CONFLICT-EXPECTED" structure/40_fork-delta.md` ↔ `diff -qr devlog/_gjc_chase/gajae-code/packages packages` 대조
 - upstream→fork 체리픽: 대상 커밋이 HARD-EDIT 경로를 건드리면 보존 경계 열 기준 수동 병합
 - fork→upstream 기여: `upstream PR 후보` ✅ 항목만
 
@@ -162,9 +162,9 @@
 
 ## Fork logic changelog (jawcode vs jawcode upstream)
 
-> **정본**: upstream `269387ba` (`devlog/_upstream_gjc/`) 대비 worktree `d60b7822` (`dev`)의 **동작·계약·런타임** 변경. 파일 목록은 [fork-delta.md](./40_fork-delta.md), 밴드 스냅샷은 [struct_har/](../struct_har/README.md).
+> **정본**: upstream `f0a8a3eb` (`devlog/_gjc_chase/gajae-code/`, `upstream/dev`) 대비 worktree `af363c8` (`main`)의 **동작·계약·런타임** 변경. 파일 목록은 [fork-delta.md](./40_fork-delta.md), 밴드 스냅샷은 [struct_har/](../struct_har/README.md).
 > **99 잔여 갭**: `99.02` PR/CI 마감·`99.04` HUD·`99.07` 슬래시 패리티 등 — [status.md](./50_status.md) · [099_stabilization](../struct_har/jwc_patched/099_stabilization/02_logic_changes.md).
-> 생성: git `log upstream/main..HEAD` + 주요 커밋 메시지·diff 경로 교차 (2026-06-14).
+> 생성: current worktree + GJC chase clone 기준 주요 커밋 메시지·diff 경로 교차 (2026-06-26).
 
 ### 요약 축
 
@@ -362,9 +362,9 @@
 - jawcode는 omp 계열 포크. jawcode 리베이스 1차 대상 = **jawcode**; omp는 기능/아키텍처
   선행 참고. 스냅샷: [struct_har/omp_origin/](../struct_har/omp_origin/README.md).
 - 보존(리베이스 비용): `@jawcode-dev/*` 워크스페이스, `packages/coding-agent/` 코어(HARD-EDIT는
-  [fork-delta.md](./40_fork-delta.md) 추적), upstream baseline(`devlog/_upstream_gjc/`·`struct_har/gjc_origin/`).
+  [fork-delta.md](./40_fork-delta.md) 추적), upstream baseline(`devlog/_gjc_chase/gajae-code/`·`struct_har/gjc_origin/`).
 - 표면(jwc): bin·브랜딩·번들 스킬 slug(`jaw-interview`)·시스템 프롬프트 Jaw 아이덴티티·cli-jaw 정렬.
-- 동기화: `git fetch upstream`+rebase→`conventions.md`·`struct_har/gjc_origin/**`;
-  `_upstream_omp` fetch→`struct_har/omp_origin/**`+regenerate-omp 스크립트.
+- 동기화: `git -C devlog/_gjc_chase/gajae-code pull --ff-only upstream dev`→`conventions.md`·`struct_har/gjc_origin/**`;
+  `devlog/_omp_chase/oh-my-pi` fetch→`struct_har/omp_origin/**`+regenerate-omp 스크립트.
 
 *갱신: struct_har 밴드 `02_logic_changes.md`는 본 문서 절을 밴드별로 요약·링크한다.*

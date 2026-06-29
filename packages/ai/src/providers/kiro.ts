@@ -11,10 +11,14 @@
 import { createHash, randomUUID } from "node:crypto";
 import { hostname, userInfo } from "node:os";
 import { $env, fetchWithRetry } from "@jawcode-dev/utils";
+import type { Effort } from "../model-thinking";
+import { calculateCost } from "../models";
 import type {
 	AssistantMessage,
 	Context,
+	ImageContent,
 	Model,
+	ProviderSessionState,
 	StreamFunction,
 	StreamOptions,
 	TextContent,
@@ -29,6 +33,12 @@ import { withHttpStatus } from "../utils/http-inspector";
 import { resolveRetryBudget } from "../utils/retry-budget";
 import { toolWireSchema } from "../utils/schema/wire";
 import { decodeEventStream } from "./aws-eventstream";
+import { safeKiroErrorMessage, safeKiroHttpErrorMessage } from "./kiro-errors";
+import { KiroThinkingParser } from "./kiro-thinking";
+import { appendFallbackText, toolCallFallbackText, toolResultFallbackText } from "./kiro-tool-fallback";
+import { isCompleteKiroToolInput, kiroTruncationErrorMessage, kiroTruncationReason } from "./kiro-truncation";
+import { estimateKiroInputTokens, finalizeKiroUsage } from "./kiro-usage";
+import { NON_VISION_IMAGE_PLACEHOLDER } from "./vision-guard";
 
 // ---------------------------------------------------------------------------
 // Options
@@ -39,6 +49,7 @@ export interface KiroOptions extends StreamOptions {
 	accessToken?: string;
 	profileArn?: string;
 	spoofVersion?: string;
+	reasoning?: Effort;
 }
 
 // ---------------------------------------------------------------------------
@@ -47,6 +58,11 @@ export interface KiroOptions extends StreamOptions {
 
 const DEFAULT_REGION = "us-east-1";
 const KIRO_HOST_TEMPLATE = "https://runtime.{region}.kiro.dev";
+// Per-attempt timeout for the CodeWhisperer call. This bounds the connect AND the streaming body
+// read of each attempt: the same AbortSignal rides on the fetch and the eventstream is consumed off
+// that response, so a stalled upstream stream aborts instead of hanging forever. Parity with
+// opencodex (`fetchKiroWithRetry` 100s default).
+const KIRO_REQUEST_TIMEOUT_MS = 100_000;
 const AMZ_TARGET = "AmazonCodeWhispererStreamingService.GenerateAssistantResponse";
 const SDK_VERSION = "1.0.27";
 const NODE_VERSION = "22.21.1";
@@ -103,6 +119,16 @@ function buildHeaders(token: string, version: string, profileArn?: string): Reco
 	return headers;
 }
 
+/**
+ * Build the AbortSignal for a single Kiro request attempt: a fresh 100s timeout, combined with the
+ * caller's signal when present. Returned per attempt (via fetchWithRetry's prepareInit) so each
+ * retry gets its own deadline rather than sharing one across the whole retry budget.
+ */
+function kiroAttemptSignal(callerSignal?: AbortSignal): AbortSignal {
+	const timeout = AbortSignal.timeout(KIRO_REQUEST_TIMEOUT_MS);
+	return callerSignal ? AbortSignal.any([callerSignal, timeout]) : timeout;
+}
+
 // ---------------------------------------------------------------------------
 // Payload construction
 // ---------------------------------------------------------------------------
@@ -115,19 +141,110 @@ interface KiroToolSpec {
 	};
 }
 
-function convertTools(tools: Tool[]): KiroToolSpec[] {
-	return tools.map(t => ({
-		toolSpecification: {
-			name: t.name.slice(0, 64),
-			description: (t.description || `Tool: ${t.name}`).slice(0, 1024),
-			inputSchema: { json: toolWireSchema(t) as Record<string, unknown> },
-		},
-	}));
+// Strip JSON-Schema fields CodeWhisperer/Bedrock rejects (additionalProperties, empty required[]).
+// Recurses so nested object schemas are cleaned too.
+function sanitizeKiroSchema(value: unknown): unknown {
+	if (Array.isArray(value)) return value.map(sanitizeKiroSchema);
+	if (!value || typeof value !== "object") return value;
+	const out: Record<string, unknown> = {};
+	for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+		if (key === "additionalProperties") continue;
+		if (key === "required" && Array.isArray(child) && child.length === 0) continue;
+		out[key] = sanitizeKiroSchema(child);
+	}
+	return out;
+}
+
+// Bedrock requires `inputSchema.json.type` to be "object" and rejects oneOf/allOf/anyOf at the top
+// level ("input_schema does not support oneOf, allOf, or anyOf at the top level"). Flatten any root
+// composition into a single object schema by merging variant properties. Required is unioned only
+// for allOf (AND semantics); anyOf/oneOf (OR) leave it off so a valid single-branch call passes.
+function ensureRootObjectType(schema: unknown): Record<string, unknown> {
+	const obj =
+		schema && typeof schema === "object" && !Array.isArray(schema) ? (schema as Record<string, unknown>) : {};
+	const COMPOSITION_KEYS = ["oneOf", "anyOf", "allOf"] as const;
+	const hasComposition = COMPOSITION_KEYS.some(k => Array.isArray(obj[k]));
+	const t = obj.type;
+	if (!hasComposition) {
+		if (t === "object") return obj;
+		return { ...obj, type: "object" };
+	}
+
+	const props: Record<string, unknown> = {};
+	const required = new Set<string>();
+	// Seed with the root's own properties/required so a schema like
+	// { type:"object", properties:{path}, required:["path"], oneOf:[...] } keeps them.
+	if (obj.properties && typeof obj.properties === "object") {
+		Object.assign(props, sanitizeKiroSchema(obj.properties) as Record<string, unknown>);
+	}
+	if (Array.isArray(obj.required)) {
+		for (const r of obj.required) if (typeof r === "string") required.add(r);
+	}
+	for (const key of COMPOSITION_KEYS) {
+		const variants = obj[key];
+		if (!Array.isArray(variants)) continue;
+		// allOf is conjunction: its required always applies. oneOf/anyOf are disjunction, so
+		// promoting their required would over-constrain a valid single-branch call.
+		const mergeRequired = key === "allOf";
+		for (const variant of variants) {
+			if (!variant || typeof variant !== "object" || Array.isArray(variant)) continue;
+			const v = variant as Record<string, unknown>;
+			if (v.properties && typeof v.properties === "object") {
+				Object.assign(props, sanitizeKiroSchema(v.properties) as Record<string, unknown>);
+			}
+			if (mergeRequired && Array.isArray(v.required)) {
+				for (const r of v.required) if (typeof r === "string") required.add(r);
+			}
+		}
+	}
+
+	// Keep non-composition sibling keys (description, $defs, definitions, etc.); replace
+	// type/properties/required with the flattened object form.
+	const merged: Record<string, unknown> = {};
+	for (const [key, child] of Object.entries(obj)) {
+		if (key === "oneOf" || key === "anyOf" || key === "allOf") continue;
+		if (key === "type" || key === "properties" || key === "required") continue;
+		merged[key] = child;
+	}
+	merged.type = "object";
+	if (Object.keys(props).length > 0) merged.properties = props;
+	if (required.size > 0) merged.required = [...required];
+	return merged;
+}
+
+const MAX_KIRO_TOOL_DESCRIPTION = 1024;
+
+// Convert tools to CodeWhisperer toolSpecifications. A description longer than the Kiro limit is NOT
+// hard-truncated (that silently drops guidance the model needs); instead it is moved verbatim into
+// the system prompt and replaced with a short pointer, matching the opencodex adapter.
+function convertTools(tools: Tool[]): { specs: KiroToolSpec[]; systemAdditions: string[] } {
+	const systemAdditions: string[] = [];
+	const specs = tools.map(t => {
+		const description = t.description || `Tool: ${t.name}`;
+		const overLimit = description.length > MAX_KIRO_TOOL_DESCRIPTION;
+		if (overLimit) {
+			systemAdditions.push([`### Tool documentation: ${t.name}`, description].join("\n"));
+		}
+		return {
+			toolSpecification: {
+				// Tool names are sent verbatim. CodeWhisperer accepts the full name, and
+				// truncating to 64 chars silently breaks long MCP / Computer Use tool names
+				// (the model echoes a name the harness can no longer match to a tool).
+				name: t.name,
+				description: overLimit ? `Tool documentation moved to the system prompt: ${t.name}.` : description,
+				inputSchema: { json: ensureRootObjectType(sanitizeKiroSchema(toolWireSchema(t))) },
+			},
+		};
+	});
+	return { specs, systemAdditions };
 }
 
 interface KiroToolUse {
 	name: string;
-	input: string;
+	// CodeWhisperer expects `input` as a JSON object (document), not a stringified
+	// JSON. Sending a string here produces `"input": "{...}"` and the server
+	// rejects the whole request with REQUEST_BODY_INVALID.
+	input: Record<string, unknown>;
 	toolUseId: string;
 }
 
@@ -137,48 +254,240 @@ interface KiroToolResult {
 	toolUseId: string;
 }
 
+// CodeWhisperer native image part (matches the Kiro IDE wire format): the base64 bytes live directly
+// on `userInputMessage.images`, NOT inside `userInputMessageContext`. Verified against kiro-gateway.
+interface KiroImage {
+	format: string; // "jpeg" | "png" | "webp" | "gif" — the media subtype
+	source: { bytes: string }; // pure base64, no "data:...;base64," prefix
+}
+
+// jawcode normalizes images to base64 `data` + `mimeType`, so (unlike a data URL) the bytes are
+// already inline. We only derive the CodeWhisperer `format` from the mime subtype.
+function toKiroImage(image: ImageContent): KiroImage | undefined {
+	if (!image.data) return undefined;
+	// Strip any media-type parameters (e.g. "image/png; charset=...") before taking the subtype.
+	const baseType = (image.mimeType ?? "").split(";")[0];
+	const subtype = baseType.includes("/") ? baseType.split("/")[1] : baseType;
+	const normalized = (subtype || "jpeg").toLowerCase();
+	// CodeWhisperer/Bedrock expects "jpeg", not the "jpg" alias.
+	const format = normalized === "jpg" ? "jpeg" : normalized;
+	return { format, source: { bytes: image.data } };
+}
+
+function extractKiroImages(content: ReadonlyArray<TextContent | ImageContent>): KiroImage[] {
+	const out: KiroImage[] = [];
+	for (const part of content) {
+		if (part.type !== "image") continue;
+		const img = toKiroImage(part);
+		if (img) out.push(img);
+	}
+	return out;
+}
+
+interface KiroUserInputMessageContext {
+	tools?: KiroToolSpec[];
+	toolResults?: KiroToolResult[];
+}
+
+interface KiroUserInputMessage {
+	content: string;
+	modelId?: string;
+	origin?: string;
+	userInputMessageContext?: KiroUserInputMessageContext;
+	images?: KiroImage[];
+}
+
 interface KiroHistoryEntry {
-	userInputMessage?: { content: string; modelId?: string; origin?: string };
+	userInputMessage?: KiroUserInputMessage;
 	assistantResponseMessage?: { content: string; toolUses?: KiroToolUse[] };
 }
 
-function buildPayload(
+interface BuildPayloadOptions {
+	currentTurnOnly?: boolean;
+	reasoning?: Effort;
+	maxTokens?: number;
+	// Whether the target model accepts image input. When false, images are dropped from the wire and
+	// a short placeholder is appended so the model still knows an image was present.
+	supportsImages?: boolean;
+}
+
+const KIRO_THINKING_RATIO: Record<Effort, number> = {
+	minimal: 0.1,
+	low: 0.2,
+	medium: 0.5,
+	high: 0.8,
+	xhigh: 0.95,
+	max: 0.95,
+};
+
+function kiroThinkingBudget(options?: BuildPayloadOptions): number | undefined {
+	if (!options?.reasoning) return undefined;
+	const ratio = KIRO_THINKING_RATIO[options.reasoning];
+	if (ratio === undefined) return undefined;
+	const maxTokens = options.maxTokens || 4096;
+	return Math.max(1, Math.floor(maxTokens * ratio));
+}
+
+function injectKiroThinkingTags(content: string, options?: BuildPayloadOptions): string {
+	const budget = kiroThinkingBudget(options);
+	if (!budget) return content;
+	const instruction = [
+		"Think in English for better reasoning quality.",
+		"Be thorough and systematic, consider edge cases, challenge assumptions, and verify reasoning before answering.",
+		"After thinking, respond in the user's language.",
+	].join("\n");
+	return [
+		"<thinking_mode>enabled</thinking_mode>",
+		`<max_thinking_length>${budget}</max_thinking_length>`,
+		`<thinking_instruction>${instruction}</thinking_instruction>`,
+		"",
+		content,
+	].join("\n");
+}
+
+/**
+ * Decide whether the synthetic <thinking_mode> prompt should ride on the current user turn.
+ *
+ * Parity with opencodex HEAD (`0254b66`). opencodex briefly skipped injection whenever tools were
+ * advertised (commit b496629) but reverted that with the rest of the unstable reasoning-summary work
+ * (commit b19d4a0). The current SoT condition injects on any user turn EXCEPT when it carries
+ * toolResults (the model must answer the tool, not re-think), is the empty "(continue)" placeholder,
+ * or is a fallback-prose carrier (handled at the call site via fallbackEntries). Natural leading
+ * <thinking> blocks the model emits are still parsed back by KiroThinkingParser.
+ */
+function shouldInjectKiroThinkingTags(uim: KiroUserInputMessage): boolean {
+	if (uim.userInputMessageContext?.toolResults?.length) return false;
+	if (uim.content === "(continue)") return false;
+	return true;
+}
+
+/**
+ * Build the `conversationState` payload for `GenerateAssistantResponse`.
+ *
+ * CodeWhisperer enforces two structural rules that a naive flat conversion
+ * violates and that surface as `REQUEST_BODY_INVALID` / "Improperly formed
+ * request" on multi-round or parallel tool-call conversations:
+ *
+ *   1. `history` must strictly alternate user / assistant turns.
+ *   2. Each `toolResult` must ride on the `userInputMessage` that immediately
+ *      follows the `assistantResponseMessage` whose `toolUses` it answers, and
+ *      its `toolUseId` must match that toolUse exactly.
+ *
+ * We therefore interleave tool results back into history (delivering any
+ * outstanding results in their own user turn before the next assistant turn),
+ * and normalize the tool-use id on BOTH sides so they always match.
+ */
+export function buildPayload(
 	context: Context,
 	modelId: string,
 	conversationId: string,
 	profileArn: string,
+	options?: BuildPayloadOptions,
 ): Record<string, unknown> {
+	const { specs: kiroTools, systemAdditions } = context.tools
+		? convertTools(context.tools)
+		: { specs: [] as KiroToolSpec[], systemAdditions: [] as string[] };
+
+	// `systemPrompt` is a string[]; join with blank lines instead of relying on Array.toString()
+	// (which would comma-join multiple system prompts). The base system prompt is dropped on resumed
+	// (currentTurnOnly) turns, but tool-description additions must always ride along — the tools are
+	// re-advertised every turn, so their moved-out docs have to travel with them.
+	const baseSystem =
+		!options?.currentTurnOnly && context.systemPrompt?.length ? context.systemPrompt.join("\n\n") : "";
+	const systemParts: string[] = [];
+	if (baseSystem) systemParts.push(baseSystem);
+	if (systemAdditions.length > 0) systemParts.push(...systemAdditions);
+	const systemPrefix = systemParts.length > 0 ? `${systemParts.join("\n\n")}\n\n` : "";
+
+	const supportsImages = options?.supportsImages !== false;
+	const mkUser = (content: string, images?: KiroImage[]): KiroHistoryEntry => ({
+		userInputMessage: {
+			content,
+			modelId,
+			origin: "AI_EDITOR",
+			...(images && images.length > 0 ? { images } : {}),
+		},
+	});
+
 	const history: KiroHistoryEntry[] = [];
-	const kiroTools = context.tools ? convertTools(context.tools) : [];
-	const toolResults: KiroToolResult[] = [];
-
-	let systemPrefix = "";
-	if (context.systemPrompt) {
-		systemPrefix = `${context.systemPrompt}\n\n`;
-	}
-
+	let pending: KiroToolResult[] = [];
+	let pendingImages: KiroImage[] = [];
 	let lastRole = "";
+	// Tool ids that were emitted as STRUCTURED assistant toolUses on this request (only possible when
+	// tools are advertised). A toolResult whose id is not in this set has no matching structured
+	// toolUse, so it must be sent as fallback prose, not a structured toolResult (CodeWhisperer
+	// REQUEST_BODY_INVALID otherwise). Parity with opencodex.
+	const structuredToolIds = new Set<string>();
+	// User entries that carry fallback prose (not real user intent) — excluded from thinking-tag
+	// injection.
+	const fallbackEntries = new WeakSet<KiroHistoryEntry>();
+
+	// Attach buffered tool results (from the preceding assistant turn) to a user entry.
+	const attachPending = (entry: KiroHistoryEntry): void => {
+		if (pending.length === 0) return;
+		const uim = entry.userInputMessage!;
+		uim.userInputMessageContext = { ...(uim.userInputMessageContext ?? {}), toolResults: pending };
+		// CodeWhisperer cannot embed images inside a toolResult, but it does accept sibling images on
+		// the same userInputMessage, so tool-result screenshots ride along here instead of being lost.
+		if (pendingImages.length > 0) uim.images = [...(uim.images ?? []), ...pendingImages];
+		pending = [];
+		pendingImages = [];
+	};
+
+	// Push a user entry, first flushing any buffered tool results onto it and inserting a synthetic
+	// assistant turn between two genuinely consecutive user turns (kept role-alternating).
+	const pushUserEntry = (entry: KiroHistoryEntry): void => {
+		if (pending.length === 0 && lastRole === "user") {
+			history.push({ assistantResponseMessage: { content: "(acknowledged)" } });
+		}
+		attachPending(entry);
+		history.push(entry);
+		lastRole = "user";
+	};
+
 	for (const msg of context.messages) {
 		if (msg.role === "user" || msg.role === "developer") {
-			const text = typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content);
-			if (lastRole === "user") {
-				history.push({ assistantResponseMessage: { content: "(acknowledged)" } });
+			let text: string;
+			let images: KiroImage[] = [];
+			if (typeof msg.content === "string") {
+				text = msg.content;
+			} else {
+				const textParts = msg.content.filter((c): c is TextContent => c.type === "text").map(c => c.text);
+				images = supportsImages ? extractKiroImages(msg.content) : [];
+				const omittedImages = !supportsImages && msg.content.some(c => c.type === "image");
+				text = textParts.join("\n");
+				if (omittedImages) text = [text, NON_VISION_IMAGE_PLACEHOLDER].filter(Boolean).join("\n");
 			}
-			history.push({ userInputMessage: { content: text, modelId, origin: "AI_EDITOR" } });
-			lastRole = "user";
+			pushUserEntry(mkUser(text, images));
 		} else if (msg.role === "assistant") {
+			// Deliver any outstanding tool results in their own user turn BEFORE the
+			// next assistant turn, so toolUses/toolResults stay adjacent and aligned.
+			if (pending.length > 0) {
+				pushUserEntry(mkUser("(tool results)"));
+			}
 			const aMsg = msg as AssistantMessage;
 			const textParts = (aMsg.content || []).filter((b): b is TextContent => b.type === "text");
-			const text = textParts.map(b => b.text).join("");
-			const toolUses: KiroToolUse[] = (aMsg.content || [])
-				.filter((b): b is ToolCall => b.type === "toolCall")
-				.map(tc => ({
-					name: tc.name,
-					input: JSON.stringify(tc.arguments ?? {}),
-					toolUseId: tc.id,
-				}));
+			let text = textParts.map(b => b.text).join("");
+			const toolCalls = (aMsg.content || []).filter((b): b is ToolCall => b.type === "toolCall");
+			// Structured toolUses are only valid when tools are advertised. With no tools advertised,
+			// serialize the calls into prose so the turn stays a valid plain assistant message.
+			const toolUses: KiroToolUse[] =
+				kiroTools.length > 0
+					? toolCalls.map(tc => {
+							const toolUseId = normalizeToolCallId(tc.id);
+							structuredToolIds.add(toolUseId);
+							return {
+								name: tc.name,
+								input: (tc.arguments ?? {}) as Record<string, unknown>,
+								toolUseId,
+							};
+						})
+					: [];
+			if (kiroTools.length === 0) {
+				for (const toolCall of toolCalls) text = appendFallbackText(text, toolCallFallbackText(toolCall));
+			}
 			if (lastRole === "assistant") {
-				history.push({ userInputMessage: { content: "(continue)", modelId, origin: "AI_EDITOR" } });
+				history.push(mkUser("(continue)"));
 			}
 			const entry: KiroHistoryEntry = { assistantResponseMessage: { content: text } };
 			if (toolUses.length > 0) entry.assistantResponseMessage!.toolUses = toolUses;
@@ -187,52 +496,97 @@ function buildPayload(
 		} else if (msg.role === "toolResult") {
 			const trMsg = msg as ToolResultMessage;
 			const parts = trMsg.content.map(c => (c.type === "text" ? c.text : "")).filter(Boolean);
-			toolResults.push({
-				content: [{ text: parts.join("\n") || "(empty)" }],
-				status: trMsg.isError ? "error" : "success",
-				toolUseId: normalizeToolCallId(trMsg.toolCallId),
-			});
+			const images = supportsImages ? extractKiroImages(trMsg.content) : [];
+			const omittedImages = !supportsImages && trMsg.content.some(c => c.type === "image");
+			let resultText = parts.join("\n");
+			if (omittedImages) resultText = [resultText, NON_VISION_IMAGE_PLACEHOLDER].filter(Boolean).join("\n");
+			const toolUseId = normalizeToolCallId(trMsg.toolCallId);
+			if (kiroTools.length > 0 && structuredToolIds.has(toolUseId)) {
+				// Matches a structured toolUse emitted this request — send as a structured toolResult.
+				pending.push({
+					content: [{ text: resultText || "(empty)" }],
+					status: trMsg.isError ? "error" : "success",
+					toolUseId,
+				});
+				if (images.length > 0) pendingImages.push(...images);
+			} else {
+				// No matching advertised structured toolUse (tools dropped this turn, or orphaned
+				// result). A structured toolResult here would trip REQUEST_BODY_INVALID; serialize it
+				// as fallback prose on its own user turn instead.
+				if (pending.length > 0) pushUserEntry(mkUser("(tool results)"));
+				const fallback = mkUser(toolResultFallbackText(trMsg), images);
+				fallbackEntries.add(fallback);
+				pushUserEntry(fallback);
+			}
 		}
 	}
 
-	// Pop last user message as currentMessage
-	let currentContent: string;
-	if (history.length > 0 && history[history.length - 1].userInputMessage) {
-		const last = history.pop()!;
-		currentContent = last.userInputMessage!.content;
-	} else if (toolResults.length > 0) {
-		currentContent = "(tool results attached)";
+	// Resolve the active (current) user turn.
+	let currentEntry: KiroHistoryEntry;
+	if (pending.length > 0) {
+		// Conversation ended awaiting the model's reply to the latest tool results.
+		currentEntry = mkUser("(tool results)");
+		attachPending(currentEntry);
+	} else if (history.length > 0 && history[history.length - 1].userInputMessage) {
+		currentEntry = history.pop()!;
 	} else {
-		currentContent = "(continue)";
+		currentEntry = mkUser("(continue)");
 	}
-
-	// Prepend system prompt
-	if (systemPrefix) {
-		if (history.length > 0 && history[0].userInputMessage) {
-			history[0].userInputMessage!.content = systemPrefix + history[0].userInputMessage!.content;
+	const currentUim = currentEntry.userInputMessage!;
+	if (options?.currentTurnOnly) {
+		// Resumed turn: drop repeated history. But if the current message carries toolResults, Kiro
+		// requires the assistant turn whose toolUses they answer to remain adjacent — dropping it
+		// orphans the results and triggers a CodeWhisperer 400. Keep that one assistant turn (and a
+		// leading user turn if present so history still starts on a user role).
+		const currentHasToolResults = Boolean(currentUim.userInputMessageContext?.toolResults?.length);
+		if (currentHasToolResults && history.length > 0) {
+			let start = history.length - 1;
+			while (start >= 0 && !history[start].assistantResponseMessage?.toolUses?.length) start -= 1;
+			if (start >= 0) {
+				// Include a user turn immediately before the assistant turn so the kept history slice
+				// still alternates user/assistant from the start.
+				if (start > 0 && history[start - 1].userInputMessage) start -= 1;
+				history.splice(0, start);
+			} else {
+				history.length = 0;
+			}
 		} else {
-			currentContent = systemPrefix + currentContent;
+			history.length = 0;
 		}
 	}
 
-	const userInputMessage: Record<string, unknown> = {
-		content: currentContent,
-		modelId,
-		origin: "AI_EDITOR",
-	};
+	// Prepend the system prefix (base prompt + moved tool docs) to the earliest user turn. On
+	// currentTurnOnly turns history is already empty, so it lands on the current message; baseSystem
+	// is excluded from systemPrefix in that case but tool-doc additions still travel.
+	if (systemPrefix) {
+		const firstUser = history.find(e => e.userInputMessage)?.userInputMessage;
+		if (firstUser) {
+			firstUser.content = systemPrefix + firstUser.content;
+		} else {
+			currentUim.content = systemPrefix + currentUim.content;
+		}
+	}
 
-	const userInputMessageContext: Record<string, unknown> = {};
-	if (kiroTools.length > 0) userInputMessageContext.tools = kiroTools;
-	if (toolResults.length > 0) userInputMessageContext.toolResults = toolResults;
-	if (Object.keys(userInputMessageContext).length > 0) {
-		userInputMessage.userInputMessageContext = userInputMessageContext;
+	// Synthetic <thinking_mode> tags are injected on a genuine user turn, but skipped when the turn
+	// carries toolResults (the model must answer the tool, not re-think), is the empty "(continue)"
+	// placeholder, or is a fallback-prose carrier. Parity with opencodex HEAD (0254b66): an earlier
+	// "skip when tools advertised" rule (b496629) was reverted (b19d4a0), so tool advertisement no
+	// longer suppresses injection. Natural leading <thinking> blocks are still routed back by
+	// KiroThinkingParser.
+	if (!fallbackEntries.has(currentEntry) && shouldInjectKiroThinkingTags(currentUim)) {
+		currentUim.content = injectKiroThinkingTags(currentUim.content, options);
+	}
+
+	// Tools are advertised on the current message's context.
+	if (kiroTools.length > 0) {
+		currentUim.userInputMessageContext = { ...(currentUim.userInputMessageContext ?? {}), tools: kiroTools };
 	}
 
 	const payload: Record<string, unknown> = {
 		conversationState: {
 			chatTriggerType: "MANUAL",
 			conversationId,
-			currentMessage: { userInputMessage },
+			currentMessage: { userInputMessage: currentUim },
 			...(history.length > 0 ? { history } : {}),
 		},
 	};
@@ -244,16 +598,38 @@ function buildPayload(
 // Response parsing
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Opt-in wire debug — set JWC_KIRO_DEBUG=1 (or =/abs/path.jsonl) to capture the
+// outgoing payload and every raw streaming event for diagnosing tool-arg issues.
+// ---------------------------------------------------------------------------
+function kiroDebugPath(): string | null {
+	const v = process.env.JWC_KIRO_DEBUG;
+	if (!v) return null;
+	return v === "1" || v === "true" ? "/tmp/jwc-kiro-debug.jsonl" : v;
+}
+
+function kiroDebugLog(tag: string, data: unknown): void {
+	const path = kiroDebugPath();
+	if (!path) return;
+	try {
+		const { appendFileSync } = require("node:fs") as typeof import("node:fs");
+		appendFileSync(path, `${JSON.stringify({ t: Date.now(), tag, data })}\n`);
+	} catch {
+		// Never let debug logging break the request path.
+	}
+}
+
 interface ParsedKiroEvent {
-	type: "content" | "tool_start" | "tool_input" | "tool_stop" | "usage";
+	type: "content" | "tool_start" | "tool_input" | "tool_stop" | "usage" | "context_usage" | "truncation";
 	data?: string;
 	name?: string;
 	toolUseId?: string;
 	input?: string;
 	usage?: number;
+	contextUsagePercentage?: number;
 }
 
-function parseKiroPayload(raw: Uint8Array): ParsedKiroEvent | null {
+export function parseKiroPayload(raw: Uint8Array): ParsedKiroEvent | null {
 	let text: string;
 	try {
 		text = new TextDecoder().decode(raw);
@@ -270,34 +646,42 @@ function parseKiroPayload(raw: Uint8Array): ParsedKiroEvent | null {
 		return null;
 	}
 
+	// An explicit truncation signal (finish/stop reason or `truncated` flag) takes priority: the
+	// stream is being cut short, so surface it fail-closed rather than treating the partial as done.
+	const truncationReason = kiroTruncationReason(parsed);
+	if (truncationReason) return { type: "truncation", data: truncationReason };
+
 	if ("content" in parsed && typeof parsed.content === "string") {
 		return { type: "content", data: parsed.content };
 	}
-	if ("name" in parsed && typeof parsed.name === "string") {
+
+	// CodeWhisperer repeats `name` + `toolUseId` on EVERY tool event — the start,
+	// each streamed `input` fragment, AND the final `stop` event. We must therefore
+	// discriminate by `stop`/`input` presence, NOT by `name`. The old code treated
+	// any event with `name` as a fresh tool_start, so every input fragment reset the
+	// accumulator and arguments were lost (the empty-{} bug).
+	const toolUseId = typeof parsed.toolUseId === "string" ? (parsed.toolUseId as string) : undefined;
+	const name = typeof parsed.name === "string" ? (parsed.name as string) : undefined;
+
+	if (parsed.stop === true) {
+		return { type: "tool_stop", toolUseId };
+	}
+	if ("input" in parsed) {
 		const input =
 			typeof parsed.input === "object" && parsed.input !== null
 				? JSON.stringify(parsed.input)
 				: typeof parsed.input === "string"
 					? (parsed.input as string)
 					: "";
-		return {
-			type: "tool_start",
-			name: parsed.name as string,
-			toolUseId: (parsed.toolUseId as string) || `toolu_${randomUUID().slice(0, 8)}`,
-			input,
-		};
+		return { type: "tool_input", input, name, toolUseId };
 	}
-	if ("input" in parsed && !("name" in parsed)) {
-		const input =
-			typeof parsed.input === "object" && parsed.input !== null
-				? JSON.stringify(parsed.input)
-				: typeof parsed.input === "string"
-					? (parsed.input as string)
-					: "";
-		return { type: "tool_input", input };
+	if (name !== undefined) {
+		return { type: "tool_start", name, toolUseId: toolUseId || `toolu_${randomUUID().slice(0, 8)}`, input: "" };
 	}
-	if ("stop" in parsed && parsed.stop === true) {
-		return { type: "tool_stop" };
+	if (typeof parsed.contextUsagePercentage === "number" && Number.isFinite(parsed.contextUsagePercentage)) {
+		// CodeWhisperer periodically reports how full the context window is (0-100). It is the only
+		// server-side usage signal CW emits; we convert it to an absolute total-token count on done.
+		return { type: "context_usage", contextUsagePercentage: parsed.contextUsagePercentage };
 	}
 	if ("usage" in parsed) {
 		return { type: "usage", usage: parsed.usage as number };
@@ -311,6 +695,31 @@ function parseKiroPayload(raw: Uint8Array): ParsedKiroEvent | null {
 
 const KIRO_REFRESH_URL = "https://prod.{region}.auth.desktop.kiro.dev/refreshToken";
 const TOKEN_KEYS = ["kirocli:social:token", "kirocli:odic:token", "codewhisperer:odic:token"];
+// AWS region shape, e.g. us-east-1, ap-northeast-2, eu-central-1. Used to reject a malformed region
+// from an imported credential before it is interpolated into the refresh URL.
+const KIRO_REGION_PATTERN = /^[a-z]{2}(?:-[a-z]+)+-\d$/;
+
+/** Return the region only if it is a well-formed AWS region; otherwise undefined. */
+export function normalizeKiroRegion(region: string | undefined): string | undefined {
+	const trimmed = region?.trim();
+	return trimmed && KIRO_REGION_PATTERN.test(trimmed) ? trimmed : undefined;
+}
+
+/** Infer the region from a profile ARN (`arn:aws:...:<region>:...`) when valid. */
+export function inferRegionFromProfileArn(arn: string | undefined): string | undefined {
+	if (!arn) return undefined;
+	return normalizeKiroRegion(arn.split(":")[3]);
+}
+
+/**
+ * Resolve a usable region from a credential: prefer the explicit (validated) region, then the
+ * region embedded in the profile ARN, then the default. Guarantees a well-formed value so the
+ * refresh URL is never built from unvalidated input.
+ */
+function resolveKiroRegion(region: string | undefined, profileArn: string | undefined): string {
+	return normalizeKiroRegion(region) ?? inferRegionFromProfileArn(profileArn) ?? DEFAULT_REGION;
+}
+
 const DB_PATHS = () => {
 	const home = process.env.HOME || "";
 	return [`${home}/Library/Application Support/kiro-cli/data.sqlite3`, `${home}/.kiro/sso/cache.db`];
@@ -324,6 +733,33 @@ interface CachedAuth {
 	region: string;
 }
 let authCache: CachedAuth | null = null;
+
+const KIRO_PROVIDER_SESSION_STATE_KEY = "kiro";
+
+interface KiroProviderSessionState extends ProviderSessionState {
+	seenConversationKeys: Set<string>;
+}
+
+function createKiroProviderSessionState(): KiroProviderSessionState {
+	const state: KiroProviderSessionState = {
+		seenConversationKeys: new Set(),
+		close: () => {
+			state.seenConversationKeys.clear();
+		},
+	};
+	return state;
+}
+
+function getKiroProviderSessionState(
+	providerSessionState: Map<string, ProviderSessionState> | undefined,
+): KiroProviderSessionState | undefined {
+	if (!providerSessionState) return undefined;
+	const existing = providerSessionState.get(KIRO_PROVIDER_SESSION_STATE_KEY) as KiroProviderSessionState | undefined;
+	if (existing) return existing;
+	const created = createKiroProviderSessionState();
+	providerSessionState.set(KIRO_PROVIDER_SESSION_STATE_KEY, created);
+	return created;
+}
 
 function readKiroCliSqlite(): {
 	token: string;
@@ -355,7 +791,7 @@ function readKiroCliSqlite(): {
 						refreshToken: data.refresh_token || "",
 						profileArn: data.profile_arn || "",
 						expiresAt: data.expires_at ? new Date(data.expires_at).getTime() : Date.now() + 3600_000,
-						region: data.region || DEFAULT_REGION,
+						region: resolveKiroRegion(data.region, data.profile_arn),
 					};
 				}
 			}
@@ -372,7 +808,8 @@ async function refreshKiroDesktopToken(
 	refreshToken: string,
 	region: string,
 ): Promise<{ accessToken: string; refreshToken: string; expiresIn: number }> {
-	const url = KIRO_REFRESH_URL.replace("{region}", region);
+	// Never interpolate an unvalidated region into the refresh URL; fall back to the default.
+	const url = KIRO_REFRESH_URL.replace("{region}", normalizeKiroRegion(region) ?? DEFAULT_REGION);
 	const res = await fetch(url, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
@@ -445,7 +882,7 @@ async function resolveKiroAuth(options: KiroOptions): Promise<{ token: string; p
 				refreshToken: raw.refreshToken || "",
 				profileArn: raw.profileArn || "",
 				expiresAt: raw.expiresAt || Date.now() + 3600_000,
-				region: raw.region || DEFAULT_REGION,
+				region: resolveKiroRegion(raw.region, raw.profileArn),
 			};
 			if (Date.now() >= authCache.expiresAt - 60_000 && authCache.refreshToken) {
 				const refreshed = await refreshKiroDesktopToken(authCache.refreshToken, authCache.region);
@@ -544,12 +981,21 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 			const spoofVersion = opts.spoofVersion || $env.KIRO_SPOOF_VERSION || KIRO_IDE_VERSION;
 			const host = KIRO_HOST_TEMPLATE.replace("{region}", region);
 			const url = `${host}/`;
-			const conversationId = stableConversationId(context);
+			const conversationId = stableConversationId(context, opts, model, profileArn);
+			const sessionState = getKiroProviderSessionState(opts.providerSessionState);
+			const sessionKey = kiroSessionKey(opts, model, profileArn, region);
+			const currentTurnOnly = sessionKey ? (sessionState?.seenConversationKeys.has(sessionKey) ?? false) : false;
 			const kiroModelId = mapModelId(model.id);
 
-			const payload = buildPayload(context, kiroModelId, conversationId, profileArn);
+			const payload = buildPayload(context, kiroModelId, conversationId, profileArn, {
+				currentTurnOnly,
+				reasoning: model.reasoning ? opts.reasoning : undefined,
+				maxTokens: opts.maxTokens,
+				supportsImages: model.input.includes("image"),
+			});
 			const headers = buildHeaders(token, spoofVersion, profileArn);
 			const body = new TextEncoder().encode(JSON.stringify(payload));
+			kiroDebugLog("request.payload", payload);
 
 			let response = await fetchWithRetry(url, {
 				method: "POST",
@@ -557,6 +1003,9 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 				body,
 				signal: opts.signal,
 				maxAttempts: resolveRetryBudget(opts.requestMaxRetries, 3) + 1,
+				// Fresh per-attempt timeout signal combined with the caller's signal. Bounds connect +
+				// stream read for each retry so a stalled CW stream can't hang the turn.
+				prepareInit: () => ({ signal: kiroAttemptSignal(opts.signal) }),
 			});
 
 			if (response.status === 401 && authCache?.refreshToken) {
@@ -572,6 +1021,7 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 						body,
 						signal: opts.signal,
 						maxAttempts: 1,
+						prepareInit: () => ({ signal: kiroAttemptSignal(opts.signal) }),
 					});
 				} catch {
 					authCache = null;
@@ -580,110 +1030,82 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 			}
 			if (!response.ok) {
 				const errBody = await response.text().catch(() => "");
-				throw withHttpStatus(new Error(`Kiro HTTP ${response.status}: ${errBody.slice(0, 1000)}`), response.status);
+				// Classify + redact (tokens / ARNs / local paths) before surfacing.
+				throw withHttpStatus(
+					new Error(safeKiroHttpErrorMessage(response.status, response.headers, errBody)),
+					response.status,
+				);
 			}
 			if (!response.body) throw new Error("Kiro response has no body");
 
 			stream.push({ type: "start", partial: output });
+			if (sessionKey) {
+				sessionState?.seenConversationKeys.add(sessionKey);
+			}
 			let currentToolCall: { id: string; name: string; args: string } | null = null;
 			let contentIndex = 0;
+			// CodeWhisperer reports no token usage; we accumulate the assistant output text/thinking +
+			// tool-call argument length and convert to a heuristic estimate on done. `context_usage`
+			// events (window-fullness %) give a more precise total when present.
+			let outputChars = "";
+			let contextUsagePercentage: number | undefined;
+			const thinkingParser = new KiroThinkingParser();
+			// Track the kind of the currently open content block so consecutive same-kind chunks append.
+			let openBlock: "text" | "thinking" | null = null;
 
-			for await (const message of decodeEventStream(response.body)) {
-				const messageType = message.headers[":message-type"];
-				if (messageType === "exception" || messageType === "error") {
-					const errText = new TextDecoder().decode(message.payload);
-					throw new Error(`Kiro stream error: ${errText.slice(0, 500)}`);
+			const closeOpenBlock = (): void => {
+				if (!openBlock) return;
+				const block = output.content[output.content.length - 1];
+				if (block && block.type === openBlock) {
+					const content = block.type === "thinking" ? block.thinking : block.text;
+					stream.push({
+						type: openBlock === "thinking" ? "thinking_end" : "text_end",
+						contentIndex: contentIndex - 1,
+						content,
+						partial: output,
+					} as never);
 				}
-				if (messageType !== "event") continue;
+				openBlock = null;
+			};
 
-				const event = parseKiroPayload(message.payload);
-				if (!event) continue;
-
-				switch (event.type) {
-					case "content": {
-						if (!firstTokenTime) firstTokenTime = Date.now();
-						const text = event.data || "";
-						if (!text) break;
-						const lastBlock = output.content[output.content.length - 1];
-						if (lastBlock && lastBlock.type === "text") {
-							lastBlock.text += text;
-							stream.push({ type: "text_delta", contentIndex: contentIndex - 1, delta: text, partial: output });
-						} else {
-							contentIndex = output.content.length;
-							output.content.push({ type: "text", text });
-							stream.push({ type: "text_start", contentIndex, partial: output });
-							stream.push({ type: "text_delta", contentIndex, delta: text, partial: output });
-							contentIndex++;
-						}
-						break;
-					}
-					case "tool_start": {
-						if (!firstTokenTime) firstTokenTime = Date.now();
-						// End any open text block
-						const prevBlock = output.content[output.content.length - 1];
-						if (prevBlock && prevBlock.type === "text") {
-							stream.push({
-								type: "text_end",
-								contentIndex: contentIndex - 1,
-								content: prevBlock.text,
-								partial: output,
-							});
-						}
-						currentToolCall = {
-							id: event.toolUseId || `toolu_${randomUUID().slice(0, 8)}`,
-							name: event.name || "unknown",
-							args: event.input || "",
-						};
-						break;
-					}
-					case "tool_input": {
-						if (currentToolCall) {
-							currentToolCall.args += event.input || "";
-						}
-						break;
-					}
-					case "tool_stop": {
-						if (currentToolCall) {
-							let parsedArgs: Record<string, unknown> = {};
-							try {
-								parsedArgs = JSON.parse(currentToolCall.args || "{}");
-							} catch {
-								parsedArgs = { _raw: currentToolCall.args };
-							}
-							const tc: ToolCall = {
-								type: "toolCall",
-								id: currentToolCall.id,
-								name: currentToolCall.name,
-								arguments: parsedArgs,
-							};
-							const tcIndex = output.content.length;
-							output.content.push(tc);
-							stream.push({ type: "toolcall_start", contentIndex: tcIndex, partial: output });
-							stream.push({ type: "toolcall_end", contentIndex: tcIndex, toolCall: tc, partial: output });
-							contentIndex = tcIndex + 1;
-							output.stopReason = "toolUse";
-							currentToolCall = null;
-						}
-						break;
-					}
-					case "usage":
-						break;
+			const pushThinkingChunk = (chunk: { kind: "thinking" | "text"; text: string }): void => {
+				if (!chunk.text) return;
+				outputChars += chunk.text;
+				if (!firstTokenTime) firstTokenTime = Date.now();
+				if (openBlock && openBlock !== chunk.kind) closeOpenBlock();
+				const last = output.content[output.content.length - 1];
+				if (openBlock === chunk.kind && last && last.type === chunk.kind) {
+					if (last.type === "thinking") last.thinking += chunk.text;
+					else last.text += chunk.text;
+					stream.push({
+						type: chunk.kind === "thinking" ? "thinking_delta" : "text_delta",
+						contentIndex: contentIndex - 1,
+						delta: chunk.text,
+						partial: output,
+					} as never);
+					return;
 				}
-			}
+				contentIndex = output.content.length;
+				if (chunk.kind === "thinking") {
+					output.content.push({ type: "thinking", thinking: chunk.text });
+					stream.push({ type: "thinking_start", contentIndex, partial: output });
+					stream.push({ type: "thinking_delta", contentIndex, delta: chunk.text, partial: output });
+				} else {
+					output.content.push({ type: "text", text: chunk.text });
+					stream.push({ type: "text_start", contentIndex, partial: output });
+					stream.push({ type: "text_delta", contentIndex, delta: chunk.text, partial: output });
+				}
+				openBlock = chunk.kind;
+				contentIndex++;
+			};
 
-			// Finalize open text block
-			const finalBlock = output.content[output.content.length - 1];
-			if (finalBlock && finalBlock.type === "text") {
-				stream.push({
-					type: "text_end",
-					contentIndex: contentIndex - 1,
-					content: finalBlock.text,
-					partial: output,
-				});
-			}
-
-			// Finalize incomplete tool call
-			if (currentToolCall) {
+			// Finalize the open tool call into the assistant message + stream events. Shared by the
+			// tool_stop path, the interleaving guard (a new tool starting before the previous stop),
+			// and end-of-stream cleanup so a buffered tool call is never silently dropped.
+			const finalizeToolCall = (): void => {
+				if (!currentToolCall) return;
+				// Tool-call argument tokens count toward output usage (parity with opencodex).
+				outputChars += `${currentToolCall.name}\n${currentToolCall.args}`;
 				let parsedArgs: Record<string, unknown> = {};
 				try {
 					parsedArgs = JSON.parse(currentToolCall.args || "{}");
@@ -700,8 +1122,133 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 				output.content.push(tc);
 				stream.push({ type: "toolcall_start", contentIndex: tcIndex, partial: output });
 				stream.push({ type: "toolcall_end", contentIndex: tcIndex, toolCall: tc, partial: output });
+				contentIndex = tcIndex + 1;
 				output.stopReason = "toolUse";
+				currentToolCall = null;
+			};
+
+			for await (const message of decodeEventStream(response.body)) {
+				const messageType = message.headers[":message-type"];
+				if (messageType === "exception" || messageType === "error") {
+					const errText = new TextDecoder().decode(message.payload);
+					throw new Error(safeKiroErrorMessage(message.headers, errText));
+				}
+				if (messageType !== "event") continue;
+
+				if (kiroDebugPath()) {
+					kiroDebugLog("event.raw", new TextDecoder().decode(message.payload));
+				}
+				const event = parseKiroPayload(message.payload);
+				if (!event) continue;
+				kiroDebugLog("event.parsed", event);
+
+				switch (event.type) {
+					case "content": {
+						const text = event.data || "";
+						if (!text) break;
+						// Text arriving while a tool call is still open means the tool never got its stop
+						// frame: the stream was cut mid tool call. Fail closed so the caller can retry
+						// instead of emitting a half-built tool call. (Parity w/ opencodex.)
+						if (currentToolCall) {
+							throw new Error(kiroTruncationErrorMessage("content arrived before tool stop"));
+						}
+						// Split a leading <thinking> block out into reasoning; the rest is visible text.
+						for (const chunk of thinkingParser.feed(text)) pushThinkingChunk(chunk);
+						break;
+					}
+					case "tool_start": {
+						if (!firstTokenTime) firstTokenTime = Date.now();
+						// Flush any buffered reasoning, then close the open text/thinking block.
+						for (const chunk of thinkingParser.flush()) pushThinkingChunk(chunk);
+						closeOpenBlock();
+						// A new tool starting while one is still open means the previous tool never got
+						// its stop frame. Finalize what we have so its arguments are not silently lost.
+						if (currentToolCall) finalizeToolCall();
+						currentToolCall = {
+							id: event.toolUseId || `toolu_${randomUUID().slice(0, 8)}`,
+							name: event.name || "unknown",
+							args: event.input || "",
+						};
+						break;
+					}
+					case "tool_input": {
+						if (!currentToolCall) {
+							// Input without a preceding start: open a tool keyed to this id.
+							currentToolCall = {
+								id: event.toolUseId || `toolu_${randomUUID().slice(0, 8)}`,
+								name: event.name || "unknown",
+								args: event.input || "",
+							};
+						} else if (event.toolUseId && event.toolUseId !== currentToolCall.id) {
+							// Input for a different tool arrived before the open tool stopped. Finalize
+							// the current one and start the new tool rather than merging arguments.
+							finalizeToolCall();
+							currentToolCall = {
+								id: event.toolUseId,
+								name: event.name || "unknown",
+								args: event.input || "",
+							};
+						} else {
+							if (currentToolCall.name === "unknown" && event.name) currentToolCall.name = event.name;
+							currentToolCall.args += event.input || "";
+						}
+						break;
+					}
+					case "tool_stop": {
+						// A stop frame must target the currently open tool. With parallel/interleaved
+						// tools, a delayed stop for an EARLIER tool (already finalized by the interleaving
+						// recovery in tool_start/tool_input) can arrive while a DIFFERENT tool is open. In
+						// that case the stop is stale — ignore it so we don't finalize or run the
+						// incomplete-JSON check against the wrong (still-streaming) tool.
+						if (!currentToolCall) break;
+						if (event.toolUseId && event.toolUseId !== currentToolCall.id) break;
+						// A finished tool whose argument buffer is non-empty but not valid JSON was cut
+						// mid-stream. Surface a fail-closed truncation error rather than finalizing a
+						// malformed call (which would later trip CodeWhisperer REQUEST_BODY_INVALID).
+						if (!isCompleteKiroToolInput(currentToolCall.args)) {
+							throw new Error(kiroTruncationErrorMessage("incomplete tool input JSON"));
+						}
+						finalizeToolCall();
+						break;
+					}
+					case "context_usage":
+						if (event.contextUsagePercentage !== undefined && event.contextUsagePercentage > 0) {
+							contextUsagePercentage = event.contextUsagePercentage;
+						}
+						break;
+					case "truncation":
+						// Explicit upstream truncation signal (finish/stop reason or `truncated` flag).
+						throw new Error(kiroTruncationErrorMessage(event.data));
+					case "usage":
+						// CW does not report real token counts here; the estimate is finalized on done.
+						break;
+				}
 			}
+
+			// Flush any buffered reasoning (e.g. an unterminated <thinking> block) and close the
+			// open text/thinking block.
+			for (const chunk of thinkingParser.flush()) pushThinkingChunk(chunk);
+			closeOpenBlock();
+
+			// A tool call left open at end-of-stream (no trailing stop frame) is only safe to finalize
+			// if its argument buffer is complete JSON. A non-empty but unparseable buffer means the
+			// stream ended mid tool call: fail closed so the caller retries rather than shipping a
+			// malformed call. (Parity w/ opencodex; jawcode previously fail-open finalized as {_raw}.)
+			if (currentToolCall && !isCompleteKiroToolInput(currentToolCall.args)) {
+				throw new Error(kiroTruncationErrorMessage("stream ended before tool stop"));
+			}
+			finalizeToolCall();
+
+			// CodeWhisperer reports no usage; fill a heuristic estimate so the cost line and any
+			// usage-percentage UI engage. A server-sent contextUsagePercentage yields a precise total.
+			finalizeKiroUsage(usage, {
+				inputTokens: estimateKiroInputTokens(context, kiroModelId),
+				outputChars,
+				modelId: kiroModelId,
+				contextUsagePercentage,
+				contextWindow: model.contextWindow,
+			});
+			usage.cost = calculateCost(model, usage);
 
 			output.duration = Date.now() - startTime;
 			if (firstTokenTime) output.ttft = firstTokenTime - startTime;
@@ -727,19 +1274,31 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 
 const MODEL_MAP: Record<string, string> = {
 	"kiro-auto": "auto",
+	"kiro-claude-opus-4.8": "claude-opus-4.8",
+	"kiro-claude-opus-4.7": "claude-opus-4.7",
+	"kiro-claude-opus-4.6": "claude-opus-4.6",
+	"kiro-claude-sonnet-4.6": "claude-sonnet-4.6",
+	"kiro-claude-opus-4.5": "claude-opus-4.5",
 	"kiro-claude-sonnet-4.5": "claude-sonnet-4.5",
 	"kiro-claude-sonnet-4": "claude-sonnet-4",
 	"kiro-claude-haiku-4.5": "claude-haiku-4.5",
 	"kiro-deepseek-3.2": "deepseek-3.2",
 	"kiro-minimax-m2.5": "minimax-m2.5",
+	"kiro-minimax-m2.1": "minimax-m2.1",
 	"kiro-glm-5": "glm-5",
 	"kiro-qwen3-coder": "qwen3-coder-next",
 	auto: "auto",
+	"claude-opus-4.8": "claude-opus-4.8",
+	"claude-opus-4.7": "claude-opus-4.7",
+	"claude-opus-4.6": "claude-opus-4.6",
+	"claude-sonnet-4.6": "claude-sonnet-4.6",
+	"claude-opus-4.5": "claude-opus-4.5",
 	"claude-sonnet-4.5": "claude-sonnet-4.5",
 	"claude-sonnet-4": "claude-sonnet-4",
 	"claude-haiku-4.5": "claude-haiku-4.5",
 	"deepseek-3.2": "deepseek-3.2",
 	"minimax-m2.5": "minimax-m2.5",
+	"minimax-m2.1": "minimax-m2.1",
 	"glm-5": "glm-5",
 	"qwen3-coder-next": "qwen3-coder-next",
 };
@@ -748,7 +1307,28 @@ function mapModelId(id: string): string {
 	return MODEL_MAP[id] || id;
 }
 
-function stableConversationId(context: Context): string {
+function kiroSessionKey(
+	options: KiroOptions,
+	model: Model<"kiro-streaming">,
+	profileArn: string,
+	region: string,
+): string | undefined {
+	if (!options.sessionId) return undefined;
+	return `${region}:${profileArn}:${model.provider}:${model.id}:${options.sessionId}`;
+}
+
+function stableConversationId(
+	context: Context,
+	options?: KiroOptions,
+	model?: Model<"kiro-streaming">,
+	profileArn = "",
+): string {
+	if (options?.sessionId && model) {
+		return createHash("sha256")
+			.update(`${profileArn}:${model.provider}:${model.id}:${options.sessionId}`)
+			.digest("hex")
+			.slice(0, 16);
+	}
 	if (!context.messages || context.messages.length === 0) return randomUUID().slice(0, 16);
 	const keyMsgs =
 		context.messages.length <= 3

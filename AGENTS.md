@@ -184,4 +184,4 @@ Avoid placeholder tests, tautologies, broad `not.toThrow()` assertions, duplicat
 
 Package changelogs live at `packages/*/CHANGELOG.md`. Add new entries under `## [Unreleased]`; do not edit released sections.
 
-Release flow is `bun run release` after changelogs and verification are complete.
+Release publishing is OIDC-first. Use `structure/60_release_publishing.md` as the maintained release source of truth before touching release workflows, package manifests, or publish scripts. Normal npm releases go through `.github/workflows/release.yml` with npm Trusted Publishing and provenance; do not add or request `NPM_TOKEN` unless OIDC is unsupported or explicitly rejected for the target package.

@@ -1132,6 +1132,7 @@ export class AgentSession {
 			this.#flushPendingBackgroundExchanges();
 			this.#drainStrandedFollowUpMessages();
 			this.#flushPendingAgentEnd();
+			this.#drainStrandedQueuedMessages();
 		}
 	}
 
@@ -1140,6 +1141,32 @@ export class AgentSession {
 		this.#releasePowerAssertion();
 		this.#flushPendingBackgroundExchanges();
 		this.#flushPendingAgentEnd();
+		// NOTE: no #drainStrandedQueuedMessages() here — #resetInFlight is the abort path, which
+		// has its own steer-resume contract (user_interrupt resumes, non-user abort suppresses).
+		// The strand race is a NORMAL turn-completion settle, handled in #endInFlight.
+	}
+
+	/**
+	 * A steer/follow-up can land after the agent loop's final queue poll on a NORMAL turn
+	 * completion — e.g. an `agent_end` subscriber that steers — leaving the message owned by the
+	 * agent-core queue with no loop left to poll it (chase 20.005, omp 42ffc83). Called from
+	 * `#endInFlight`; the `#canAutoContinueForFollowUp` gate makes it a no-op when a turn is already
+	 * running or the queue was consumed normally, so it cannot double-continue. (Abort settles go
+	 * through `#resetInFlight`, which intentionally does NOT drain — see its note.)
+	 */
+	#drainStrandedQueuedMessages(): void {
+		const canDrain = (): boolean => {
+			if (!this.#canAutoContinueForFollowUp() || !this.agent.hasQueuedMessages()) return false;
+			// An aborted turn ends in an `aborted` assistant message; the abort path owns steer
+			// resume by cause (user_interrupt resumes, non-user suppresses), so do NOT drain here —
+			// the strand race is a NORMAL completion only.
+			const messages = this.agent.state.messages;
+			const last = messages[messages.length - 1];
+			return !(last?.role === "assistant" && (last as { stopReason?: string }).stopReason === "aborted");
+		};
+		if (canDrain()) {
+			this.#scheduleAgentContinue({ shouldContinue: canDrain });
+		}
 	}
 
 	#flushPendingAgentEnd(): void {
@@ -5022,7 +5049,7 @@ export class AgentSession {
 
 			// Pre-prompt context maintenance: estimate whether the prompt will overflow
 			// and run compaction proactively before sending (upstream #542).
-			await this.#checkEstimatedContextBeforePrompt();
+			await this.#checkEstimatedContextBeforePrompt([message]);
 
 			// Build messages array (session context, eager todo prelude, then active prompt message)
 			const messages: AgentMessage[] = [];

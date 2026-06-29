@@ -19,6 +19,7 @@ import type { ToolSession } from "../../tools";
 import { formatAge } from "../../tools/render-utils";
 import { throwIfAborted } from "../../tools/tool-errors";
 import { getSearchProviderLabel, resolveProviderChain, type SearchProvider } from "./provider";
+import { setSearchHardTimeoutMs } from "./providers/utils";
 import { renderSearchCall, renderSearchResult, type SearchRenderDetails } from "./render";
 import type { SearchProviderId, SearchResponse } from "./types";
 import { SearchProviderError } from "./types";
@@ -286,6 +287,12 @@ export class WebSearchTool implements AgentTool<typeof webSearchSchema, SearchRe
 			this.#session.getActiveModelString?.(),
 		);
 		const sessionModel = this.#session.model?.id;
+
+		// 10.058: apply the configurable hard timeout (seconds) before any provider
+		// round-trip so no-arg withHardTimeout() call sites pick up the runtime value.
+		// setSearchHardTimeoutMs clamps to [5s, 600s] and ignores non-finite input.
+		const settingsTimeoutSec = this.#session.settings?.get("web_search.timeout") as number | undefined;
+		if (typeof settingsTimeoutSec === "number") setSearchHardTimeoutMs(settingsTimeoutSec * 1000);
 
 		// Settings-driven defaults (080): LLM params > settings > hardcoded defaults.
 		const settingsDepth = this.#session.settings?.get("web_search.depth") as "fast" | "deep" | undefined;

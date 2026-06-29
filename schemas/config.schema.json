@@ -182,6 +182,50 @@
 			},
 			"additionalProperties": false
 		},
+		"notifications": {
+			"type": "object",
+			"properties": {
+				"enabled": {
+					"type": "boolean",
+					"default": false
+				},
+				"telegram": {
+					"type": "object",
+					"properties": {
+						"botToken": {
+							"type": "string"
+						},
+						"chatId": {
+							"type": "string"
+						}
+					},
+					"additionalProperties": false
+				},
+				"redact": {
+					"type": "boolean",
+					"default": true
+				},
+				"verbosity": {
+					"type": "string",
+					"enum": [
+						"lean",
+						"verbose"
+					],
+					"default": "lean"
+				},
+				"daemon": {
+					"type": "object",
+					"properties": {
+						"idleTimeoutMs": {
+							"type": "number",
+							"default": 300000
+						}
+					},
+					"additionalProperties": false
+				}
+			},
+			"additionalProperties": false
+		},
 		"gjc": {
 			"type": "object",
 			"properties": {
@@ -1697,6 +1741,11 @@
 					"type": "string",
 					"description": "How much web content to include (codex provider)",
 					"default": "high"
+				},
+				"timeout": {
+					"type": "number",
+					"description": "Hard timeout (seconds) for a single web-search round-trip. Clamped 5-600s.",
+					"default": 300
 				}
 			},
 			"additionalProperties": false

@@ -1,7 +1,7 @@
 # architecture / conventions (jwc_patched)
 
-> **스냅샷 (2026-06-13)**: patched SoT는 [`structure/11_conventions.md`](../../../structure/11_conventions.md).
-> fork `d60b78223d5d5f5b3f82b3d0ccfe95620f754eb5` · gjc clone `269387babcbf02e33613032bc8e41ea395aa10ec`.
+> **스냅샷 (2026-06-26)**: patched SoT는 [`structure/11_conventions.md`](../../../structure/11_conventions.md).
+> fork `da23db8f217637412552c7a7b1e411a180c5ecc8` · gjc clone `f0a8a3eb6e619392af4965273c3cf95c3faf4345`.
 
 ## structure/ 발췌 (첫 12줄)
 
@@ -15,7 +15,7 @@
 - ✅ 신규 파일/폴더 추가: `structure/`, `devlog/`, 그리고 jawcode 전용 코드는
   가능한 한 새 패키지(`packages/jaw-*`) 또는 새 모듈 파일로
 - ⚠️ 업스트림 파일 수정: 해당 devlog 플랜에 경로·사유를 기록한 뒤에만
-- ✅ `AGENTS.md`, `README*.md`, `structure/` 문서는 jwc 기준 정본으로 유지한다. upstream gajae-code 기준 문구는 `devlog/_upstream_gjc/`·`struct_har/gjc_origin/` 같은 비교/근거 문맥에만 남긴다
+- ✅ `AGENTS.md`, `README*.md`, `structure/` 문서는 jwc 기준 정본으로 유지한다. upstream GJC 기준 문구는 `devlog/_gjc_chase/gajae-code/`·`struct_har/gjc_origin/` 같은 비교/근거 문맥에만 남긴다
 
 ### 커밋 트레일러 규약 (fork-delta 동기 — 067.1 §3.1)
 ```

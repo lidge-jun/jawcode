@@ -1349,3 +1349,56 @@ describe("AskTool jaw-interview structured questions (meta contract)", () => {
 		expect(renderedText).toContain("2. PDF");
 	});
 });
+
+describe("AskTool remote notification bridge", () => {
+	function fakeNotificationServer() {
+		const enqueued: Array<{ actionId: string; prompt: string }> = [];
+		let callback: ((actionId: string, value: string) => void) | undefined;
+		const server = {
+			enqueueAction: (draft: { actionId: string; prompt: string }) => {
+				enqueued.push(draft);
+				return draft;
+			},
+			resolveLocal: (actionId: string) => actionId,
+			setOnRemoteResolved: (cb: (actionId: string, value: string) => void) => {
+				callback = cb;
+			},
+		};
+		return { server, enqueued, fire: (actionId: string, value: string) => callback?.(actionId, value) };
+	}
+
+	it("returns a remote answer when it wins the race against the hanging local prompt", async () => {
+		const { server, enqueued, fire } = fakeNotificationServer();
+		const tool = new AskTool(
+			createSession({ getNotificationServer: (() => server) as unknown as ToolSession["getNotificationServer"] }),
+		);
+		const context = createContext({ select: () => new Promise<string>(() => {}) }); // never resolves locally
+		const pending = tool.execute(
+			"call-remote",
+			{ questions: [{ id: "q", question: "Deploy?", options: [{ label: "yes" }, { label: "no" }] }] },
+			undefined,
+			undefined,
+			context,
+		);
+		await new Promise(resolve => setTimeout(resolve, 10)); // let enqueue + subscription settle
+		expect(enqueued[0]?.actionId).toBe("call-remote");
+		fire("call-remote", "yes");
+		const result = await pending;
+		const text = result.content.map(part => ("text" in part ? part.text : "")).join("");
+		expect(text).toContain("yes");
+	});
+
+	it("uses the local answer path unchanged when no notification server is present", async () => {
+		const tool = new AskTool(createSession());
+		const context = createContext({ select: async (_prompt, options) => options[0] });
+		const result = await tool.execute(
+			"call-local",
+			{ questions: [{ id: "q", question: "Pick", options: [{ label: "alpha" }, { label: "beta" }] }] },
+			undefined,
+			undefined,
+			context,
+		);
+		const text = result.content.map(part => ("text" in part ? part.text : "")).join("");
+		expect(text).toContain("alpha");
+	});
+});

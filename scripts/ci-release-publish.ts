@@ -46,6 +46,53 @@ const distTag = (() => {
 	const idx = process.argv.indexOf("--tag");
 	return idx >= 0 ? process.argv[idx + 1] : undefined;
 })();
+/**
+ * `--no-provenance` drops `npm publish --provenance`. Provenance requires a CI
+ * OIDC environment (e.g. GitHub Actions); a local/manual run cannot mint it and
+ * npm errors out. Used for the one-time bootstrap publish that creates packages
+ * on npm so a Trusted Publisher can then be attached. CI never passes this flag,
+ * so real releases keep provenance.
+ */
+const noProvenance = process.argv.includes("--no-provenance");
+/**
+ * `--otp <code>` forwards a one-time password to `npm publish --otp`. npm
+ * accounts with 2FA enforced on writes reject publishes without an OTP, and
+ * the `.quiet()` invocation below cannot surface npm's interactive prompt. A
+ * manual bootstrap run passes a fresh authenticator code so each `npm publish`
+ * authenticates non-interactively. CI never passes this flag.
+ */
+const otp = (() => {
+	const idx = process.argv.indexOf("--otp");
+	if (idx < 0) return undefined;
+	const raw = process.argv[idx + 1];
+	return raw !== undefined && raw.trim().length > 0 ? raw.trim() : undefined;
+})();
+/**
+ * `--interactive` runs each `npm publish` with inherited stdio instead of
+ * capturing its output. npm's default `auth-type=web` 2FA flow prints a login
+ * URL, opens the browser, and blocks until the user confirms — which is
+ * impossible when stdout/stderr/stdin are captured/detached. A manual
+ * bootstrap run passes this flag so the browser-based 2FA prompt is visible
+ * and answerable. CI (non-interactive OIDC) never passes it.
+ */
+const interactive = process.argv.includes("--interactive");
+/**
+ * `--only <dir1,dir2,…>` restricts publishing to a subset of `packages`. Each
+ * token matches either the full `dir` (`packages/utils`) or its basename
+ * (`utils`). Lets a manual bootstrap target exactly the unpublished packages
+ * without running every other package's preBuild steps.
+ */
+const onlyDirs = (() => {
+	const idx = process.argv.indexOf("--only");
+	if (idx < 0) return undefined;
+	const raw = process.argv[idx + 1];
+	if (raw === undefined) return undefined;
+	const tokens = raw
+		.split(",")
+		.map((token) => token.trim())
+		.filter((token) => token.length > 0);
+	return tokens.length > 0 ? new Set(tokens) : undefined;
+})();
 export const packages: PublishPackage[] = [
 	{ dir: "packages/utils", kind: "typescript" },
 	{ dir: "packages/ai", kind: "typescript" },
@@ -213,9 +260,28 @@ async function rewriteNativeManifest(pkgDir: string): Promise<PackageManifest> {
 	return manifest;
 }
 
+/**
+ * Whether a preBuild step should run for the current publish mode.
+ *
+ * The `--registry-faithful` smoke installs only the package's own tarball and
+ * resolves its workspace deps (e.g. `@jawcode-dev/natives`) from the live npm
+ * registry at the release version. During a `--dry-run` nothing is published,
+ * so those deps are absent and the smoke can never pass. It is redundant with
+ * the `release.yml` post-publish registry smoke, so it is skipped in dry-runs
+ * to keep dry-run validation green end-to-end.
+ */
+export function preBuildStepEnabled(argv: readonly string[], options: { dryRun: boolean }): boolean {
+	if (options.dryRun && argv.includes("--registry-faithful")) return false;
+	return true;
+}
+
 async function preparePackage(pkg: PublishPackage): Promise<PackageManifest> {
 	const pkgDir = path.join(repoRoot, pkg.dir);
 	for (const argv of pkg.preBuild ?? []) {
+		if (!preBuildStepEnabled(argv, { dryRun: isDryRun })) {
+			console.log(`Skipping dry-run-incompatible preBuild step in ${pkg.dir}: ${argv.join(" ")}`);
+			continue;
+		}
 		await $`${argv}`.cwd(pkgDir);
 	}
 	if (pkg.kind === "native" || pkg.kind === "manifest") {
@@ -249,8 +315,20 @@ async function publishPackage(pkg: PublishPackage): Promise<void> {
 		return;
 	}
 	console.log(`Publishing ${name}…`);
-	const publishArgs = ["publish", "--access", "public", "--provenance"];
+	const publishArgs = ["publish", "--access", "public"];
+	if (!noProvenance) publishArgs.push("--provenance");
 	if (distTag) publishArgs.push("--tag", distTag);
+	if (otp) publishArgs.push("--otp", otp);
+	if (interactive) {
+		// Inherit stdio so npm's web-auth 2FA prompt (login URL + browser open)
+		// is visible and the run blocks until the user confirms in the browser.
+		const result = await Bun.spawn(["npm", ...publishArgs], {
+			cwd: pkgDir,
+			stdio: ["inherit", "inherit", "inherit"],
+		}).exited;
+		if (result !== 0) process.exit(result ?? 1);
+		return;
+	}
 	const result = await $`npm ${publishArgs}`.cwd(pkgDir).quiet().nothrow();
 	const output = `${result.stdout.toString()}${result.stderr.toString()}`.trim();
 	if (output) console.log(output);
@@ -258,7 +336,13 @@ async function publishPackage(pkg: PublishPackage): Promise<void> {
 }
 
 async function main(): Promise<void> {
-	for (const pkg of packages) {
+	const selected = onlyDirs
+		? packages.filter((pkg) => onlyDirs.has(pkg.dir) || onlyDirs.has(path.basename(pkg.dir)))
+		: packages;
+	if (onlyDirs && selected.length === 0) {
+		throw new Error(`--only matched no packages (got: ${[...onlyDirs].join(", ")})`);
+	}
+	for (const pkg of selected) {
 		await publishPackage(pkg);
 	}
 }

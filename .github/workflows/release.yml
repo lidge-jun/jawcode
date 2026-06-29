@@ -67,6 +67,9 @@ jobs:
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
+      # npm Trusted Publishing (OIDC) requires Node 22.14+ and npm 11.5.1+.
+      - name: Ensure npm supports trusted publishing (>= 11.5.1)
+        run: npm install -g npm@latest
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: release-${{ runner.os }}
@@ -87,15 +90,32 @@ jobs:
             exit 1
           fi
 
-      - name: Publish jawcode
+      - name: Use OIDC trusted publishing (drop setup-node auth token)
         run: |
-          cd packages/jwc
-          bun run bundle
-          bun run build:node
+          # setup-node's registry-url writes npm's user config with
+          # //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}. With no
+          # NODE_AUTH_TOKEN secret this is an empty/invalid token that npm
+          # uses instead of OIDC trusted publishing, causing publish to fail
+          # with E404 "do not have permission". Remove it so npm authenticates
+          # via OIDC trusted publishing only.
+          npmrc="${NPM_CONFIG_USERCONFIG:-$HOME/.npmrc}"
+          if [ -f "$npmrc" ]; then
+            sed -i '/_authToken/d' "$npmrc"
+          fi
+
+      # Publishes every public workspace package in dependency order
+      # (utils → ai → natives → tui → stats → agent → coding-agent →
+      # cu-mcp-server → jwc → bridge-client) in a single run. The script
+      # rewrites workspace:/catalog: specs to concrete versions, runs each
+      # package's preBuild (jwc bundle/build:node + full smoke matrix),
+      # skips already-published name@version, and publishes with
+      # --provenance via npm OIDC Trusted Publishing.
+      - name: Publish all packages
+        run: |
           if [ "${{ inputs.dry-run }}" = "true" ]; then
-            npm publish --dry-run --tag ${{ inputs.tag }} --access public --provenance
+            bun scripts/ci-release-publish.ts --dry-run --tag ${{ inputs.tag }}
           else
-            npm publish --tag ${{ inputs.tag }} --access public --provenance
+            bun scripts/ci-release-publish.ts --tag ${{ inputs.tag }}
           fi
 
       - name: Post-publish registry smoke

@@ -1,5 +1,5 @@
 import type { AssistantMessage, ImageContent, Usage } from "@jawcode-dev/ai";
-import { Container, Image, ImageProtocol, Markdown, Spacer, TERMINAL, Text } from "@jawcode-dev/tui";
+import { type Component, Container, Image, ImageProtocol, Markdown, Spacer, TERMINAL, Text } from "@jawcode-dev/tui";
 import { formatNumber } from "@jawcode-dev/utils";
 import { settings } from "../../config/settings";
 import { resolveAgentDisplayName } from "../../jwc-runtime/agent-identity";
@@ -22,6 +22,14 @@ export class AssistantMessageComponent extends Container {
 	/** True while this component renders the live streaming segment. */
 	#streaming = false;
 	#responseHeader = new Text(theme.bold(theme.fg("statusLineModel", resolveAgentDisplayName().toLowerCase())), 1, 0);
+	/**
+	 * Cache of rendered content-block components keyed by content-block identity (chase 10.013).
+	 * Reuses the Markdown component when the block's source text is unchanged instead of
+	 * constructing a fresh one on every `updateContent`. Coexists with thinking collapse:
+	 * only the EXPANDED renders (text + expanded thinking) go through this cache; the collapsed
+	 * one-line summary and the hidden label render a cheap `Text` inline and never touch it.
+	 */
+	#contentBlocksCache = new WeakMap<object, { source: string; component: Component }>();
 
 	constructor(
 		message?: AssistantMessage,
@@ -201,6 +209,45 @@ export class AssistantMessageComponent extends Container {
 		}
 	}
 
+	/**
+	 * Render an assistant text block, reusing the cached Markdown when the source text is
+	 * unchanged and updating it in place across streaming chunks (chase 10.013).
+	 */
+	#renderTextBlock(content: { text: string }): Component {
+		const cached = this.#contentBlocksCache.get(content);
+		if (cached?.source === content.text) return cached.component;
+		const trimmed = content.text.trim();
+		// Reuse the same Markdown instance across streaming chunks (update text in place)
+		// instead of constructing a new one each chunk.
+		if (cached && cached.component instanceof Markdown) {
+			cached.component.setText(trimmed);
+			cached.source = content.text;
+			return cached.component;
+		}
+		const component = new Markdown(trimmed, 1, 0, getMarkdownTheme());
+		this.#contentBlocksCache.set(content, { source: content.text, component });
+		return component;
+	}
+
+	/**
+	 * Render an expanded thinking block, reusing the cached Markdown when the thinking text is
+	 * unchanged (chase 10.013). Only used on the expanded/streaming-tail path; the collapsed
+	 * summary renders a cheap `Text` inline and never reaches this cache.
+	 */
+	#renderThinkingBlock(content: { thinking: string }): Markdown {
+		const cached = this.#contentBlocksCache.get(content);
+		if (cached?.source === content.thinking && cached.component instanceof Markdown) {
+			return cached.component;
+		}
+		const trimmed = content.thinking.trim();
+		const component = new Markdown(trimmed, 1, 0, getMarkdownTheme(), {
+			color: (text: string) => theme.fg("thinkingText", text),
+			italic: true,
+		});
+		this.#contentBlocksCache.set(content, { source: content.thinking, component });
+		return component;
+	}
+
 	updateContent(message: AssistantMessage): void {
 		this.#lastMessage = message;
 
@@ -220,10 +267,9 @@ export class AssistantMessageComponent extends Container {
 		for (let i = 0; i < message.content.length; i++) {
 			const content = message.content[i];
 			if (content.type === "text" && content.text.trim()) {
-				// Assistant text messages with no background - trim the text
-				// Set paddingY=0 to avoid extra spacing before tool executions
-				const text = content.text.trim();
-				this.#contentContainer.addChild(new Markdown(text, 1, 0, getMarkdownTheme()));
+				// Assistant text messages with no background; cached by content-block identity
+				// (chase 10.013). paddingY=0 avoids extra spacing before tool executions.
+				this.#contentContainer.addChild(this.#renderTextBlock(content));
 			} else if (content.type === "thinking" && content.thinking.trim()) {
 				// Add spacing only when another visible assistant content block follows.
 				// This avoids a superfluous blank line before separately-rendered tool execution blocks.
@@ -242,13 +288,8 @@ export class AssistantMessageComponent extends Container {
 						this.#contentContainer.addChild(new Spacer(1));
 					}
 				} else if (this.#thinkingExpanded || isStreamingTail) {
-					// Thinking traces in thinkingText color, italic
-					this.#contentContainer.addChild(
-						new Markdown(content.thinking.trim(), 1, 0, getMarkdownTheme(), {
-							color: (text: string) => theme.fg("thinkingText", text),
-							italic: true,
-						}),
-					);
+					// Thinking traces in thinkingText color, italic; cached by identity (10.013).
+					this.#contentContainer.addChild(this.#renderThinkingBlock(content));
 					if (hasVisibleContentAfter) {
 						this.#contentContainer.addChild(new Spacer(1));
 					}

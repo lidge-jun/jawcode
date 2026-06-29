@@ -92,4 +92,6 @@ python/robogjc/.env
 devlog/_reference/002_proxy/
 devlog/_upstream_gjc/
 devlog/_upstream_omp/
+devlog/_gjc_chase/
+devlog/_omp_chase/
 packages/jwc/dist-node/

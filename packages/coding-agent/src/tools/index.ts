@@ -11,6 +11,7 @@ import { GoalTool } from "../goals/tools/goal-tool";
 import type { HindsightSessionState } from "../hindsight/state";
 import { LspTool } from "../lsp";
 import type { WorkflowGateEmitter } from "../modes/shared/agent-wire/unattended-session";
+import type { NotificationLoopbackServer } from "../notifications/server";
 import type { PlanModeState } from "../plan-mode/state";
 import type { AgentRegistry } from "../registry/agent-registry";
 import type {
@@ -56,6 +57,7 @@ import { SearchToolBm25Tool } from "./search-tool-bm25";
 import { SkillTool } from "./skill";
 import { loadSshTool } from "./ssh";
 import { SubagentTool } from "./subagent";
+import { TelegramSendTool } from "./telegram-send";
 import { type TodoPhase, TodoWriteTool } from "./todo-write";
 import { WriteTool } from "./write";
 import { YieldTool } from "./yield";
@@ -94,6 +96,7 @@ export * from "./search-tool-bm25";
 export * from "./skill";
 export * from "./ssh";
 export * from "./subagent";
+export * from "./telegram-send";
 export * from "./todo-write";
 export * from "./vim";
 export * from "./write";
@@ -204,6 +207,8 @@ export interface ToolSession {
 	getGoalModeState?: () => GoalModeState | undefined;
 	/** Unattended workflow-gate emitter (present only when unattended mode is negotiated). */
 	getWorkflowGateEmitter?: () => WorkflowGateEmitter | undefined;
+	/** Loopback notification server for this session, when notifications are enabled. */
+	getNotificationServer?: () => NotificationLoopbackServer | undefined;
 	/** Goal runtime for the active agent session. */
 	getGoalRuntime?: () => GoalRuntime | undefined;
 	/** Bridge to the connected client (e.g. ACP editor host). Tools should route fs/terminal/permission requests through this when available. */
@@ -366,6 +371,7 @@ export const BUILTIN_TOOLS: Record<string, ToolFactory> = {
 	write: s => new WriteTool(s),
 	skill: SkillTool.createIf,
 	goal: s => new GoalTool(s),
+	telegram_send: s => TelegramSendTool.createIf(s),
 };
 
 const GOAL_MODE_TOOL_NAMES = [] as const;

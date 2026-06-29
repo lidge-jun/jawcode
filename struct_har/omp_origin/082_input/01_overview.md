@@ -1,7 +1,7 @@
 # 082_input — 01 overview (omp_origin)
 
-> omp @ `db421bb2ef68` · 클론 [`devlog/_upstream_omp/`](../../../devlog/_upstream_omp/)
-> MOC (jaw 밴드 정렬): [`082_moc_tui_input.md`](../../../devlog/_plan/260612_jawcode_fork/phase1/082_moc_tui_input.md)
+> omp @ `0fc6d136c34a279a711a2d3f2df9d64e0fa06cee` · 클론 [`devlog/_omp_chase/oh-my-pi/`](../../../devlog/_omp_chase/oh-my-pi/)
+> MOC (jaw 밴드 정렬): [`082_moc_tui_input.md`](../../../devlog/_plan/260612_jawcode_fork/082_moc_tui_input.md)
 
 ## TUI 입력 · IME
 

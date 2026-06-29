@@ -36,6 +36,7 @@ import {
 } from "../jaw-interview/structured-renderer";
 import { gateAnswerToResult, questionToGate } from "../modes/shared/agent-wire/jaw-interview-gate";
 import { getMarkdownTheme, type Theme, theme } from "../modes/theme/theme";
+import { bridgeAsk } from "../notifications/ask-bridge";
 import askDescription from "../prompts/tools/ask.md" with { type: "text" };
 import { renderStatusLine } from "../tui";
 import type { ToolSession } from ".";
@@ -501,7 +502,7 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
 	}
 
 	async execute(
-		_toolCallId: string,
+		toolCallId: string,
 		params: AskParams,
 		signal?: AbortSignal,
 		_onUpdate?: AgentToolUpdateCallback<AskToolDetails>,
@@ -547,7 +548,7 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
 
 		const askQuestion = async (
 			q: AskParams["questions"][number],
-			options?: { previous?: QuestionResult; navigation?: NavigationControls },
+			options?: { previous?: QuestionResult; navigation?: NavigationControls; signalOverride?: AbortSignal },
 		) => {
 			const rawOptionLabels = q.options.map(o => o.label);
 			// Unattended (#316/#323/G011): route the question through the workflow-gate
@@ -601,7 +602,7 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
 				} = await askSingleQuestion(ui, displayQuestion, optionLabels, q.multi ?? false, {
 					recommended: q.recommended,
 					timeout: timeout ?? undefined,
-					signal,
+					signal: options?.signalOverride ?? signal,
 					initialSelection,
 					navigation: options?.navigation,
 					scrollTitleRows: jawInterviewPrompt === null ? undefined : JAW_INTERVIEW_SELECTOR_SCROLL_TITLE_ROWS,
@@ -624,7 +625,33 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
 
 		if (params.questions.length === 1) {
 			const [q] = params.questions;
-			const { optionLabels, selectedOptions, customInput, cancelled, timedOut } = await askQuestion(q);
+			const notificationServer = this.session.getNotificationServer?.();
+			let answer: Awaited<ReturnType<typeof askQuestion>>;
+			if (notificationServer && !canUseWorkflowGate) {
+				// Remote-answerable single ask: race the local prompt against a remote reply.
+				const rawOptionLabels = q.options.map(o => o.label);
+				const dismiss = new AbortController();
+				const composedSignal = signal ? AbortSignal.any([signal, dismiss.signal]) : dismiss.signal;
+				answer = await bridgeAsk(notificationServer, {
+					actionId: toolCallId,
+					prompt: q.question,
+					options: rawOptionLabels,
+					allowFreeText: true,
+					local: askQuestion(q, { signalOverride: composedSignal }),
+					dismiss,
+					onRemote: value => ({
+						optionLabels: rawOptionLabels,
+						selectedOptions: rawOptionLabels.includes(value) ? [value] : [],
+						customInput: rawOptionLabels.includes(value) ? undefined : value,
+						navigation: undefined as NavigationControls | undefined,
+						cancelled: false,
+						timedOut: false,
+					}),
+				});
+			} else {
+				answer = await askQuestion(q);
+			}
+			const { optionLabels, selectedOptions, customInput, cancelled, timedOut } = answer;
 
 			if (!timedOut && (cancelled || (selectedOptions.length === 0 && customInput === undefined))) {
 				context?.abort();

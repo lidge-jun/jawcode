@@ -16,6 +16,9 @@ describe("contribution prep", () => {
 			"Authorization: Bearer sk-testsecret123456789",
 			"Cookie: sid=abc123; token=private",
 			"OPENAI_API_KEY=sk-providersecret123456789",
+			"OAUTH_CLIENT_SECRET=client-secret-provider-value",
+			"GOOGLE_REFRESH_TOKEN=refresh-token-provider-value",
+			"ANTHROPIC_SESSION_COOKIE=anthropic-session-cookie-value",
 			"callback http://127.0.0.1:8787/internal",
 			"classic ghp_abcdefghijklmnopqrstuvwxyz123456",
 			"oauth gho_abcdefghijklmnopqrstuvwxyz123456",
@@ -28,8 +31,14 @@ describe("contribution prep", () => {
 		expect(redacted).toContain("Authorization: [REDACTED_AUTH_HEADER]");
 		expect(redacted).toContain("Cookie: [REDACTED_COOKIE]");
 		expect(redacted).toContain("OPENAI_API_KEY=[REDACTED_SECRET]");
+		expect(redacted).toContain("OAUTH_CLIENT_SECRET=[REDACTED_SECRET]");
+		expect(redacted).toContain("GOOGLE_REFRESH_TOKEN=[REDACTED_SECRET]");
+		expect(redacted).toContain("ANTHROPIC_SESSION_COOKIE=[REDACTED_SECRET]");
 		expect(redacted).toContain("[REDACTED_PRIVATE_ENDPOINT]");
 		expect(redacted).not.toContain("sk-testsecret123456789");
+		expect(redacted).not.toContain("client-secret-provider-value");
+		expect(redacted).not.toContain("refresh-token-provider-value");
+		expect(redacted).not.toContain("anthropic-session-cookie-value");
 		expect(redacted).not.toContain("ghp_abcdefghijklmnopqrstuvwxyz123456");
 		expect(redacted).not.toContain("gho_abcdefghijklmnopqrstuvwxyz123456");
 		expect(redacted).not.toContain("github_pat_11ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz1234567890");

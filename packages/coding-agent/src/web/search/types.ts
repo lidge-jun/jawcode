@@ -121,6 +121,11 @@ export interface AnthropicSearchResult {
 	page_age: string | null;
 }
 
+export interface AnthropicWebSearchToolResultError {
+	type: "web_search_tool_result_error";
+	error_code?: string;
+}
+
 export interface AnthropicCitation {
 	type: "web_search_result_location";
 	url: string;
@@ -139,8 +144,8 @@ export interface AnthropicContentBlock {
 	name?: string;
 	/** Tool input (for type="server_tool_use") */
 	input?: { query: string };
-	/** Search results (for type="web_search_tool_result") */
-	content?: AnthropicSearchResult[];
+	/** Search results or error object (for type="web_search_tool_result") */
+	content?: AnthropicSearchResult[] | AnthropicWebSearchToolResultError;
 }
 
 export interface AnthropicApiResponse {

@@ -4,7 +4,7 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { resolveForkHead, resolveGjcHead } from "./resolve-heads.ts";
+import { resolveForkHead, resolveGjcClonePath, resolveGjcHead } from "./resolve-heads.ts";
 
 const ROOT = path.resolve(import.meta.dir, "../..");
 const STRUCT = path.join(ROOT, "struct_har");
@@ -12,6 +12,7 @@ const CHANGELOG = path.join(ROOT, "structure/40_fork-delta.md");
 
 const FORK_HEAD = resolveForkHead();
 const GJC_HEAD = resolveGjcHead();
+const GJC_CLONE_REL = path.relative(ROOT, resolveGjcClonePath());
 
 type BandLogic = { id: string; jwcSection: string; gjcBaseline: string };
 
@@ -215,7 +216,7 @@ ${band.gjcBaseline}
 
 ## diff
 
-\`diff -u devlog/_upstream_gjc/packages/... packages/...\` — 경로: [02_code_facts.md](./02_code_facts.md)
+\`diff -u ${GJC_CLONE_REL}/packages/... packages/...\` — 경로: [02_code_facts.md](./02_code_facts.md)
 `
 		: band.jwcSection;
 
@@ -230,7 +231,7 @@ ${main}
 - 앵커 경로: [02_code_facts.md](./02_code_facts.md)
 `;
 
-	fs.writeFileSync(path.join(dir, "02_logic_changes.md"), `${body}\n`, "utf8");
+	fs.writeFileSync(path.join(dir, "02_logic_changes.md"), `${body.trimEnd()}\n`, "utf8");
 }
 
 for (const band of BANDS) {
@@ -254,6 +255,10 @@ const stab = `# 099_stabilization — 02 logic changes (jwc_patched)
 
 [fork_logic_changelog.md](../../../structure/40_fork-delta.md)
 `;
-fs.writeFileSync(path.join(STRUCT, "jwc_patched", "099_stabilization", "02_logic_changes.md"), `${stab}\n`, "utf8");
+fs.writeFileSync(
+	path.join(STRUCT, "jwc_patched", "099_stabilization", "02_logic_changes.md"),
+	`${stab.trimEnd()}\n`,
+	"utf8",
+);
 
 console.log(`struct_har: wrote ${BANDS.length * 2 + 1} logic change docs`);

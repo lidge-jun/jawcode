@@ -2,6 +2,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
 import { getDefault } from "../src/config/settings-schema";
 import { ReadToolGroupComponent, readArgsTargetInternalUrl } from "../src/modes/components/read-tool-group";
 import * as themeModule from "../src/modes/theme/theme";
+import { assertPublicFetchUrl } from "../src/web/public-fetch-url";
 
 describe("ReadToolGroupComponent", () => {
 	beforeAll(async () => {
@@ -146,5 +147,39 @@ describe("readArgsTargetInternalUrl", () => {
 		expect(readArgsTargetInternalUrl(["skill://x"])).toBe(false);
 		expect(readArgsTargetInternalUrl({})).toBe(false);
 		expect(readArgsTargetInternalUrl({ path: 42 })).toBe(false);
+	});
+});
+
+describe("assertPublicFetchUrl", () => {
+	it("allows public http and https URLs", () => {
+		expect(assertPublicFetchUrl("https://example.com/path")).toBe("https://example.com/path");
+		expect(assertPublicFetchUrl("example.com/path")).toBe("https://example.com/path");
+	});
+
+	it.each([
+		"http://localhost:3000/",
+		"http://www.localhost/",
+		"http://0.0.0.0/",
+		"http://127.0.0.1/",
+		"http://10.0.0.5/",
+		"http://172.16.0.5/",
+		"http://172.31.255.255/",
+		"http://192.168.1.2/",
+		"http://169.254.169.254/",
+	])("rejects private or local IPv4 host %s", url => {
+		expect(() => assertPublicFetchUrl(url)).toThrow("private or local network");
+	});
+
+	it.each([
+		"http://[::1]/",
+		"http://[fe80::1]/",
+		"http://[fc00::1]/",
+		"http://[fd12:3456::1]/",
+	])("rejects private or local IPv6 host %s", url => {
+		expect(() => assertPublicFetchUrl(url)).toThrow("private or local network");
+	});
+
+	it("rejects credentials in the URL authority", () => {
+		expect(() => assertPublicFetchUrl("https://user:pass@example.com/")).toThrow("credentials");
 	});
 });

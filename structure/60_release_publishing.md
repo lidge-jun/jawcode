@@ -1,184 +1,196 @@
 # Release & Publishing Guide
 
-> 2026-06-16 기준. `jawcode` npm 패키지 + `@jawcode-dev/*` scope.
+> Current as of 2026-06-29. This is the maintained source of truth for Jawcode npm publishing.
 
-## 패키지 구조
+## Canonical release path
 
-| npm 패키지 | 소스 | 역할 | publish 여부 |
-|---|---|---|---|
-| `jawcode` | `packages/jwc/` | CLI bin `jwc`, managed Bun bootstrap, bundle | ✅ public |
-| `@jawcode-dev/natives` | `packages/natives/` | Rust N-API addon (grep, ast-grep, PTY, shell) | ✅ public |
-| `@jawcode-dev/ai` | `packages/ai/` | Multi-provider LLM client | ❌ workspace-only |
-| `@jawcode-dev/agent-core` | `packages/agent/` | Agent runtime | ❌ workspace-only |
-| `@jawcode-dev/coding-agent` | `packages/coding-agent/` | Main CLI impl | ❌ workspace-only |
-| `@jawcode-dev/tui` | `packages/tui/` | Terminal UI | ❌ workspace-only |
-| `@jawcode-dev/utils` | `packages/utils/` | Shared utils | ❌ workspace-only |
-| `@jawcode-dev/stats` | `packages/stats/` | Usage dashboard | ❌ workspace-only |
+Use GitHub Actions npm Trusted Publishing through `.github/workflows/release.yml`.
 
-## npm org & scope
+- Do not use long-lived `NPM_TOKEN` for normal releases.
+- Do not run ad-hoc local `npm publish` for a normal release.
+- Every real CI publish uses `npm publish --provenance` through `scripts/ci-release-publish.ts`.
+- Every public package must have an npm Trusted Publisher entry for:
+  - repository: `lidge-jun/jawcode`
+  - workflow: `release.yml`
+  - environment: none, unless the workflow is later changed to use one
+- Node/npm requirements for trusted publishing are Node 22.14+ and npm 11.5.1+. The workflow uses Node 24 and upgrades npm before publish.
 
-- **npm org**: `@jawcode-dev` (https://www.npmjs.com/org/jawcode-dev)
-- `@jawcode` org는 사용 불가 — unscoped `jawcode` 패키지가 이미 존재하여 npm이 동명 org 생성을 차단
-- Trusted Publishing (OIDC)은 `jawcode` 패키지에만 설정됨 (repo: `lidge-jun/jawcode`, workflow: `release.yml`)
-
-## 2FA 설정
-
-npm 2FA가 `auth-and-writes`이면 **매 publish마다 OTP 필요**. 자동화하려면:
+Release trigger:
 
 ```sh
-npm profile set enable-2fa auth-only
+gh workflow run release.yml --ref main -f version=<VERSION> -f tag=latest -f dry-run=false
 ```
 
-이후 publish에 OTP 안 물어봄. 로그인/토큰 생성에만 OTP 필요.
-
-## Release 절차
-
-### 1. 버전 범프
-
-모든 workspace 패키지 version 동기화:
+Dry-run validation:
 
 ```sh
-# 모든 패키지 버전 범프 (benchmarks, jawcode-compat 제외)
-for f in packages/*/package.json; do
-  name=$(grep '"name"' "$f" | head -1 | sed 's/.*: "//;s/".*//')
-  case "$name" in *benchmark*|jawcode-compat) continue ;; esac
-  sed -i '' 's/"version": "OLD"/"version": "NEW"/' "$f"
-done
-
-# Root catalog 버전도 동기화
-# package.json → workspaces.catalog 아래 @jawcode-dev/* 버전
-
-# G002 gate 업데이트
-# scripts/verify-g002-gates.ts → ALLOWED_PUBLIC_PACKAGE_VERSIONS
+gh workflow run release.yml --ref main -f version=<VERSION> -f tag=latest -f dry-run=true
 ```
 
-### 2. Bundle 빌드
+## Published packages
+
+`scripts/ci-release-publish.ts` is the package list and publish-order source of truth.
+
+| Order | npm package | Source | Kind | Notes |
+|---:|---|---|---|---|
+| 1 | `@jawcode-dev/utils` | `packages/utils/` | TypeScript | Shared utilities |
+| 2 | `@jawcode-dev/ai` | `packages/ai/` | TypeScript | Provider and model client |
+| 3 | `@jawcode-dev/natives` | `packages/natives/` | Native | Rust N-API addon package |
+| 4 | `@jawcode-dev/tui` | `packages/tui/` | TypeScript | Terminal UI library |
+| 5 | `@jawcode-dev/stats` | `packages/stats/` | TypeScript + client build | `jwc stats` dashboard |
+| 6 | `@jawcode-dev/agent-core` | `packages/agent/` | TypeScript | Agent runtime |
+| 7 | `@jawcode-dev/coding-agent` | `packages/coding-agent/` | TypeScript | Main CLI implementation |
+| 8 | `jawcode-cu-mcp-server` | `packages/cu-mcp-server/` | Manifest + build | Computer Use MCP server |
+| 9 | `jawcode` | `packages/jwc/` | Manifest + bundled CLI | Public `jwc` CLI and `jawcode/sdk` |
+| 10 | `@jawcode-dev/bridge-client` | `packages/bridge-client/` | TypeScript | Bridge client |
+
+Not part of normal npm release:
+
+- `jawcode-compat` in `packages/gajae-code/`
+- benchmark packages under `packages/*benchmark/`
+- Python packages under `python/`
+
+## Workflow shape
+
+`.github/workflows/release.yml` has two jobs.
+
+### `mac-native-probes`
+
+Runs on `macos-14` before publish:
+
+- checks out source
+- installs Bun 1.3.14 and Node 24
+- installs dependencies with `bun install --frozen-lockfile`
+- builds natives through `bun run build:native`
+- builds the `jawcode` bundle and Node SDK
+- runs `node packages/jwc/scripts/smoke-packed-sdk.mjs --native-probes`
+
+### `publish`
+
+Runs on `ubuntu-latest` after `mac-native-probes`:
+
+- permissions must include `contents: read` and `id-token: write`
+- installs Bun 1.3.14 and Node 24
+- upgrades npm so trusted publishing support is present
+- installs dependencies and builds natives
+- verifies `packages/jwc/package.json` version matches the workflow input
+- removes any setup-node `_authToken` line from npm user config before publishing
+- runs `scripts/ci-release-publish.ts`
+- runs post-publish registry smoke when `dry-run=false`
+
+The `_authToken` removal is required. `actions/setup-node` with `registry-url` can write an empty `NODE_AUTH_TOKEN` entry into `.npmrc`; npm then tries token auth instead of OIDC and can fail with a misleading permission or `E404` error.
+
+## Publish script contract
+
+`scripts/ci-release-publish.ts` prepares and publishes every public package in dependency order.
+
+- TypeScript packages emit declarations into `dist/types/`.
+- Package manifests are rewritten in CI so `workspace:` and `catalog:` dependencies become concrete package versions.
+- `types` and export type paths that point at `./src/` are rewritten to `./dist/types/`.
+- `files` is expanded with required publish artifacts.
+- Existing `name@version` packages are skipped on real publish, so reruns are idempotent.
+- Dry-run prints publish intent without publishing.
+- Real CI publish adds `--provenance`.
+
+`packages/jwc` has the strictest pre-publish checks:
+
+- `bun run bundle`
+- `bun run build:node`
+- `bun test ../../packages/coding-agent/test/jwc-cli-jaw-bootstrap.test.ts`
+- `bun test ../../packages/coding-agent/test/jwc-package-manifest-contract.test.ts`
+- `bun run smoke:packed-sdk`
+- `node scripts/smoke-packed-sdk.mjs --postinstall-matrix`
+- `node scripts/smoke-packed-sdk.mjs --registry-faithful`
+- `node scripts/smoke-packed-sdk.mjs --native-probes`
+
+Dry-runs skip only the `--registry-faithful` pre-build smoke because it requires already-published dependencies for the target version. The real publish keeps that smoke, and `release.yml` also runs a post-publish registry-faithful smoke.
+
+## Version bump contract
+
+Before triggering a real release, keep these versions aligned:
+
+- every non-private `packages/*/package.json` that is part of the publish set
+- root `package.json` workspace catalog entries for `@jawcode-dev/*`
+- `Cargo.toml` workspace package version when Rust native ABI/package version changes
+- `scripts/verify-g002-gates.ts` allowed public package versions when that gate is version-sensitive
+
+The release contract test is:
 
 ```sh
-bun --cwd=packages/jwc run bundle      # jwc.bundle.js + sync-worker.js
-bun --cwd=packages/jwc run build:node   # dist-node/sdk.js (Node SDK)
+bun test scripts/release-publish-order.test.ts
 ```
 
-**주의**: bundle은 빌드 시점의 소스를 인라인함. 브랜딩, 프롬프트, 설정 변경 후 반드시 재빌드.
+It verifies that the non-private package bump set equals the publish set and that `packages/jwc` keeps the required pre-publish smoke matrix.
 
-### 3. Natives 빌드 (cross-platform)
+## Native version sentinel
 
-#### CI 빌드 (권장)
+Rust N-API addon exports a sentinel function:
+
+- definition: `crates/pi-natives/src/lib.rs`
+- loader check: `packages/natives/native/loader-state.js`
+
+The sentinel tracks native ABI compatibility, not every npm patch version. If package versions move without a native ABI change, keep the loader sentinel pinned to the binary ABI sentinel. A mismatch means the `.node` file can load but the expected sentinel export is missing, producing a "version sentinel" release mismatch error.
+
+## Bootstrap-only fallbacks
+
+Only use these paths when a package does not yet exist on npm or Trusted Publishing cannot be attached until a first publish exists.
 
 ```sh
-gh workflow run build-natives.yml --ref main
+bun scripts/ci-release-publish.ts --only <package-dir> --no-provenance --interactive
 ```
 
-타겟:
-- `darwin-arm64` (macos-14)
-- `linux-x64-baseline` + `linux-x64-modern` (ubuntu-22.04)
-- `win32-x64-baseline` + `win32-x64-modern` (windows-2022)
-- `darwin-x64-baseline` (macos-13) — runner 느림, 필요 시만
-
-빌드 후 artifact 다운로드:
+or, with an authenticator code:
 
 ```sh
-gh run download <run-id> --dir /tmp/natives-artifacts/
-cp /tmp/natives-artifacts/*.node packages/natives/native/
+bun scripts/ci-release-publish.ts --only <package-dir> --no-provenance --otp <OTP>
 ```
 
-#### 로컬 빌드 (현재 플랫폼만)
+Rules:
 
-```sh
-bun --cwd=packages/natives run build
-```
+- bootstrap publishes are manual exceptions, not the release path
+- use them only for the unpublished package subset
+- after bootstrap, configure npm Trusted Publisher for that package
+- the next normal release must go through `release.yml` with provenance
 
-### 4. Version Sentinel
+## Troubleshooting
 
-Rust N-API addon에 `__piNativesV{major}_{minor}_{patch}` sentinel 함수가 있음:
+### `npm error E404` or "do not have permission" during OIDC publish
 
-- 정의: `crates/pi-natives/src/lib.rs` — `#[napi(js_name = "__piNativesV1_0_4")]`
-- 체크: `packages/natives/native/loader-state.js` — `versionSentinelExport`
+Check the publish job removed setup-node's `_authToken` line. An empty token in `.npmrc` can shadow OIDC trusted publishing.
 
-**sentinel은 native ABI가 변경될 때만 범프**. patch-level 패키지 버전 범프 (바이너리 동일)는 loader의 sentinel을 고정:
+### Trusted publishing rejected
 
-```js
-// loader-state.js
-const versionSentinelExport = `__piNativesV1_0_4`;  // pinned to binary ABI version
-```
+Verify the npm package Trusted Publisher entry exactly matches `lidge-jun/jawcode` and `release.yml`. Also verify the workflow job has `id-token: write`.
 
-**sentinel 불일치 시**: `.node` 로드 성공하지만 `__piNativesVX_Y_Z` export 없어서 throw. 에러 메시지: "version sentinel ... The .node file on disk is from a different release than this loader".
+### `npm publish --provenance` fails locally
 
-### 5. Publish
-
-```sh
-# natives 먼저 (jwc가 optionalDependencies로 참조)
-cd packages/natives && npm publish --access public --tag latest
-
-# jawcode
-cd packages/jwc && npm publish --access public --tag latest
-```
-
-### 6. Branch sync
-
-```sh
-# main = dev (publish 커밋 포함)
-git checkout main && git reset --hard dev && git push origin main -f
-
-# preview = main
-git checkout preview && git reset --hard main && git push origin preview -f
-
-# dev 한 커밋 앞으로
-git checkout dev
-echo "# $(date +%s)" >> .dev-marker && git add .dev-marker
-git commit -m "chore(dev): dev marker" && git push origin dev
-```
-
-## 트러블슈팅
-
-### `bun install` 시 `blocked by minimum-release-age`
-
-`bunfig.toml`에 `minimumReleaseAge = 259200` (3일). 새로 publish한 패키지는 3일 후 자동 해결.
-
-CI에서 우회:
-```sh
-sed -i 's/minimumReleaseAge = 259200/minimumReleaseAge = 0/' bunfig.toml
-bun install
-```
+Expected. Provenance requires the CI OIDC environment. Use the workflow for real releases; use bootstrap-only fallback only when creating a package before Trusted Publishing can be configured.
 
 ### `Cannot publish over the previously published versions`
 
-이미 해당 버전이 npm에 존재. 버전 범프 필요.
+That package version already exists. Bump the release version or let the CI script skip already-published packages on rerun.
 
-### `npm error EOTP` / `one-time password`
+### `blocked by minimum-release-age`
 
-2FA가 `auth-and-writes` 모드. `npm profile set enable-2fa auth-only`로 변경.
+`bunfig.toml` can block very new packages. CI release jobs use the project install path; if this reappears, inspect the install step before publish rather than bypassing the release workflow.
 
-### Windows: `no prebuilt binary for win32-x64`
+### Native sentinel mismatch
 
-`@jawcode-dev/natives`에 win32-x64 .node 바이너리 미포함. `build-natives.yml` CI로 빌드 후 재publish.
+Verify the Rust sentinel export and JS loader sentinel are intentionally aligned. If the native ABI did not change, keep the JS loader sentinel pinned to the existing ABI sentinel.
 
-### Windows: version sentinel 불일치
+### Old branding or stale CLI behavior after install
 
-`.node` 바이너리의 sentinel과 loader의 sentinel이 다름. `crates/pi-natives/src/lib.rs`의 `js_name`과 `loader-state.js`의 `versionSentinelExport`가 일치하는지 확인.
+Rebuild `packages/jwc` before publish. The release script already does this through the `packages/jwc` pre-build matrix; local ad-hoc publishes are the usual source of stale bundles.
 
-### `zsh: killed jwc`
+## Verification after release
 
-npm 글로벌 설치된 `jwc`가 crash. `bun install -g jawcode@latest`로 재설치하거나 workspace에서 직접 실행:
+After `dry-run=false` completes:
+
 ```sh
-bun packages/coding-agent/src/cli.ts
+gh run view <RUN_ID> --json status,conclusion,url
+npm view jawcode@<VERSION> version
+npm view @jawcode-dev/coding-agent@<VERSION> version
+npm view @jawcode-dev/natives@<VERSION> version
 ```
 
-### 브랜딩 "GJC forge" / "Gajae forge" 표시
-
-`packages/jwc/dist/jwc.bundle.js`가 오래된 빌드. `bun --cwd=packages/jwc run bundle` 후 재publish.
-
-## Native 플랫폼 지원 현황
-
-| Platform | Arch | Status |
-|---|---|---|
-| darwin | arm64 | ✅ 로컬 빌드 + CI |
-| darwin | x64 | ⚠️ CI only (macos-13 runner 느림) |
-| linux | x64 (baseline) | ✅ CI |
-| linux | x64 (modern/AVX2) | ✅ CI |
-| win32 | x64 (baseline) | ✅ CI |
-| win32 | x64 (modern/AVX2) | ✅ CI |
-| linux | arm64 | ❌ 미지원 |
-| win32 | arm64 | ❌ 미지원 |
-
-Graceful degradation: natives 로드 실패 시 hard crash 대신 warning + stub proxy. 실제 native 기능 호출 시 throw.
+Check all ten public packages at the target version, confirm the release workflow concluded `success`, and confirm npm provenance from the package pages or npm registry metadata.

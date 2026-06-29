@@ -1,6 +1,6 @@
 # 020_prompt — 01 overview (gjc_origin)
 
-> upstream `devlog/_upstream_gjc/` @ `269387babcbf02e33613032bc8e41ea395aa10ec`
+> upstream `devlog/_gjc_chase/gajae-code/` @ `f0a8a3eb6e619392af4965273c3cf95c3faf4345`
 > MOC: [`020_moc_prompting.md`](../../../devlog/_plan/260612_jawcode_fork/020_moc_prompting.md)
 
 ## 프롬프팅 / 시스템 프롬프트

@@ -4,10 +4,10 @@
 
 ## 플랜 (prefix 030)
 
-- [030_moc_skills_discovery.md](../../../devlog/_plan/260612_jawcode_fork/phase1/030_moc_skills_discovery.md)
+—
 
 ## 공통
 
-- [000_roadmap.md](../../../devlog/_plan/260612_jawcode_fork/phase1/000_roadmap.md)
-- [05_interview_conclusions.md](../../../devlog/_plan/260612_jawcode_fork/phase1/05_interview_conclusions.md)
+- [000_roadmap.md](../../../devlog/_plan/260612_jawcode_fork/000_roadmap.md)
+- [05_interview_conclusions.md](../../../devlog/_plan/260612_jawcode_fork/05_interview_conclusions.md)
 - [structure/40_fork-delta.md](../../../structure/40_fork-delta.md)

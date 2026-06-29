@@ -65,6 +65,29 @@ describe("AuthStorage config-override apiKey", () => {
 		});
 	});
 
+	test("runtime override beats env fallback and suppresses OAuth account attribution", async () => {
+		await withEnv({ ANTHROPIC_API_KEY: "env-bearer", ANTHROPIC_OAUTH_TOKEN: undefined }, async () => {
+			if (!authStorage) throw new Error("test setup failed");
+			await authStorage.set("anthropic", [
+				{
+					type: "oauth",
+					access: "oauth-with-account",
+					refresh: "r",
+					expires: Date.now() + 60 * 60_000,
+					accountId: "acc-override",
+				},
+			]);
+
+			authStorage.setRuntimeApiKey("anthropic", "cli-flag-bearer");
+
+			expect(await authStorage.getApiKey("anthropic", "runtime-session")).toBe("cli-flag-bearer");
+			expect(authStorage.getOAuthAccountId("anthropic", "runtime-session")).toBeUndefined();
+			expect(authStorage.describeCredentialSource("anthropic", "runtime-session")).toBe(
+				"runtime override (--api-key)",
+			);
+		});
+	});
+
 	test("removeConfigApiKey restores OAuth resolution", async () => {
 		await withEnv(SUPPRESS_ANTHROPIC_ENV, async () => {
 			if (!authStorage) throw new Error("test setup failed");
@@ -120,6 +143,27 @@ describe("AuthStorage config-override apiKey", () => {
 			await seedOAuth("anthropic", "oauth-from-broker");
 			authStorage.setConfigApiKey("anthropic", "gateway-bearer");
 			expect(authStorage.describeCredentialSource("anthropic")).toBe("config override (models.yml)");
+		});
+	});
+
+	test("env fallback clears stale OAuth account attribution when no override wins", async () => {
+		await withEnv({ ANTHROPIC_API_KEY: "env-bearer", ANTHROPIC_OAUTH_TOKEN: undefined }, async () => {
+			if (!authStorage) throw new Error("test setup failed");
+			await authStorage.set("anthropic", [
+				{
+					type: "oauth",
+					access: "oauth-with-account",
+					refresh: "r",
+					expires: Date.now() - 60_000,
+					accountId: "acc-stale",
+				},
+			]);
+
+			expect(await authStorage.getApiKey("anthropic", "env-session")).toBe("env-bearer");
+			expect(authStorage.getOAuthAccountId("anthropic", "env-session")).toBeUndefined();
+			expect(authStorage.describeCredentialSource("anthropic", "env-session")).toBe(
+				"env (fallback over local store)",
+			);
 		});
 	});
 });

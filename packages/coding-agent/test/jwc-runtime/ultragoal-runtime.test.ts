@@ -31,6 +31,19 @@ beforeEach(() => {
 async function tempDir(): Promise<string> {
 	const dir = await fs.mkdtemp(path.join(process.cwd(), ".tmp-goal-runtime-"));
 	tempRoots.push(dir);
+	// Seed the live-surface artifact files referenced by passingQualityGate() so complete
+	// checkpoints satisfy the live-surface proof requirement (a resolvable non-empty file).
+	// Negative tests strip the `path` field to make the live surface unprovable.
+	await fs.mkdir(path.join(dir, "artifacts"), { recursive: true });
+	await Bun.write(path.join(dir, "artifacts", "browser-run.json"), JSON.stringify({ ok: true, flow: "approved" }));
+	await Bun.write(
+		path.join(dir, "artifacts", "gui-screenshot.png"),
+		"non-empty screenshot bytes for live-surface proof",
+	);
+	await Bun.write(
+		path.join(dir, "artifacts", "adversarial-report.txt"),
+		"adversarial boundary and failure-mode evidence",
+	);
 	return dir;
 }
 
@@ -255,6 +268,21 @@ async function expectRejectedCompleteGate(
 	return result.stderr ?? "";
 }
 
+async function expectRejectedSteering(root: string, args: string[], kind: string): Promise<string> {
+	const goalsPath = path.join(root, ".jwc", "goal", "goals.json");
+	const beforeGoals = await Bun.file(goalsPath).text();
+	const beforeLedger = await readGoalLedger(root);
+	const result = await runNativeGoalEngineCommand(args, root);
+	const afterLedger = await readGoalLedger(root);
+	const rejection = afterLedger.at(-1);
+
+	expect(result.status).toBe(1);
+	expect(await Bun.file(goalsPath).text()).toBe(beforeGoals);
+	expect(afterLedger).toHaveLength(beforeLedger.length + 1);
+	expect(rejection).toMatchObject({ event: "steering_rejected", kind });
+	return result.stderr ?? "";
+}
+
 function goalToolSnapshot(objective: string, status = "active", updatedAt: number | string = Date.now()): string {
 	return JSON.stringify({
 		content: [{ type: "text", text: `Goal: ${objective}` }],
@@ -418,6 +446,313 @@ describe("native GJC goal runtime", () => {
 			goals_path: path.join(root, ".jwc", "goal", "goals.json"),
 		});
 		expect(receipt).not.toHaveProperty("goals");
+	});
+
+	it("supports split_subgoal steering with replacement ids and compact receipts", async () => {
+		const root = await tempDir();
+		await createGoalPlan({
+			cwd: root,
+			brief: ["@goal: First", "Complete first story.", "", "@goal: Second", "Complete second story."].join("\n"),
+		});
+
+		const result = await runNativeGoalEngineCommand(
+			[
+				"steer",
+				"--kind",
+				"split_subgoal",
+				"--goal-id",
+				"G001",
+				"--replacements-json",
+				JSON.stringify([
+					{ title: "Fix parser", objective: "Resolve the parser blocker." },
+					{ title: "Verify parser", objective: "Run focused parser verification." },
+				]),
+				"--evidence",
+				"implementation investigation found two independently verifiable parser risks",
+				"--rationale",
+				"split keeps each replacement story independently auditable",
+				"--json",
+			],
+			root,
+		);
+		const receipt = JSON.parse(result.stdout ?? "{}");
+		const plan = await readGoalPlan(root);
+		const accepted = (await readGoalLedger(root)).at(-1);
+
+		expect(result.status).toBe(0);
+		expect(receipt).toMatchObject({
+			ok: true,
+			kind: "split_subgoal",
+			goal_id: "G001",
+			replacement_goal_ids: ["G003", "G004"],
+			goals_path: path.join(root, ".jwc", "goal", "goals.json"),
+		});
+		expect(receipt).not.toHaveProperty("goals");
+		expect(plan?.goals.map(goal => [goal.id, goal.status])).toEqual([
+			["G001", "superseded"],
+			["G003", "pending"],
+			["G004", "pending"],
+			["G002", "pending"],
+		]);
+		expect(accepted).toMatchObject({
+			event: "steering_accepted",
+			kind: "split_subgoal",
+			replacementGoalIds: ["G003", "G004"],
+		});
+	});
+
+	it("supports reorder, wording revision, ledger annotation, and blocked supersession", async () => {
+		const root = await tempDir();
+		await createGoalPlan({
+			cwd: root,
+			brief: [
+				"@goal: First",
+				"Complete first story.",
+				"",
+				"@goal: Second",
+				"Complete second story.",
+				"",
+				"@goal: Third",
+				"Complete third story.",
+			].join("\n"),
+		});
+		await startNextGoal({ cwd: root });
+
+		const reorder = await runNativeGoalEngineCommand(
+			[
+				"steer",
+				"--kind",
+				"reorder_pending",
+				"--order-json",
+				JSON.stringify(["G003", "G002"]),
+				"--evidence",
+				"dependency investigation showed third story must precede second story",
+				"--rationale",
+				"pending-only reorder preserves active and terminal goal positions",
+				"--json",
+			],
+			root,
+		);
+		expect(reorder.status).toBe(0);
+		expect((await readGoalPlan(root))?.goals.map(goal => goal.id)).toEqual(["G001", "G003", "G002"]);
+
+		const revise = await runNativeGoalEngineCommand(
+			[
+				"steer",
+				"--kind",
+				"revise_pending_wording",
+				"--goal-id",
+				"G003",
+				"--title",
+				"Third story clarified",
+				"--evidence",
+				"review found the pending story title was too vague",
+				"--rationale",
+				"clear pending wording improves execution handoff without changing status",
+				"--json",
+			],
+			root,
+		);
+		expect(revise.status).toBe(0);
+		expect((await readGoalPlan(root))?.goals.find(goal => goal.id === "G003")?.title).toBe("Third story clarified");
+
+		const goalsBeforeAnnotation = await Bun.file(path.join(root, ".jwc", "goal", "goals.json")).text();
+		const annotation = await runNativeGoalEngineCommand(
+			[
+				"steer",
+				"--kind",
+				"annotate_ledger",
+				"--evidence",
+				"user changed release ordering while preserving the aggregate objective",
+				"--rationale",
+				"recording the runtime direction keeps the durable ledger auditable",
+				"--json",
+			],
+			root,
+		);
+		expect(annotation.status).toBe(0);
+		expect(await Bun.file(path.join(root, ".jwc", "goal", "goals.json")).text()).toBe(goalsBeforeAnnotation);
+
+		await checkpointGoal({
+			cwd: root,
+			goalId: "G002",
+			status: "blocked",
+			evidence: "blocked by obsolete dependency",
+		});
+		const supersede = await runNativeGoalEngineCommand(
+			[
+				"steer",
+				"--kind",
+				"mark_blocked_superseded",
+				"--goal-id",
+				"G002",
+				"--evidence",
+				"replacement evidence shows this blocked sub-goal is no longer required",
+				"--rationale",
+				"no replacement is needed because remaining required goals cover the aggregate objective",
+				"--json",
+			],
+			root,
+		);
+		const supersededGoal = (await readGoalPlan(root))?.goals.find(goal => goal.id === "G002");
+		expect(supersede.status).toBe(0);
+		expect(supersededGoal).toMatchObject({ status: "superseded", steering: { noReplacementRequired: true } });
+	});
+
+	it("rejects blocked supersession when it would remove the final required goal", async () => {
+		const root = await tempDir();
+		await createGoalPlan({ cwd: root, brief: "Complete the only story" });
+		await startNextGoal({ cwd: root });
+		await checkpointGoal({
+			cwd: root,
+			goalId: "G001",
+			status: "blocked",
+			evidence: "blocked by obsolete dependency",
+		});
+
+		const stderr = await expectRejectedSteering(
+			root,
+			[
+				"steer",
+				"--kind",
+				"mark_blocked_superseded",
+				"--goal-id",
+				"G001",
+				"--evidence",
+				"replacement evidence shows this blocked sub-goal is no longer required",
+				"--rationale",
+				"negative test verifies the final required goal cannot be superseded without replacement",
+			],
+			"mark_blocked_superseded",
+		);
+
+		expect(stderr).toContain("only remaining required goal");
+	});
+
+	it("allows blocked supersession when another required goal remains", async () => {
+		const root = await tempDir();
+		await createGoalPlan({
+			cwd: root,
+			brief: ["@goal: First", "Complete first story.", "", "@goal: Second", "Complete second story."].join("\n"),
+		});
+		await startNextGoal({ cwd: root });
+		await checkpointGoal({
+			cwd: root,
+			goalId: "G001",
+			status: "blocked",
+			evidence: "blocked by obsolete dependency",
+		});
+
+		const supersede = await runNativeGoalEngineCommand(
+			[
+				"steer",
+				"--kind",
+				"mark_blocked_superseded",
+				"--goal-id",
+				"G001",
+				"--evidence",
+				"replacement evidence shows this blocked sub-goal is no longer required",
+				"--rationale",
+				"remaining required goal covers the aggregate objective",
+				"--json",
+			],
+			root,
+		);
+		const plan = await readGoalPlan(root);
+
+		expect(supersede.status).toBe(0);
+		expect(plan?.goals.map(goal => [goal.id, goal.status])).toEqual([
+			["G001", "superseded"],
+			["G002", "pending"],
+		]);
+	});
+
+	it("audits known-kind steering rejections without mutating goals", async () => {
+		const root = await tempDir();
+		await createGoalPlan({
+			cwd: root,
+			brief: ["@goal: First", "Complete first story.", "", "@goal: Second", "Complete second story."].join("\n"),
+		});
+		await startNextGoal({ cwd: root });
+
+		await expectRejectedSteering(
+			root,
+			[
+				"steer",
+				"--kind",
+				"split_subgoal",
+				"--goal-id",
+				"G001",
+				"--replacements-json",
+				JSON.stringify([
+					{ title: "A", objective: "A objective" },
+					{ title: "B", objective: "B objective" },
+				]),
+				"--evidence",
+				"split attempted against active goal status",
+				"--rationale",
+				"negative test verifies status boundary audit",
+			],
+			"split_subgoal",
+		);
+		await expectRejectedSteering(
+			root,
+			[
+				"steer",
+				"--kind",
+				"reorder_pending",
+				"--order-json",
+				JSON.stringify(["G001"]),
+				"--evidence",
+				"reorder attempted with active goal id",
+				"--rationale",
+				"negative test verifies pending-only ordering audit",
+			],
+			"reorder_pending",
+		);
+		await expectRejectedSteering(
+			root,
+			[
+				"steer",
+				"--kind",
+				"revise_pending_wording",
+				"--goal-id",
+				"G001",
+				"--title",
+				"Active rewrite rejected",
+				"--evidence",
+				"wording revision attempted against active goal status",
+				"--rationale",
+				"negative test verifies pending-only wording audit",
+			],
+			"revise_pending_wording",
+		);
+		await expectRejectedSteering(
+			root,
+			[
+				"steer",
+				"--kind",
+				"annotate_ledger",
+				"--evidence",
+				"annotation is missing required rationale for audit completeness",
+			],
+			"annotate_ledger",
+		);
+		await expectRejectedSteering(
+			root,
+			[
+				"steer",
+				"--kind",
+				"mark_blocked_superseded",
+				"--goal-id",
+				"G002",
+				"--evidence",
+				"supersession attempted against pending goal status",
+				"--rationale",
+				"negative test verifies blocked-only supersession audit",
+			],
+			"mark_blocked_superseded",
+		);
 	});
 
 	it("prints receipt-only json for review blockers", async () => {
@@ -953,6 +1288,26 @@ describe("native GJC goal runtime", () => {
 		});
 
 		expect(plan.goals[0]?.status).toBe("complete");
+	});
+
+	it("rejects inline-only evidence for live surfaces without a resolvable artifact file", async () => {
+		const root = await tempDir();
+		const created = await createGoalPlan({ cwd: root, brief: "Ship the fix" });
+		await startNextGoal({ cwd: root });
+		// gui/web is a live surface (10.021 parity). Stripping the `path` from the two artifacts
+		// the surface row links (browser-run, gui-screenshot) leaves only inline prose, which must
+		// NOT prove a live surface — even though tempDir() seeds those files on disk, the gate rows
+		// no longer point at them.
+		const inlineOnlyLiveGate = mutateQualityGate(gate => {
+			const refs = gate.executorQa!.artifactRefs as Array<Record<string, unknown>>;
+			delete refs[0]!.path;
+			delete refs[1]!.path;
+		});
+
+		const error = await expectRejectedCompleteGate(root, created, inlineOnlyLiveGate);
+
+		expect(error).toContain("executorQa.surfaceEvidence[0].artifactRefs");
+		expect(error).toContain("do not prove live surfaces");
 	});
 
 	it("rejects empty or degenerate red-team receipts before mutation", async () => {

@@ -387,7 +387,7 @@ function initLoaderContext() {
 	// The sentinel is bumped in `crates/pi-natives/src/lib.rs` only when the
 	// native ABI changes. Patch-level package bumps (e.g. 1.0.5 with unchanged
 	// binaries) reuse the same sentinel to allow republishing without rebuilding.
-	const versionSentinelExport = `__piNativesV1_0_4`;
+	const versionSentinelExport = `__piNativesV1_1_2`;
 	const isWorkspaceLoad =
 		!isCompiledBinary && !nativeDir.includes("\\node_modules\\") && !nativeDir.includes("/node_modules/");
 

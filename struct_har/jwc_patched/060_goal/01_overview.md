@@ -1,6 +1,6 @@
 # 060_goal — 01 overview (jwc_patched)
 
-> worktree @ `d60b78223d5d5f5b3f82b3d0ccfe95620f754eb5` · gjc @ `269387babcbf02e33613032bc8e41ea395aa10ec`
+> worktree @ `da23db8f217637412552c7a7b1e411a180c5ecc8` · gjc @ `f0a8a3eb6e619392af4965273c3cf95c3faf4345`
 > MOC: [`060_moc_goal_merge.md`](../../../devlog/_plan/260612_jawcode_fork/060_moc_goal_merge.md)
 
 ## Goal / ultragoal

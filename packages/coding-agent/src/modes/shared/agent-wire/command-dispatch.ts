@@ -348,7 +348,7 @@ export async function dispatchRpcCommand(
 		}
 
 		case "get_messages": {
-			return rpcSuccess(id, "get_messages", { messages: session.messages });
+			return rpcSuccess(id, "get_messages", { messages: [...session.messages] });
 		}
 
 		case "get_login_providers": {
@@ -432,7 +432,7 @@ export async function dispatchRpcCommand(
 
 		default: {
 			const unknownCommand = command as { type: string };
-			return rpcError(undefined, unknownCommand.type, `Unknown command: ${unknownCommand.type}`);
+			return rpcError(id, unknownCommand.type, `Unknown command: ${unknownCommand.type}`);
 		}
 	}
 }

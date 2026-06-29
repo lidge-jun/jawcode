@@ -78,6 +78,27 @@ describe("ToolChoiceQueue", () => {
 			expect(rejectCount).toBe(3);
 			expect(q.nextToolChoice()).toBeUndefined();
 		});
+
+		it("replays a lost yield before later directives without duplicating the original sequence tail", () => {
+			const q = new ToolChoiceQueue();
+			q.pushSequence([forced, "none"], {
+				label: "user-force",
+				onRejected: () => "requeue",
+			});
+			q.pushOnce(forcedRead, { label: "later" });
+
+			expect(q.nextToolChoice()).toEqual(forced);
+			q.reject("aborted");
+
+			expect(q.inspect()).toEqual(["user-force-requeued", "user-force", "later"]);
+			expect(q.nextToolChoice()).toEqual(forced);
+			q.resolve();
+			expect(q.nextToolChoice()).toBe("none");
+			q.resolve();
+			expect(q.nextToolChoice()).toEqual(forcedRead);
+			q.resolve();
+			expect(q.nextToolChoice()).toBeUndefined();
+		});
 	});
 
 	describe("removeByLabel", () => {
@@ -104,6 +125,25 @@ describe("ToolChoiceQueue", () => {
 			q.removeByLabel("eager-todo");
 			expect(rejected).toEqual([{ choice: forced, reason: "removed" }]);
 			expect(q.hasInFlight).toBe(false);
+		});
+
+		it("keeps a generated requeue when removing the original in-flight label", () => {
+			const q = new ToolChoiceQueue();
+			q.pushSequence([forced, "none"], {
+				label: "user-force",
+				onRejected: () => "requeue",
+			});
+			q.pushOnce(forcedRead, { label: "later" });
+
+			expect(q.nextToolChoice()).toEqual(forced);
+			q.removeByLabel("user-force");
+
+			expect(q.inspect()).toEqual(["user-force-requeued", "later"]);
+			expect(q.nextToolChoice()).toEqual(forced);
+			q.resolve();
+			expect(q.nextToolChoice()).toEqual(forcedRead);
+			q.resolve();
+			expect(q.nextToolChoice()).toBeUndefined();
 		});
 	});
 
@@ -135,6 +175,22 @@ describe("ToolChoiceQueue", () => {
 			q.nextToolChoice();
 			q.resolve();
 			expect(q.consumeLastServedLabel()).toBe("user-force");
+			expect(q.consumeLastServedLabel()).toBeUndefined();
+		});
+
+		it("reports the generated requeue label after a replayed yield resolves", () => {
+			const q = new ToolChoiceQueue();
+			q.pushOnce(forced, {
+				label: "user-force",
+				onRejected: () => "requeue",
+			});
+
+			q.nextToolChoice();
+			q.reject("aborted");
+			q.nextToolChoice();
+			q.resolve();
+
+			expect(q.consumeLastServedLabel()).toBe("user-force-requeued");
 			expect(q.consumeLastServedLabel()).toBeUndefined();
 		});
 	});

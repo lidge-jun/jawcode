@@ -185,6 +185,22 @@ describe("Token calculation", () => {
 		const usage = createMockUsage(0, 0, 0, 0);
 		expect(calculateContextTokens(usage)).toBe(0);
 	});
+
+	it("should trust non-zero provider totalTokens over local component sums", () => {
+		const usage = {
+			...createMockUsage(1000, 500, 200, 100),
+			totalTokens: 1234,
+		};
+		expect(calculateContextTokens(usage)).toBe(1234);
+	});
+
+	it("should fall back to component sums when provider totalTokens is zero", () => {
+		const usage = {
+			...createMockUsage(1000, 500, 200, 100),
+			totalTokens: 0,
+		};
+		expect(calculateContextTokens(usage)).toBe(1800);
+	});
 });
 
 describe("getLastAssistantUsage", () => {

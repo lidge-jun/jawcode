@@ -45,6 +45,7 @@ const baseCommands: CommandEntry[] = [
 	{ name: "ultragoal", load: () => import("./commands/ultragoal").then(m => m.default) },
 	{ name: "ralplan", load: () => import("./commands/ralplan").then(m => m.default) },
 	{ name: "config", load: () => import("./commands/config").then(m => m.default) },
+	{ name: "notify", load: () => import("./commands/notify").then(m => m.default) },
 	{ name: "mcp-serve", load: () => import("./commands/mcp-serve").then(m => m.default) },
 	{
 		name: "contribute-pr",

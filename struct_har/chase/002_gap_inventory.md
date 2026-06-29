@@ -1,7 +1,7 @@
 # chase — 갭 인벤토리 (횡단)
 
-> 스냅샷: gjc **`5ed80862`** · jwc **`d60b7822`** (worktree) · omp **`dc14689fc`** (2026-06-16 **6차 — pull + chase 카드 10.027–035 / 20.009–017**).
-> **reviewed through**: GJC `5ed80862` · OMP `dc14689fc` · JWC `d60b7822`
+> 스냅샷: gjc **`a791d72a`** (`upstream/dev`) · jwc **`af363c8`** (worktree) · omp **`0fc6d136`** (`origin/main`) (2026-06-28 **docs sync refresh**).
+> **reviewed through**: GJC `a791d72a` · OMP `0fc6d136` · JWC `af363c8`
 > **명명**: [008_gjc_jwc_naming_contract.md](./008_gjc_jwc_naming_contract.md) — Python **`python/jwc-rpc`** (`jwc_rpc`); upstream만 `gjc-rpc`.
 > **RPC 실현성**: [devlog 03_rpc_bundle_feasibility_jwc_rpc](../../devlog/_fin/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md)
 > 상태: `⬜` 미착수 · `🟡` 설계/부분 · `✅` jwc 선행 · `—` 해당 없음
@@ -11,8 +11,8 @@
 
 | 축 | jwc가 **앞서거나 유일** | jwc가 **뒤처지거나 약함** |
 |---|---|---|
-| **gjc** | orchestrate/PABCD, jaw 표면, `.jwc`, lazy `computer_use`, pi-shell·submit gate(10.009·10.010 ✅), goal busy-loop #616 ✅, session compaction/progress ✅, process lifecycle P0(10.029 ✅) | RPC lifecycle 잔여(008), team profile self-heal(007), computer_use native coordinate/supervisor(10.028 🟡), provider/auth(10.031), subagent controls(10.032), RLM/검색/setup bridge(10.027·033·035) |
-| **omp** | 4 workflow 번들, jaw 워크플로 | task-agent, session ops, memory, pruning = **참조** ([20.008](./20.008_omp_chase_pull_15_13_delta.md)); **16.0.2 reference** profiles/advisor/dialect/schema/task/plugins/terminal/review/retry ([20.009](./20.009_omp_chase_profiles_aliases.md)–[20.017](./20.017_omp_chase_unexpected_stop_detection.md)) |
+| **gjc** | orchestrate/PABCD, jaw 표면, `.jwc`, lazy `computer_use`, pi-shell·submit gate(10.009·10.010 ✅), goal busy-loop #616 ✅, session compaction/progress ✅, RPC lifecycle/receipt spool/registry/team profile `_fin`(10.008·10.011·10.018·10.007 ✅) | active GJC upstream/dev chase cards remain in 10.027 and 10.028+ implementation backlog |
+| **omp** | 4 workflow 번들, jaw 워크플로 | task-agent, session ops, memory, pruning = **참조** ([20.008](./_fin/20/20.008_omp_chase_pull_15_13_delta.md)) |
 | **자체** | 100 Node 완료, TUI O(n²) 수정, 99.03·99.01·99.07 부분 | 99.02·99.04·99.05·99.06 · M2 110+ |
 
 ## 밴드별
@@ -36,56 +36,87 @@
 
 ## G1 — gjc에서 흔히 뒤쳐지는 항목
 
+### Telegram / notifications (upstream/dev `a791d72a`, 2026-06-28)
+
+| 영역 | upstream 후보 | jaw 병합 난이도 | 참조 |
+|---|---|---|---|
+| notifications SDK | loopback WS endpoint, `.gjc/state/notifications`, action/reply protocol | 높음 — Rust/N-API + session gate | [10.028](./_fin/10/10.028_gjc_chase_notifications_sdk.md) ✅ _fin |
+| notify config CLI | `gjc notify setup/status`, BotFather token, private-chat pairing | 중 — secret/settings/schema | [10.029](./_fin/10/10.029_gjc_chase_notify_config_cli.md) ✅ _fin |
+| Telegram daemon | singleton `getUpdates` poller, roots registry, owner reload/stop | 높음 — long-lived process | [10.030](./_fin/10/10.030_gjc_chase_telegram_managed_daemon.md) ✅ _fin |
+| remote answers | inline buttons, free text, Other/custom input, ask race | 높음 — live gate control | [10.032](./_fin/10/10.032_gjc_chase_telegram_remote_answers.md) ✅ _fin |
+| threaded surface | per-session topics, identity/context/turn render, inbound fail-closed routing | 높음 — remote routing | [10.031](./_fin/10/10.031_gjc_chase_telegram_threaded_surface.md) ✅ _fin |
+| media/file transfer | image/file frames, inbound media, `telegram_send` workspace egress | 높음 — file egress | [10.034](./_fin/10/10.034_gjc_chase_telegram_media_file_transfer.md) ✅ _fin |
+| session lifecycle | Telegram create/close/resume/list | 매우 높음 — remote process control | [10.033](./_fin/10/10.033_gjc_chase_telegram_session_lifecycle.md) ✅ _fin (safe surface; execution deferred) |
+| adapters/docs | SDK docs, Telegram onboarding, Discord/Slack scaffolding | 중 — product boundary | [10.035](./_fin/10/10.035_gjc_chase_notifications_adapters_docs.md) ✅ _fin |
+
 | 영역 | upstream 후보 | jaw 병합 난이도 | 참조 |
 |---|---|---|---|
 | 세션/autocompact | pre-send `#checkEstimatedContextBeforePrompt` | ✅ pre-send + threshold prune persistence + progress UX | [_fin/10.004](./_fin/10/10.004_gjc_chase_session_compaction.md) |
-| RPC lifecycle | malformed JSONL; EOF flush; bridges | ✅ _fin 260615 — stdio Phase 1; residual RPC items tracked through 10.026 | [10.008](./_fin/10/10.008_gjc_chase_rpc_lifecycle.md) |
+| RPC lifecycle | malformed JSONL; EOF flush; bridges | ✅ `_fin` — fast-lane reads + lifecycle evidence closed | [10.008](./_fin/10/10.008_gjc_chase_rpc_lifecycle.md) |
 | RPC registry/UDS | #589 registry, `--listen` | ✅ TS+`jwc_rpc.list_sessions` + UDS Phase 2 | [10.018](./_fin/10/10.018_gjc_chase_rpc_registry_uds.md) |
-| receipt spool | #554 JSONL exporter | ✅ _fin 260615 — receipt spool exporter | [10.011](./_fin/10/10.011_gjc_chase_receipt_spool.md) |
+| receipt spool | #554 JSONL exporter | ✅ `_fin` — receipt spool closure recorded | [10.011](./_fin/10/10.011_gjc_chase_receipt_spool.md) |
 | goal busy-loop | #616 AgentBusyError | ✅ landed 260615 | [_fin/10.022](./_fin/10/10.022_gjc_chase_goal_agent_busy_loop.md) |
-| team self-heal | #546 `@gjc-profile` | 중 | [10.007](./10.007_gjc_chase_team_profile_self_heal.md) |
+| team self-heal | #546 `@gjc-profile` | ✅ _fin | [10.007](./_fin/10/10.007_gjc_chase_team_profile_self_heal.md) |
 | pi-shell / harness submit | #551 / #549 | ✅ landed 260613 | [_fin/10](./_fin/INDEX.md) |
 | model-profiles UX | #553 | 사용자 패치 중 — 카드 없음 | [10.001](./10.001_gjc_chase_cycle.md) |
 | providers/schemas | drift | ai diff; **99.02** | `packages/ai/` |
-| RLM research | opt-in research notebook/report lane | 중 — public surface decision | [10.027](./10.027_gjc_chase_rlm_research_mode.md) |
-| computer_use native | coordinate contract + Rust/tool integration | 중상 — JWC lazy CUA proxy 보유, native coordinate/supervisor 미보유 | [10.028](./10.028_gjc_chase_computer_use_coordinate_contract.md) |
-| process lifecycle | owned process/resource cleanup | ✅ landed 260617 — P0 safety bundle | [10.029](./_fin/10/10.029_gjc_chase_process_lifecycle_hardening.md) |
-| TUI/output long-session | render lifecycle + output caps | 중 — visual/scroll guards | [10.030](./10.030_gjc_chase_long_session_tui_hardening.md) |
-| provider/auth reliability | credential ranking + Codex WS recovery | 중상 — [10.002](./10.002_gjc_chase_ai_auth.md) fold | [10.031](./10.031_gjc_chase_provider_auth_reliability.md) |
-| subagent controls | serviceTier + resume durability | 중 — [10.005](./10.005_gjc_chase_task_subagent.md) fold | [10.032](./10.032_gjc_chase_subagent_controls.md) |
-| web_search routing | model-provider search fallback | 중 — search policy reconcile | [10.033](./10.033_gjc_chase_web_search_provider_routing.md) |
-| workflow state | state-writer invariants | 중상 — JWC semantics-only | [10.034](./10.034_gjc_chase_state_writer_invariants.md) |
-| setup/bridge | credential import + bridge opt-in | 중 — onboarding/security split | [10.035](./10.035_gjc_chase_setup_bridge_optins.md) |
+
+
+### Non-Telegram upstream/dev backlog (upstream/dev `a791d72a`, 2026-06-28)
+
+| 영역 | upstream 후보 | jaw 병합 난이도 | 참조 |
+|---|---|---|---|
+| AI/auth/model catalog | provider creds, Codex opaque tokens, forced tool_choice fallback, presets/catalog | 높음 — auth + provider contracts | [10.036](./_fin/10/10.036_gjc_chase_ai_provider_auth_model_catalog.md) ✅ _fin |
+| security/privacy guardrails | dotenv exclusion, env override, socket tokens, URL guards, secret redaction | 높음 — C4 review | [10.047](./_fin/10/10.047_gjc_chase_security_privacy_guardrails.md) ✅ _fin |
+| runtime lifecycle | natives, shell timeout, eval cleanup, queue dispose, env scrub | 높음 — process/resource leaks | [10.037](./_fin/10/10.037_gjc_chase_runtime_process_lifecycle_hardening.md) ✅ _fin |
+| RPC v2 | UDS registry, duplicate refusal, token-cost fail-closed, socket probe | 높음 — local control plane | [10.038](./_fin/10/10.038_gjc_chase_rpc_control_plane_v2.md) ✅ _fin |
+| compaction/memory | active provider compaction, blob bounds, tool IO caps, await cache | 높음 — session survivability | [_fin/10.040](./_fin/10/10.040_gjc_chase_compaction_pruning_resident_memory.md) |
+| web search/read | syntactic private-network read/fetch guards, provider-alias mapping, citation fail-closed; exact local-baseUrl resolver-context guard deferred | 높음 — network boundary | [_fin/10.043](./_fin/10/10.043_gjc_chase_web_search_insane_security.md) |
+| agent/composer/toolcalls | anchor/edit discipline, text part normalization, tool IO bounds | 높음 — agent correctness | [10.051](./_fin/10/10.051_gjc_chase_agent_composer_toolcall_integrity.md) ✅ _fin |
+| harness/receipts | startup blockers, active-turn persistence, phase rollup | 중 — operator evidence | [10.039](./10.039_gjc_chase_harness_receipts_phase_rollup.md) |
+| TUI/input/psmux | keystroke echo, Windows psmux, selector identity, redraw metrics | 중 — UX/runtime | [10.041](./10.041_gjc_chase_tui_input_render_windows_psmux.md) |
+| goal/interview/ask | HUD sync, red-team review, ralplan continuation, busy guard | 중 — workflow state | [10.042](./10.042_gjc_chase_deep_interview_ask_goal_state.md) |
+| plugin/extensibility | Hermes/OpenClaw/controller docs, generated bundles, MCP bridge | 중 — integration boundary | [10.044](./10.044_gjc_chase_plugin_extensibility_bundle.md) |
+| computer-use | native controller and control readiness docs | 중 — desktop control | [10.045](./10.045_gjc_chase_computer_use_native_control.md) |
+| dev/CI/release | affected-path CI, native build/platform, release metadata | 중 — release hygiene | [10.048](./10.048_gjc_chase_dev_ci_release_packaging.md) |
+| session/tmux/team/worktree | lock GC, psmux, session registry, tmux/worktree lifecycle | 중 — state/process | [10.050](./10.050_gjc_chase_session_tmux_team_worktree.md) |
+| RLM/research mode | research command, venv, autonomous/resume gate | 낮음/중 — separate product lane | [10.046](./10.046_gjc_chase_rlm_research_mode.md) |
+| perf/bench/corpus | optimization suite, redraw repro, geobench/corpus | 낮음 — track/reference | [10.049](./10.049_gjc_chase_performance_bench_corpus.md) |
+| docs/integrations | Grok Build, remote design, Telegram roadmap, OpenClaw notes | 낮음 — docs/reference | [10.052](./10.052_gjc_chase_docs_external_integrations.md) |
 
 ### RPC 한 묶음 (PABCD 권장)
 
-**011 → 008 → 018 → 026** — [007_follow_index](./007_follow_index.md) · [03 feasibility](../../devlog/_fin/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md).
+**011 → 008 → 018 → 026** — [007_follow_index](./007_follow_index.md) · [03 feasibility](../../devlog/_fin/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md).  
 Executor v2 (260614): **011 YES**, **008/026 RISKY**; **018 registry TS+Py landed** @ `d60b7822`; UDS `--listen` + issues 06–08 client API **갭**.
 
 ## G2 — omp 참조만
 
 | 영역 | omp | jaw 방향 |
 |---|---|---|
-| 15.13 delta | session split, auto-learn, STT | [20.008](./20.008_omp_chase_pull_15_13_delta.md) |
-| steering delivery | yield re-poll, stranded drain | [20.005](./20.005_omp_chase_steering_delivery.md) |
-| TUI micro | Esc draft, ast status | [20.006](./20.006_omp_chase_tui_input_micro_fixes.md) |
-| session modules | listing/loader | [20.007](./20.007_omp_chase_session_modularization.md) |
-| memory/skills | mnemopi | ✅ reference-only — [20.003](./_fin/20/20.003_omp_chase_memory_skills.md), 99.01 absorbed |
-| profiles/auth isolation | `--profile`, profile-scoped config/OAuth | [20.009](./20.009_omp_chase_profiles_aliases.md) |
-| advisor/WATCHDOG | passive review lane | ✅ 비채택 — [20.010](./_fin/20/20.010_omp_chase_advisor_review_lane.md) |
-| tool dialects | in-band tool-call conversion | [20.011](./20.011_omp_chase_tool_dialect.md) |
-| AI schema/stream hardening | strict schemas + streamed args | [20.012](./20.012_omp_chase_ai_tool_schema_streaming.md) |
-| task coordination | roles, IRC, fallback chains | [20.013](./20.013_omp_chase_task_coordination.md) |
-| extensions/plugins | discovery/marketplace hardening | ✅ 부분 채택 — [20.014](./_fin/20/20.014_omp_chase_extensions_plugins.md) |
-| terminal resilience | keypad/multiplexer/resize/input | [20.015](./20.015_omp_chase_terminal_resilience.md) |
-| review PR URLs | remote PR review UX | ✅ [_fin/20.016](./_fin/20/20.016_omp_chase_review_pr_url.md) |
-| unexpected-stop retry | classifier + bounded retry | [20.017](./20.017_omp_chase_unexpected_stop_detection.md) |
+| 15.13 delta | session split, auto-learn, STT | [20.008](./_fin/20/20.008_omp_chase_pull_15_13_delta.md) |
+| steering delivery | yield re-poll, stranded drain | [20.005](./_fin/20/20.005_omp_chase_steering_delivery.md) |
+| TUI micro | Esc draft, ast status | [20.006](./_fin/20/20.006_omp_chase_tui_input_micro_fixes.md) |
+| session modules | listing/loader | [20.007](./_fin/20/20.007_omp_chase_session_modularization.md) |
+| memory/skills | mnemopi | [20.003](./_fin/20/20.003_omp_chase_memory_skills.md) |
 | collab/brew | — | **비채택** |
 
-## 260613–16 jwc 독자 성과 + chase pull 기록
+
+### OMP 16.1.13 → 16.1.20 latest delta (reference-only)
+
+| 영역 | OMP 후보 | jaw 방향 | 참조 |
+|---|---|---|---|
+| append-only context integrity | `cc0c67be..0fc6d136` | reference-only split | [20.009](./20.009_omp_chase_append_only_context_integrity.md) |
+| AI OAuth/reasoning replay | `cc0c67be..0fc6d136` | reference-only split | [20.010](./_fin/20/20.010_omp_chase_ai_oauth_reasoning_replay.md) ✅ _fin |
+| TUI image drafts/terminal edges | `cc0c67be..0fc6d136` | reference-only split | [20.011](./_fin/20/20.011_omp_chase_tui_image_drafts_terminal_edges.md) ✅ _fin |
+| bash snapshot/env security | `cc0c67be..0fc6d136` | reference-only split | [20.012](./_fin/20/20.012_omp_chase_bash_snapshot_env_security.md) ✅ _fin |
+| plugin virtual registry/bundle | `cc0c67be..0fc6d136` | reference-only split | [20.013](./_fin/20/20.013_omp_chase_plugin_virtual_registry_bundle.md) ✅ _fin |
+| goal compaction/provider concurrency | `cc0c67be..0fc6d136` | reference-only split | [20.014](./_fin/20/20.014_omp_chase_goal_compaction_provider_concurrency.md) ✅ _fin |
+| release/test leak hardening | `cc0c67be..0fc6d136` | reference-only split | [20.015](./20.015_omp_chase_release_test_leak_hardening.md) |
+
+## 260613–14 jwc 독자 성과 (chase 비대상 완료)
 
 Codex reformation · TUI O(n²) · xAI `/searchengine` · 100 Node · MCP discovery · 99.xx TUI — [structure/50_status.md](../../structure/50_status.md).  
-**260614**: upstream pull +68 gjc / +370 omp; chase 카드 10.018–026 발급; **008 명명 계약**. **260616**: upstream pull gjc `5ed80862` / omp `dc14689fc`; chase 카드 **10.027–035** + **20.009–017** 발급.
+**260614**: upstream pull +68 gjc / +370 omp; chase 카드 10.018–026 발급; **008 명명 계약**.
 
 ## 구현가치 (MLB) — 활성 핵심
 
@@ -99,20 +130,128 @@ Codex reformation · TUI O(n²) · xAI `/searchengine` · 100 Node · MCP discov
 | 10.026 issues | gjc | 50 | 설계 |
 | 10.002·003 | gjc | 60 | 선별 |
 | 20.005 steering | omp | 60 | 참조 |
-| 10.029 lifecycle | gjc | 80 | **P0 안전** |
-| 10.028 computer_use | gjc | 65 | 🟡 실측 완료 · native safety 결정 |
-| 10.031 provider/auth | gjc | 60 | 선별 |
-| 10.032 subagent controls | gjc | 55 | 선별 |
-| 20.011 dialect | omp | 65 | 참조 |
-| 20.012 schema/stream | omp | 65 | 참조 |
-| 20.015 terminal | omp | 50 | 선별 |
-| 20.006 TUI micro | omp | 50 | 선별 |
+| 20.006 TUI micro | omp | 50 | ✅ _fin |
 
 ## 갱신 체크리스트
 
 ```bash
-git -C devlog/_upstream_gjc pull --ff-only origin dev
-git -C devlog/_upstream_omp pull --ff-only origin main
+git -C devlog/_gjc_chase/gajae-code pull --ff-only upstream dev
+git -C devlog/_omp_chase/oh-my-pi pull --ff-only origin main
 ```
 
 → 본 표 · [bands/](./bands/) · **008 명명** · MOC `reviewed through` · [10.001](./10.001_gjc_chase_cycle.md) changelog 행.
+
+## Jawdev chase expansion — 2026-06-26
+
+> Document: `struct_har/chase/002_gap_inventory.md`
+> Title: chase — 갭 인벤토리 (횡단)
+> Lane: JWC coordination
+> Status: active chase card
+> Canonical source: `devlog/_gjc_chase/gajae-code + devlog/_omp_chase/oh-my-pi` (GJC dev/upstream/dev and OMP main/origin/main)
+> Primary patch surfaces: structure/, struct_har/chase/, devlog/_plan/
+
+### Why this is behind or can drift
+
+1. This card exists because JWC must reconcile a concrete upstream/reference behavior with the current Jawcode fork, not because file names happen to differ.
+2. The comparison source is devlog/_gjc_chase/gajae-code + devlog/_omp_chase/oh-my-pi; agents must not substitute `devlog/_upstream_*` or the root repository history as the chase baseline.
+3. The current drift risk is semantic: behavior, workflow state, command contract, persistence, or operator evidence can diverge even when a simple diff looks small.
+4. The fork also carries JWC-specific naming, `.jwc` state, and Jawdev workflow rules, so a direct copy from the source lane can be wrong.
+5. For active cards, the lag means JWC either lacks the source behavior, lacks a matching guard, or has not documented a conscious rejection.
+6. For completed cards, the lag can return when the source clone advances past the reviewed HEAD or when adjacent JWC code changes without updating this card.
+7. Index and MOC documents can drift by pointing agents at stale priority, stale branch names, stale clone paths, or already-finished work.
+8. The first Jawdev obligation is to restate the delta in JWC terms before touching implementation files.
+9. The second obligation is to decide whether the source behavior is a product requirement, a reference pattern, or a rejected mismatch.
+10. The third obligation is to bind the decision to a verification gate so later agents can prove the card is closed.
+
+### Where to patch
+
+1. Start from this document, then open the current source lane at `devlog/_gjc_chase/gajae-code + devlog/_omp_chase/oh-my-pi` and the matching JWC files under structure/, struct_har/chase/, devlog/_plan/.
+2. For GJC-sourced cards, compare against `devlog/_gjc_chase/gajae-code` on `dev` tracking `upstream/dev`.
+3. For OMP-sourced cards, compare against `devlog/_omp_chase/oh-my-pi` on `main` tracking `origin/main`.
+4. Patch only the JWC implementation surface after the delta is understood; do not edit the chase clone.
+5. Keep public command names, state directories, and user-facing examples JWC-first: `jwc`, `.jwc`, and `@jawcode-dev/*`.
+6. If a source path uses upstream names such as `gjc`, translate them through `008_gjc_jwc_naming_contract.md` before copying any behavior.
+7. If this card points to docs/index behavior, update `structure/`, `struct_har/chase/`, and the relevant devlog plan rather than product code.
+8. If this card points to runtime behavior, add or update the nearest package test before declaring the card finished.
+9. If the correct patch surface is outside structure/, struct_har/chase/, devlog/_plan/, record why the owner changed in the devlog before widening scope.
+10. Do not batch this card with unrelated chase cards unless a MOC explicitly says they form one PABCD bundle.
+
+### Decision needed before patching
+
+1. Decide whether to import the source behavior, adapt it to JWC, reject it, or split it into smaller cards.
+2. Decide whether the user-visible contract changes; if yes, update docs and tests with the same patch.
+3. Decide whether persistence/state migration is involved; if yes, identify the `.jwc` state files and rollback posture.
+4. Decide whether subagents must learn a new rule; if yes, promote the durable rule to `AGENTS.md` or `structure/`, not only this chase file.
+5. Decide whether the source behavior conflicts with the fork's TUI, workflow, or naming constraints.
+6. Decide whether this card is still active; if already implemented, move or keep it under `_fin` with evidence instead of reopening vague work.
+7. Decide which verification command is authoritative for the changed surface: focused test, `bun run check:tools`, `bun run check:ts`, smoke test, or manual artifact proof.
+8. Decide whether a failed broad check is caused by this card; unrelated failures must be recorded, not hidden.
+9. Decide whether the implementation needs a follow-up goal because the card implies more than one atomic patch.
+10. Decide what evidence will convince a read-only reviewer that the chase gap is actually closed.
+
+### Verification and done evidence
+
+1. Re-read this file after patching and verify the stated source lane still matches devlog/_gjc_chase/gajae-code + devlog/_omp_chase/oh-my-pi.
+2. Run a focused diff against the source lane and paste the relevant file anchors into the devlog or final report.
+3. Run the package-level focused test that proves the affected behavior, not just a broad lint pass.
+4. Run `bun run check:tools` for repository formatting/lint hygiene.
+5. Run `git diff --check` before committing to catch whitespace and conflict-marker mistakes.
+6. If `bun run check:ts` is relevant and fails, classify whether the failure is caused by the patch or a pre-existing dependency drift.
+7. Update this card's status line, MOC row, or `_fin` placement only after evidence exists.
+8. Add a devlog evidence note for the patch surface, tests, reviewer, and any known residual risks.
+9. Ask a read-only reviewer to challenge the closure if the patch touches runtime behavior, workflow state, or subagent routing.
+10. Commit only the card's intended docs/code/test files; preserve unrelated worktree changes.
+
+### Sub-agent handoff contract
+
+1. A sub-agent must start from the Project root `/Users/jun/Developer/new/700_projects/jawcode`, not from `~/.cli-jaw`.
+2. A sub-agent must read `AGENTS.md`, `structure/00_INDEX.md`, and this file before proposing implementation.
+3. A sub-agent must resolve the chase baseline from `devlog/_gjc_chase/gajae-code + devlog/_omp_chase/oh-my-pi` and verify the branch with `git status --short --branch`.
+4. A sub-agent must treat the source clone as read-only evidence unless the explicit task is to fast-forward that clone.
+5. A sub-agent must write the patch against JWC files only and must not stage clone contents.
+6. A sub-agent must preserve JWC naming and translate upstream identifiers through the naming contract.
+7. A sub-agent must report decisions in terms of import/adapt/reject/split, not as vague 'needs follow-up' text.
+8. A sub-agent must name the exact files that should change before editing them.
+9. A sub-agent must include verification output, not just an implementation summary.
+10. A sub-agent must leave this document more accurate than it found it whenever the card's status changes.
+
+### Minimum patch worksheet
+
+1. Source anchor checked: devlog/_gjc_chase/gajae-code + devlog/_omp_chase/oh-my-pi.
+2. Source branch checked: GJC dev/upstream/dev and OMP main/origin/main.
+3. JWC owner files listed before edit: structure/, struct_har/chase/, devlog/_plan/.
+4. Naming contract checked against `008_gjc_jwc_naming_contract.md`.
+5. Current MOC row checked for priority and status.
+6. Current devlog plans searched for prior implementation or rejection.
+7. Related tests searched before adding new tests.
+8. Runtime/state risk classified as none, local, or migration.
+9. User-facing command/help change classified as yes or no.
+10. Subagent instruction change classified as yes or no.
+11. Implementation option chosen: import, adapt, reject, or split.
+12. Rejection rationale written if source behavior is not adopted.
+13. Focused verification command selected.
+14. Broad hygiene command selected.
+15. Reviewer/audit route selected when risk is not local.
+16. Documentation update location selected: this card, MOC, `structure/`, or devlog.
+17. Commit scope listed before staging.
+18. Known unrelated failures separated from card failures.
+19. Completion evidence attached to final report.
+20. Card status changed only after evidence is present.
+
+### Decision log slots
+
+1. Decision A — source behavior classification: import / adapt / reject / split.
+2. Decision B — JWC naming impact: none / command text / state path / package namespace.
+3. Decision C — test impact: existing test update / new focused test / manual evidence only.
+4. Decision D — docs impact: chase only / structure promotion / AGENTS durable rule.
+5. Decision E — rollout impact: no migration / local state migration / user-visible behavior note.
+6. Decision F — residual risk: closed / monitored / intentionally deferred.
+7. Decision G — reviewer needed: no / docs / backend / frontend / architecture.
+8. Decision H — bundle policy: single-card commit / PABCD bundle / separate goal.
+
+### Done-state wording
+
+When this card is closed, the final note should say: produce a focused patch or explicit rejection note.
+It should cite the source commit, JWC commit, files changed, focused verification, and any rejected source behavior.
+It should not say 'done' solely because the document is longer or because a broad lint command passed.
+It should leave enough evidence for a future agent to re-open the comparison without reading the whole chat history.

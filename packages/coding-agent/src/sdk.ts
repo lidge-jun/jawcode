@@ -76,6 +76,8 @@ import type { HindsightSessionState } from "./hindsight/state";
 import { LocalProtocolHandler, type LocalProtocolOptions } from "./internal-urls";
 import { LSP_STARTUP_EVENT_CHANNEL, type LspStartupEvent } from "./lsp/startup-events";
 import { resolveMemoryBackend } from "./memory-backend";
+import type { NotificationLoopbackServer } from "./notifications/server";
+import { maybeStartNotificationServer } from "./notifications/session-lifecycle";
 import asyncResultTemplate from "./prompts/tools/async-result.md" with { type: "text" };
 import { AgentRegistry, MAIN_AGENT_ID } from "./registry/agent-registry";
 import { MCPManager } from "./runtime-mcp";
@@ -1116,6 +1118,7 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 
 	let agent: Agent;
 	let session!: AgentSession;
+	let notificationServer: NotificationLoopbackServer | null = null;
 	let hasSession = false;
 	let hasRegistered = false;
 	const enableLsp = options.enableLsp ?? settings.get("lsp.enabled");
@@ -1227,6 +1230,7 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 			getPlanModeState: () => session?.getPlanModeState(),
 			getGoalModeState: () => session?.getGoalModeState(),
 			getWorkflowGateEmitter: () => session?.getWorkflowGateEmitter(),
+			getNotificationServer: () => notificationServer ?? undefined,
 			getGoalRuntime: () => session?.goalRuntime,
 			getClientBridge: () => session?.clientBridge,
 			getCompactContext: () => session.formatCompactContext(),
@@ -1965,6 +1969,16 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 				sessionManager.appendServiceTierChange(initialServiceTier);
 			}
 		}
+
+		// Start the loopback notification server for top-level sessions when enabled.
+		// Failure is isolated inside the helper and never blocks session creation.
+		notificationServer = await maybeStartNotificationServer({
+			settings,
+			sessionId: logicalSessionId,
+			cwd,
+			taskDepth: options.taskDepth,
+			registerCleanup: (name, cleanup) => toolCleanups.set(name, cleanup),
+		});
 
 		session = new AgentSession({
 			agent,

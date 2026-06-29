@@ -117,6 +117,7 @@ export async function resolveProviderModels<TApi extends Api = Api, TModelsDevPa
 	const staticModels = passModelList<TApi>(
 		options.staticModels ?? getBundledModels(options.providerId as GeneratedProvider),
 	);
+	const staticTransports = buildAuthoritativeTransportById(staticModels);
 	const cache = readModelCache<TApi>(options.providerId, ttlMs, now, dbPath);
 	const dynamicFetcher = options.fetchDynamicModels;
 	const hasDynamicFetcher = typeof dynamicFetcher === "function";
@@ -142,13 +143,21 @@ export async function resolveProviderModels<TApi extends Api = Api, TModelsDevPa
 		cache.staticFingerprint === staticFingerprint &&
 		cache.staticFingerprint.length > 0
 	) {
-		return { models: passModelList<TApi>(cache.models), stale: false };
+		const repairedCache = restoreAuthoritativeTransports(passModelList<TApi>(cache.models), staticTransports);
+		if (repairedCache.repaired) {
+			writeModelCache(options.providerId, now(), repairedCache.models, true, staticFingerprint, dbPath);
+		}
+		return { models: repairedCache.models, stale: false };
 	}
 
 	const [fetchedModelsDevModels, fetchedDynamicModels] = shouldFetchFromNetwork
 		? await Promise.all([fetchModelsDev(options), dynamicFetcher ? fetchDynamicModels(dynamicFetcher) : null])
 		: [null, null];
 	const modelsDevModels = normalizeModelList<TApi>(fetchedModelsDevModels ?? []);
+	const staticBaseModels = restoreAuthoritativeTransports(
+		mergeModelSources(staticModels, modelsDevModels),
+		staticTransports,
+	).models;
 	const shouldUseFreshCacheAsAuthoritative =
 		strategy === "online-if-uncached" && (cache?.fresh ?? false) && hasAuthoritativeCache;
 	const dynamicFetchSucceeded = fetchedDynamicModels !== null;
@@ -158,13 +167,13 @@ export async function resolveProviderModels<TApi extends Api = Api, TModelsDevPa
 		dynamicFetchSucceeded && options.markUnlistedOutsideDynamic === true
 			? buildUnlistedTagger<TApi>(dynamicModels)
 			: null;
-	const mergedWithCache = mergeDynamicModels(mergeModelSources(staticModels, modelsDevModels), cacheModels);
-	const models = applyUnlistedTagger(mergeDynamicModels(mergedWithCache, dynamicModels), unlistedTagger);
+	const mergedWithCache = mergeDynamicModels(staticBaseModels, cacheModels, staticTransports);
+	const models = applyUnlistedTagger(mergeDynamicModels(mergedWithCache, dynamicModels, staticTransports), unlistedTagger);
 	const dynamicAuthoritative = !hasDynamicFetcher || dynamicFetchSucceeded || shouldUseFreshCacheAsAuthoritative;
 	if (shouldFetchFromNetwork) {
 		if (dynamicFetchSucceeded) {
 			const snapshotModels = applyUnlistedTagger(
-				mergeDynamicModels(mergeModelSources(staticModels, modelsDevModels), dynamicModels),
+				mergeDynamicModels(staticBaseModels, dynamicModels, staticTransports),
 				unlistedTagger,
 			);
 			writeModelCache(options.providerId, now(), snapshotModels, true, staticFingerprint, dbPath);
@@ -176,8 +185,9 @@ export async function resolveProviderModels<TApi extends Api = Api, TModelsDevPa
 				options.providerId,
 				now(),
 				mergeDynamicModels(
-					mergeModelSources(staticModels, modelsDevModels),
+					staticBaseModels,
 					normalizeModelList<TApi>(latestCache?.models ?? cache?.models ?? []),
+					staticTransports,
 				),
 				false,
 				staticFingerprint,
@@ -291,6 +301,7 @@ function mergeModelSources<TApi extends Api>(...sources: readonly (readonly Mode
 function mergeDynamicModels<TApi extends Api>(
 	baseModels: readonly Model<TApi>[],
 	dynamicModels: readonly Model<TApi>[],
+	authoritativeTransports?: ReadonlyMap<string, AuthoritativeTransport<TApi>>,
 ): Model<TApi>[] {
 	// Empty-side fast paths: `mergeDynamicModels(base, [])` is the common shape
 	// after we've already merged the first pair, and `(...)` with no base
@@ -307,9 +318,46 @@ function mergeDynamicModels<TApi extends Api>(
 			merged.set(dynamicModel.id, dynamicModel);
 			continue;
 		}
-		merged.set(dynamicModel.id, mergeDynamicModel(existingModel, dynamicModel));
+		merged.set(
+			dynamicModel.id,
+			mergeDynamicModel(existingModel, dynamicModel, authoritativeTransports?.get(dynamicModel.id)),
+		);
 	}
 	return Array.from(merged.values());
+}
+
+interface AuthoritativeTransport<TApi extends Api> {
+	api: TApi;
+	baseUrl: string;
+}
+
+function buildAuthoritativeTransportById<TApi extends Api>(
+	models: readonly Model<TApi>[],
+): Map<string, AuthoritativeTransport<TApi>> {
+	const transports = new Map<string, AuthoritativeTransport<TApi>>();
+	for (const model of models) {
+		transports.set(model.id, { api: model.api, baseUrl: model.baseUrl });
+	}
+	return transports;
+}
+
+function restoreAuthoritativeTransports<TApi extends Api>(
+	models: readonly Model<TApi>[],
+	authoritativeTransports: ReadonlyMap<string, AuthoritativeTransport<TApi>>,
+): { models: Model<TApi>[]; repaired: boolean } {
+	if (authoritativeTransports.size === 0) {
+		return { models: [...models], repaired: false };
+	}
+	let repaired = false;
+	const restoredModels = models.map(model => {
+		const transport = authoritativeTransports.get(model.id);
+		if (!transport || (model.api === transport.api && model.baseUrl === transport.baseUrl)) {
+			return model;
+		}
+		repaired = true;
+		return enrichModelThinking({ ...model, api: transport.api, baseUrl: transport.baseUrl });
+	});
+	return { models: restoredModels, repaired };
 }
 
 /**
@@ -332,11 +380,16 @@ function fingerprintStatic<TApi extends Api>(models: readonly Model<TApi>[]): st
 	return fingerprint;
 }
 
-function mergeDynamicModel<TApi extends Api>(existingModel: Model<TApi>, dynamicModel: Model<TApi>): Model<TApi> {
+function mergeDynamicModel<TApi extends Api>(
+	existingModel: Model<TApi>,
+	dynamicModel: Model<TApi>,
+	authoritativeTransport?: AuthoritativeTransport<TApi>,
+): Model<TApi> {
 	const supportsImage = existingModel.input.includes("image") || dynamicModel.input.includes("image");
 	return enrichModelThinking({
 		...existingModel,
 		...dynamicModel,
+		...(authoritativeTransport ?? {}),
 		name: preferDiscoveryName(dynamicModel.name, existingModel.name, dynamicModel.id),
 		reasoning: existingModel.reasoning || dynamicModel.reasoning,
 		input: supportsImage ? ["text", "image"] : ["text"],
