@@ -277,6 +277,37 @@ describe("buildPayload — CodeWhisperer wire contract", () => {
 		expect(current.userInputMessageContext?.toolResults).toHaveLength(1);
 	});
 
+	test("tool-advertised turns skip synthetic thinking tags (no silent-Kiro stall)", () => {
+		// A plain user turn that also advertises tools must NOT get the synthetic <thinking_mode>
+		// prompt: it can keep Kiro silent before the first tool/exec event. Parity w/ opencodex b496629.
+		const context = {
+			messages: [user("do the thing")],
+			tools: [{ name: "read", description: "d", parameters: { type: "object", properties: {} } }],
+		} as unknown as Context;
+		const { current } = dissect(
+			buildPayload(context, "claude-sonnet-4.5", "conv-tool-think", "arn", {
+				reasoning: Effort.XHigh,
+				maxTokens: 8000,
+			}),
+		);
+		expect(current.content).not.toContain("<thinking_mode>");
+		expect(current.content).toContain("do the thing");
+		expect(current.userInputMessageContext?.tools).toHaveLength(1);
+	});
+
+	test("(continue) placeholder turns skip synthetic thinking tags", () => {
+		// History ending on an assistant text turn yields a "(continue)" current message; it carries
+		// no user intent so the synthetic thinking prompt must not be injected.
+		const { current } = dissect(
+			buildPayload(ctx([user("hi"), assistant("done")]), "claude-sonnet-4.5", "conv-cont", "arn", {
+				reasoning: Effort.XHigh,
+				maxTokens: 8000,
+			}),
+		);
+		expect(current.content).toBe("(continue)");
+		expect(current.content).not.toContain("<thinking_mode>");
+	});
+
 	test("toolUses[].input is a passthrough JSON object, not a stringified JSON", () => {
 		const args = { pattern: "foo", limit: 5 };
 		const messages: Message[] = [
