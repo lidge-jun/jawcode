@@ -30,6 +30,7 @@ cite: gjc_origin=`devlog/_gjc_chase/gajae-code/<path>:<line>` · jwc_patched=`70
 | **5 상태** | [status.md](./50_status.md) | M1/M2 마감 · 99 밴드 · readiness(MLB) · 착수 순서 |
 | **6 방향** | [direction.md](./direction.md) | 제품 정체성 · 우선순위 · 비목표 |
 | | [roadmap.md](./roadmap.md) | Phase별 구현 순서·완료 기록 |
+| | [release_publishing.md](./60_release_publishing.md) | npm Trusted Publishing/OIDC 릴리스 절차 · publish 순서 · provenance 검증 |
 | | [06-devlog-map.md](./06-devlog-map.md) | devlog · chase · archive 해석 |
 | | [08-git-commit-history.md](./08-git-commit-history.md) | 최근 1000커밋 요약 · `structure/data/git-log-1000.tsv` |
 
@@ -53,6 +54,7 @@ cite: gjc_origin=`devlog/_gjc_chase/gajae-code/<path>:<line>` · jwc_patched=`70
 |---|---|
 | 포크 델타 파일(HARD-EDIT/NEW/REMOVED/INVERTED-GUARD) | `fork-delta.md` |
 | 패키지/`package.json` bin·export | `INDEX.md`, `architecture.md`, `conventions.md` |
+| 릴리스 workflow·publish script·npm package set | `60_release_publishing.md`, `AGENTS.md` |
 | `coding-agent/src/sdk.ts` 공개 API | `architecture.md`, `prompt_flow.md`, `session_storage.md` |
 | 시스템 프롬프트/스킬 렌더 | `prompt_flow.md`, `extensibility.md` |
 | storage schema | `session_storage.md`, `architecture.md` |
