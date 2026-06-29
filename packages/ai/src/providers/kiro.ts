@@ -35,6 +35,7 @@ import { toolWireSchema } from "../utils/schema/wire";
 import { decodeEventStream } from "./aws-eventstream";
 import { safeKiroErrorMessage, safeKiroHttpErrorMessage } from "./kiro-errors";
 import { KiroThinkingParser } from "./kiro-thinking";
+import { isCompleteKiroToolInput, kiroTruncationErrorMessage, kiroTruncationReason } from "./kiro-truncation";
 import { estimateKiroInputTokens, finalizeKiroUsage } from "./kiro-usage";
 import { NON_VISION_IMAGE_PLACEHOLDER } from "./vision-guard";
 
@@ -574,7 +575,7 @@ function kiroDebugLog(tag: string, data: unknown): void {
 }
 
 interface ParsedKiroEvent {
-	type: "content" | "tool_start" | "tool_input" | "tool_stop" | "usage" | "context_usage";
+	type: "content" | "tool_start" | "tool_input" | "tool_stop" | "usage" | "context_usage" | "truncation";
 	data?: string;
 	name?: string;
 	toolUseId?: string;
@@ -599,6 +600,11 @@ export function parseKiroPayload(raw: Uint8Array): ParsedKiroEvent | null {
 	} catch {
 		return null;
 	}
+
+	// An explicit truncation signal (finish/stop reason or `truncated` flag) takes priority: the
+	// stream is being cut short, so surface it fail-closed rather than treating the partial as done.
+	const truncationReason = kiroTruncationReason(parsed);
+	if (truncationReason) return { type: "truncation", data: truncationReason };
 
 	if ("content" in parsed && typeof parsed.content === "string") {
 		return { type: "content", data: parsed.content };
@@ -1065,6 +1071,12 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 					case "content": {
 						const text = event.data || "";
 						if (!text) break;
+						// Text arriving while a tool call is still open means the tool never got its stop
+						// frame: the stream was cut mid tool call. Fail closed so the caller can retry
+						// instead of emitting a half-built tool call. (Parity w/ opencodex.)
+						if (currentToolCall) {
+							throw new Error(kiroTruncationErrorMessage("content arrived before tool stop"));
+						}
 						// Split a leading <thinking> block out into reasoning; the rest is visible text.
 						for (const chunk of thinkingParser.feed(text)) pushThinkingChunk(chunk);
 						break;
@@ -1108,6 +1120,12 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 						break;
 					}
 					case "tool_stop": {
+						// A finished tool whose argument buffer is non-empty but not valid JSON was cut
+						// mid-stream. Surface a fail-closed truncation error rather than finalizing a
+						// malformed call (which would later trip CodeWhisperer REQUEST_BODY_INVALID).
+						if (currentToolCall && !isCompleteKiroToolInput(currentToolCall.args)) {
+							throw new Error(kiroTruncationErrorMessage("incomplete tool input JSON"));
+						}
 						finalizeToolCall();
 						break;
 					}
@@ -1116,6 +1134,9 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 							contextUsagePercentage = event.contextUsagePercentage;
 						}
 						break;
+					case "truncation":
+						// Explicit upstream truncation signal (finish/stop reason or `truncated` flag).
+						throw new Error(kiroTruncationErrorMessage(event.data));
 					case "usage":
 						// CW does not report real token counts here; the estimate is finalized on done.
 						break;
@@ -1127,7 +1148,13 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 			for (const chunk of thinkingParser.flush()) pushThinkingChunk(chunk);
 			closeOpenBlock();
 
-			// Finalize a tool call left open at end-of-stream (no trailing stop frame).
+			// A tool call left open at end-of-stream (no trailing stop frame) is only safe to finalize
+			// if its argument buffer is complete JSON. A non-empty but unparseable buffer means the
+			// stream ended mid tool call: fail closed so the caller retries rather than shipping a
+			// malformed call. (Parity w/ opencodex; jawcode previously fail-open finalized as {_raw}.)
+			if (currentToolCall && !isCompleteKiroToolInput(currentToolCall.args)) {
+				throw new Error(kiroTruncationErrorMessage("stream ended before tool stop"));
+			}
 			finalizeToolCall();
 
 			// CodeWhisperer reports no usage; fill a heuristic estimate so the cost line and any

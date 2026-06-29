@@ -166,3 +166,53 @@ describe("streamKiro — estimated usage", () => {
 		expect(final?.usage.estimated).toBe(true);
 	});
 });
+
+describe("streamKiro — truncation fail-closed", () => {
+	async function collectErrorMessage(): Promise<string | undefined> {
+		const stream = streamKiro(model, ctx, { accessToken: "tok", profileArn: "arn", region: "us-east-1" });
+		let err: string | undefined;
+		for await (const ev of stream) {
+			if (ev.type === "error") err = ev.error.errorMessage;
+		}
+		return err;
+	}
+
+	test("incomplete tool-input JSON at tool_stop fails closed", async () => {
+		queuedFrames = [
+			encodeEventFrame({ name: "bash", toolUseId: "t1" }),
+			encodeEventFrame({ input: '{"command":"ec', name: "bash", toolUseId: "t1" }),
+			encodeEventFrame({ name: "bash", stop: true, toolUseId: "t1" }),
+		];
+		const err = await collectErrorMessage();
+		expect(err).toContain("truncated upstream");
+		expect(err).toContain("incomplete tool input JSON");
+	});
+
+	test("stream ending mid tool-call JSON (no stop) fails closed", async () => {
+		queuedFrames = [
+			encodeEventFrame({ name: "bash", toolUseId: "t1" }),
+			encodeEventFrame({ input: '{"command":"ec', name: "bash", toolUseId: "t1" }),
+			// stream ends with no stop frame and incomplete JSON
+		];
+		const err = await collectErrorMessage();
+		expect(err).toContain("stream ended before tool stop");
+	});
+
+	test("content arriving before a tool stop fails closed", async () => {
+		queuedFrames = [
+			encodeEventFrame({ name: "bash", toolUseId: "t1" }),
+			encodeEventFrame({ input: '{"command":"x"}', name: "bash", toolUseId: "t1" }),
+			// content arrives while the tool is still open (no stop yet)
+			encodeEventFrame({ content: "surprise text" }),
+		];
+		const err = await collectErrorMessage();
+		expect(err).toContain("content arrived before tool stop");
+	});
+
+	test("an explicit truncation finish reason fails closed", async () => {
+		queuedFrames = [encodeEventFrame({ content: "partial" }), encodeEventFrame({ finishReason: "length" })];
+		const err = await collectErrorMessage();
+		expect(err).toContain("truncated upstream");
+		expect(err).toContain("(length)");
+	});
+});

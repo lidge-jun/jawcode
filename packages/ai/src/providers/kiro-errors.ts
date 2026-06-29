@@ -26,7 +26,7 @@ const SECRET_VALUE_PATTERNS: Array<[RegExp, string]> = [
 	[/\b(arn:aws:[A-Za-z0-9_-]+:[A-Za-z0-9-]*:\d{12}:[A-Za-z0-9_/:+=,.@-]+)\b/g, REDACTED_SECRET],
 ];
 
-function redactSecretString(value: string): string {
+export function redactSecretString(value: string): string {
 	let redacted = value;
 	for (const [pattern, replacement] of SECRET_VALUE_PATTERNS) {
 		redacted = redacted.replace(pattern, replacement);
