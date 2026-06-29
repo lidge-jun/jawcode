@@ -94,7 +94,7 @@
 | 055 | [10.055_gjc_chase_codex_replay_stability.md](./_fin/10/10.055_gjc_chase_codex_replay_stability.md) | Codex/AI replay stability + sanitization (split←053) | **P1** | ✅ **_fin** [10.055](./_fin/10/10.055_gjc_chase_codex_replay_stability.md) 260629 |
 | 056 | [10.056_gjc_chase_terminal_bell_notifications.md](./10.056_gjc_chase_terminal_bell_notifications.md) | terminal bell + completion hook (split←053) | P3 | ⬜ |
 | 057 | [10.057_gjc_chase_windows_hardening.md](./10.057_gjc_chase_windows_hardening.md) | Windows hardening: shims·workers·psmux (split←053) | P3 | ⬜ |
-| 058 | [10.058_gjc_chase_status_line_misc_tooling.md](./10.058_gjc_chase_status_line_misc_tooling.md) | status line + misc tooling (split←053) | P3 | ⬜ |
+| 058 | [10.058_gjc_chase_status_line_misc_tooling.md](./_fin/10/10.058_gjc_chase_status_line_misc_tooling.md) | status line + misc tooling (split←053) | P3 | ✅ **_fin** [10.058](./_fin/10/10.058_gjc_chase_status_line_misc_tooling.md) 260629 (web-search timeout import `2401b6a`; memory GC defer; 5 polish out-of-scope) |
 
 ## 완료
 
