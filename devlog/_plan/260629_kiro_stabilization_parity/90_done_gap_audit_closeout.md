@@ -17,6 +17,16 @@ tests. Every phase was committed independently with a devlog record.
 | B6 | Codex MCP-call parity — verified N/A (no web-search sidecar; names verbatim) | fb00718 |
 | B7 | aws-eventstream frame/header bounds + catalog #404/#489 (dangling work landed) | 6801723, c8a65f4 |
 
+## PABCD check fixes (gpt-5.5 reviewers)
+
+- B3 stale `tool_stop`: a delayed stop for an already-finalized tool could finalize/validate a
+  different open tool in parallel streams. Fixed to ignore a stop whose `toolUseId` != the open
+  tool. (commit b80c2ea)
+- B1 SoT drift: opencodex HEAD reverted the "skip thinking when tools advertised" rule (b496629 →
+  b19d4a0). Re-aligned to HEAD — injection is skipped only for `toolResults` / `"(continue)"` /
+  fallback carriers, not on tool advertisement. (commit 719cd3e)
+- Final gpt-5.5 re-verification of both fixes: GO.
+
 ## Verification
 
 - Full `packages/ai` suite: 1376 pass, 0 fail, 337 skip (the 3 previously-noted #404/#489 failures
