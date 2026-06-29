@@ -348,17 +348,15 @@ function injectKiroThinkingTags(content: string, options?: BuildPayloadOptions):
 /**
  * Decide whether the synthetic <thinking_mode> prompt should ride on the current user turn.
  *
- * Parity with opencodex `shouldInjectKiroThinkingTags` (commit b496629 "skip fake thinking in tool
- * mode"). The synthetic prompt is only appropriate for a real free-form user turn:
- *   - turns carrying toolResults must answer the tool, not be told to re-think;
- *   - when tools are advertised the synthetic prompt can keep Kiro silent before the first
- *     tool/exec event (it waits for a thinking block that never comes);
- *   - the empty "(continue)" placeholder turn has no user intent to think about.
- * Natural leading <thinking> blocks the model emits are still parsed back by KiroThinkingParser.
+ * Parity with opencodex HEAD (`0254b66`). opencodex briefly skipped injection whenever tools were
+ * advertised (commit b496629) but reverted that with the rest of the unstable reasoning-summary work
+ * (commit b19d4a0). The current SoT condition injects on any user turn EXCEPT when it carries
+ * toolResults (the model must answer the tool, not re-think), is the empty "(continue)" placeholder,
+ * or is a fallback-prose carrier (handled at the call site via fallbackEntries). Natural leading
+ * <thinking> blocks the model emits are still parsed back by KiroThinkingParser.
  */
-function shouldInjectKiroThinkingTags(uim: KiroUserInputMessage, toolsAdvertised: boolean): boolean {
+function shouldInjectKiroThinkingTags(uim: KiroUserInputMessage): boolean {
 	if (uim.userInputMessageContext?.toolResults?.length) return false;
-	if (toolsAdvertised) return false;
 	if (uim.content === "(continue)") return false;
 	return true;
 }
@@ -569,13 +567,13 @@ export function buildPayload(
 		}
 	}
 
-	// Synthetic <thinking_mode> tags are injected only on a genuine free-form user turn. They are
-	// skipped when (a) the turn carries toolResults (the model must answer the tool, not re-think),
-	// (b) tools are being advertised (the synthetic prompt can keep Kiro silent before the first
-	// tool/exec event), or (c) the turn is the empty "(continue)" placeholder. Natural leading
-	// <thinking> blocks emitted by the model are still routed by KiroThinkingParser on the way back.
-	// Parity with opencodex `shouldInjectKiroThinkingTags` (commit b496629).
-	if (!fallbackEntries.has(currentEntry) && shouldInjectKiroThinkingTags(currentUim, kiroTools.length > 0)) {
+	// Synthetic <thinking_mode> tags are injected on a genuine user turn, but skipped when the turn
+	// carries toolResults (the model must answer the tool, not re-think), is the empty "(continue)"
+	// placeholder, or is a fallback-prose carrier. Parity with opencodex HEAD (0254b66): an earlier
+	// "skip when tools advertised" rule (b496629) was reverted (b19d4a0), so tool advertisement no
+	// longer suppresses injection. Natural leading <thinking> blocks are still routed back by
+	// KiroThinkingParser.
+	if (!fallbackEntries.has(currentEntry) && shouldInjectKiroThinkingTags(currentUim)) {
 		currentUim.content = injectKiroThinkingTags(currentUim.content, options);
 	}
 

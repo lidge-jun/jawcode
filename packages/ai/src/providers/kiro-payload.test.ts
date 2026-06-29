@@ -287,9 +287,10 @@ describe("buildPayload — CodeWhisperer wire contract", () => {
 		expect(current.userInputMessageContext?.toolResults).toHaveLength(1);
 	});
 
-	test("tool-advertised turns skip synthetic thinking tags (no silent-Kiro stall)", () => {
-		// A plain user turn that also advertises tools must NOT get the synthetic <thinking_mode>
-		// prompt: it can keep Kiro silent before the first tool/exec event. Parity w/ opencodex b496629.
+	test("tool-advertised plain user turn still receives synthetic thinking tags (opencodex HEAD)", () => {
+		// opencodex HEAD (0254b66) reverted the brief "skip when tools advertised" rule (b496629 →
+		// b19d4a0), so a genuine free-form user turn gets the synthetic prompt even while tools are
+		// advertised. Only toolResults / "(continue)" / fallback carriers are skipped.
 		const context = {
 			messages: [user("do the thing")],
 			tools: [{ name: "read", description: "d", parameters: { type: "object", properties: {} } }],
@@ -300,7 +301,7 @@ describe("buildPayload — CodeWhisperer wire contract", () => {
 				maxTokens: 8000,
 			}),
 		);
-		expect(current.content).not.toContain("<thinking_mode>");
+		expect(current.content).toContain("<thinking_mode>enabled</thinking_mode>");
 		expect(current.content).toContain("do the thing");
 		expect(current.userInputMessageContext?.tools).toHaveLength(1);
 	});

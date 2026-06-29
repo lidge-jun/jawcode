@@ -1,7 +1,10 @@
 # B1 — Skip synthetic thinking tags in tool / continue mode
 
-SoT: opencodex `src/adapters/kiro.ts` `shouldInjectKiroThinkingTags` (commit b496629
-"fix(kiro): skip fake thinking in tool mode").
+SoT: opencodex `src/adapters/kiro.ts` injection guard. NOTE the SoT moved: commit b496629
+("skip fake thinking in tool mode") added a `shouldInjectKiroThinkingTags` helper that also
+skipped when tools were advertised, but opencodex HEAD (0254b66) reverted that with the rest of
+the unstable reasoning-summary work (commit b19d4a0). This phase was re-aligned to HEAD — see
+the "Revision" note below.
 
 ## Problem
 
@@ -21,11 +24,19 @@ turn carries `toolResults`, not when tools are advertised, and not on `"(continu
 Natural leading `<thinking>` blocks the model emits are unaffected — they are still
 routed to reasoning by `KiroThinkingParser` on the way back.
 
+## Revision (align to opencodex HEAD)
+
+The PABCD check reviewer flagged SoT drift: opencodex HEAD no longer skips on tool advertisement.
+`shouldInjectKiroThinkingTags(uim)` was updated to drop the `toolsAdvertised` condition; it now
+skips only `toolResults` turns and `"(continue)"`, with fallback-prose carriers excluded at the
+call site via `fallbackEntries`. Matches the current SoT inline condition
+`!fallbackEntries.has(currentEntry) && !toolResults && content !== "(continue)"`.
+
 ## Tests (kiro-payload.test.ts)
 
-- tool-advertised plain user turn skips the synthetic tags but keeps the user text;
+- tool-advertised plain user turn STILL receives the synthetic tags (opencodex HEAD behavior);
 - `"(continue)"` placeholder turn skips the synthetic tags;
-- existing free-form xhigh injection + tool-result-carrier skip tests stay green.
+- tool-result carrier turns skip; free-form xhigh injection stays green.
 
 ## Verify
 
