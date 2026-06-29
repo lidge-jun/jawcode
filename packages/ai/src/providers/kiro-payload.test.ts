@@ -45,6 +45,34 @@ const toolResult = (toolCallId: string, text: string, isError = false): ToolResu
 	timestamp: 0,
 });
 
+const PNG_B64 = "aGVsbG8="; // "hello" — stand-in base64 payload
+
+const userWithImage = (text: string, data = PNG_B64, mimeType = "image/png"): Message => ({
+	role: "user",
+	content: [
+		{ type: "text", text },
+		{ type: "image", data, mimeType },
+	],
+	timestamp: 0,
+});
+
+const toolResultWithImage = (
+	toolCallId: string,
+	text: string,
+	data = PNG_B64,
+	mimeType = "image/png",
+): ToolResultMessage => ({
+	role: "toolResult",
+	toolCallId,
+	toolName: "get_app_state",
+	content: [
+		{ type: "text", text },
+		{ type: "image", data, mimeType },
+	],
+	isError: false,
+	timestamp: 0,
+});
+
 const ctx = (messages: Message[]): Context => ({ messages });
 
 // ---------------------------------------------------------------------------
@@ -54,6 +82,7 @@ const ctx = (messages: Message[]): Context => ({ messages });
 interface UIM {
 	content: string;
 	userInputMessageContext?: { toolResults?: Array<{ toolUseId: string }>; tools?: unknown[] };
+	images?: Array<{ format: string; source: { bytes: string } }>;
 }
 interface ARM {
 	content: string;
@@ -198,6 +227,31 @@ describe("buildPayload — CodeWhisperer wire contract", () => {
 		expect(current.content).not.toContain("old");
 	});
 
+	test("current-turn-only keeps the assistant toolUses turn that the current toolResults answer", () => {
+		// Resumed turn whose current message carries tool results: Kiro requires the assistant turn
+		// whose toolUses they answer to stay adjacent, so it must NOT be dropped with the rest.
+		const context: Context = {
+			messages: [
+				user("way old"),
+				assistant("older answer"),
+				user("run a tool"),
+				assistant("", [{ id: "t1", name: "read" }]),
+				toolResult("t1", "tool output"),
+			],
+		};
+		const { history, current } = dissect(
+			buildPayload(context, "claude-sonnet-4.5", "conv-resume-tr", "arn", { currentTurnOnly: true }),
+		);
+		// The far-back "way old"/"older answer" turns are dropped, but the assistant toolUses turn
+		// answered by the current toolResults survives and stays aligned.
+		assertAlternation(history);
+		assertToolAdjacency(history, current);
+		expect(current.userInputMessageContext?.toolResults?.[0]?.toolUseId).toBeDefined();
+		const keptToolUses = history.some(e => e.assistantResponseMessage?.toolUses?.length);
+		expect(keptToolUses).toBe(true);
+		expect(JSON.stringify(history)).not.toContain("older answer");
+	});
+
 	test("xhigh injects max-equivalent thinking tags into the current user message only", () => {
 		const { current } = dissect(
 			buildPayload(ctx([user("think hard")]), "claude-sonnet-4.5", "conv-thinking", "arn", {
@@ -236,6 +290,156 @@ describe("buildPayload — CodeWhisperer wire contract", () => {
 		expect(input).toEqual(args);
 		// Must NOT be a stringified JSON (the REQUEST_BODY_INVALID root cause).
 		expect(typeof input).not.toBe("string");
+	});
+});
+
+describe("buildPayload — tool names + images", () => {
+	test("long tool names are sent verbatim (not truncated to 64 chars)", () => {
+		const longName = `mcp__chrome-devtools__${"x".repeat(80)}`;
+		const tool = { name: longName, description: "d", parameters: { type: "object", properties: {} } };
+		const context = {
+			messages: [user("hi")],
+			tools: [tool],
+		} as unknown as Context;
+		const { current } = dissect(buildPayload(context, "claude-sonnet-4.5", "conv-toolname", "arn"));
+		const tools = current.userInputMessageContext?.tools as Array<{ toolSpecification: { name: string } }>;
+		expect(longName.length).toBeGreaterThan(64);
+		expect(tools[0].toolSpecification.name).toBe(longName);
+	});
+
+	test("tool input schemas are sanitized for Bedrock (type:object, no oneOf/allOf/anyOf at root)", () => {
+		const schemaOf = (parameters: unknown) => {
+			const context = {
+				messages: [user("hi")],
+				tools: [{ name: "t", description: "d", parameters }],
+			} as unknown as Context;
+			const { current } = dissect(buildPayload(context, "claude-sonnet-4.5", "conv-schema", "arn"));
+			const tools = current.userInputMessageContext?.tools as Array<{
+				toolSpecification: { inputSchema: { json: Record<string, unknown> } };
+			}>;
+			return tools[0].toolSpecification.inputSchema.json;
+		};
+
+		// Empty parameters still surface a root type:"object" (Bedrock rejects a missing root type).
+		expect(schemaOf({}).type).toBe("object");
+
+		// additionalProperties and empty required[] are stripped recursively.
+		const cleaned = schemaOf({
+			type: "object",
+			required: [],
+			additionalProperties: false,
+			properties: { opts: { type: "object", additionalProperties: false, properties: { m: { type: "string" } } } },
+		});
+		expect(cleaned.additionalProperties).toBeUndefined();
+		expect(cleaned.required).toBeUndefined();
+		expect(
+			(cleaned.properties as Record<string, { additionalProperties?: unknown }>).opts.additionalProperties,
+		).toBeUndefined();
+
+		// Root anyOf is flattened to a single object schema, merging variant properties.
+		const flattened = schemaOf({
+			anyOf: [
+				{ type: "object", properties: { a: { type: "string" } }, required: ["a"] },
+				{ type: "object", properties: { b: { type: "number" } } },
+			],
+		});
+		expect(flattened.anyOf).toBeUndefined();
+		expect(flattened.oneOf).toBeUndefined();
+		expect(flattened.allOf).toBeUndefined();
+		expect(flattened.type).toBe("object");
+		expect(flattened.properties).toEqual({ a: { type: "string" }, b: { type: "number" } });
+
+		// Root allOf unions required across variants (AND semantics).
+		const allOf = schemaOf({
+			allOf: [
+				{ type: "object", properties: { a: { type: "string" } }, required: ["a"] },
+				{ type: "object", properties: { b: { type: "string" } }, required: ["b"] },
+			],
+		});
+		expect(allOf.allOf).toBeUndefined();
+		expect(allOf.type).toBe("object");
+		expect(allOf.required).toEqual(expect.arrayContaining(["a", "b"]));
+
+		// Root direct properties + sibling oneOf: keep root fields, merge variant (no data loss).
+		const rootPlusOneOf = schemaOf({
+			type: "object",
+			properties: { keep: { type: "string" } },
+			required: ["keep"],
+			oneOf: [{ properties: { a: { type: "string" } } }],
+		});
+		expect(rootPlusOneOf.oneOf).toBeUndefined();
+		expect(rootPlusOneOf.properties).toEqual({ keep: { type: "string" }, a: { type: "string" } });
+		expect(rootPlusOneOf.required).toEqual(["keep"]);
+
+		// oneOf AND allOf coexisting at root: both flattened, not just the first.
+		const both = schemaOf({
+			oneOf: [{ properties: { a: { type: "string" } } }],
+			allOf: [{ properties: { b: { type: "string" } }, required: ["b"] }],
+		});
+		expect(both.oneOf).toBeUndefined();
+		expect(both.allOf).toBeUndefined();
+		expect(both.properties).toEqual({ a: { type: "string" }, b: { type: "string" } });
+		expect(both.required).toEqual(["b"]);
+	});
+
+	test("long tool descriptions move into the system prompt instead of being truncated", () => {
+		const longDescription = `Long docs ${"x".repeat(1100)} keep this tail.`;
+		const context = {
+			messages: [user("hi")],
+			tools: [{ name: "longtool", description: longDescription, parameters: { type: "object" } }],
+		} as unknown as Context;
+		const { current } = dissect(buildPayload(context, "claude-sonnet-4.5", "conv-longdesc", "arn"));
+		const tools = current.userInputMessageContext?.tools as Array<{ toolSpecification: { description: string } }>;
+		// The toolSpecification carries only a short pointer (well under the 1024 limit).
+		expect(tools[0].toolSpecification.description).toBe("Tool documentation moved to the system prompt: longtool.");
+		// The full description survives in the system prefix prepended to the current message.
+		expect(current.content).toContain("### Tool documentation: longtool");
+		expect(current.content).toContain("keep this tail.");
+	});
+
+	test("user-message images ride on userInputMessage.images as CodeWhisperer bytes", () => {
+		const { current } = dissect(
+			buildPayload(ctx([userWithImage("look at this")]), "claude-sonnet-4.5", "conv-img", "arn"),
+		);
+		expect(current.content).toBe("look at this");
+		expect(current.images).toEqual([{ format: "png", source: { bytes: PNG_B64 } }]);
+	});
+
+	test("image/jpg mime is normalized to the CodeWhisperer 'jpeg' format", () => {
+		const { current } = dissect(
+			buildPayload(ctx([userWithImage("shot", PNG_B64, "image/jpg")]), "claude-sonnet-4.5", "conv-jpg", "arn"),
+		);
+		expect(current.images).toEqual([{ format: "jpeg", source: { bytes: PNG_B64 } }]);
+	});
+
+	test("tool-result screenshots ride on the carrier userInputMessage.images", () => {
+		const messages: Message[] = [
+			user("open chrome"),
+			assistant("", [{ id: "t1", name: "get_app_state" }]),
+			toolResultWithImage("t1", "Looked at Google Chrome"),
+		];
+		const { current } = dissect(buildPayload(ctx(messages), "claude-sonnet-4.5", "conv-tool-img", "arn"));
+		expect(current.userInputMessageContext?.toolResults?.[0]?.toolUseId).toBeDefined();
+		expect(current.images).toEqual([{ format: "png", source: { bytes: PNG_B64 } }]);
+	});
+
+	test("vision-incapable models drop image bytes and append a placeholder", () => {
+		const { current } = dissect(
+			buildPayload(ctx([userWithImage("look")]), "glm-5", "conv-novision", "arn", { supportsImages: false }),
+		);
+		expect(current.images).toBeUndefined();
+		expect(current.content).toContain("look");
+		expect(current.content).toContain("[image omitted");
+	});
+
+	test("real text-only Kiro models resolve to supportsImages:false (gate matches catalog)", () => {
+		// streamKiro derives the gate from `model.input.includes("image")`; confirm the bundled
+		// catalog actually marks these as text-only so the placeholder path is reachable in practice.
+		for (const id of ["glm-5", "minimax-m2.5", "qwen3-coder-next"]) {
+			expect(getBundledModel("kiro", id).input.includes("image")).toBe(false);
+		}
+		// And a vision model stays enabled.
+		expect(getBundledModel("kiro", "claude-sonnet-4.5").input.includes("image")).toBe(true);
 	});
 });
 

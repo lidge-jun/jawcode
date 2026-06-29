@@ -15,6 +15,7 @@ import type { Effort } from "../model-thinking";
 import type {
 	AssistantMessage,
 	Context,
+	ImageContent,
 	Model,
 	ProviderSessionState,
 	StreamFunction,
@@ -31,6 +32,9 @@ import { withHttpStatus } from "../utils/http-inspector";
 import { resolveRetryBudget } from "../utils/retry-budget";
 import { toolWireSchema } from "../utils/schema/wire";
 import { decodeEventStream } from "./aws-eventstream";
+import { safeKiroErrorMessage, safeKiroHttpErrorMessage } from "./kiro-errors";
+import { KiroThinkingParser } from "./kiro-thinking";
+import { NON_VISION_IMAGE_PLACEHOLDER } from "./vision-guard";
 
 // ---------------------------------------------------------------------------
 // Options
@@ -118,14 +122,102 @@ interface KiroToolSpec {
 	};
 }
 
-function convertTools(tools: Tool[]): KiroToolSpec[] {
-	return tools.map(t => ({
-		toolSpecification: {
-			name: t.name.slice(0, 64),
-			description: (t.description || `Tool: ${t.name}`).slice(0, 1024),
-			inputSchema: { json: toolWireSchema(t) as Record<string, unknown> },
-		},
-	}));
+// Strip JSON-Schema fields CodeWhisperer/Bedrock rejects (additionalProperties, empty required[]).
+// Recurses so nested object schemas are cleaned too.
+function sanitizeKiroSchema(value: unknown): unknown {
+	if (Array.isArray(value)) return value.map(sanitizeKiroSchema);
+	if (!value || typeof value !== "object") return value;
+	const out: Record<string, unknown> = {};
+	for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+		if (key === "additionalProperties") continue;
+		if (key === "required" && Array.isArray(child) && child.length === 0) continue;
+		out[key] = sanitizeKiroSchema(child);
+	}
+	return out;
+}
+
+// Bedrock requires `inputSchema.json.type` to be "object" and rejects oneOf/allOf/anyOf at the top
+// level ("input_schema does not support oneOf, allOf, or anyOf at the top level"). Flatten any root
+// composition into a single object schema by merging variant properties. Required is unioned only
+// for allOf (AND semantics); anyOf/oneOf (OR) leave it off so a valid single-branch call passes.
+function ensureRootObjectType(schema: unknown): Record<string, unknown> {
+	const obj =
+		schema && typeof schema === "object" && !Array.isArray(schema) ? (schema as Record<string, unknown>) : {};
+	const COMPOSITION_KEYS = ["oneOf", "anyOf", "allOf"] as const;
+	const hasComposition = COMPOSITION_KEYS.some(k => Array.isArray(obj[k]));
+	const t = obj.type;
+	if (!hasComposition) {
+		if (t === "object") return obj;
+		return { ...obj, type: "object" };
+	}
+
+	const props: Record<string, unknown> = {};
+	const required = new Set<string>();
+	// Seed with the root's own properties/required so a schema like
+	// { type:"object", properties:{path}, required:["path"], oneOf:[...] } keeps them.
+	if (obj.properties && typeof obj.properties === "object") {
+		Object.assign(props, sanitizeKiroSchema(obj.properties) as Record<string, unknown>);
+	}
+	if (Array.isArray(obj.required)) {
+		for (const r of obj.required) if (typeof r === "string") required.add(r);
+	}
+	for (const key of COMPOSITION_KEYS) {
+		const variants = obj[key];
+		if (!Array.isArray(variants)) continue;
+		// allOf is conjunction: its required always applies. oneOf/anyOf are disjunction, so
+		// promoting their required would over-constrain a valid single-branch call.
+		const mergeRequired = key === "allOf";
+		for (const variant of variants) {
+			if (!variant || typeof variant !== "object" || Array.isArray(variant)) continue;
+			const v = variant as Record<string, unknown>;
+			if (v.properties && typeof v.properties === "object") {
+				Object.assign(props, sanitizeKiroSchema(v.properties) as Record<string, unknown>);
+			}
+			if (mergeRequired && Array.isArray(v.required)) {
+				for (const r of v.required) if (typeof r === "string") required.add(r);
+			}
+		}
+	}
+
+	// Keep non-composition sibling keys (description, $defs, definitions, etc.); replace
+	// type/properties/required with the flattened object form.
+	const merged: Record<string, unknown> = {};
+	for (const [key, child] of Object.entries(obj)) {
+		if (key === "oneOf" || key === "anyOf" || key === "allOf") continue;
+		if (key === "type" || key === "properties" || key === "required") continue;
+		merged[key] = child;
+	}
+	merged.type = "object";
+	if (Object.keys(props).length > 0) merged.properties = props;
+	if (required.size > 0) merged.required = [...required];
+	return merged;
+}
+
+const MAX_KIRO_TOOL_DESCRIPTION = 1024;
+
+// Convert tools to CodeWhisperer toolSpecifications. A description longer than the Kiro limit is NOT
+// hard-truncated (that silently drops guidance the model needs); instead it is moved verbatim into
+// the system prompt and replaced with a short pointer, matching the opencodex adapter.
+function convertTools(tools: Tool[]): { specs: KiroToolSpec[]; systemAdditions: string[] } {
+	const systemAdditions: string[] = [];
+	const specs = tools.map(t => {
+		const description = t.description || `Tool: ${t.name}`;
+		const overLimit = description.length > MAX_KIRO_TOOL_DESCRIPTION;
+		if (overLimit) {
+			systemAdditions.push([`### Tool documentation: ${t.name}`, description].join("\n"));
+		}
+		return {
+			toolSpecification: {
+				// Tool names are sent verbatim. CodeWhisperer accepts the full name, and
+				// truncating to 64 chars silently breaks long MCP / Computer Use tool names
+				// (the model echoes a name the harness can no longer match to a tool).
+				name: t.name,
+				description: overLimit ? `Tool documentation moved to the system prompt: ${t.name}.` : description,
+				inputSchema: { json: ensureRootObjectType(sanitizeKiroSchema(toolWireSchema(t))) },
+			},
+		};
+	});
+	return { specs, systemAdditions };
 }
 
 interface KiroToolUse {
@@ -143,6 +235,36 @@ interface KiroToolResult {
 	toolUseId: string;
 }
 
+// CodeWhisperer native image part (matches the Kiro IDE wire format): the base64 bytes live directly
+// on `userInputMessage.images`, NOT inside `userInputMessageContext`. Verified against kiro-gateway.
+interface KiroImage {
+	format: string; // "jpeg" | "png" | "webp" | "gif" — the media subtype
+	source: { bytes: string }; // pure base64, no "data:...;base64," prefix
+}
+
+// jawcode normalizes images to base64 `data` + `mimeType`, so (unlike a data URL) the bytes are
+// already inline. We only derive the CodeWhisperer `format` from the mime subtype.
+function toKiroImage(image: ImageContent): KiroImage | undefined {
+	if (!image.data) return undefined;
+	// Strip any media-type parameters (e.g. "image/png; charset=...") before taking the subtype.
+	const baseType = (image.mimeType ?? "").split(";")[0];
+	const subtype = baseType.includes("/") ? baseType.split("/")[1] : baseType;
+	const normalized = (subtype || "jpeg").toLowerCase();
+	// CodeWhisperer/Bedrock expects "jpeg", not the "jpg" alias.
+	const format = normalized === "jpg" ? "jpeg" : normalized;
+	return { format, source: { bytes: image.data } };
+}
+
+function extractKiroImages(content: ReadonlyArray<TextContent | ImageContent>): KiroImage[] {
+	const out: KiroImage[] = [];
+	for (const part of content) {
+		if (part.type !== "image") continue;
+		const img = toKiroImage(part);
+		if (img) out.push(img);
+	}
+	return out;
+}
+
 interface KiroUserInputMessageContext {
 	tools?: KiroToolSpec[];
 	toolResults?: KiroToolResult[];
@@ -153,6 +275,7 @@ interface KiroUserInputMessage {
 	modelId?: string;
 	origin?: string;
 	userInputMessageContext?: KiroUserInputMessageContext;
+	images?: KiroImage[];
 }
 
 interface KiroHistoryEntry {
@@ -164,6 +287,9 @@ interface BuildPayloadOptions {
 	currentTurnOnly?: boolean;
 	reasoning?: Effort;
 	maxTokens?: number;
+	// Whether the target model accepts image input. When false, images are dropped from the wire and
+	// a short placeholder is appended so the model still knows an image was present.
+	supportsImages?: boolean;
 }
 
 const KIRO_THINKING_RATIO: Record<Effort, number> = {
@@ -223,21 +349,34 @@ export function buildPayload(
 	profileArn: string,
 	options?: BuildPayloadOptions,
 ): Record<string, unknown> {
-	const kiroTools = context.tools ? convertTools(context.tools) : [];
+	const { specs: kiroTools, systemAdditions } = context.tools
+		? convertTools(context.tools)
+		: { specs: [] as KiroToolSpec[], systemAdditions: [] as string[] };
 
-	// `systemPrompt` is a string[]; join with blank lines instead of relying on
-	// Array.toString() (which would comma-join multiple system prompts).
-	let systemPrefix = "";
-	if (context.systemPrompt?.length) {
-		systemPrefix = `${context.systemPrompt.join("\n\n")}\n\n`;
-	}
+	// `systemPrompt` is a string[]; join with blank lines instead of relying on Array.toString()
+	// (which would comma-join multiple system prompts). The base system prompt is dropped on resumed
+	// (currentTurnOnly) turns, but tool-description additions must always ride along — the tools are
+	// re-advertised every turn, so their moved-out docs have to travel with them.
+	const baseSystem =
+		!options?.currentTurnOnly && context.systemPrompt?.length ? context.systemPrompt.join("\n\n") : "";
+	const systemParts: string[] = [];
+	if (baseSystem) systemParts.push(baseSystem);
+	if (systemAdditions.length > 0) systemParts.push(...systemAdditions);
+	const systemPrefix = systemParts.length > 0 ? `${systemParts.join("\n\n")}\n\n` : "";
 
-	const mkUser = (content: string): KiroHistoryEntry => ({
-		userInputMessage: { content, modelId, origin: "AI_EDITOR" },
+	const supportsImages = options?.supportsImages !== false;
+	const mkUser = (content: string, images?: KiroImage[]): KiroHistoryEntry => ({
+		userInputMessage: {
+			content,
+			modelId,
+			origin: "AI_EDITOR",
+			...(images && images.length > 0 ? { images } : {}),
+		},
 	});
 
 	const history: KiroHistoryEntry[] = [];
 	let pending: KiroToolResult[] = [];
+	let pendingImages: KiroImage[] = [];
 	let lastRole = "";
 
 	// Attach buffered tool results (from the preceding assistant turn) to a user entry.
@@ -245,18 +384,32 @@ export function buildPayload(
 		if (pending.length === 0) return;
 		const uim = entry.userInputMessage!;
 		uim.userInputMessageContext = { ...(uim.userInputMessageContext ?? {}), toolResults: pending };
+		// CodeWhisperer cannot embed images inside a toolResult, but it does accept sibling images on
+		// the same userInputMessage, so tool-result screenshots ride along here instead of being lost.
+		if (pendingImages.length > 0) uim.images = [...(uim.images ?? []), ...pendingImages];
 		pending = [];
+		pendingImages = [];
 	};
 
 	for (const msg of context.messages) {
 		if (msg.role === "user" || msg.role === "developer") {
-			const text = typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content);
+			let text: string;
+			let images: KiroImage[] = [];
+			if (typeof msg.content === "string") {
+				text = msg.content;
+			} else {
+				const textParts = msg.content.filter((c): c is TextContent => c.type === "text").map(c => c.text);
+				images = supportsImages ? extractKiroImages(msg.content) : [];
+				const omittedImages = !supportsImages && msg.content.some(c => c.type === "image");
+				text = textParts.join("\n");
+				if (omittedImages) text = [text, NON_VISION_IMAGE_PLACEHOLDER].filter(Boolean).join("\n");
+			}
 			// Only insert a synthetic assistant turn for two genuinely consecutive
 			// user messages — never when this user turn is carrying tool results.
 			if (pending.length === 0 && lastRole === "user") {
 				history.push({ assistantResponseMessage: { content: "(acknowledged)" } });
 			}
-			const entry = mkUser(text);
+			const entry = mkUser(text, images);
 			attachPending(entry);
 			history.push(entry);
 			lastRole = "user";
@@ -289,11 +442,16 @@ export function buildPayload(
 		} else if (msg.role === "toolResult") {
 			const trMsg = msg as ToolResultMessage;
 			const parts = trMsg.content.map(c => (c.type === "text" ? c.text : "")).filter(Boolean);
+			const images = supportsImages ? extractKiroImages(trMsg.content) : [];
+			const omittedImages = !supportsImages && trMsg.content.some(c => c.type === "image");
+			let resultText = parts.join("\n");
+			if (omittedImages) resultText = [resultText, NON_VISION_IMAGE_PLACEHOLDER].filter(Boolean).join("\n");
 			pending.push({
-				content: [{ text: parts.join("\n") || "(empty)" }],
+				content: [{ text: resultText || "(empty)" }],
 				status: trMsg.isError ? "error" : "success",
 				toolUseId: normalizeToolCallId(trMsg.toolCallId),
 			});
+			if (images.length > 0) pendingImages.push(...images);
 		}
 	}
 
@@ -310,11 +468,31 @@ export function buildPayload(
 	}
 	const currentUim = currentEntry.userInputMessage!;
 	if (options?.currentTurnOnly) {
-		history.length = 0;
+		// Resumed turn: drop repeated history. But if the current message carries toolResults, Kiro
+		// requires the assistant turn whose toolUses they answer to remain adjacent — dropping it
+		// orphans the results and triggers a CodeWhisperer 400. Keep that one assistant turn (and a
+		// leading user turn if present so history still starts on a user role).
+		const currentHasToolResults = Boolean(currentUim.userInputMessageContext?.toolResults?.length);
+		if (currentHasToolResults && history.length > 0) {
+			let start = history.length - 1;
+			while (start >= 0 && !history[start].assistantResponseMessage?.toolUses?.length) start -= 1;
+			if (start >= 0) {
+				// Include a user turn immediately before the assistant turn so the kept history slice
+				// still alternates user/assistant from the start.
+				if (start > 0 && history[start - 1].userInputMessage) start -= 1;
+				history.splice(0, start);
+			} else {
+				history.length = 0;
+			}
+		} else {
+			history.length = 0;
+		}
 	}
 
-	// Prepend the system prompt to the earliest user turn (history first, else current).
-	if (systemPrefix && !options?.currentTurnOnly) {
+	// Prepend the system prefix (base prompt + moved tool docs) to the earliest user turn. On
+	// currentTurnOnly turns history is already empty, so it lands on the current message; baseSystem
+	// is excluded from systemPrefix in that case but tool-doc additions still travel.
+	if (systemPrefix) {
 		const firstUser = history.find(e => e.userInputMessage)?.userInputMessage;
 		if (firstUser) {
 			firstUser.content = systemPrefix + firstUser.content;
@@ -704,6 +882,7 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 				currentTurnOnly,
 				reasoning: model.reasoning ? opts.reasoning : undefined,
 				maxTokens: opts.maxTokens,
+				supportsImages: model.input.includes("image"),
 			});
 			const headers = buildHeaders(token, spoofVersion, profileArn);
 			const body = new TextEncoder().encode(JSON.stringify(payload));
@@ -738,7 +917,11 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 			}
 			if (!response.ok) {
 				const errBody = await response.text().catch(() => "");
-				throw withHttpStatus(new Error(`Kiro HTTP ${response.status}: ${errBody.slice(0, 1000)}`), response.status);
+				// Classify + redact (tokens / ARNs / local paths) before surfacing.
+				throw withHttpStatus(
+					new Error(safeKiroHttpErrorMessage(response.status, response.headers, errBody)),
+					response.status,
+				);
 			}
 			if (!response.body) throw new Error("Kiro response has no body");
 
@@ -748,107 +931,60 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 			}
 			let currentToolCall: { id: string; name: string; args: string } | null = null;
 			let contentIndex = 0;
+			const thinkingParser = new KiroThinkingParser();
+			// Track the kind of the currently open content block so consecutive same-kind chunks append.
+			let openBlock: "text" | "thinking" | null = null;
 
-			for await (const message of decodeEventStream(response.body)) {
-				const messageType = message.headers[":message-type"];
-				if (messageType === "exception" || messageType === "error") {
-					const errText = new TextDecoder().decode(message.payload);
-					throw new Error(`Kiro stream error: ${errText.slice(0, 500)}`);
+			const closeOpenBlock = (): void => {
+				if (!openBlock) return;
+				const block = output.content[output.content.length - 1];
+				if (block && block.type === openBlock) {
+					const content = block.type === "thinking" ? block.thinking : block.text;
+					stream.push({
+						type: openBlock === "thinking" ? "thinking_end" : "text_end",
+						contentIndex: contentIndex - 1,
+						content,
+						partial: output,
+					} as never);
 				}
-				if (messageType !== "event") continue;
+				openBlock = null;
+			};
 
-				if (kiroDebugPath()) {
-					kiroDebugLog("event.raw", new TextDecoder().decode(message.payload));
+			const pushThinkingChunk = (chunk: { kind: "thinking" | "text"; text: string }): void => {
+				if (!chunk.text) return;
+				if (!firstTokenTime) firstTokenTime = Date.now();
+				if (openBlock && openBlock !== chunk.kind) closeOpenBlock();
+				const last = output.content[output.content.length - 1];
+				if (openBlock === chunk.kind && last && last.type === chunk.kind) {
+					if (last.type === "thinking") last.thinking += chunk.text;
+					else last.text += chunk.text;
+					stream.push({
+						type: chunk.kind === "thinking" ? "thinking_delta" : "text_delta",
+						contentIndex: contentIndex - 1,
+						delta: chunk.text,
+						partial: output,
+					} as never);
+					return;
 				}
-				const event = parseKiroPayload(message.payload);
-				if (!event) continue;
-				kiroDebugLog("event.parsed", event);
-
-				switch (event.type) {
-					case "content": {
-						if (!firstTokenTime) firstTokenTime = Date.now();
-						const text = event.data || "";
-						if (!text) break;
-						const lastBlock = output.content[output.content.length - 1];
-						if (lastBlock && lastBlock.type === "text") {
-							lastBlock.text += text;
-							stream.push({ type: "text_delta", contentIndex: contentIndex - 1, delta: text, partial: output });
-						} else {
-							contentIndex = output.content.length;
-							output.content.push({ type: "text", text });
-							stream.push({ type: "text_start", contentIndex, partial: output });
-							stream.push({ type: "text_delta", contentIndex, delta: text, partial: output });
-							contentIndex++;
-						}
-						break;
-					}
-					case "tool_start": {
-						if (!firstTokenTime) firstTokenTime = Date.now();
-						// End any open text block
-						const prevBlock = output.content[output.content.length - 1];
-						if (prevBlock && prevBlock.type === "text") {
-							stream.push({
-								type: "text_end",
-								contentIndex: contentIndex - 1,
-								content: prevBlock.text,
-								partial: output,
-							});
-						}
-						currentToolCall = {
-							id: event.toolUseId || `toolu_${randomUUID().slice(0, 8)}`,
-							name: event.name || "unknown",
-							args: event.input || "",
-						};
-						break;
-					}
-					case "tool_input": {
-						if (currentToolCall) {
-							currentToolCall.args += event.input || "";
-						}
-						break;
-					}
-					case "tool_stop": {
-						if (currentToolCall) {
-							let parsedArgs: Record<string, unknown> = {};
-							try {
-								parsedArgs = JSON.parse(currentToolCall.args || "{}");
-							} catch {
-								parsedArgs = { _raw: currentToolCall.args };
-							}
-							const tc: ToolCall = {
-								type: "toolCall",
-								id: currentToolCall.id,
-								name: currentToolCall.name,
-								arguments: parsedArgs,
-							};
-							const tcIndex = output.content.length;
-							output.content.push(tc);
-							stream.push({ type: "toolcall_start", contentIndex: tcIndex, partial: output });
-							stream.push({ type: "toolcall_end", contentIndex: tcIndex, toolCall: tc, partial: output });
-							contentIndex = tcIndex + 1;
-							output.stopReason = "toolUse";
-							currentToolCall = null;
-						}
-						break;
-					}
-					case "usage":
-						break;
+				contentIndex = output.content.length;
+				if (chunk.kind === "thinking") {
+					output.content.push({ type: "thinking", thinking: chunk.text });
+					stream.push({ type: "thinking_start", contentIndex, partial: output });
+					stream.push({ type: "thinking_delta", contentIndex, delta: chunk.text, partial: output });
+				} else {
+					output.content.push({ type: "text", text: chunk.text });
+					stream.push({ type: "text_start", contentIndex, partial: output });
+					stream.push({ type: "text_delta", contentIndex, delta: chunk.text, partial: output });
 				}
-			}
+				openBlock = chunk.kind;
+				contentIndex++;
+			};
 
-			// Finalize open text block
-			const finalBlock = output.content[output.content.length - 1];
-			if (finalBlock && finalBlock.type === "text") {
-				stream.push({
-					type: "text_end",
-					contentIndex: contentIndex - 1,
-					content: finalBlock.text,
-					partial: output,
-				});
-			}
-
-			// Finalize incomplete tool call
-			if (currentToolCall) {
+			// Finalize the open tool call into the assistant message + stream events. Shared by the
+			// tool_stop path, the interleaving guard (a new tool starting before the previous stop),
+			// and end-of-stream cleanup so a buffered tool call is never silently dropped.
+			const finalizeToolCall = (): void => {
+				if (!currentToolCall) return;
 				let parsedArgs: Record<string, unknown> = {};
 				try {
 					parsedArgs = JSON.parse(currentToolCall.args || "{}");
@@ -865,8 +1001,88 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 				output.content.push(tc);
 				stream.push({ type: "toolcall_start", contentIndex: tcIndex, partial: output });
 				stream.push({ type: "toolcall_end", contentIndex: tcIndex, toolCall: tc, partial: output });
+				contentIndex = tcIndex + 1;
 				output.stopReason = "toolUse";
+				currentToolCall = null;
+			};
+
+			for await (const message of decodeEventStream(response.body)) {
+				const messageType = message.headers[":message-type"];
+				if (messageType === "exception" || messageType === "error") {
+					const errText = new TextDecoder().decode(message.payload);
+					throw new Error(safeKiroErrorMessage(message.headers, errText));
+				}
+				if (messageType !== "event") continue;
+
+				if (kiroDebugPath()) {
+					kiroDebugLog("event.raw", new TextDecoder().decode(message.payload));
+				}
+				const event = parseKiroPayload(message.payload);
+				if (!event) continue;
+				kiroDebugLog("event.parsed", event);
+
+				switch (event.type) {
+					case "content": {
+						const text = event.data || "";
+						if (!text) break;
+						// Split a leading <thinking> block out into reasoning; the rest is visible text.
+						for (const chunk of thinkingParser.feed(text)) pushThinkingChunk(chunk);
+						break;
+					}
+					case "tool_start": {
+						if (!firstTokenTime) firstTokenTime = Date.now();
+						// Flush any buffered reasoning, then close the open text/thinking block.
+						for (const chunk of thinkingParser.flush()) pushThinkingChunk(chunk);
+						closeOpenBlock();
+						// A new tool starting while one is still open means the previous tool never got
+						// its stop frame. Finalize what we have so its arguments are not silently lost.
+						if (currentToolCall) finalizeToolCall();
+						currentToolCall = {
+							id: event.toolUseId || `toolu_${randomUUID().slice(0, 8)}`,
+							name: event.name || "unknown",
+							args: event.input || "",
+						};
+						break;
+					}
+					case "tool_input": {
+						if (!currentToolCall) {
+							// Input without a preceding start: open a tool keyed to this id.
+							currentToolCall = {
+								id: event.toolUseId || `toolu_${randomUUID().slice(0, 8)}`,
+								name: event.name || "unknown",
+								args: event.input || "",
+							};
+						} else if (event.toolUseId && event.toolUseId !== currentToolCall.id) {
+							// Input for a different tool arrived before the open tool stopped. Finalize
+							// the current one and start the new tool rather than merging arguments.
+							finalizeToolCall();
+							currentToolCall = {
+								id: event.toolUseId,
+								name: event.name || "unknown",
+								args: event.input || "",
+							};
+						} else {
+							if (currentToolCall.name === "unknown" && event.name) currentToolCall.name = event.name;
+							currentToolCall.args += event.input || "";
+						}
+						break;
+					}
+					case "tool_stop": {
+						finalizeToolCall();
+						break;
+					}
+					case "usage":
+						break;
+				}
 			}
+
+			// Flush any buffered reasoning (e.g. an unterminated <thinking> block) and close the
+			// open text/thinking block.
+			for (const chunk of thinkingParser.flush()) pushThinkingChunk(chunk);
+			closeOpenBlock();
+
+			// Finalize a tool call left open at end-of-stream (no trailing stop frame).
+			finalizeToolCall();
 
 			output.duration = Date.now() - startTime;
 			if (firstTokenTime) output.ttft = firstTokenTime - startTime;
