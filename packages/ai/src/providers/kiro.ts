@@ -1197,10 +1197,17 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 						break;
 					}
 					case "tool_stop": {
+						// A stop frame must target the currently open tool. With parallel/interleaved
+						// tools, a delayed stop for an EARLIER tool (already finalized by the interleaving
+						// recovery in tool_start/tool_input) can arrive while a DIFFERENT tool is open. In
+						// that case the stop is stale — ignore it so we don't finalize or run the
+						// incomplete-JSON check against the wrong (still-streaming) tool.
+						if (!currentToolCall) break;
+						if (event.toolUseId && event.toolUseId !== currentToolCall.id) break;
 						// A finished tool whose argument buffer is non-empty but not valid JSON was cut
 						// mid-stream. Surface a fail-closed truncation error rather than finalizing a
 						// malformed call (which would later trip CodeWhisperer REQUEST_BODY_INVALID).
-						if (currentToolCall && !isCompleteKiroToolInput(currentToolCall.args)) {
+						if (!isCompleteKiroToolInput(currentToolCall.args)) {
 							throw new Error(kiroTruncationErrorMessage("incomplete tool input JSON"));
 						}
 						finalizeToolCall();

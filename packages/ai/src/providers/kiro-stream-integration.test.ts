@@ -146,6 +146,26 @@ describe("streamKiro — tool call stream robustness", () => {
 		expect(calls).toHaveLength(1);
 		expect(calls[0].arguments).toEqual({ command: "x" });
 	});
+
+	test("a delayed stop for an already-finalized tool does not disturb the open tool", async () => {
+		// Interleaved parallel tools: t1 streams, then t2 starts (finalizing t1 via the interleaving
+		// recovery), t2 streams, THEN a late stop for t1 arrives while t2 is still open. The stale t1
+		// stop must be ignored — it must not finalize t2 early or run the incomplete-JSON check
+		// against t2's still-partial buffer. t2 then gets its own input + stop.
+		queuedFrames = [
+			encodeEventFrame({ name: "bash", toolUseId: "t1" }),
+			encodeEventFrame({ input: '{"command":"a"}', name: "bash", toolUseId: "t1" }),
+			encodeEventFrame({ name: "grep", toolUseId: "t2" }),
+			encodeEventFrame({ input: '{"pattern":', name: "grep", toolUseId: "t2" }), // t2 still partial
+			encodeEventFrame({ name: "bash", stop: true, toolUseId: "t1" }), // stale stop for t1
+			encodeEventFrame({ input: '"b"}', name: "grep", toolUseId: "t2" }),
+			encodeEventFrame({ name: "grep", stop: true, toolUseId: "t2" }),
+		];
+		const calls = await collectToolCalls();
+		expect(calls.map(c => c.name)).toEqual(["bash", "grep"]);
+		expect(calls[0].arguments).toEqual({ command: "a" });
+		expect(calls[1].arguments).toEqual({ pattern: "b" });
+	});
 });
 
 describe("streamKiro — estimated usage", () => {
