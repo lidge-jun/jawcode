@@ -23,6 +23,7 @@ export interface InputItem {
 	name?: string;
 	output?: unknown;
 	arguments?: unknown;
+	encrypted_content?: unknown;
 }
 
 export interface RequestBody {
@@ -81,6 +82,25 @@ function filterInput(input: InputItem[] | undefined): InputItem[] | undefined {
 		});
 }
 
+/**
+ * Guard replayed Codex `encrypted_content` (reasoning replay) against malformed
+ * transport: well-form lone-surrogate strings, and drop any non-string value the
+ * backend would reject. GJC #1208 applies this inside its
+ * `normalizeInputTextPartFields`; JWC has no such function, so the guard is
+ * adapted into the existing single `body.input.map` pass below.
+ */
+function normalizeEncryptedContent(item: InputItem): InputItem {
+	const rec = item as Record<string, unknown>;
+	if (!("encrypted_content" in rec)) return item;
+	const next = { ...rec };
+	if (typeof next.encrypted_content === "string") {
+		next.encrypted_content = (next.encrypted_content as string).toWellFormed();
+	} else {
+		delete next.encrypted_content;
+	}
+	return next as InputItem;
+}
+
 export async function transformRequestBody(
 	body: RequestBody,
 	model: Model<Api>,
@@ -123,7 +143,7 @@ export async function transformRequestBody(
 						} as InputItem;
 					}
 				}
-				return item;
+				return normalizeEncryptedContent(item);
 			});
 		}
 	}
