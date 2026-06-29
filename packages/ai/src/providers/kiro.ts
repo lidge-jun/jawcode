@@ -58,6 +58,11 @@ export interface KiroOptions extends StreamOptions {
 
 const DEFAULT_REGION = "us-east-1";
 const KIRO_HOST_TEMPLATE = "https://runtime.{region}.kiro.dev";
+// Per-attempt timeout for the CodeWhisperer call. This bounds the connect AND the streaming body
+// read of each attempt: the same AbortSignal rides on the fetch and the eventstream is consumed off
+// that response, so a stalled upstream stream aborts instead of hanging forever. Parity with
+// opencodex (`fetchKiroWithRetry` 100s default).
+const KIRO_REQUEST_TIMEOUT_MS = 100_000;
 const AMZ_TARGET = "AmazonCodeWhispererStreamingService.GenerateAssistantResponse";
 const SDK_VERSION = "1.0.27";
 const NODE_VERSION = "22.21.1";
@@ -112,6 +117,16 @@ function buildHeaders(token: string, version: string, profileArn?: string): Reco
 		headers["x-amzn-kiro-profile-arn"] = profileArn;
 	}
 	return headers;
+}
+
+/**
+ * Build the AbortSignal for a single Kiro request attempt: a fresh 100s timeout, combined with the
+ * caller's signal when present. Returned per attempt (via fetchWithRetry's prepareInit) so each
+ * retry gets its own deadline rather than sharing one across the whole retry budget.
+ */
+function kiroAttemptSignal(callerSignal?: AbortSignal): AbortSignal {
+	const timeout = AbortSignal.timeout(KIRO_REQUEST_TIMEOUT_MS);
+	return callerSignal ? AbortSignal.any([callerSignal, timeout]) : timeout;
 }
 
 // ---------------------------------------------------------------------------
@@ -964,6 +979,9 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 				body,
 				signal: opts.signal,
 				maxAttempts: resolveRetryBudget(opts.requestMaxRetries, 3) + 1,
+				// Fresh per-attempt timeout signal combined with the caller's signal. Bounds connect +
+				// stream read for each retry so a stalled CW stream can't hang the turn.
+				prepareInit: () => ({ signal: kiroAttemptSignal(opts.signal) }),
 			});
 
 			if (response.status === 401 && authCache?.refreshToken) {
@@ -979,6 +997,7 @@ export const streamKiro: StreamFunction<"kiro-streaming"> = (
 						body,
 						signal: opts.signal,
 						maxAttempts: 1,
+						prepareInit: () => ({ signal: kiroAttemptSignal(opts.signal) }),
 					});
 				} catch {
 					authCache = null;

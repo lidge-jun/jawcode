@@ -216,3 +216,33 @@ describe("streamKiro — truncation fail-closed", () => {
 		expect(err).toContain("(length)");
 	});
 });
+
+describe("streamKiro — request timeout / abort", () => {
+	test("a caller abort surfaces as an error turn rather than hanging", async () => {
+		// fetch that respects the per-attempt signal (which combines caller + 100s timeout): it never
+		// produces a body and rejects when aborted, proving the signal is wired through prepareInit.
+		globalThis.fetch = ((_url: string, init?: RequestInit) =>
+			new Promise((_resolve, reject) => {
+				const signal = init?.signal;
+				if (signal) {
+					signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")), {
+						once: true,
+					});
+				}
+			})) as unknown as typeof fetch;
+
+		const controller = new AbortController();
+		const stream = streamKiro(model, ctx, {
+			accessToken: "tok",
+			profileArn: "arn",
+			region: "us-east-1",
+			signal: controller.signal,
+		});
+		setTimeout(() => controller.abort(), 20);
+		let sawError = false;
+		for await (const ev of stream) {
+			if (ev.type === "error") sawError = true;
+		}
+		expect(sawError).toBe(true);
+	});
+});
