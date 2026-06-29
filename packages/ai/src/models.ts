@@ -9,6 +9,13 @@ import { isClaudeForcedToolChoiceIncapableModelId } from "./utils/tool-choice-ca
  * Fable/Mythos rejecting forced tool use) without a full regeneration.
  */
 function applyBundledCompatDefaults(model: Model<Api>): Model<Api> {
+	// Issue #404: upstream MiniMax catalogs label `minimax-m3` with plan-specific display names
+	// (e.g. "MiniMax M3 (3x usage)") that vary by provider/plan. Normalize the bundled display name
+	// to the canonical "MiniMax-M3" so first-class MiniMax providers surface a stable, plan-agnostic
+	// label. Only the name is adjusted; id/transport/pricing are untouched.
+	if (model.id === "minimax-m3" && model.name !== "MiniMax-M3") {
+		model = { ...model, name: "MiniMax-M3" };
+	}
 	if (
 		(model.api === "anthropic-messages" || model.api === "bedrock-converse-stream") &&
 		isClaudeForcedToolChoiceIncapableModelId(model.id) &&
