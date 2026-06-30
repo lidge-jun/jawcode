@@ -186,14 +186,32 @@ async function fetchAndParse(
 	const url = endpoint === "html" ? HTML_ENDPOINT : LITE_ENDPOINT;
 	const body = new URLSearchParams({ q: query });
 	if (df) body.set("df", df);
+	// Match native DuckDuckGo HTML form submission (OMP 09061ed80): the browser
+	// frontend always posts a blank `b` pagination param on the html endpoint.
+	if (endpoint === "html") body.set("b", "");
 
 	const response = await fetch(url, {
 		method: "POST",
 		headers: {
+			// Native-browser-aligned request fingerprint (OMP 09061ed80): pairs the
+			// rotated desktop UA with the Sec-Ch-Ua / Sec-Fetch / Referer headers a
+			// real Chrome navigation sends, reducing naive datacenter-IP blocks.
 			"User-Agent": userAgent,
-			Accept: "text/html,application/xhtml+xml",
+			Accept:
+				"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+			"Accept-Language": "en,en-US;q=0.9",
+			"Cache-Control": "max-age=0",
 			"Content-Type": "application/x-www-form-urlencoded",
-			"Accept-Language": "en-US,en;q=0.9",
+			Priority: "u=0, i",
+			"Sec-Ch-Ua": '"Google Chrome";v="124", "Chromium";v="124", "Not)A;Brand";v="24"',
+			"Sec-Ch-Ua-Mobile": "?0",
+			"Sec-Ch-Ua-Platform": '"macOS"',
+			"Sec-Fetch-Dest": "document",
+			"Sec-Fetch-Mode": "navigate",
+			"Sec-Fetch-Site": "same-origin",
+			"Sec-Fetch-User": "?1",
+			"Upgrade-Insecure-Requests": "1",
+			Referer: endpoint === "html" ? HTML_ENDPOINT : LITE_ENDPOINT,
 		},
 		body,
 		signal: withHardTimeout(signal),

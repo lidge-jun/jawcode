@@ -4,13 +4,14 @@
  * Handles `gjc q`/`gjc web-search` subcommands for testing web search providers.
  */
 
-import { APP_NAME } from "@jawcode-dev/utils";
+import { APP_NAME, getProjectDir } from "@jawcode-dev/utils";
 import chalk from "chalk";
+import { Settings } from "../config/settings";
 import { initTheme, theme } from "../modes/theme/theme";
 import { runSearchQuery, type SearchQueryParams } from "../web/search/index";
-import { SEARCH_PROVIDER_ORDER } from "../web/search/provider";
+import { SEARCH_PROVIDER_ORDER, setPreferredSearchProvider } from "../web/search/provider";
 import { renderSearchResult } from "../web/search/render";
-import type { SearchProviderId } from "../web/search/types";
+import { isSearchProviderPreference, type SearchProviderId } from "../web/search/types";
 
 export interface SearchCommandArgs {
 	query: string;
@@ -86,6 +87,17 @@ export async function runSearchCommand(cmd: SearchCommandArgs): Promise<void> {
 	}
 
 	await initTheme();
+
+	// Apply the settings-configured preferred search provider when no explicit
+	// --provider flag was passed. Mirrors the SDK initialization path (sdk.ts).
+	// An explicit cmd.provider always overrides via params.provider below.
+	if (!cmd.provider) {
+		const settings = await Settings.init({ cwd: getProjectDir() });
+		const configuredProvider = settings.get("providers.webSearch");
+		if (typeof configuredProvider === "string" && isSearchProviderPreference(configuredProvider)) {
+			setPreferredSearchProvider(configuredProvider);
+		}
+	}
 
 	const params: SearchQueryParams = {
 		query: cmd.query,
