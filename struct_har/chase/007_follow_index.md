@@ -76,6 +76,22 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 | R4 | 057 | [10.057 Windows hardening](./10.057_gjc_chase_windows_hardening.md) | P3 | ⬜ |
 | R5 | 058 | [10.058 status line + misc tooling](./_fin/10/10.058_gjc_chase_status_line_misc_tooling.md) | P3 | ✅ _fin 260629 · web-search timeout IMPORT (`2401b6a`), memory GC DEFER (evidence), 5 polish items out-of-scope; goal `65f1dc1a-373` |
 
+### 10.059-065 v0.7.8 델타 (2026-07-01, `fa995807..20c299eb` 21 commits)
+
+신규 7카드 (전부 ⬜ open). 21커밋 전부 카드 또는 chore/docs no-card 귀속 (미할당 0). 권장 우선순위: 보안/data-safety + 사용자 가치 먼저 (059 render guard·ask gate → 060 render resilience → 062 provider → 064 daemon → 061 tmux → 065 prompt → 063 packaging).
+
+| 순 | NNN | 문서 | P | 상태 |
+|---|-----|------|---|------|
+| V1 | 059 | [10.059 deep-interview/ralplan/ultragoal ask gate + render guard](./10.059_gjc_chase_deep_interview_ask_ralplan_gate.md) | P2 | ⬜ |
+| V2 | 060 | [10.060 TUI render resilience + Ctrl+Enter + status-line](./10.060_gjc_chase_tui_render_resilience_editor_submit.md) | P2 | ⬜ |
+| V3 | 062 | [10.062 DeepInfra provider + Gemini UA](./10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md) | P2 | ⬜ |
+| V4 | 064 | [10.064 Telegram daemon entrypoint + Windows bell](./10.064_gjc_chase_telegram_daemon_entrypoint_notify.md) | P2 | ⬜ |
+| V5 | 061 | [10.061 tmux/team Windows psmux titles](./10.061_gjc_chase_tmux_team_windows_psmux_titles.md) | P3 | ⬜ |
+| V6 | 065 | [10.065 prompt self-awareness grounding](./10.065_gjc_chase_prompt_self_awareness_grounding.md) | P3 | ⬜ |
+| V7 | 063 | [10.063 natives platform split packages](./10.063_gjc_chase_natives_platform_split_packages.md) | P3 | ⬜ |
+
+> no-card (chore/docs): `af1e9c5d` version bump 0.7.8 · `b948e377` contributing guide (#1312) · `ebacf8d0` Discord invite (#1301). OMP 849-commit 백로그는 범위 밖 — 보류.
+
 | 순 | NNN | 문서 | P | 상태 |
 |---|-----|------|---|------|
 | 9 | 011 | [10.011 receipt spool](./_fin/10/10.011_gjc_chase_receipt_spool.md) | P1 | ✅ _fin · receipt spool |

@@ -1,6 +1,6 @@
 # 10 — gjc_chase_MOC
 
-> 상태: 🟡 운영 중 (2026-06-28 · worktree `af363c8`)
+> 상태: 🟡 운영 중 (2026-07-01 · worktree `cfe71cd`)
 > **정본 디렉터리**: `struct_har/chase/10_*` · `10.NNN_*`
 > **의미**: `devlog/_gjc_chase/gajae-code` 대비 jwc **뒤쳐짐(G1)** — **1갭 = 문서 1개** (`10.NNN`, `001`~)
 
@@ -26,7 +26,7 @@
 
 | gjc | jwc |
 |---|---|
-| `fa995807` (`upstream/dev`, v0.7.7) | `ef28a98` (worktree, 2026-06-29) |
+| `20c299eb` (`upstream/dev`, v0.7.8) | `cfe71cd` (worktree, 2026-07-01) |
 
 > OMP head is intentionally not repeated here; see [20_omp_chase_MOC.md](./20_omp_chase_MOC.md).
 
@@ -35,6 +35,7 @@
 | NNN | upstream fact | jwc 처리 |
 |---|---|---|
 | 053 | local OpenAI-compatible provider (#1257,#1260-#1263), terminal bell (#1278), Windows npm shims (#1274), replay encrypted sanitization (#1208,#1214,#1218), harmony invoke-envelope leak (#1219), GPT-5.5 context cap (#1231) — 55 commits `a791d72a..fa995807` (v0.7.4→0.7.7) | ✅ split → 054-058 |
+| 059-065 | v0.7.8 delta `fa995807..20c299eb` (21 commits): deep-interview/ralplan/ultragoal ask gate + render guard (#1287,#1290,#1294), TUI render isolation + Ctrl+Enter + status-line (#1291,#1296,#1298,#1302), tmux/Windows psmux titles (#1303,#1306), DeepInfra provider + Gemini UA (#1284,#1314), natives platform split (#1300), Telegram daemon entrypoint + Windows bell (#1299), prompt self-awareness grounding | ⬜ → 059-065 (3 no-card chore/docs) |
 | 004 | pre-send `#checkEstimatedContextBeforePrompt()` before message packing; pruning/compaction at sanctioned maintenance boundary (`devlog/_gjc_chase/gajae-code/packages/coding-agent/src/session/agent-session.ts:4747-4756,6517-6533,6537-6558`) | ✅ **_fin** [10.004](./_fin/10/10.004_gjc_chase_session_compaction.md) |
 | 007 | `GJC_TMUX_LAUNCHED_ENV`-guarded `@gjc-profile` retag only for genuinely launched leaders (`team-runtime.ts:1646-1683`; changelog `:17-18`) | ownership invariant; rebrand-safe team gap |
 | 008 | RPC lifecycle stdio | ✅ **_fin** [10.008](./_fin/10/10.008_gjc_chase_rpc_lifecycle.md) |
@@ -95,6 +96,13 @@
 | 056 | [10.056_gjc_chase_terminal_bell_notifications.md](./10.056_gjc_chase_terminal_bell_notifications.md) | terminal bell + completion hook (split←053) | P3 | ⬜ |
 | 057 | [10.057_gjc_chase_windows_hardening.md](./10.057_gjc_chase_windows_hardening.md) | Windows hardening: shims·workers·psmux (split←053) | P3 | ⬜ |
 | 058 | [10.058_gjc_chase_status_line_misc_tooling.md](./_fin/10/10.058_gjc_chase_status_line_misc_tooling.md) | status line + misc tooling (split←053) | P3 | ✅ **_fin** [10.058](./_fin/10/10.058_gjc_chase_status_line_misc_tooling.md) 260629 (web-search timeout import `2401b6a`; memory GC defer; 5 polish out-of-scope) |
+| 059 | [10.059_gjc_chase_deep_interview_ask_ralplan_gate.md](./10.059_gjc_chase_deep_interview_ask_ralplan_gate.md) | deep-interview wording · ralplan/ultragoal ask gate · render guard (v0.7.8) | P2 | ⬜ |
+| 060 | [10.060_gjc_chase_tui_render_resilience_editor_submit.md](./10.060_gjc_chase_tui_render_resilience_editor_submit.md) | TUI render resilience · Ctrl+Enter submit · status-line UX (v0.7.8) | P2 | ⬜ |
+| 061 | [10.061_gjc_chase_tmux_team_windows_psmux_titles.md](./10.061_gjc_chase_tmux_team_windows_psmux_titles.md) | tmux workspace titles · Windows/psmux team spawn (v0.7.8) | P3 | ⬜ |
+| 062 | [10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md](./10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md) | DeepInfra provider + service-tier · Gemini CLI UA (v0.7.8) | P2 | ⬜ |
+| 063 | [10.063_gjc_chase_natives_platform_split_packages.md](./10.063_gjc_chase_natives_platform_split_packages.md) | split @natives into per-platform packages (v0.7.8) | P3 | ⬜ |
+| 064 | [10.064_gjc_chase_telegram_daemon_entrypoint_notify.md](./10.064_gjc_chase_telegram_daemon_entrypoint_notify.md) | compiled Telegram daemon entrypoint · Windows Terminal bell (v0.7.8) | P2 | ⬜ |
+| 065 | [10.065_gjc_chase_prompt_self_awareness_grounding.md](./10.065_gjc_chase_prompt_self_awareness_grounding.md) | system prompt self-awareness source grounding (v0.7.8) | P3 | ⬜ |
 
 ## 완료
 
