@@ -87,7 +87,7 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 | V3 | 062 | [10.062 DeepInfra provider + Gemini UA](./_fin/10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md) | P2 | ✅ _fin 260701 · IMPORT (adapt) DeepInfra provider+service-tier + Gemini UA as JWC code (`b249348`/`ad6ec8f`/`27311f6`); goal `f8909338-255` |
 | V4 | 064 | [10.064 Telegram daemon entrypoint + Windows bell](./10.064_gjc_chase_telegram_daemon_entrypoint_notify.md) | P2 | ⬜ |
 | V5 | 061 | [10.061 tmux/team Windows psmux titles](./10.061_gjc_chase_tmux_team_windows_psmux_titles.md) | P3 | ⬜ |
-| V6 | 065 | [10.065 prompt self-awareness grounding](./10.065_gjc_chase_prompt_self_awareness_grounding.md) | P3 | ⬜ |
+| V6 | 065 | [10.065 prompt self-awareness grounding](./_fin/10/10.065_gjc_chase_prompt_self_awareness_grounding.md) | P3 | ✅ _fin 260701 (ADAPT) |
 | V7 | 063 | [10.063 natives platform split packages](./10.063_gjc_chase_natives_platform_split_packages.md) | P3 | ⬜ |
 
 > no-card (chore/docs): `af1e9c5d` version bump 0.7.8 · `b948e377` contributing guide (#1312) · `ebacf8d0` Discord invite (#1301). OMP 849-commit 백로그는 범위 밖 — 보류.

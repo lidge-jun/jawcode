@@ -102,7 +102,7 @@
 | 062 | [10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md](./_fin/10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md) | DeepInfra provider + service-tier · Gemini CLI UA (v0.7.8) | P2 | ✅ **_fin** [10.062](./_fin/10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md) 260701 |
 | 063 | [10.063_gjc_chase_natives_platform_split_packages.md](./10.063_gjc_chase_natives_platform_split_packages.md) | split @natives into per-platform packages (v0.7.8) | P3 | ⬜ |
 | 064 | [10.064_gjc_chase_telegram_daemon_entrypoint_notify.md](./10.064_gjc_chase_telegram_daemon_entrypoint_notify.md) | compiled Telegram daemon entrypoint · Windows Terminal bell (v0.7.8) | P2 | ⬜ |
-| 065 | [10.065_gjc_chase_prompt_self_awareness_grounding.md](./10.065_gjc_chase_prompt_self_awareness_grounding.md) | system prompt self-awareness source grounding (v0.7.8) | P3 | ⬜ |
+| 065 | [10.065_gjc_chase_prompt_self_awareness_grounding.md](./_fin/10/10.065_gjc_chase_prompt_self_awareness_grounding.md) | system prompt self-awareness source grounding (v0.7.8) | P3 | ✅ **_fin** 260701 (ADAPT) |
 
 ## 완료
 
