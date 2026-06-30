@@ -91,7 +91,7 @@
 | 051 | [10.051_gjc_chase_agent_composer_toolcall_integrity.md](./_fin/10/10.051_gjc_chase_agent_composer_toolcall_integrity.md) | agent/composer/toolcall integrity | **P1** | ✅ _fin |
 | 052 | [10.052_gjc_chase_docs_external_integrations.md](./10.052_gjc_chase_docs_external_integrations.md) | docs/external integrations | P3 | ⬜ |
 | 053 | [10.053_gjc_chase_local_provider_terminal_bell_windows.md](./10.053_gjc_chase_local_provider_terminal_bell_windows.md) | split index → 054-058 | P2 | ✅ split |
-| 054 | [10.054_gjc_chase_local_provider_discovery.md](./10.054_gjc_chase_local_provider_discovery.md) | local provider discovery + fallback (split←053) | P2 | ⬜ |
+| 054 | [10.054_gjc_chase_local_provider_discovery.md](./_fin/10/10.054_gjc_chase_local_provider_discovery.md) | local provider discovery + fallback (split←053) | P2 | ✅ **_fin** [10.054](./_fin/10/10.054_gjc_chase_local_provider_discovery.md) 260701 |
 | 055 | [10.055_gjc_chase_codex_replay_stability.md](./_fin/10/10.055_gjc_chase_codex_replay_stability.md) | Codex/AI replay stability + sanitization (split←053) | **P1** | ✅ **_fin** [10.055](./_fin/10/10.055_gjc_chase_codex_replay_stability.md) 260629 |
 | 056 | [10.056_gjc_chase_terminal_bell_notifications.md](./10.056_gjc_chase_terminal_bell_notifications.md) | terminal bell + completion hook (split←053) | P3 | ⬜ |
 | 057 | [10.057_gjc_chase_windows_hardening.md](./10.057_gjc_chase_windows_hardening.md) | Windows hardening: shims·workers·psmux (split←053) | P3 | ⬜ |
