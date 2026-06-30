@@ -11,7 +11,7 @@
 | 1 | `20c299eb` | deep-interview keeps implementation wording in interview phase | `defaults/jwc/skills/jaw-interview/SKILL.md` (phase-boundary wording absent) | **ADAPT** — JWC-authored wording + contract test |
 | 2 | `eef6ec3a` | accept long inline `--spec` (ENAMETOOLONG) | `jwc-runtime/jaw-interview-runtime.ts:121` (identical guard, ENAMETOOLONG missing) | **IMPORT** — 1-line defensive guard + test |
 | 3 | `f1343220` | avoid noisy optional settings reads | `jaw-interview/SKILL.md:78-98` | **ALREADY COVERED** — JWC already says native activation owns settings precedence; skill must not read settings files directly. No change. |
-| 4 | `bb6f0e98` | ralplan uses ask approval gate | JWC `plan` skill is **SUPERSEDED** (native orchestrate P). Reusable value = `ask` tool `workflowGate` stage/kind override (`tools/ask.ts` + `jaw-interview-gate.ts` hardcode `stage:"jaw-interview"`) | **ADAPT** — add optional `workflowGate` override so plan/goal-staged ask prompts emit a correctly-addressed gate |
+| 4 | `bb6f0e98` | ralplan uses ask approval gate | JWC `plan` skill is **SUPERSEDED** (native orchestrate P). Reusable value = `ask` tool `workflowGate` **stage** override (`tools/ask.ts` + `jaw-interview-gate.ts` hardcode `stage:"jaw-interview"`) | **ADAPT (stage-only)** — add optional `workflowGate.stage` override so plan/goal-staged ask prompts emit a correctly-addressed gate; **kind stays `"question"`** (audit James: `questionToGate` always builds question-answer schema `selected`/`custom`; approval/execution gates use a `decision` contract — a `kind` override would mismatch the schema) |
 | 5 | `19408acc` | ultragoal ask-guard scoped to active session | JWC has **no** ultragoal-ask-guard; `jwc-runtime/goal-guard.ts` uses completion-receipt arch, `tools/ask.ts` has no goal/ultragoal guard wiring | **DEFER ③** — no JWC surface (cross-session ask hijack path does not exist in JWC) |
 | 6 | `2bc0e2c5` | guard renderer string helpers against undefined | `tools/render-utils.ts` (`getPreviewLines`, `shortenPath`), `tools/eval.ts:757` (git_log unsafe cast), `packages/tui/src/utils.ts` (`truncateToWidth` no safeText) | **IMPORT** — pure defensive crash-safety; `render-middleware.ts`/`normalizeText` absent in JWC (no surface, skip) |
 
@@ -27,11 +27,12 @@
 - `jwc-runtime/jaw-interview-runtime.ts:121`: add `&& err.code !== "ENAMETOOLONG"` so an oversized inline `--spec` string mistaken for a path falls through to verbatim spec content instead of throwing.
 - Test: `test/jwc-runtime/jaw-interview-runtime.test.ts` — long inline --spec (>NAME_MAX) returns the inline content.
 
-### Slice C — ask workflowGate override (ADAPT) [STANDARD]
-- `tools/ask.ts`: add `WorkflowGateMeta = z.object({ stage: z.enum([...RpcWorkflowStage values present in JWC]), kind: z.enum(["question","approval","execution"]) })` optional on `QuestionItem`; forward `workflowGate` into the gate question.
-- `modes/shared/agent-wire/jaw-interview-gate.ts`: add `AskGateWorkflowGateMeta { stage; kind }`, optional `workflowGate?` on `AskGateQuestion`; `questionToGate` uses `question.workflowGate?.stage ?? "jaw-interview"` / `?.kind ?? "question"`. Import `RpcWorkflowStage`, `RpcWorkflowGateKind` types.
+### Slice C — ask workflowGate stage override (ADAPT, stage-only) [STANDARD]
+- **Audit fix (James FAIL):** kind override is unsafe — `questionToGate` always emits a question-answer schema (`selected`/`custom`); approval/execution gates use a `decision` contract (`approval-gate.ts`). So override **stage only**; kind stays `"question"`.
+- `tools/ask.ts`: add `WorkflowGateMeta = z.object({ stage: z.enum(["jaw-interview","deep-interview","plan","planphase","goal"]) })` optional on `QuestionItem`; forward `workflowGate` into the gate question. (No `kind` field.)
+- `modes/shared/agent-wire/jaw-interview-gate.ts`: add `AskGateWorkflowGateMeta { stage: RpcWorkflowStage }`, optional `workflowGate?` on `AskGateQuestion`; `questionToGate` uses `stage: question.workflowGate?.stage ?? "jaw-interview"`, `kind: "question"` (unchanged). Import `RpcWorkflowStage` type only.
 - Note: JWC `RpcWorkflowStage` = `"jaw-interview"|"deep-interview"|"plan"|"planphase"|"goal"`. Enum the JWC-valid stages (NOT GJC's `ralplan`/`ultragoal`).
-- Test: `test/tools/ask.test.ts` or `jaw-interview-workflow-gates.test.ts` — a question with `workflowGate:{stage:"plan",kind:"approval"}` emits a gate addressed to `plan`/`approval`; default question stays `jaw-interview`/`question`.
+- Test: `jaw-interview-workflow-gates.test.ts` — a question with `workflowGate:{stage:"plan"}` emits a gate addressed to `plan` with `kind:"question"` and the same question-answer schema; default question stays `jaw-interview`/`question`.
 
 ### Slice D — interview phase-boundary wording (ADAPT) [LIGHT, JWC-authored content]
 - `defaults/jwc/skills/jaw-interview/SKILL.md`: after the "Do not proceed to execution until ambiguity ≤ ..." line, add JWC-authored wording: treat user words `implementation`/"구현"/"구현 계획" as describing the eventual target, not permission to implement during interview; while interviewing do not implement/edit/launch workers; offer "interview for an implementation plan, but won't implement during jaw-interview"; implementation needs explicit phase transition + downstream execution approval. JWC naming (jaw-interview, orchestrate P), no `gjc`/`deep-interview`/`ralplan`/`ultragoal` literals.
@@ -51,6 +52,6 @@
 |---|---|
 | render helpers never throw on undefined/null | tui + render-utils tests pass |
 | oversized inline --spec accepted | jaw-interview-runtime test passes |
-| ask can address plan/goal workflow gates | ask/workflow-gate test passes |
+| ask can address plan/goal workflow gate stage (kind stays question) | workflow-gate test passes |
 | interview wording forbids in-phase implementation | skill-policy test passes |
 | no JWC naming regressions | naming guard 0; diff --check clean; tsgo 0 |
