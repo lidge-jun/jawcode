@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "bun:test";
 import * as ai from "@jawcode-dev/ai";
 import { type Api, getBundledModel, type Model } from "@jawcode-dev/ai";
-import { generateSessionTitle } from "../src/utils/title-generator";
+import { generateSessionTitle, reconcileTitleCasing } from "../src/utils/title-generator";
 
 function getModelOrThrow(id: string): Model<Api> {
 	const model = getBundledModel("anthropic", id);
@@ -101,5 +101,34 @@ describe("title generator", () => {
 
 		expect(title).toBe("Budget Title");
 		expect(maxTokens).toBeGreaterThanOrEqual(1024);
+	});
+});
+
+describe("reconcileTitleCasing", () => {
+	it("keeps tokens the user typed verbatim and restores distinctive casing", () => {
+		// "tinyvmm" -> "TinyVMM" (distinctive restore); "daemon" verbatim kept;
+		// "fix" verbatim kept.
+		const out = reconcileTitleCasing("tinyvmm daemon fix", "fix TinyVMM daemon crash");
+		expect(out).toBe("TinyVMM daemon fix");
+	});
+
+	it("restores distinctive proper-noun casing from the message", () => {
+		const out = reconcileTitleCasing("ios api client", "Build iOS API client");
+		expect(out).toBe("iOS API client");
+	});
+
+	it("flattens camelCase artifacts not present in the message", () => {
+		const out = reconcileTitleCasing("Start dAemon process", "start a background process");
+		expect(out).toBe("Start daemon process");
+	});
+
+	it("preserves model-cased proper nouns absent from the message", () => {
+		const out = reconcileTitleCasing("GitHub OAuth setup", "set up login");
+		expect(out).toBe("GitHub OAuth setup");
+	});
+
+	it("does not force ordinary sentence words to title case", () => {
+		const out = reconcileTitleCasing("refactor the parser for speed", "refactor the parser for speed");
+		expect(out).toBe("refactor the parser for speed");
 	});
 });
