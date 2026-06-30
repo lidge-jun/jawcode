@@ -16,7 +16,7 @@
 ### 클러스터 A — AI provider (먼저)
 | WP | card | 판정 | 1차 타깃 파일 (조사 기준) |
 |----|------|------|------|
-| 1 | 10.054 local provider discovery | IMPORT | `packages/coding-agent/src/cli/local-provider-smoke.ts`(NEW), `commands/local-provider.ts`(NEW), `slash-commands/builtin-registry.ts`, `session/agent-session.ts` |
+| 1 ✅ | 10.054 local provider discovery | IMPORT ✅ _fin 260701 | `packages/coding-agent/src/cli/local-provider-smoke.ts`(NEW), `commands/local-provider.ts`(NEW), `slash-commands/builtin-registry.ts`, `session/agent-session.ts` |
 | 2 | 10.062 DeepInfra + Gemini UA | IMPORT | `packages/ai/src/` provider/oauth, `models.json`(additive) |
 | 3 | 20.023 providers/catalog/service-tier | IMPORT/ADAPT | `packages/ai/src/` (service-tier, reasoning-heal), catalog 보존 머지 |
 | 4 | 20.019 codex/AI config | ADAPT | config 표면 (기본값 JWC) |
