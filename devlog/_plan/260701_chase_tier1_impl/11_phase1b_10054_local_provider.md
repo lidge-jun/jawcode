@@ -69,3 +69,14 @@ git diff --check
 ## Depends / feeds
 - depends: WP1-A(local-provider CLI, 8b3b861+f8838a4)
 - feeds: 카드 10.054 closure(_fin/10), 그 다음 WP2(10.062)
+
+## A-phase audit (self-conducted, 2026-07-01) — VERDICT: PASS
+- 독립 explorer 디스패치는 429 rate-limit로 실패 → 메인이 JWC 실코드 대조로 직접 감사 수행.
+- 검증 완료(실현성/블로커/회귀/네이밍 PASS):
+  - `#classifyErrorForRetry`(:8274) 반환 union은 GJC보다 단순(`first_event_timeout` 없음) — 계획이 이미 반영, `isContextOverflow` 직후 삽입 유효.
+  - `#isRetryableError`(:8224), `#tryRetryModelFallback`(:8461), `#findRetryFallbackCandidates`(:8408), `formatRetryFallbackSelector`(:551), `#resolveRetryFallbackRole`/`#isRetryFallbackSelectorSuppressed`/`#modelRegistry.find`/`#activeRetryFallback` 전부 존재.
+  - retry 실행부 `#handleRetryableError`(:8574): `retryClassification` 상단 계산, `#tryRetryModelFallback(currentSelector)` `:8632` → `{requireNonLocal: localUnavailable}` 추가 안전.
+  - `resolveModelCommandSelection` 호출자 유일(`:677`), `async (command, runtime)` 핸들러 내부 → `await` 합법.
+  - `ProviderDiscoveryStatus`(:500) = idle|ok|empty|cached|unavailable|unauthenticated. `formatDiscoverableProviderFailure`는 unavailable/unauthenticated/empty 명시 분기 + idle/cached는 generic fallthrough로 처리.
+  - `parseModelString`(model-resolver.ts:39) → {provider,id,thinkingLevel?}. KnownProvider(types.ts:139-148)에 ollama/lm-studio 포함, llama.cpp는 `Provider=KnownProvider|string`로 타입 유효.
+- Fold-in: `formatDiscoverableProviderFailure`에서 idle/cached status는 GJC의 trailing generic 메시지로 처리(명시 분기 불필요).
