@@ -185,21 +185,24 @@ function parseUsagePayload(payload: unknown): ParsedUsage | null {
 	return parsed;
 }
 
-function normalizeCodexBaseUrl(baseUrl?: string): string {
+const CODEX_CANONICAL_HOSTS = new Set(["chatgpt.com", "chat.openai.com"]);
+
+export function normalizeCodexBaseUrl(baseUrl?: string): string {
 	const fallback = CODEX_BASE_URL;
 	const trimmed = baseUrl?.trim() ? baseUrl.trim() : fallback;
 	const base = trimmed.replace(/\/+$/, "");
-	const lower = base.toLowerCase();
-	if (
-		(lower.startsWith("https://chatgpt.com") || lower.startsWith("https://chat.openai.com")) &&
-		!lower.includes("/backend-api")
-	) {
-		return `${base}/backend-api`;
+	try {
+		const url = new URL(base);
+		if (url.protocol === "https:" && CODEX_CANONICAL_HOSTS.has(url.hostname)) {
+			return `${url.origin}/backend-api`;
+		}
+	} catch {
+		return base;
 	}
 	return base;
 }
 
-function buildCodexUsageUrl(baseUrl: string): string {
+export function buildCodexUsageUrl(baseUrl: string): string {
 	const normalized = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
 	return `${normalized}${CODEX_USAGE_PATH}`;
 }
