@@ -74,6 +74,39 @@ describe("withFileLock stale owner reclaim", () => {
 	});
 });
 
+describe("withFileLock live owner is never reaped by elapsed time (GJC #652)", () => {
+	test("does not overlap a live holder that exceeds staleMs", async () => {
+		const base = await makeTemp();
+		const lockedFile = path.join(base, "state.json");
+		const events: string[] = [];
+		let waiter: Promise<void> | undefined;
+
+		await withFileLock(
+			lockedFile,
+			async () => {
+				events.push("holder-enter");
+				waiter = withFileLock(
+					lockedFile,
+					async () => {
+						events.push("waiter-enter");
+					},
+					{ staleMs: 1, retries: 50, retryDelayMs: 5 },
+				);
+
+				await Bun.sleep(30);
+				// The current process is the live owner; despite exceeding staleMs the
+				// waiter must NOT steal the lock while we are still inside the section.
+				expect(events).toEqual(["holder-enter"]);
+				events.push("holder-exit");
+			},
+			{ staleMs: 1, retries: 1, retryDelayMs: 1 },
+		);
+		await waiter;
+
+		expect(events).toEqual(["holder-enter", "holder-exit", "waiter-enter"]);
+	});
+});
+
 describe("removeFileLockDirForGc owner-token guard (GJC #606)", () => {
 	test("removes the dir when the on-disk token matches the expected owner", async () => {
 		const base = await makeTemp();
