@@ -27,12 +27,98 @@ const enum ToolCallStatus {
  * - Injects synthetic "aborted" tool results
  * - Adds a <turn-aborted> guidance marker for the model
  */
+/**
+ * True when a tool-call name is missing or whitespace-only. Models very
+ * occasionally emit `{ "name": "", "arguments": "{}" }` (observed on some
+ * thinking-heavy turns). The agent loop rejects the call at execution time
+ * with `Tool  not found`, but the malformed block plus its error `toolResult`
+ * otherwise stay in the replayed history and 400 every provider on
+ * `tool_use.name` / `tool_calls[i].function.name` validation — wedging the
+ * session in an unrecoverable loop until a manual clear.
+ */
+function isMalformedToolCallName(name: string | undefined): boolean {
+	return !name || name.trim().length === 0;
+}
+
+/**
+ * Strip malformed (empty-name) tool calls and their paired results from the
+ * replayed history. `transformMessages` is the canonical sanitize boundary
+ * every provider funnels through, so the defensive filter lives here.
+ *
+ * Run before any other transform so the rest of the pipeline never sees a
+ * malformed call. Idempotent: a re-run on an already-sanitized list returns
+ * the input untouched. Provider-agnostic — any wire model could surface this.
+ */
+function sanitizeMalformedToolCalls(messages: Message[]): Message[] {
+	// Fast path: skip the rewrite entirely when nothing is malformed.
+	let hasMalformed = false;
+	outer: for (const msg of messages) {
+		if (msg.role !== "assistant") continue;
+		for (const block of msg.content) {
+			if (block.type === "toolCall" && isMalformedToolCallName(block.name)) {
+				hasMalformed = true;
+				break outer;
+			}
+		}
+	}
+	if (!hasMalformed) return messages;
+
+	// Positional FIFO pairing within one assistant->tool-result window: a
+	// tool-call id can repeat across history when an OpenAI-Responses composite
+	// id (`callId|itemId`) collapses on the wire to the same `callId`. A
+	// set-based "drop every result for this id" loses the real output for the
+	// surviving valid occurrence whenever one duplicate is malformed. Track each
+	// `toolCall` occurrence's malformed-ness on a per-id queue and pop on the
+	// matching `toolResult`, but clear the queues at every non-result boundary
+	// so a malformed call whose rejection result never arrived cannot consume a
+	// later valid call's real result when the id is reused.
+	const dropQueues = new Map<string, boolean[]>();
+	const result: Message[] = [];
+	for (const msg of messages) {
+		if (msg.role === "assistant") {
+			dropQueues.clear();
+			const filtered: AssistantMessage["content"] = [];
+			for (const block of msg.content) {
+				if (block.type === "toolCall") {
+					const malformed = isMalformedToolCallName(block.name);
+					const queue = dropQueues.get(block.id);
+					if (queue) queue.push(malformed);
+					else dropQueues.set(block.id, [malformed]);
+					if (malformed) continue;
+				}
+				filtered.push(block);
+			}
+			if (filtered.length === 0) continue;
+			result.push(filtered.length === msg.content.length ? msg : { ...msg, content: filtered });
+			continue;
+		}
+		if (msg.role === "toolResult") {
+			const queue = dropQueues.get(msg.toolCallId);
+			if (queue && queue.length > 0) {
+				const drop = queue.shift() === true;
+				if (queue.length === 0) dropQueues.delete(msg.toolCallId);
+				if (drop) continue;
+			}
+			result.push(msg);
+			continue;
+		}
+		dropQueues.clear();
+		result.push(msg);
+	}
+	return result;
+}
+
 export function transformMessages<TApi extends Api>(
 	messages: Message[],
 	model: Model<TApi>,
 	normalizeToolCallId?: (id: string, model: Model<TApi>, source: AssistantMessage) => string,
 	options?: { repairLatestAssistantThinking?: boolean },
 ): Message[] {
+	// Drop malformed (empty-name) tool calls and their paired results before any
+	// other transform — replays of these 400 every provider on tool-name
+	// validation and wedge the session in an unrecoverable loop.
+	messages = sanitizeMalformedToolCalls(messages);
+
 	// Build a map of original tool call IDs to normalized IDs
 	const toolCallIdMap = new Map<string, string>();
 
