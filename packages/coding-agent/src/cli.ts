@@ -47,6 +47,7 @@ const baseCommands: CommandEntry[] = [
 	{ name: "config", load: () => import("./commands/config").then(m => m.default) },
 	{ name: "notify", load: () => import("./commands/notify").then(m => m.default) },
 	{ name: "mcp-serve", load: () => import("./commands/mcp-serve").then(m => m.default) },
+	{ name: "local-provider", load: () => import("./commands/local-provider").then(m => m.default) },
 	{
 		name: "contribute-pr",
 		aliases: ["contribution-prep"],
