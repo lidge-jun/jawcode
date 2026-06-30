@@ -24,7 +24,7 @@
 
 | omp | jwc |
 |---|---|
-| `ca9f2847e` (`origin/main`, v16.2.5) | `ef28a98` (worktree, 2026-06-29) |
+| `b6c9747d4` (`origin/main`, v16.2.9) | `cfe71cd` (worktree, 2026-07-01) |
 
 > GJC head is intentionally not repeated here; see [10_gjc_chase_MOC.md](./10_gjc_chase_MOC.md).
 
@@ -42,6 +42,7 @@
 | steering delivery | yield-boundary `lateSteering` re-poll; settle-time stranded queue drain; steer image-normalization idle mirror (`packages/agent/src/agent-loop.ts:1066-1081`, `agent-session.ts:1432-1447,6373-6410,6599-6611`, `42ffc83`) | **[20.005](./_fin/20/20.005_omp_chase_steering_delivery.md)** — jwc 부분 보유, gjc 미수용 |
 | TUI 입력 micro | Esc draft clear + selector `resetDisplay` (`e914bf0`); double-esc history **revert** (`d055f64`); ast-edit status 공백 축약 (`3d646d8`) | **[20.006](./_fin/20/20.006_omp_chase_tui_input_micro_fixes.md)** ✅ _fin — Esc draft-clear+ast collapse 채택(jwc `a291199`), resetDisplay defer(`ui.resetDisplay()` 부재); collab/brew 비채택 |
 | OMP 15.12→15.13 | session split, auto-learn, STT/TTS, compaction UI | [20.008](./_fin/20/20.008_omp_chase_pull_15_13_delta.md) |
+| OMP v16.2.5→16.2.9 (175 commits, `ca9f2847e..b6c9747d4`) | 8 reference 클러스터: AI providers/catalog/service-tier, MCP oauth/reauth, compaction/snapcompact/session-scope, TUI loader/MCP-enable, prompts/subagent/discovery, web-search/provider, stats sync/perf, misc(dictation·binary·CJK font·yield·irc·windows) | [20.023](./20.023_omp_chase_ai_providers_catalog_service_tier.md)–[20.030](./20.030_omp_chase_misc_dictation_binary_font_yield_irc_win.md) reference-only (1:1 port ❌) — 미래 설계 입력 |
 
 ## 활성 (`20.NNN`)
 
@@ -69,6 +70,14 @@
 | 020 | [20.020_omp_chase_session_title_idle_recap.md](./20.020_omp_chase_session_title_idle_recap.md) | session title + LLM idle recap (split←016) | reference | ⬜ |
 | 021 | [20.021_omp_chase_v2_streaming_integrity.md](./20.021_omp_chase_v2_streaming_integrity.md) | v2 streaming integrity + replay (split←016) | reference | ⬜ |
 | 022 | [20.022_omp_chase_ssh_tooling_ux.md](./20.022_omp_chase_ssh_tooling_ux.md) | ssh:// + tooling/UX expansions (split←016) | reference | ⬜ |
+| 023 | [20.023_omp_chase_ai_providers_catalog_service_tier.md](./20.023_omp_chase_ai_providers_catalog_service_tier.md) | AI providers/catalog/service-tier (v16.2.9←175 delta) | reference | ⬜ |
+| 024 | [20.024_omp_chase_mcp_oauth_reauth_flow.md](./20.024_omp_chase_mcp_oauth_reauth_flow.md) | MCP oauth/reauth flow + cmd-shim launch | reference | ⬜ |
+| 025 | [20.025_omp_chase_compaction_snapcompact_session_scope.md](./20.025_omp_chase_compaction_snapcompact_session_scope.md) | compaction/snapcompact caps + session-branch scope | reference | ⬜ |
+| 026 | [20.026_omp_chase_tui_input_loader_mcp_enable.md](./20.026_omp_chase_tui_input_loader_mcp_enable.md) | TUI loader re-arm/double-Esc + MCP enable | reference | ⬜ |
+| 027 | [20.027_omp_chase_prompts_subagent_discovery_rules.md](./20.027_omp_chase_prompts_subagent_discovery_rules.md) | prompts/subagent(tester·sonic)/discovery (identity-sensitive) | reference | ⬜ |
+| 028 | [20.028_omp_chase_web_search_provider_settings.md](./20.028_omp_chase_web_search_provider_settings.md) | web-search DuckDuckGo + provider settings | reference | ⬜ |
+| 029 | [20.029_omp_chase_stats_sync_worker_perf.md](./20.029_omp_chase_stats_sync_worker_perf.md) | stats sync worker + perf index | reference | ⬜ |
+| 030 | [20.030_omp_chase_misc_dictation_binary_font_yield_irc_win.md](./20.030_omp_chase_misc_dictation_binary_font_yield_irc_win.md) | misc dictation/binary/font/yield/irc/windows | reference | ⬜ |
 
 ## 완료
 

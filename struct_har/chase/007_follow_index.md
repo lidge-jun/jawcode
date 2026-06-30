@@ -139,6 +139,24 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 | O6 | 014 | [20.014 goal compaction/provider concurrency](./_fin/20/20.014_omp_chase_goal_compaction_provider_concurrency.md) | P2 | ✅ _fin · ref · phases 10,61 |
 | O7 | 015 | [20.015 release/test leak hardening](./20.015_omp_chase_release_test_leak_hardening.md) | P3 | ⬜ |
 
+### 20.023-030 v16.2.9 델타 (2026-07-01, `ca9f2847e..b6c9747d4` 175 commits, reference-only)
+
+신규 8 reference 카드 (전부 ⬜ open, **1:1 port ❌**). 175커밋 = 105 card-bound + 70 no-card, 미할당 0. OMP는 G2 약함 축이라 전부 설계 참조 — JWC 코드 무변경. 권장 검토순: 보안/AI 표면 먼저 (024 oauth → 023 providers → 027 prompts(identity) → 025 compaction → 028 web-search → 026 TUI → 029 stats → 030 misc).
+
+| 순 | NNN | 문서 | P | 상태 |
+|---|-----|------|---|------|
+| W1 | 024 | [20.024 MCP oauth/reauth flow](./20.024_omp_chase_mcp_oauth_reauth_flow.md) | ref | ⬜ |
+| W2 | 023 | [20.023 AI providers/catalog/service-tier](./20.023_omp_chase_ai_providers_catalog_service_tier.md) | ref | ⬜ |
+| W3 | 027 | [20.027 prompts/subagent/discovery (identity)](./20.027_omp_chase_prompts_subagent_discovery_rules.md) | ref | ⬜ |
+| W4 | 025 | [20.025 compaction/snapcompact/session-scope](./20.025_omp_chase_compaction_snapcompact_session_scope.md) | ref | ⬜ |
+| W5 | 028 | [20.028 web-search/provider settings](./20.028_omp_chase_web_search_provider_settings.md) | ref | ⬜ |
+| W6 | 026 | [20.026 TUI loader/MCP-enable](./20.026_omp_chase_tui_input_loader_mcp_enable.md) | ref | ⬜ |
+| W7 | 029 | [20.029 stats sync worker/perf](./20.029_omp_chase_stats_sync_worker_perf.md) | ref | ⬜ |
+| W8 | 030 | [20.030 misc dictation/binary/font/yield/irc/win](./20.030_omp_chase_misc_dictation_binary_font_yield_irc_win.md) | ref | ⬜ |
+
+> no-card: 38 merge · 12 style · 10 chore · 8 test · 1 revert (`d1e412eef`) · 1 keep (`6f8f76be4`) · version bumps `0ba736f5b`/`38250ce88`/`5bc68f57c`/`b6c9747d4`. behavior gap 없음.
+
+
 ## 완료 (_fin)
 
 | NNN | [_fin/10](./_fin/INDEX.md) |
