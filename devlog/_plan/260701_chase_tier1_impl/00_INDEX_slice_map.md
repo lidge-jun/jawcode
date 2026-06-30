@@ -49,8 +49,17 @@
 | 15 | 10.048 dev/CI/release packaging | ADAPT |
 
 ## 진행 ledger
-- [ ] WP1-A 10.054 CLI/discovery — A passed(split), B next
-- [ ] WP1-B 10.054 slash+session fallback — pending
-- [ ] WP2~15 — pending
+- [x] WP1 10.054 local provider (A: CLI/discovery, B: slash+session fallback) — ✅ _fin
+- [x] WP2 10.062 provider DeepInfra+Gemini — ✅ _fin
+- [x] WP3 20.023 providers/catalog/service-tier — ✅ _fin
+- [x] WP4 20.019 codex/AI config — ✅ _fin
+- [x] WP5 20.009 append-only integrity — ✅ _fin
+- [x] WP6 20.021 v2 streaming integrity — ✅ _fin
+- [x] WP7 20.025 compaction snapshot caps — ✅ _fin
+- [x] WP8 20.020 session title casing — ✅ _fin
+- [x] WP9 10.059 interview wording + ask gate + render guard — ✅ _fin
+- [ ] WP10 10.042 deep-interview ask+goal-state — next
+- [ ] WP11 10.065 · WP12 20.027 (정체성) — pending
+- [ ] WP13 10.019 · WP14 20.028 · WP15 10.048 (단독) — pending
 
 각 WP 상세 diff-level 플랜은 해당 사이클 P phase에서 `NN_phaseN_<card>.md`로 작성.
