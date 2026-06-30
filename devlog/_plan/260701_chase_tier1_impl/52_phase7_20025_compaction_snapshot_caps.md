@@ -26,7 +26,7 @@ OMP's 6 behavioral surfaces split into "applies to JWC" vs "OMP-only session arc
 - `packages/coding-agent/src/edit/modes/replace.ts:1157-1158` — single replace result sets `oldText: rawContent, newText: finalContent`.
 - `packages/coding-agent/src/edit/modes/patch.ts:1831-1832` — single patch result sets `oldText, newText`.
 - `packages/coding-agent/src/edit/index.ts:155-156` — multi-file aggregator copies `oldText`/`newText` into each `perFileResults` entry, then `details.perFileResults: [...perFileResults]` (191).
-- `packages/coding-agent/src/modes/acp/acp-event-mapper.ts:574-601` — only consumer: emits ACP `diff` ToolCallContent from `oldText`/`newText`; returns `undefined` when both absent (graceful degradation).
+- `packages/coding-agent/src/modes/acp/acp-event-mapper.ts:574-601` — sole **runtime** consumer: emits ACP `diff` ToolCallContent from `oldText`/`newText`; returns `undefined` when both absent (graceful degradation). NOTE (A-audit): `test/edit-per-file-diff-content.test.ts` also reads these fields directly — small-edit (≤32KB) pass-through must stay byte-identical so those tests keep passing.
 - Persistence: tool-result `details` flow into session entries (`session-manager.ts` appendCustomMessageEntry), so unbounded snapshots bloat per-turn JSONL.
 
 ## Design (JWC-native, diff-level)
@@ -38,10 +38,11 @@ New file `packages/coding-agent/src/edit/snapshot-details.ts`:
 - `capPerFileSnapshots(entries)`: left-to-right shared budget; per-entry pruneSnapshot first; if surviving bytes bust running aggregate, strip + stamp `snapshotsPruned: true`.
 - Add optional `snapshotsPruned?: boolean` to `EditToolPerFileResult` in renderer.ts (JWC-named, additive).
 
-Apply sites (wrap details construction):
+Apply sites (wrap details construction) — **4 sites** (A-audit Euler caught a 4th):
 - `replace.ts:~1149` return — wrap `details` in `pruneOversizedEditSnapshots(...)`.
 - `patch.ts:~1826` return — wrap `details`.
-- `edit/index.ts` both aggregators (apply-patch single+multi return, ~171 and ~185) — wrap final `details` (covers perFileResults aggregate).
+- `edit/index.ts` `aggregateApplyPatchResults` (multi-file `perFileResults`, return ~185) — wrap final `details` (covers perFileResults aggregate via capPerFileSnapshots).
+- `edit/index.ts` `executeSinglePathEntries` (multi-run single-path aggregate, return ~259-272 — sets top-level `oldText: firstOldText` / `newText: lastNewText`) — wrap final `details`. **(added per A-audit)**
 - Export from `edit/index.ts` (`export * from "./snapshot-details"`).
 
 JWC adaptation vs OMP: JWC hashline does NOT carry oldText/newText → skip hashline renderSection apply sites (OMP had them). Pure additive; ACP/diff degrades to no-diff for >32KB edits (text content still flows).
@@ -61,7 +62,7 @@ JWC adaptation vs OMP: JWC hashline does NOT carry oldText/newText → skip hash
 | 1 | small edit passes through unchanged | unit: oldText/newText retained when combined ≤32KB |
 | 2 | oversized single edit drops snapshots, keeps metadata | unit: >32KB → oldText/newText undefined, diff/path kept |
 | 3 | many-file batch shares aggregate budget | unit: 5 equal entries busting cumulatively → first N keep, rest snapshotsPruned |
-| 4 | applied at replace/patch/aggregator sites | grep apply sites wrapped |
+| 4 | applied at all 4 sites (replace/patch/aggregateApplyPatch/executeSinglePathEntries) | grep apply sites wrapped |
 | 5 | tsgo clean, biome clean, naming 0 | check:types EXIT 0, biome, naming grep |
 
 ## Verification
