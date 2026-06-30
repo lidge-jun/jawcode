@@ -520,6 +520,14 @@ export interface SessionStats {
 type RetryFallbackChains = Record<string, string[]>;
 
 type RetryFallbackRevertPolicy = "never" | "cooldown-expiry";
+type RetryErrorClassification =
+	| "none"
+	| "overflow"
+	| "terminal"
+	| "usage_limit"
+	| "transient"
+	| "local_unavailable"
+	| "unknown";
 
 interface RetryFallbackSelector {
 	raw: string;
@@ -555,6 +563,37 @@ function formatRetryFallbackSelector(model: Model, thinkingLevel: ThinkingLevel 
 
 function formatRetryFallbackBaseSelector(selector: RetryFallbackSelector): string {
 	return `${selector.provider}/${selector.id}`;
+}
+
+function isLocalModelEndpoint(model: Model | undefined): boolean {
+	if (!model) return false;
+	if (model.provider === "ollama" || model.provider === "lm-studio" || model.provider === "llama.cpp") {
+		return true;
+	}
+	try {
+		const hostname = new URL(model.baseUrl).hostname.toLowerCase();
+		if (
+			hostname === "localhost" ||
+			hostname === "0.0.0.0" ||
+			hostname === "::1" ||
+			hostname === "[::1]" ||
+			hostname.endsWith(".local")
+		) {
+			return true;
+		}
+		if (/^127\./.test(hostname) || /^10\./.test(hostname) || /^192\.168\./.test(hostname)) {
+			return true;
+		}
+		const private172 = /^172\.(\d{1,2})\./.exec(hostname);
+		if (private172) {
+			const secondOctet = Number(private172[1]);
+			return secondOctet >= 16 && secondOctet <= 31;
+		}
+	} catch {
+		// A malformed base URL is configuration, not availability. Keep it visible.
+		return false;
+	}
+	return false;
 }
 
 const IRC_REPLY_MAX_BYTES = 4096;
@@ -8222,6 +8261,12 @@ export class AgentSession {
 	 */
 	#isRetryableError(message: AssistantMessage): boolean {
 		const classification = this.#classifyErrorForRetry(message);
+		if (classification === "local_unavailable") {
+			return this.#hasRetryFallbackCandidate({
+				currentSelector: this.model ? formatRetryFallbackSelector(this.model, this.thinkingLevel) : undefined,
+				requireNonLocal: true,
+			});
+		}
 		return classification === "usage_limit" || classification === "transient" || classification === "unknown";
 	}
 
@@ -8267,17 +8312,24 @@ export class AgentSession {
 		return Number.isFinite(status) && status >= 100 && status <= 599 ? status : undefined;
 	}
 
+	#isLocalProviderAvailabilityErrorMessage(errorMessage: string): boolean {
+		return /connection.?refused|econnrefused|timed?\s*out|timeout|fetch failed|network.?error|socket hang up|terminated|service.?unavailable|server.?error|internal.?error|503|model_not_found|model not found|no such model|unknown model|model .*not.*(found|available|loaded)|not ready|not.?ready|warming|loading|currently loading|try again|out of memory|\boom\b|memory guard|insufficient memory|not enough memory|failed to allocate|kv.?cache|malformed (stream|streaming|sse)|invalid (stream|streaming|sse)|stream envelope error|unexpected end of (json|input)|unterminated json|no error details in response/i.test(
+			errorMessage,
+		);
+	}
+
 	/**
 	 * Ordered retry classification: overflow (compaction) -> terminal (surface)
 	 * -> usage_limit (rotation) -> transient (retry) -> unknown (retry).
 	 */
-	#classifyErrorForRetry(
-		message: AssistantMessage,
-	): "none" | "overflow" | "terminal" | "usage_limit" | "transient" | "unknown" {
+	#classifyErrorForRetry(message: AssistantMessage): RetryErrorClassification {
 		if (message.stopReason !== "error" || !message.errorMessage) return "none";
 		const contextWindow = this.model?.contextWindow ?? 0;
 		if (isContextOverflow(message, contextWindow)) return "overflow";
 		const err = message.errorMessage;
+		if (isLocalModelEndpoint(this.model) && this.#isLocalProviderAvailabilityErrorMessage(err)) {
+			return "local_unavailable";
+		}
 		// Stream-envelope errors are only transient in the pre-message_start
 		// variant; any other envelope failure is structural and must surface.
 		if (/anthropic stream envelope error:/i.test(err)) {
@@ -8405,6 +8457,20 @@ export class AgentSession {
 		return chain;
 	}
 
+	#hasRetryFallbackCandidate(options: { currentSelector: string | undefined; requireNonLocal?: boolean }): boolean {
+		if (!options.currentSelector) return false;
+		const role = this.#activeRetryFallback?.role ?? this.#resolveRetryFallbackRole(options.currentSelector);
+		if (!role) return false;
+		for (const selector of this.#findRetryFallbackCandidates(role, options.currentSelector)) {
+			if (this.#isRetryFallbackSelectorSuppressed(selector)) continue;
+			const candidate = this.#modelRegistry.find(selector.provider, selector.id);
+			if (!candidate) continue;
+			if (options.requireNonLocal && isLocalModelEndpoint(candidate)) continue;
+			return true;
+		}
+		return false;
+	}
+
 	#findRetryFallbackCandidates(role: string, currentSelector: string): RetryFallbackSelector[] {
 		const chain = this.#getRetryFallbackEffectiveChain(role);
 		if (chain.length <= 1) return [];
@@ -8458,7 +8524,7 @@ export class AgentSession {
 		});
 	}
 
-	async #tryRetryModelFallback(currentSelector: string): Promise<boolean> {
+	async #tryRetryModelFallback(currentSelector: string, options?: { requireNonLocal?: boolean }): Promise<boolean> {
 		const role = this.#activeRetryFallback?.role ?? this.#resolveRetryFallbackRole(currentSelector);
 		if (!role) return false;
 
@@ -8466,6 +8532,7 @@ export class AgentSession {
 			if (this.#isRetryFallbackSelectorSuppressed(selector)) continue;
 			const candidate = this.#modelRegistry.find(selector.provider, selector.id);
 			if (!candidate) continue;
+			if (options?.requireNonLocal && isLocalModelEndpoint(candidate)) continue;
 			const apiKey = await this.#modelRegistry.getApiKey(candidate, this.sessionId);
 			if (!apiKey) continue;
 			await this.#applyRetryFallbackCandidate(role, selector, currentSelector);
@@ -8576,6 +8643,7 @@ export class AgentSession {
 		if (!retrySettings.enabled) return false;
 		const retryClassification = this.#classifyErrorForRetry(message);
 		const unboundedClass = retryClassification === "transient" || retryClassification === "unknown";
+		const localUnavailable = retryClassification === "local_unavailable";
 
 		const generation = this.#promptGeneration;
 		this.#retryAttempt++;
@@ -8629,7 +8697,7 @@ export class AgentSession {
 		const currentSelector = this.model ? formatRetryFallbackSelector(this.model, this.thinkingLevel) : undefined;
 		if (!switchedCredential && currentSelector) {
 			this.#noteRetryFallbackCooldown(currentSelector, parsedRetryAfterMs, errorMessage);
-			switchedModel = await this.#tryRetryModelFallback(currentSelector);
+			switchedModel = await this.#tryRetryModelFallback(currentSelector, { requireNonLocal: localUnavailable });
 			if (switchedModel) {
 				delayMs = 0;
 			} else if (parsedRetryAfterMs && parsedRetryAfterMs > delayMs) {
