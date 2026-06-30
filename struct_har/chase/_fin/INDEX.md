@@ -61,6 +61,7 @@
 | 20.006 | 20.006 — omp chase: TUI 입력/표시 마이크로 수정 묶음 | [20/20.006_omp_chase_tui_input_micro_fixes](./20/20.006_omp_chase_tui_input_micro_fixes.md) |
 | 20.007 | 20.007 — omp chase: session layer modularization (reference) | [20/20.007_omp_chase_session_modularization](./20/20.007_omp_chase_session_modularization.md) |
 | 20.008 | 20.008 — omp chase: 15.12.3 → 15.13.0 pull delta index | [20/20.008_omp_chase_pull_15_13_delta](./20/20.008_omp_chase_pull_15_13_delta.md) |
+| 20.009 | 20.009 — omp chase: append-only context integrity — IMPORT 3 slices | [20/20.009_omp_chase_append_only_context_integrity](./20/20.009_omp_chase_append_only_context_integrity.md) |
 | 20.010 | 20.010 — omp chase: AI OAuth and reasoning replay (reference audit) | [20/20.010_omp_chase_ai_oauth_reasoning_replay](./20/20.010_omp_chase_ai_oauth_reasoning_replay.md) |
 | 20.011 | 20.011 — omp chase: TUI image drafts and terminal edges (reference audit) | [20/20.011_omp_chase_tui_image_drafts_terminal_edges](./20/20.011_omp_chase_tui_image_drafts_terminal_edges.md) |
 | 20.012 | 20.012 — omp chase: bash snapshot and env security (reference audit) | [20/20.012_omp_chase_bash_snapshot_env_security](./20/20.012_omp_chase_bash_snapshot_env_security.md) |

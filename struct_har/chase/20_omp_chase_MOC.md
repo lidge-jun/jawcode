@@ -56,7 +56,7 @@
 | 006 | [20.006_omp_chase_tui_input_micro_fixes.md](./_fin/20/20.006_omp_chase_tui_input_micro_fixes.md) | Esc·ast status | 082·99.20 | ✅ _fin |
 | 007 | [20.007_omp_chase_session_modularization.md](./_fin/20/20.007_omp_chase_session_modularization.md) | session modules | 083 | ✅ _fin |
 | 008 | [20.008_omp_chase_pull_15_13_delta.md](./_fin/20/20.008_omp_chase_pull_15_13_delta.md) | 15.13 index | 횡단 | ✅ _fin |
-| 009 | [20.009_omp_chase_append_only_context_integrity.md](./20.009_omp_chase_append_only_context_integrity.md) | append-only context integrity | reference | ⬜ |
+| 009 | [20.009_omp_chase_append_only_context_integrity.md](./_fin/20/20.009_omp_chase_append_only_context_integrity.md) | append-only context integrity | reference | ✅ **_fin** [20.009](./_fin/20/20.009_omp_chase_append_only_context_integrity.md) 260701 (IMPORT: stable-prefix + digest meta + malformed-call sanitizer) |
 | 010 | [20.010_omp_chase_ai_oauth_reasoning_replay.md](./_fin/20/20.010_omp_chase_ai_oauth_reasoning_replay.md) | AI OAuth/reasoning replay | reference | ✅ _fin |
 | 011 | [20.011_omp_chase_tui_image_drafts_terminal_edges.md](./_fin/20/20.011_omp_chase_tui_image_drafts_terminal_edges.md) | TUI image drafts/terminal edges | reference | ✅ _fin |
 | 012 | [20.012_omp_chase_bash_snapshot_env_security.md](./_fin/20/20.012_omp_chase_bash_snapshot_env_security.md) | bash snapshot/env security | reference | ✅ _fin |
