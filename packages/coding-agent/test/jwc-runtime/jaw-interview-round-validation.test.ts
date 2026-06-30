@@ -138,6 +138,23 @@ describe("jwc state write — jaw-interview round guard (10.042)", () => {
 		expect(result.status).toBe(0);
 	});
 
+	it("rejects a malformed dimension score through the write path", async () => {
+		const root = await tempDir();
+		const result = await runNativeStateCommand(
+			[
+				"write",
+				"--mode",
+				"jaw-interview",
+				"--input",
+				JSON.stringify({ state: { rounds: [{ dimensions: { goal: 7 } }] } }),
+				"--json",
+			],
+			root,
+		);
+		expect(result.status).not.toBe(0);
+		expect(`${result.stdout}${result.stderr}`).toContain("dimensions.goal");
+	});
+
 	it("does not block plan-mode writes that carry an out-of-range ambiguity-like field", async () => {
 		const root = await tempDir();
 		const result = await runNativeStateCommand(
