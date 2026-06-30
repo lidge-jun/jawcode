@@ -439,6 +439,12 @@ export interface SimpleStreamOptions extends StreamOptions {
 	syntheticApiFormat?: "openai" | "anthropic";
 	/** Hint that websocket transport should be preferred when supported by the provider implementation. */
 	preferWebsockets?: boolean;
+	/**
+	 * Output text verbosity hint for OpenAI Responses-format providers.
+	 * Mapped to the official OpenAI `text.verbosity` field; ignored by other
+	 * providers and by non-official OpenAI-compatible endpoints.
+	 */
+	textVerbosity?: "low" | "medium" | "high";
 }
 
 // Generic StreamFunction with typed options

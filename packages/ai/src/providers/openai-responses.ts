@@ -104,6 +104,12 @@ export interface OpenAIResponsesOptions extends StreamOptions {
 	 * Azure OpenAI and GitHub Copilot Responses paths require tool results to match prior tool calls.
 	 */
 	strictResponsesPairing?: boolean;
+	/**
+	 * Output text verbosity hint. Only mapped to the official `text.verbosity`
+	 * field when the request targets the official OpenAI endpoint; ignored for
+	 * non-official OpenAI-compatible proxies that may reject the field.
+	 */
+	textVerbosity?: "low" | "medium" | "high";
 }
 
 const OPENAI_RESPONSES_PROVIDER_SESSION_STATE_PREFIX = "openai-responses:";
@@ -128,6 +134,17 @@ function isOpenAIHostBaseUrl(baseUrl: string): boolean {
 	} catch {
 		return baseUrl.toLowerCase().startsWith(OPENAI_DEFAULT_BASE_URL);
 	}
+}
+
+/**
+ * The official OpenAI Responses endpoint accepts `text.verbosity`; third-party
+ * OpenAI-compatible proxies may reject unknown fields. Only treat
+ * `provider === "openai"` with an unset or api.openai.com base URL as official.
+ */
+function isOfficialOpenAIResponsesEndpoint(provider: string, effectiveBaseUrl: string | undefined): boolean {
+	if (provider !== "openai") return false;
+	if (!effectiveBaseUrl) return true;
+	return isOpenAIHostBaseUrl(effectiveBaseUrl);
 }
 
 function resolveOpenAIProviderBaseUrl(
@@ -482,6 +499,9 @@ function buildParams(
 	};
 
 	applyCommonResponsesSamplingParams(params, options, model.provider);
+	if (options?.textVerbosity && isOfficialOpenAIResponsesEndpoint(model.provider, resolvedBaseUrl ?? model.baseUrl)) {
+		params.text = { ...params.text, verbosity: options.textVerbosity };
+	}
 	// TODO: openai responses has no top-level `stop`/`stop_sequences`; surface via reasoning.stop?
 	// `StreamOptions.stopSequences` is intentionally dropped for this provider.
 	// TODO: openai responses has no top-level `frequency_penalty` field as of the current SDK;
