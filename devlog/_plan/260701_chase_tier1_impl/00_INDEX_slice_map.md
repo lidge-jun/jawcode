@@ -49,7 +49,8 @@
 | 15 | 10.048 dev/CI/release packaging | ADAPT |
 
 ## 진행 ledger
-- [ ] WP1 10.054 — P (현재)
+- [ ] WP1-A 10.054 CLI/discovery — A passed(split), B next
+- [ ] WP1-B 10.054 slash+session fallback — pending
 - [ ] WP2~15 — pending
 
 각 WP 상세 diff-level 플랜은 해당 사이클 P phase에서 `NN_phaseN_<card>.md`로 작성.

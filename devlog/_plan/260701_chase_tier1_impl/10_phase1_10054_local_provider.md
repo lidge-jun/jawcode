@@ -49,6 +49,14 @@ rg -i "gjc|gajae|@gajae-code" packages/coding-agent/src/cli/local-provider-smoke
 git -C . diff --check
 ```
 
+
+## ⚠️ A-phase audit (Backend, 2026-07-01) — VERDICT: split required
+- 실현성/블로커/회귀위험/네이밍 PASS. 근거: `@jawcode-dev/utils/cli`(packages/utils/src/cli.ts:126), `ModelsConfig`(config/models-config-schema.ts:252), provider config에 `baseUrl`(:199)/`apiKey`(:200)/`models`(:223) 존재. builtin-registry `/model` 핸들러 async(:667) additive-only 가능, agent-session 에러분류(:8274) clean merge.
+- 범위 FAIL → **WP1 분할**:
+  - **WP1-A**: NEW `cli/local-provider-smoke.ts` + `commands/local-provider.ts` + CLI 단위 테스트 (discovery/status/smoke/diagnose).
+  - **WP1-B**: MODIFY `slash-commands/builtin-registry.ts`(role 해석+missing-registry guard) + `session/agent-session.ts`(local_unavailable fallback) + 세션 폴백 테스트.
+- WP1-A 먼저 1 PABCD 사이클, WP1-B 다음 사이클. (슬라이스맵 WP 총수 15→16)
+
 ## PABCD plan
 - P(이 문서) → A(독립 explorer/Backend가 GJC 5 commit 정밀 분석 + JWC ModelsConfig 타입 적합성·블로커 검증) → B(구현+테스트) → C(focused test+check:ts+diff --check) → D(요약·_fin 이전).
 
