@@ -33,13 +33,25 @@ JWC `packages/ai/` lacks a DeepInfra provider and carries a stale Gemini CLI UA 
 7. `auth-storage.ts` — import `loginDeepInfra`; add `case "deepinfra": { const apiKey = await loginDeepInfra(ctrl); await saveApiKeyCredential(apiKey); return; }`.
 8. `stream.ts` — add `deepinfra: "DEEPINFRA_API_KEY"` to serviceProviderMap.
 9. `cli.ts` — add `deepinfra  DeepInfra` to providers help.
-10. `models.json` — additive merge DeepInfra catalog block (GJC +596 lines, top-level `"deepinfra": {...}`). MUST NOT clobber existing JWC entries; insert key only, preserve all others. Verify with json round-trip (key count 47→48, all prior keys intact).
+10. `models.json` — **do NOT hand-edit** (repo rule `AGENTS.md:106`). Instead regenerate: `bun --cwd=packages/ai run generate-models`. models.dev API already serves `deepinfra` (27 models, verified live), and the new `catalogDescriptor("deepinfra", ...)` makes the generator fetch+seed them. Verify deepinfra key appears (47→48) and no existing provider key is dropped (json round-trip diff).
 11. `docs/environment-variables.md` + `docs/models.md` — add `DEEPINFRA_API_KEY` row + DeepInfra models doc (adapt naming).
+12. `src/utils/tokenizer-routing.ts:29` — add `deepinfra: "deepseek"` to `PROVIDER_TO_FAMILY` (DeepSeek-family default model).
+13. `src/providers/openai-completions.ts:531` — extend `stripDeepseekChatTemplateTokens` provider gate to include `model.provider === "deepinfra"`.
 
 ### Slice 2B — Gemini UA alignment
 1. `providers/google-gemini-headers.ts` — export `GEMINI_CLI_VERSION_ENV="PI_AI_GEMINI_CLI_VERSION"` (JWC keeps its own env name — naming contract; GJC used `GJC_AI_GEMINI_CLI_VERSION`), `DEFAULT_GEMINI_CLI_VERSION="0.49.0"`; rewrite `getGeminiCliUserAgent` to read `process.env[GEMINI_CLI_VERSION_ENV] || DEFAULT_GEMINI_CLI_VERSION`. (JWC has single env, no legacy alias needed — confirm during B.)
 2. `scripts/check-spoofed-versions.ts:54` — update sourcePattern to `/DEFAULT_GEMINI_CLI_VERSION\s*=\s*"(\d+\.\d+\.\d+)"/`.
 3. NEW `packages/ai/test/google-gemini-cli-user-agent.test.ts` — default version 0.49.0 + env override (adapt to JWC env name).
+
+## A-phase audit fixes (Locke gpt-5.4, 2026-07-01) — applied
+
+VERDICT was "not PASS as written"; 3 must-fix items folded in:
+
+1. **models.json regenerate, not hand-edit** — `AGENTS.md:106` forbids direct edits. Step 10 now uses `bun --cwd=packages/ai run generate-models` (models.dev serves deepinfra/27 models, confirmed live HTTP 200). Generator path `packages/ai/scripts/generate-models.ts:387` seeds from descriptors + models.dev.
+2. **Tokenizer routing** — add `deepinfra: "deepseek"` to `PROVIDER_TO_FAMILY` at `packages/ai/src/utils/tokenizer-routing.ts:29` (default deepinfra model is DeepSeek-family; without it falls back to `o200k_base` → wrong context counting/compaction). New Slice 2A step 12.
+3. **DeepSeek chat-template token stripping** — extend the gate at `packages/ai/src/providers/openai-completions.ts:531` from `(provider==="nvidia"||provider==="deepseek")` to also include `deepinfra` (DeepInfra serves `deepseek-ai/*` ids that leak `<｜...｜>` markers). New Slice 2A step 13.
+
+Confirmed-safe (no action): no other `satisfies Record<KnownProvider>` exhaustive site; `DEFAULT_MODEL_PER_PROVIDER` uses `as Record` cast + deepinfra is in PROVIDER_DESCRIPTORS so it's covered; Gemini regex matches new const form; models.json load has no zod provider-enum gate; `issue-883-repro.test.ts` DeepInfra-as-deepseek-compat path must stay green.
 
 ## Invariants
 - 0 `gjc`/`gajae`/`GJC_AI_` literals in new/changed lines (JWC keeps `PI_AI_` env names per current code; do not introduce GJC env).
