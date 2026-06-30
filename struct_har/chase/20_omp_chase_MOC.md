@@ -74,7 +74,7 @@
 | 024 | [20.024_omp_chase_mcp_oauth_reauth_flow.md](./20.024_omp_chase_mcp_oauth_reauth_flow.md) | MCP oauth/reauth flow + cmd-shim launch | reference | ⬜ |
 | 025 | [20.025_omp_chase_compaction_snapcompact_session_scope.md](./_fin/20/20.025_omp_chase_compaction_snapcompact_session_scope.md) | compaction/snapcompact caps + session-branch scope | reference | ✅ **_fin** [20.025](./_fin/20/20.025_omp_chase_compaction_snapcompact_session_scope.md) 260701 (IMPORT: bounded edit snapshots) |
 | 026 | [20.026_omp_chase_tui_input_loader_mcp_enable.md](./20.026_omp_chase_tui_input_loader_mcp_enable.md) | TUI loader re-arm/double-Esc + MCP enable | reference | ⬜ |
-| 027 | [20.027_omp_chase_prompts_subagent_discovery_rules.md](./20.027_omp_chase_prompts_subagent_discovery_rules.md) | prompts/subagent(tester·sonic)/discovery (identity-sensitive) | reference | ⬜ |
+| 027 | [20.027_omp_chase_prompts_subagent_discovery_rules.md](./_fin/20/20.027_omp_chase_prompts_subagent_discovery_rules.md) | prompts/subagent(tester·sonic)/discovery (identity-sensitive) | reference | ✅ _fin (1 ADOPT #5, 5 defer) |
 | 028 | [20.028_omp_chase_web_search_provider_settings.md](./20.028_omp_chase_web_search_provider_settings.md) | web-search DuckDuckGo + provider settings | reference | ⬜ |
 | 029 | [20.029_omp_chase_stats_sync_worker_perf.md](./20.029_omp_chase_stats_sync_worker_perf.md) | stats sync worker + perf index | reference | ⬜ |
 | 030 | [20.030_omp_chase_misc_dictation_binary_font_yield_irc_win.md](./20.030_omp_chase_misc_dictation_binary_font_yield_irc_win.md) | misc dictation/binary/font/yield/irc/windows | reference | ⬜ |

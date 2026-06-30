@@ -19,7 +19,7 @@
 | NNN | 스코프 | 판정 |
 |---|---|---|
 | [10.065](./_fin/10/10.065_gjc_chase_prompt_self_awareness_grounding.md) | prompt self-awareness | ✅ _fin 260701 (ADAPT · content JWC-authored) |
-| [20.027](./20.027_omp_chase_prompts_subagent_discovery_rules.md) | prompts/subagent/discovery | ADAPT · subagent 이름 JWC 재작성 |
+| [20.027](./_fin/20/20.027_omp_chase_prompts_subagent_discovery_rules.md) | prompts/subagent/discovery | ✅ _fin · ADAPT · 1 ADOPT (#5 agent-param), 5 defer |
 | [10.062](./_fin/10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md) | DeepInfra + Gemini UA | IMPORT ✅ _fin 260701 |
 | [10.054](./_fin/10/10.054_gjc_chase_local_provider_discovery.md) | local provider discovery | IMPORT ✅ _fin 260701 |
 | [20.023](./_fin/20/20.023_omp_chase_ai_providers_catalog_service_tier.md) | providers/catalog/service-tier | IMPORT/ADAPT ✅ _fin 260701 (reference-triage, no code) |

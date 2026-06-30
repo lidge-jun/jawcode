@@ -75,6 +75,7 @@
 | 20.020 | 20.020 — omp chase: session title + LLM idle recap — ADAPT 1 slice (title casing reconciliation) | [20/20.020_omp_chase_session_title_idle_recap](./20/20.020_omp_chase_session_title_idle_recap.md) |
 | 20.023 | 20.023 — omp chase: AI providers · model catalog · per-family service-tier (reference-triage) | [20/20.023_omp_chase_ai_providers_catalog_service_tier](./20/20.023_omp_chase_ai_providers_catalog_service_tier.md) |
 | 20.014 | 20.014 — omp chase: goal compaction and provider concurrency (reference audit) | [20/20.014_omp_chase_goal_compaction_provider_concurrency](./20/20.014_omp_chase_goal_compaction_provider_concurrency.md) |
+| 20.027 | 20.027 — omp chase: system prompt · tester/sonic subagent · discovery rules — ADAPT 1 ADOPT (agent param optional+default), 5 defer/reject | [20/20.027_omp_chase_prompts_subagent_discovery_rules](./20/20.027_omp_chase_prompts_subagent_discovery_rules.md) |
 
 ## superseded (devlog)
 
