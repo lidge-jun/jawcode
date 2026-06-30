@@ -45,7 +45,6 @@ const PROVIDER_TO_FAMILY: Record<string, TokenizerFamily> = {
 	together: "llama3",
 	cerebras: "llama3",
 
-	deepinfra: "deepseek",
 	deepseek: "deepseek",
 	mistral: "mistral",
 	minimax: "glm",
@@ -66,6 +65,17 @@ export function resolveTokenizerFamily(model: { provider: string; id: string }):
 		if (model.id.startsWith("anthropic.") || model.id.includes("claude")) {
 			return isClaudeV2(model.id) ? "claude_v2" : "claude";
 		}
+		return "o200k_base";
+	}
+
+	if (model.provider === "deepinfra") {
+		// DeepInfra hosts many families on one provider id; route by model id.
+		const id = model.id.toLowerCase();
+		if (id.includes("deepseek")) return "deepseek";
+		if (id.includes("gemma")) return "gemma";
+		if (id.includes("llama")) return "llama3";
+		if (id.includes("glm")) return "glm";
+		if (id.includes("minimax")) return "glm";
 		return "o200k_base";
 	}
 
