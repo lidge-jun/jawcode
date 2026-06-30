@@ -20,7 +20,7 @@
 
 - `packages/coding-agent/src/utils/title-generator.ts:157` — `generateSessionTitle` returns `title.replace(/^["']|["']$/g, "").replace(/[.!?]$/, "")` — quote/punct strip only, no casing logic.
 - `packages/coding-agent/src/utils/title-generator.ts:71-77` — `firstMessage` param is available (the source-of-truth user text).
-- JWC has **no** `packages/coding-agent/src/tiny/text.ts` and **no** `normalizeGeneratedTitle`/`titleCase` (OMP's home for this logic). JWC keeps title normalization inline in title-generator.ts.
+- JWC has **no** `packages/coding-agent/src/tiny/text.ts` and **no** session-title `normalizeGeneratedTitle`/`reconcileTitleCasing` (OMP's home for this logic). Unrelated generic `titleCase`/`titleCaseSentence` helpers exist (`modes/controllers/todo-command-controller.ts:65,480`, `web/scrapers/repology.ts:95`) but none own session-title normalization, so a self-contained helper in title-generator.ts is the right home.
 - `packages/coding-agent/test/title-generator.test.ts` — existing test harness (mocks `completeSimple`).
 
 ## Design (JWC-native, diff-level)
@@ -34,7 +34,7 @@ In `title-generator.ts`, add a self-contained `reconcileTitleCasing(title, sourc
 
 Export `reconcileTitleCasing` for unit testing. Pure function; no behavior change to the model request path.
 
-JWC adaptation vs OMP: OMP gated casing behind `normalizeGeneratedTitle(value, sourceText?)` with a title-case fallback when `sourceText===undefined`. JWC has no title-case fallback (never forced title-case), so we apply reconciliation directly with the always-available `firstMessage` — no sentinel/`titleCase` path needed.
+JWC adaptation vs OMP: OMP's `52b8fb156` made `normalizeGeneratedTitle(value, sourceText?)` reconcile against `sourceText` and, when `sourceText` is absent, preserve the cleaned title as-is (the prior forced-title-case was removed in that same commit). JWC never force-title-cased (clean-and-return at title-generator.ts:157; tests assert raw casing at title-generator.test.ts:35), so we apply reconciliation directly with the always-available `firstMessage` — no sentinel path needed. Confirmed by A-audit not a regression.
 
 ## Invariants
 
