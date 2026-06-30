@@ -291,24 +291,6 @@ function malformedFailure(error: unknown): ClassifiedFailure {
 	};
 }
 
-async function fetchLocalModelIds(config: LocalOpenAICompatConfig, timeoutMs: number): Promise<string[]> {
-	const response = await fetch(`${config.baseUrl}/models`, {
-		headers: buildHeaders(config.apiKey),
-		signal: AbortSignal.timeout(timeoutMs),
-	});
-	if (!response.ok) {
-		const body = await responsePreview(response);
-		throw new Error(classifyHttpFailure("models", response.status, body).error);
-	}
-	let payload: unknown;
-	try {
-		payload = await response.json();
-	} catch (error) {
-		throw new Error(`Failed to parse /models JSON: ${toErrorMessage(error)}`);
-	}
-	return extractModelIds(payload);
-}
-
 async function diagnoseLocalModels(
 	config: LocalOpenAICompatConfig,
 	timeoutMs: number,
@@ -347,18 +329,6 @@ async function diagnoseLocalModels(
 	} catch (error) {
 		const failure = classifyThrownFailure("models", error, timeoutMs);
 		return { models: [], check: { name: "models", status: "error", ...failure } };
-	}
-}
-
-async function discoverFirstModel(config: LocalOpenAICompatConfig, timeoutMs: number): Promise<string> {
-	try {
-		return (await fetchLocalModelIds(config, timeoutMs))[0]!;
-	} catch (error) {
-		const message = toErrorMessage(error);
-		if (message === "/models returned no model ids") {
-			throw new Error("/models returned no model ids; pass --model explicitly");
-		}
-		throw error;
 	}
 }
 
@@ -535,9 +505,28 @@ export async function runLocalProviderSmoke(cmd: LocalProviderSmokeCommandArgs):
 	const configResult = await readLocalConfig(cmd.modelsPath);
 	if ("ok" in configResult) return configResult;
 
-	let model = cmd.model;
+	let model = cmd.model?.trim();
 	try {
-		model = model?.trim() || (await discoverFirstModel(configResult, timeoutMs));
+		if (!model) {
+			// JWC: when no --model is given, resolve it through the structured
+			// /models diagnostic so auth/not_ready/malformed categories survive
+			// instead of collapsing into a generic chat_stream failure.
+			const discovery = await diagnoseLocalModels(configResult, timeoutMs);
+			if (discovery.check.status === "error") {
+				return {
+					ok: false,
+					baseUrl: configResult.baseUrl,
+					model: undefined,
+					message: discovery.check.message,
+					error: discovery.check.error,
+					category: discovery.check.category,
+					action: discovery.check.action,
+				};
+			}
+			// diagnoseLocalModels already errors on an empty model list, so a
+			// successful check guarantees at least one model id here.
+			model = discovery.models[0];
+		}
 		const check = await diagnoseChatStream(configResult, model, timeoutMs);
 		if (check.status === "ok") {
 			return {

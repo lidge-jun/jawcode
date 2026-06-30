@@ -262,6 +262,64 @@ describe("local provider streaming smoke", () => {
 		expect(result.error).toContain("connection refused");
 	});
 
+	test("preserves the /models auth category when smoke auto-discovers a model", async () => {
+		fs.writeFileSync(
+			modelsPath,
+			JSON.stringify({
+				providers: {
+					local: { baseUrl: "http://127.0.0.1:1234", apiKey: "bad-key" },
+				},
+			}),
+		);
+		const requestedUrls: string[] = [];
+		using _hook = hookFetch(input => {
+			requestedUrls.push(String(input));
+			return new Response("unauthorized", { status: 401 });
+		});
+
+		const result = await runLocalProviderSmoke({ modelsPath });
+
+		expect(result.ok).toBe(false);
+		expect(result.category).toBe("auth");
+		expect(result.model).toBeUndefined();
+		// Auto-discovery must fail on /models without ever attempting the chat stream.
+		expect(requestedUrls).toEqual(["http://127.0.0.1:1234/v1/models"]);
+	});
+
+	test("preserves the /models not-ready category when smoke auto-discovers a model", async () => {
+		fs.writeFileSync(
+			modelsPath,
+			JSON.stringify({
+				providers: {
+					local: { baseUrl: "http://127.0.0.1:1234", apiKey: "local-key" },
+				},
+			}),
+		);
+		using _hook = hookFetch(() => new Response("model is loading", { status: 503 }));
+
+		const result = await runLocalProviderSmoke({ modelsPath });
+
+		expect(result.ok).toBe(false);
+		expect(result.category).toBe("not_ready");
+	});
+
+	test("reports a malformed-response failure when smoke auto-discovery finds no models", async () => {
+		fs.writeFileSync(
+			modelsPath,
+			JSON.stringify({
+				providers: {
+					local: { baseUrl: "http://127.0.0.1:1234", apiKey: "local-key" },
+				},
+			}),
+		);
+		using _hook = hookFetch(() => new Response(JSON.stringify({ data: [] }), { status: 200 }));
+
+		const result = await runLocalProviderSmoke({ modelsPath });
+
+		expect(result.ok).toBe(false);
+		expect(result.category).toBe("malformed_response");
+	});
+
 	test("sends a streaming chat completion request to the configured endpoint", async () => {
 		fs.writeFileSync(
 			modelsPath,
