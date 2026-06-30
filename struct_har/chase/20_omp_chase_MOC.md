@@ -66,7 +66,7 @@
 | 016 | [20.016_omp_chase_advisor_thinking_dialect_session_title.md](./20.016_omp_chase_advisor_thinking_dialect_session_title.md) | split index → 017-022 | reference | ✅ split |
 | 017 | [20.017_omp_chase_multi_advisor_runtime.md](./20.017_omp_chase_multi_advisor_runtime.md) | multi-advisor concurrent runtime (split←016) | reference | ⬜ |
 | 018 | [20.018_omp_chase_thinking_normalization.md](./20.018_omp_chase_thinking_normalization.md) | thinking/reasoning normalization (split←016) | reference | ⬜ |
-| 019 | [20.019_omp_chase_codex_ai_config.md](./20.019_omp_chase_codex_ai_config.md) | codex/AI config: base URL·reasoning·verbosity (split←016) | reference | ⬜ |
+| 019 | [20.019_omp_chase_codex_ai_config.md](./_fin/20/20.019_omp_chase_codex_ai_config.md) | codex/AI config: base URL·reasoning·verbosity (split←016) | reference | ✅ **_fin** [20.019](./_fin/20/20.019_omp_chase_codex_ai_config.md) 260701 (ADAPT: base-url fix + textVerbosity) |
 | 020 | [20.020_omp_chase_session_title_idle_recap.md](./20.020_omp_chase_session_title_idle_recap.md) | session title + LLM idle recap (split←016) | reference | ⬜ |
 | 021 | [20.021_omp_chase_v2_streaming_integrity.md](./20.021_omp_chase_v2_streaming_integrity.md) | v2 streaming integrity + replay (split←016) | reference | ⬜ |
 | 022 | [20.022_omp_chase_ssh_tooling_ux.md](./20.022_omp_chase_ssh_tooling_ux.md) | ssh:// + tooling/UX expansions (split←016) | reference | ⬜ |

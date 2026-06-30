@@ -65,6 +65,7 @@
 | 20.011 | 20.011 — omp chase: TUI image drafts and terminal edges (reference audit) | [20/20.011_omp_chase_tui_image_drafts_terminal_edges](./20/20.011_omp_chase_tui_image_drafts_terminal_edges.md) |
 | 20.012 | 20.012 — omp chase: bash snapshot and env security (reference audit) | [20/20.012_omp_chase_bash_snapshot_env_security](./20/20.012_omp_chase_bash_snapshot_env_security.md) |
 | 20.013 | 20.013 — omp chase: plugin virtual registry bundle (reference audit) | [20/20.013_omp_chase_plugin_virtual_registry_bundle](./20/20.013_omp_chase_plugin_virtual_registry_bundle.md) |
+| 20.019 | 20.019 — omp chase: codex/AI config (base URL · reasoning · verbosity · tiny role) — ADAPT 2 slices | [20/20.019_omp_chase_codex_ai_config](./20/20.019_omp_chase_codex_ai_config.md) |
 | 20.023 | 20.023 — omp chase: AI providers · model catalog · per-family service-tier (reference-triage) | [20/20.023_omp_chase_ai_providers_catalog_service_tier](./20/20.023_omp_chase_ai_providers_catalog_service_tier.md) |
 | 20.014 | 20.014 — omp chase: goal compaction and provider concurrency (reference audit) | [20/20.014_omp_chase_goal_compaction_provider_concurrency](./20/20.014_omp_chase_goal_compaction_provider_concurrency.md) |
 
