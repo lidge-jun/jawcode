@@ -94,6 +94,24 @@ describe("native gjc jaw-interview runtime", () => {
 		expect(validState.spec_slug).toBe("valid-state");
 	});
 
+	it("accepts a long inline --spec that exceeds the filesystem name limit", async () => {
+		const root = await tempDir();
+		// A long inline spec passed directly as text resolves to an over-length path
+		// candidate; fs.stat then throws ENAMETOOLONG, which must fall through to the
+		// verbatim inline content instead of aborting the write.
+		const longInlineSpec = `# Long Spec\n\n${"acceptance ".repeat(512)}`;
+		expect(longInlineSpec.length).toBeGreaterThan(255);
+		const result = await runNativeJawInterviewCommand(
+			["--write", "--stage", "final", "--slug", "long-inline", "--spec", longInlineSpec, "--json"],
+			root,
+		);
+		expect(result.status).toBe(0);
+		const payload = JSON.parse(result.stdout ?? "{}");
+		// Content is persisted verbatim (the writer may normalize a trailing newline);
+		// the key assertion is that the over-length inline spec was NOT rejected.
+		expect((await fs.readFile(payload.path, "utf-8")).trimEnd()).toBe(longInlineSpec.trimEnd());
+	});
+
 	it("fails closed on corrupt jaw-interview state unless --force is supplied", async () => {
 		const root = await tempDir();
 		const statePath = path.join(root, ".jwc", "state", "jaw-interview-state.json");
