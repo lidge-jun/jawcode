@@ -117,6 +117,7 @@ export type KnownProvider =
 	| "firepass"
 	| "gitlab-duo"
 	| "cursor"
+	| "deepinfra"
 	| "deepseek"
 	| "xai"
 	| "groq"
@@ -229,8 +230,10 @@ export function shouldSendServiceTier(
 	serviceTier: ServiceTier | null | undefined,
 	provider: Provider | undefined,
 ): boolean {
-	if (provider !== "openai" && provider !== "openai-codex") return false;
 	const resolved = resolveServiceTier(serviceTier, provider);
+	// DeepInfra realizes only `priority` on the wire; all other tiers are dropped.
+	if (provider === "deepinfra") return resolved === "priority";
+	if (provider !== "openai" && provider !== "openai-codex") return false;
 	return resolved === "default" || resolved === "flex" || resolved === "scale" || resolved === "priority";
 }
 
@@ -249,7 +252,9 @@ export function getPriorityPremiumRequests(
 	if (resolveServiceTier(serviceTier, provider) !== "priority") return 0;
 	// Only providers that realize `priority` on the wire bill the user.
 	// Everywhere else, the field is silently dropped and nothing is charged.
-	return provider === "openai" || provider === "openai-codex" || provider === "anthropic" ? 1 : 0;
+	return provider === "openai" || provider === "openai-codex" || provider === "anthropic" || provider === "deepinfra"
+		? 1
+		: 0;
 }
 
 export interface ProviderSessionState {

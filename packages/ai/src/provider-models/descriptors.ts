@@ -13,6 +13,7 @@ import {
 	anthropicModelManagerOptions,
 	cerebrasModelManagerOptions,
 	cloudflareAiGatewayModelManagerOptions,
+	deepinfraModelManagerOptions,
 	deepseekModelManagerOptions,
 	firepassModelManagerOptions,
 	fireworksModelManagerOptions,
@@ -155,6 +156,12 @@ export const PROVIDER_DESCRIPTORS: readonly ProviderDescriptor[] = [
 	),
 	descriptor("firepass", "kimi-k2.6-turbo", config => firepassModelManagerOptions(config)),
 	descriptor("xai", "grok-4-fast-non-reasoning", config => xaiModelManagerOptions(config)),
+	catalogDescriptor(
+		"deepinfra",
+		"deepseek-ai/DeepSeek-V3.2",
+		config => deepinfraModelManagerOptions(config),
+		catalog("DeepInfra", ["DEEPINFRA_API_KEY"]),
+	),
 	catalogDescriptor(
 		"deepseek",
 		"deepseek-v4-pro",

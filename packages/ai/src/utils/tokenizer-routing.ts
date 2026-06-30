@@ -45,6 +45,7 @@ const PROVIDER_TO_FAMILY: Record<string, TokenizerFamily> = {
 	together: "llama3",
 	cerebras: "llama3",
 
+	deepinfra: "deepseek",
 	deepseek: "deepseek",
 	mistral: "mistral",
 	minimax: "glm",

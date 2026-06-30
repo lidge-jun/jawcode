@@ -61,6 +61,11 @@ const builtInOAuthProviders: OAuthProviderInfo[] = [
 		available: true,
 	},
 	{
+		id: "deepinfra",
+		name: "DeepInfra",
+		available: true,
+	},
+	{
 		id: "deepseek",
 		name: "DeepSeek",
 		available: true,
@@ -335,6 +340,7 @@ export async function refreshOAuthToken(
 		case "huggingface":
 		case "opencode-zen":
 		case "opencode-go":
+		case "deepinfra":
 		case "cerebras":
 		case "fireworks":
 		case "firepass":

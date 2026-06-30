@@ -96,6 +96,7 @@ const serviceProviderMap: Record<string, KeyResolver> = {
 	"opencode-go": "OPENCODE_API_KEY",
 	"opencode-zen": "OPENCODE_API_KEY",
 	cursor: "CURSOR_ACCESS_TOKEN",
+	deepinfra: "DEEPINFRA_API_KEY",
 	deepseek: "DEEPSEEK_API_KEY",
 	"openai-codex": "OPENAI_CODEX_OAUTH_TOKEN",
 	"azure-openai": "AZURE_OPENAI_API_KEY",

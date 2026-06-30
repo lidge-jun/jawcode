@@ -32,6 +32,7 @@ import { codexRankingStrategy, openaiCodexUsageProvider } from "./usage/openai-c
 import { xaiUsageProvider } from "./usage/xai";
 import { zaiUsageProvider } from "./usage/zai";
 import { getOAuthApiKey, getOAuthProvider, refreshOAuthToken } from "./utils/oauth";
+import { loginDeepInfra } from "./utils/oauth/deepinfra";
 import { loginDeepSeek } from "./utils/oauth/deepseek";
 import { loginOpenAICodexDevice } from "./utils/oauth/openai-codex";
 import type {
@@ -1508,6 +1509,11 @@ export class AuthStorage {
 			case "cerebras": {
 				const { loginCerebras } = await import("./utils/oauth/cerebras");
 				const apiKey = await loginCerebras(ctrl);
+				await saveApiKeyCredential(apiKey);
+				return;
+			}
+			case "deepinfra": {
+				const apiKey = await loginDeepInfra(ctrl);
 				await saveApiKeyCredential(apiKey);
 				return;
 			}

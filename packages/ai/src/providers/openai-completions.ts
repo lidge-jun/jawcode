@@ -528,7 +528,8 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions"> = (
 			// though tool calls are also surfaced structurally. Strip the leaked markers
 			// so users don't see raw `<｜...｜>` tokens.
 			const stripDeepseekChatTemplateTokens =
-				/deepseek/i.test(model.id) && (model.provider === "nvidia" || model.provider === "deepseek");
+				/deepseek/i.test(model.id) &&
+				(model.provider === "nvidia" || model.provider === "deepseek" || model.provider === "deepinfra");
 			type OpenAIStreamBlock = TextContent | ThinkingContent | (ToolCall & { partialArgs: string });
 			let currentBlock: OpenAIStreamBlock | undefined;
 			const blockIndex = (block: OpenAIStreamBlock | undefined): number => {

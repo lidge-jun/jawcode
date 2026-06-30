@@ -10,6 +10,10 @@ describe("getPriorityPremiumRequests", () => {
 		expect(getPriorityPremiumRequests("priority", "openai-codex")).toBe(1);
 	});
 
+	it("counts priority tier as one premium request on DeepInfra", () => {
+		expect(getPriorityPremiumRequests("priority", "deepinfra")).toBe(1);
+	});
+
 	it("ignores non-priority paid tiers", () => {
 		expect(getPriorityPremiumRequests("flex", "openai")).toBe(0);
 		expect(getPriorityPremiumRequests("scale", "openai")).toBe(0);
@@ -119,6 +123,14 @@ describe("shouldSendServiceTier", () => {
 	it("returns false for auto tier on OpenAI providers", () => {
 		expect(shouldSendServiceTier("auto", "openai")).toBe(false);
 		expect(shouldSendServiceTier("auto", "openai-codex")).toBe(false);
+	});
+
+	it("returns true only for DeepInfra priority tier", () => {
+		expect(shouldSendServiceTier("priority", "deepinfra")).toBe(true);
+		expect(shouldSendServiceTier("flex", "deepinfra")).toBe(false);
+		expect(shouldSendServiceTier("scale", "deepinfra")).toBe(false);
+		expect(shouldSendServiceTier("default", "deepinfra")).toBe(false);
+		expect(shouldSendServiceTier("auto", "deepinfra")).toBe(false);
 	});
 
 	it("returns false for undefined/null tier", () => {

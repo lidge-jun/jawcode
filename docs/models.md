@@ -120,7 +120,19 @@ modelBindings:
 - `cursor-agent`
 
 
-### First-class Azure OpenAI and Amazon Bedrock examples
+### First-class DeepInfra, Azure OpenAI, and Amazon Bedrock examples
+
+DeepInfra is available as the first-class `deepinfra` provider. It uses DeepInfra's OpenAI-compatible Chat Completions endpoint and reads `DEEPINFRA_API_KEY` when no explicit config key is provided. Set `serviceTier: priority` in JWC config or use the runtime service-tier controls to send DeepInfra's `service_tier: "priority"` request field for supported models:
+
+```yaml
+providers:
+  deepinfra:
+    baseUrl: https://api.deepinfra.com/v1/openai
+    apiKeyEnv: DEEPINFRA_API_KEY
+    api: openai-completions
+    models:
+      - id: deepseek-ai/DeepSeek-V3.2
+```
 
 Azure OpenAI uses canonical OpenAI model IDs in JWC and resolves those IDs to Azure deployment names at request time. Set `AZURE_OPENAI_DEPLOYMENT_NAME_MAP` to avoid assuming model id equals deployment name:
 
