@@ -146,7 +146,7 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 | 순 | NNN | 문서 | P | 상태 |
 |---|-----|------|---|------|
 | W1 | 024 | [20.024 MCP oauth/reauth flow](./20.024_omp_chase_mcp_oauth_reauth_flow.md) | ref | ⬜ |
-| W2 | 023 | [20.023 AI providers/catalog/service-tier](./20.023_omp_chase_ai_providers_catalog_service_tier.md) | ref | ⬜ |
+| W2 | 023 | [20.023 AI providers/catalog/service-tier](./_fin/20/20.023_omp_chase_ai_providers_catalog_service_tier.md) | ref | ✅ _fin 260701 · reference-triage (no JWC code): service-tier already-shipped, all_turns inapplicable, leaked-fence-heal defer→20.018; goal `f8909338-255` |
 | W3 | 027 | [20.027 prompts/subagent/discovery (identity)](./20.027_omp_chase_prompts_subagent_discovery_rules.md) | ref | ⬜ |
 | W4 | 025 | [20.025 compaction/snapcompact/session-scope](./20.025_omp_chase_compaction_snapcompact_session_scope.md) | ref | ⬜ |
 | W5 | 028 | [20.028 web-search/provider settings](./20.028_omp_chase_web_search_provider_settings.md) | ref | ⬜ |

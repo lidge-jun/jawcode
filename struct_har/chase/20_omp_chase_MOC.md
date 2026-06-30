@@ -70,7 +70,7 @@
 | 020 | [20.020_omp_chase_session_title_idle_recap.md](./20.020_omp_chase_session_title_idle_recap.md) | session title + LLM idle recap (split←016) | reference | ⬜ |
 | 021 | [20.021_omp_chase_v2_streaming_integrity.md](./20.021_omp_chase_v2_streaming_integrity.md) | v2 streaming integrity + replay (split←016) | reference | ⬜ |
 | 022 | [20.022_omp_chase_ssh_tooling_ux.md](./20.022_omp_chase_ssh_tooling_ux.md) | ssh:// + tooling/UX expansions (split←016) | reference | ⬜ |
-| 023 | [20.023_omp_chase_ai_providers_catalog_service_tier.md](./20.023_omp_chase_ai_providers_catalog_service_tier.md) | AI providers/catalog/service-tier (v16.2.9←175 delta) | reference | ⬜ |
+| 023 | [20.023_omp_chase_ai_providers_catalog_service_tier.md](./_fin/20/20.023_omp_chase_ai_providers_catalog_service_tier.md) | AI providers/catalog/service-tier (v16.2.9←175 delta) | reference | ✅ **_fin** [20.023](./_fin/20/20.023_omp_chase_ai_providers_catalog_service_tier.md) 260701 (reference-triage, no code) |
 | 024 | [20.024_omp_chase_mcp_oauth_reauth_flow.md](./20.024_omp_chase_mcp_oauth_reauth_flow.md) | MCP oauth/reauth flow + cmd-shim launch | reference | ⬜ |
 | 025 | [20.025_omp_chase_compaction_snapcompact_session_scope.md](./20.025_omp_chase_compaction_snapcompact_session_scope.md) | compaction/snapcompact caps + session-branch scope | reference | ⬜ |
 | 026 | [20.026_omp_chase_tui_input_loader_mcp_enable.md](./20.026_omp_chase_tui_input_loader_mcp_enable.md) | TUI loader re-arm/double-Esc + MCP enable | reference | ⬜ |

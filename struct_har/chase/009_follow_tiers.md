@@ -22,7 +22,7 @@
 | [20.027](./20.027_omp_chase_prompts_subagent_discovery_rules.md) | prompts/subagent/discovery | ADAPT · subagent 이름 JWC 재작성 |
 | [10.062](./_fin/10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md) | DeepInfra + Gemini UA | IMPORT ✅ _fin 260701 |
 | [10.054](./_fin/10/10.054_gjc_chase_local_provider_discovery.md) | local provider discovery | IMPORT ✅ _fin 260701 |
-| [20.023](./20.023_omp_chase_ai_providers_catalog_service_tier.md) | providers/catalog/service-tier | IMPORT/ADAPT · catalog 보존 머지 |
+| [20.023](./_fin/20/20.023_omp_chase_ai_providers_catalog_service_tier.md) | providers/catalog/service-tier | IMPORT/ADAPT ✅ _fin 260701 (reference-triage, no code) |
 | [20.019](./20.019_omp_chase_codex_ai_config.md) | codex/AI config | ADAPT · 기본값 JWC |
 | [20.021](./20.021_omp_chase_v2_streaming_integrity.md) | v2 streaming integrity | IMPORT · 회귀가드 |
 | [20.009](./20.009_omp_chase_append_only_context_integrity.md) | append-only context integrity | IMPORT |
