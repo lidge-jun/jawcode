@@ -82,7 +82,7 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 
 | 순 | NNN | 문서 | P | 상태 |
 |---|-----|------|---|------|
-| V1 | 059 | [10.059 deep-interview/ralplan/ultragoal ask gate + render guard](./10.059_gjc_chase_deep_interview_ask_ralplan_gate.md) | P2 | ⬜ |
+| V1 | 059 | [10.059 deep-interview/ralplan/ultragoal ask gate + render guard](./_fin/10/10.059_gjc_chase_deep_interview_ask_ralplan_gate.md) | P2 | ✅ _fin 260701 (ADAPT+IMPORT: 4 slices) |
 | V2 | 060 | [10.060 TUI render resilience + Ctrl+Enter + status-line](./10.060_gjc_chase_tui_render_resilience_editor_submit.md) | P2 | ⬜ |
 | V3 | 062 | [10.062 DeepInfra provider + Gemini UA](./_fin/10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md) | P2 | ✅ _fin 260701 · IMPORT (adapt) DeepInfra provider+service-tier + Gemini UA as JWC code (`b249348`/`ad6ec8f`/`27311f6`); goal `f8909338-255` |
 | V4 | 064 | [10.064 Telegram daemon entrypoint + Windows bell](./10.064_gjc_chase_telegram_daemon_entrypoint_notify.md) | P2 | ⬜ |

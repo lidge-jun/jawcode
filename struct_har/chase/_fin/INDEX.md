@@ -49,6 +49,7 @@
 | 10.043 | 10.043 — gjc chase: web search and public URL hardening | [10/10.043_gjc_chase_web_search_insane_security](./10/10.043_gjc_chase_web_search_insane_security.md) |
 | 10.047 | 10.047 — gjc chase: security/privacy guardrails | [10/10.047_gjc_chase_security_privacy_guardrails](./10/10.047_gjc_chase_security_privacy_guardrails.md) |
 | 10.054 | 10.054 — gjc chase: local OpenAI-compatible provider discovery + fallback | [10/10.054_gjc_chase_local_provider_discovery](./10/10.054_gjc_chase_local_provider_discovery.md) |
+| 10.059 | 10.059 — gjc chase: deep-interview wording · ask gate · render guard — ADAPT+IMPORT 4 slices | [10/10.059_gjc_chase_deep_interview_ask_ralplan_gate](./10/10.059_gjc_chase_deep_interview_ask_ralplan_gate.md) |
 | 10.062 | 10.062 — gjc chase: DeepInfra provider + service-tier · Gemini CLI user-agent alignment | [10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua](./10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md) |
 
 ## OMP `_fin/20`
