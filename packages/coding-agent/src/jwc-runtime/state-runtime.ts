@@ -26,6 +26,7 @@ import {
 	type WorkflowStateReceipt,
 } from "../skill-state/workflow-state-contract";
 import { renderCliWriteReceipt } from "./cli-write-receipt";
+import { validateJawInterviewRounds } from "./jaw-interview-round-validation";
 import { canonicalModeStateFileName, readWorkflowModeStateJson, resolveModeStatePaths } from "./legacy-storage";
 import { renderStateGraph, type StateGraphFormat } from "./state-graph";
 import { migrateAndPersistLegacyState, migrateWorkflowState } from "./state-migrations";
@@ -1251,6 +1252,16 @@ async function handleWrite(
 
 	const validation = validateWorkflowStateEnvelope(mode, merged);
 	if (!validation.valid) throw new StateCommandError(2, validation.error ?? `invalid ${mode} state envelope`);
+
+	// 10.042 — write-only jaw-interview round-shape guard (adapted from GJC #606).
+	// Kept inside handleWrite (not the generic envelope validator) so doctor/reconcile
+	// reads of pre-existing on-disk state are never retroactively rejected.
+	if (mode === "jaw-interview") {
+		const roundValidation = validateJawInterviewRounds(merged);
+		if (!roundValidation.valid) {
+			throw new StateCommandError(2, roundValidation.error ?? "invalid jaw-interview round metadata");
+		}
+	}
 
 	const { warning: outOfBandWarning, stamped } = await writeJsonAtomic(cwd, filePath, merged, "write", {
 		skill: mode,
