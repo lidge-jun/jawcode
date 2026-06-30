@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { resolveTokenizerFamily } from "../src/utils/tokenizer-routing";
+import { resolveTokenizerFamily, type TokenizerFamily } from "../src/utils/tokenizer-routing";
 
 describe("resolveTokenizerFamily — DeepInfra model-id routing", () => {
-	const cases: Array<[string, string]> = [
+	const cases: Array<[string, TokenizerFamily]> = [
 		["deepseek-ai/DeepSeek-V3.2", "deepseek"],
 		["deepseek-ai/DeepSeek-R1-0528", "deepseek"],
 		["google/gemma-4-31B-it", "gemma"],
