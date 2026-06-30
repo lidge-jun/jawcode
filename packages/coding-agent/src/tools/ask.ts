@@ -63,6 +63,17 @@ const QuestionMeta = z.object({
 	mode: z.string().describe("active challenge mode").optional(),
 });
 
+/**
+ * Optional workflow gate stage override for an ask question. Only the gate
+ * `stage` is overridable; `kind` stays `"question"` because the ask path always
+ * emits a question-answer schema. Stages must be JWC-valid `RpcWorkflowStage`s.
+ */
+const WorkflowGateMeta = z.object({
+	stage: z
+		.enum(["jaw-interview", "deep-interview", "plan", "planphase", "goal"])
+		.describe("workflow gate stage for this question"),
+});
+
 const QuestionItem = z.object({
 	id: z.string().describe("question id"),
 	question: z.string().describe("question text"),
@@ -70,6 +81,7 @@ const QuestionItem = z.object({
 	multi: z.boolean().describe("allow multiple selections").optional(),
 	recommended: z.number().describe("recommended option index").optional(),
 	meta: QuestionMeta.describe("structured interview round metadata").optional(),
+	workflowGate: WorkflowGateMeta.describe("optional workflow gate stage override").optional(),
 });
 
 const askSchema = z.object({
@@ -561,6 +573,7 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
 					multi: q.multi,
 					recommended: q.recommended,
 					meta: q.meta,
+					workflowGate: q.workflowGate,
 				};
 				const answer = await gateEmitter.emitGate(questionToGate(gateQuestion));
 				const decoded = gateAnswerToResult(gateQuestion, answer);
