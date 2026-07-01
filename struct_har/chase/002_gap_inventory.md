@@ -79,6 +79,7 @@
 | plugin/extensibility | Hermes/OpenClaw/controller docs, generated bundles, MCP bridge | 중 — integration boundary | [10.044](./10.044_gjc_chase_plugin_extensibility_bundle.md) |
 | computer-use | native controller and control readiness docs | 중 — desktop control | [10.045](./10.045_gjc_chase_computer_use_native_control.md) |
 | dev/CI/release | affected-path CI false-green guard closed; matrix fanout/native platform split/release metadata remain future-specific cards | 중 — release hygiene | [10.048](./_fin/10/10.048_gjc_chase_dev_ci_release_packaging.md) ✅ _fin |
+| terminal bell/completion hook | opt-in local terminal BEL plus user-level completion command hook | 낮음 — local UX + global-only command boundary | [10.056](./_fin/10/10.056_gjc_chase_terminal_bell_notifications.md) ✅ _fin |
 | session/tmux/team/worktree | lock GC, psmux, session registry, tmux/worktree lifecycle | 중 — state/process | [10.050](./10.050_gjc_chase_session_tmux_team_worktree.md) |
 | RLM/research mode | research command, venv, autonomous/resume gate | 낮음/중 — separate product lane | [10.046](./10.046_gjc_chase_rlm_research_mode.md) |
 | perf/bench/corpus | optimization suite, redraw repro, geobench/corpus | 낮음 — track/reference | [10.049](./10.049_gjc_chase_performance_bench_corpus.md) |

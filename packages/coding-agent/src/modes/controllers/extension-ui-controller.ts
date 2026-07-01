@@ -22,6 +22,7 @@ import { HookInputComponent } from "../../modes/components/hook-input";
 import { HookSelectorComponent } from "../../modes/components/hook-selector";
 import { getAvailableThemesWithPaths, getThemeByName, setTheme, type Theme, theme } from "../../modes/theme/theme";
 import type { InteractiveModeContext } from "../../modes/types";
+import { classifyHookSelectorBellEvent, ringTerminalBell } from "../../modes/utils/terminal-bell";
 import { setSessionTerminalTitle, setTerminalTitle } from "../../utils/title-generator";
 
 const MAX_WIDGET_LINES = 10;
@@ -619,6 +620,7 @@ export class ExtensionUiController {
 		// hijacks the terminal's native scrollback while the ask selector is
 		// up ("ask 모드에서 위로 스크롤이 막힘", 260613). PgUp/PgDn cover long
 		// questions; the wheel stays with the terminal.
+		ringTerminalBell(classifyHookSelectorBellEvent(title));
 
 		this.ctx.hookSelector = new HookSelectorComponent(
 			title,

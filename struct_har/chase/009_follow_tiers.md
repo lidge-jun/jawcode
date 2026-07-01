@@ -34,7 +34,18 @@
 | [20.028](./_fin/20/20.028_omp_chase_web_search_provider_settings.md) | web-search provider settings | ✅ _fin 260701 (IMPORT: DDG request-shape + CLI provider settings; gemini api-key defer③) |
 | [10.048](./_fin/10/10.048_gjc_chase_dev_ci_release_packaging.md) | dev/CI/release packaging | ✅ _fin 260701 (ADAPT: affected-path false-green guard) |
 
-> 추가 ① 후보(플랫폼/UX 말단, 미인터뷰): 10.057 · 10.061 · 10.041 · 10.056 · 10.064 · 10.060 · 10.052 · 20.015. 다음 사이클에서 확정.
+> 추가 ① 후보(플랫폼/UX 말단) 구현 goal 진행 중: 10.060 · 10.041 · 10.057 · 10.061 · 10.056 closed; 10.064 · 10.052 · 20.015 remaining.
+
+| NNN | 스코프 | 판정 |
+|---|---|---|
+| [10.060](./_fin/10/10.060_gjc_chase_tui_render_resilience_editor_submit.md) | TUI render resilience | ✅ _fin 260701 |
+| [10.041](./_fin/10/10.041_gjc_chase_tui_input_render_windows_psmux.md) | TUI input/render Windows psmux | ✅ _fin 260701 |
+| [10.057](./_fin/10/10.057_gjc_chase_windows_hardening.md) | Windows hardening | ✅ _fin 260701 |
+| [10.061](./_fin/10/10.061_gjc_chase_tmux_team_windows_psmux_titles.md) | tmux/team Windows psmux titles | ✅ _fin 260701 |
+| [10.056](./_fin/10/10.056_gjc_chase_terminal_bell_notifications.md) | terminal bell + completion hook | ✅ _fin 260701 (ADAPT: global-only command hook) |
+| [10.064](./10.064_gjc_chase_telegram_daemon_entrypoint_notify.md) | Telegram daemon entrypoint + Windows bell | ⬜ remaining |
+| [10.052](./10.052_gjc_chase_docs_external_integrations.md) | docs external integrations | ⬜ remaining |
+| [20.015](./20.015_omp_chase_release_test_leak_hardening.md) | release/test leak hardening | ⬜ remaining |
 
 ## ② 기능 결정 필요 (게이트 유지)
 

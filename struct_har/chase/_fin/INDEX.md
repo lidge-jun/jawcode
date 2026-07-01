@@ -2,7 +2,7 @@
 
 완료된 `10.NNN` / `20.NNN` — 본문은 `_fin/10/` · `_fin/20/`.
 
-> Inventory refreshed 2026-07-01 against actual files: GJC `_fin/10` = 52, OMP `_fin/20` = 19. Duplicate NNNs are intentionally file-level rows.
+> Inventory refreshed 2026-07-01 against actual files: GJC `_fin/10` = 53, OMP `_fin/20` = 19. Duplicate NNNs are intentionally file-level rows.
 
 ## GJC `_fin/10`
 
@@ -51,6 +51,7 @@
 | 10.047 | 10.047 — gjc chase: security/privacy guardrails | [10/10.047_gjc_chase_security_privacy_guardrails](./10/10.047_gjc_chase_security_privacy_guardrails.md) |
 | 10.048 | 10.048 — gjc chase: dev CI release packaging — ADAPT affected-path false-green guard | [10/10.048_gjc_chase_dev_ci_release_packaging](./10/10.048_gjc_chase_dev_ci_release_packaging.md) |
 | 10.054 | 10.054 — gjc chase: local OpenAI-compatible provider discovery + fallback | [10/10.054_gjc_chase_local_provider_discovery](./10/10.054_gjc_chase_local_provider_discovery.md) |
+| 10.056 | 10.056 — gjc chase: terminal bell notifications + completion hook — ADAPT global-only command hook | [10/10.056_gjc_chase_terminal_bell_notifications](./10/10.056_gjc_chase_terminal_bell_notifications.md) |
 | 10.059 | 10.059 — gjc chase: deep-interview wording · ask gate · render guard — ADAPT+IMPORT 4 slices | [10/10.059_gjc_chase_deep_interview_ask_ralplan_gate](./10/10.059_gjc_chase_deep_interview_ask_ralplan_gate.md) |
 | 10.060 | 10.060 — gjc chase: TUI render resilience · Ctrl+Enter submit · status-line UX | [10/10.060_gjc_chase_tui_render_resilience_editor_submit](./10/10.060_gjc_chase_tui_render_resilience_editor_submit.md) |
 | 10.061 | 10.061 — gjc chase: tmux workspace titles · Windows/psmux team spawn reliability | [10/10.061_gjc_chase_tmux_team_windows_psmux_titles](./10/10.061_gjc_chase_tmux_team_windows_psmux_titles.md) |

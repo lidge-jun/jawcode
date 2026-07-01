@@ -3,6 +3,7 @@ import { calculatePromptTokens } from "@jawcode-dev/agent-core/compaction/compac
 import type { AssistantMessage, ImageContent } from "@jawcode-dev/ai";
 import { parseRateLimitReason } from "@jawcode-dev/ai";
 import { type Component, Loader, TERMINAL, Text } from "@jawcode-dev/tui";
+import { logger } from "@jawcode-dev/utils";
 import { settings } from "../../config/settings";
 import { isJawBrand } from "../../discovery/helpers";
 import { AssistantMessageComponent } from "../../modes/components/assistant-message";
@@ -23,10 +24,60 @@ import type { AgentSessionEvent } from "../../session/agent-session";
 import { isSilentAbort, readPendingDisplayTag } from "../../session/messages";
 import type { ResolveToolDetails } from "../../tools/resolve";
 import { interruptHint } from "../shared";
+import { ringTerminalBell } from "../utils/terminal-bell";
 
 type AgentSessionEventKind = AgentSessionEvent["type"];
 
 const IRC_MESSAGE_VISIBLE_TTL_MS = 10_000;
+const COMPLETION_NOTIFY_COMMAND_TIMEOUT_MS = 10_000;
+
+interface CompletionNotifyPayload {
+	type: "agent-turn-complete";
+	title: string;
+	body: string;
+	cwd: string;
+	sessionId?: string;
+	sessionName?: string;
+	lastAssistantMessage?: string;
+	stopReason?: string;
+}
+
+function completionNotifyShellCommand(command: string): string[] {
+	if (process.platform === "win32") {
+		return ["cmd.exe", "/d", "/s", "/c", command];
+	}
+	return ["/bin/sh", "-c", command];
+}
+
+function cleanNotificationEnvValue(value: string | undefined, max = 4000): string {
+	if (!value) return "";
+	return value.replaceAll("\0", "").slice(0, max);
+}
+
+function buildCompletionNotifyEnv(payload: CompletionNotifyPayload): Record<string, string> {
+	return {
+		JWC_NOTIFICATION_TYPE: payload.type,
+		JWC_NOTIFICATION_TITLE: cleanNotificationEnvValue(payload.title, 500),
+		JWC_NOTIFICATION_BODY: cleanNotificationEnvValue(payload.body),
+		JWC_NOTIFICATION_CWD: cleanNotificationEnvValue(payload.cwd, 2000),
+		JWC_NOTIFICATION_SESSION_ID: cleanNotificationEnvValue(payload.sessionId, 500),
+		JWC_NOTIFICATION_SESSION_NAME: cleanNotificationEnvValue(payload.sessionName, 500),
+		JWC_NOTIFICATION_LAST_ASSISTANT_MESSAGE: cleanNotificationEnvValue(payload.lastAssistantMessage),
+		JWC_NOTIFICATION_STOP_REASON: cleanNotificationEnvValue(payload.stopReason, 100),
+		JWC_NOTIFICATION_JSON: cleanNotificationEnvValue(JSON.stringify(payload), 8000),
+	};
+}
+
+function assistantMessageTextSummary(message: AssistantMessage | undefined, max = 1000): string | undefined {
+	if (!message) return undefined;
+	const text = message.content
+		.filter(block => block.type === "text")
+		.map(block => block.text)
+		.join("\n")
+		.trim();
+	if (!text) return undefined;
+	return text.slice(0, max);
+}
 
 function friendlyRetryReason(errorMessage: string | undefined): string {
 	if (!errorMessage) return "";
@@ -1024,8 +1075,48 @@ export class EventController {
 		return lastAssistant?.usage ? calculatePromptTokens(lastAssistant.usage) : 0;
 	}
 
+	#runCompletionNotifyCommand(payload: CompletionNotifyPayload): void {
+		const command = settings.getGlobal("completion.notifyCommand")?.trim();
+		if (!command) return;
+
+		try {
+			const proc = Bun.spawn(completionNotifyShellCommand(command), {
+				cwd: payload.cwd,
+				detached: true,
+				env: {
+					...process.env,
+					...buildCompletionNotifyEnv(payload),
+				},
+				stdin: "ignore",
+				stdout: "ignore",
+				stderr: "ignore",
+				windowsHide: true,
+			});
+			proc.unref();
+			const timer = setTimeout(() => {
+				try {
+					proc.kill();
+				} catch {}
+			}, COMPLETION_NOTIFY_COMMAND_TIMEOUT_MS);
+			timer.unref?.();
+			void proc.exited
+				.then(exitCode => {
+					clearTimeout(timer);
+					if (exitCode !== 0) {
+						logger.warn("completion notify command exited non-zero", { exitCode });
+					}
+				})
+				.catch(error => {
+					clearTimeout(timer);
+					logger.warn("completion notify command failed", { error: String(error) });
+				});
+		} catch (error) {
+			logger.warn("completion notify command failed to start", { error: String(error) });
+		}
+	}
+
 	sendCompletionNotification(): void {
-		if (this.ctx.isBackgrounded === false) return;
+		const isBackgrounded = this.ctx.isBackgrounded !== false;
 		const notify = settings.get("completion.notify");
 		if (notify === "off") return;
 
@@ -1036,9 +1127,23 @@ export class EventController {
 		const last = this.ctx.session.getLastAssistantMessage?.();
 		if (last?.stopReason === "aborted" || last?.stopReason === "error") return;
 
-		const title = this.ctx.sessionManager.getSessionName();
-		const message = title ? `${title}: Complete` : "Complete";
-		TERMINAL.sendNotification(message);
+		const sessionName = this.ctx.sessionManager.getSessionName();
+		const title = sessionName ? `${sessionName}: Complete` : "Complete";
+		const summary = assistantMessageTextSummary(last);
+		const body = summary ?? "Complete";
+		const payload: CompletionNotifyPayload = {
+			type: "agent-turn-complete",
+			title,
+			body,
+			cwd: this.ctx.sessionManager.getCwd(),
+			sessionId: this.ctx.sessionManager.getSessionId(),
+			sessionName: sessionName || undefined,
+			lastAssistantMessage: summary,
+			stopReason: last?.stopReason,
+		};
+		ringTerminalBell("complete");
+		if (isBackgrounded) TERMINAL.sendNotification(title);
+		this.#runCompletionNotifyCommand(payload);
 	}
 
 	async handleBackgroundEvent(event: AgentSessionEvent): Promise<void> {
