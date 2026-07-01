@@ -1,7 +1,7 @@
 # WP15 — 10.048 dev/CI/release packaging (ADAPT)
 
 > Goal `f8909338-255` · work-phase 15 · one FULL PABCD cycle.
-> Card: `struct_har/chase/10.048_gjc_chase_dev_ci_release_packaging.md` (GJC source, Decision A = ADAPT).
+> Card: `struct_har/chase/_fin/10/10.048_gjc_chase_dev_ci_release_packaging.md` (GJC source, Decision A = ADAPT; active path before closure was `struct_har/chase/10.048_gjc_chase_dev_ci_release_packaging.md`).
 > Source anchors checked: GJC `816aa07c` (false-green Bun cwd), `641e9294` (matrix fanout), `d7bce535` (irrelevant PR skip).
 > JWC posture: adopt the small false-green guard slice now; defer broad runner matrix and release credential changes.
 

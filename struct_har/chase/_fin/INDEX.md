@@ -2,7 +2,7 @@
 
 완료된 `10.NNN` / `20.NNN` — 본문은 `_fin/10/` · `_fin/20/`.
 
-> Inventory refreshed 2026-06-28 against actual files: GJC `_fin/10` = 41, OMP `_fin/20` = 12. Duplicate NNNs are intentionally file-level rows.
+> Inventory refreshed 2026-07-01 against actual files: GJC `_fin/10` = 48, OMP `_fin/20` = 19. Duplicate NNNs are intentionally file-level rows.
 
 ## GJC `_fin/10`
 
@@ -48,6 +48,7 @@
 | 10.040 | 10.040 — gjc chase: compaction pruning and resident memory | [10/10.040_gjc_chase_compaction_pruning_resident_memory](./10/10.040_gjc_chase_compaction_pruning_resident_memory.md) |
 | 10.043 | 10.043 — gjc chase: web search and public URL hardening | [10/10.043_gjc_chase_web_search_insane_security](./10/10.043_gjc_chase_web_search_insane_security.md) |
 | 10.047 | 10.047 — gjc chase: security/privacy guardrails | [10/10.047_gjc_chase_security_privacy_guardrails](./10/10.047_gjc_chase_security_privacy_guardrails.md) |
+| 10.048 | 10.048 — gjc chase: dev CI release packaging — ADAPT affected-path false-green guard | [10/10.048_gjc_chase_dev_ci_release_packaging](./10/10.048_gjc_chase_dev_ci_release_packaging.md) |
 | 10.054 | 10.054 — gjc chase: local OpenAI-compatible provider discovery + fallback | [10/10.054_gjc_chase_local_provider_discovery](./10/10.054_gjc_chase_local_provider_discovery.md) |
 | 10.059 | 10.059 — gjc chase: deep-interview wording · ask gate · render guard — ADAPT+IMPORT 4 slices | [10/10.059_gjc_chase_deep_interview_ask_ralplan_gate](./10/10.059_gjc_chase_deep_interview_ask_ralplan_gate.md) |
 | 10.042 | 10.042 — gjc chase: deep-interview ask + goal state — ADAPT 1 slice (round-shape write guard) | [10/10.042_gjc_chase_deep_interview_ask_goal_state](./10/10.042_gjc_chase_deep_interview_ask_goal_state.md) |

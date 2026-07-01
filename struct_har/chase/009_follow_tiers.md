@@ -32,7 +32,7 @@
 | [10.059](./_fin/10/10.059_gjc_chase_deep_interview_ask_ralplan_gate.md) | ralplan ask gate + render guard | ✅ _fin 260701 (ADAPT+IMPORT) |
 | [10.019](./10.019_gjc_chase_gc_file_lock.md) | jwc gc 명령 | ADAPT |
 | [20.028](./_fin/20/20.028_omp_chase_web_search_provider_settings.md) | web-search provider settings | ✅ _fin 260701 (IMPORT: DDG request-shape + CLI provider settings; gemini api-key defer③) |
-| [10.048](./10.048_gjc_chase_dev_ci_release_packaging.md) | dev/CI/release packaging | ADAPT |
+| [10.048](./_fin/10/10.048_gjc_chase_dev_ci_release_packaging.md) | dev/CI/release packaging | ✅ _fin 260701 (ADAPT: affected-path false-green guard) |
 
 > 추가 ① 후보(플랫폼/UX 말단, 미인터뷰): 10.057 · 10.061 · 10.041 · 10.056 · 10.064 · 10.060 · 10.052 · 20.015. 다음 사이클에서 확정.
 

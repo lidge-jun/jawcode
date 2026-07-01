@@ -56,7 +56,7 @@ Recommended first user-value path: **028 → 029 → 030 → 032**, then 031/034
 | U10 | 042 | [10.042 deep-interview/ask/goal state](./_fin/10/10.042_gjc_chase_deep_interview_ask_goal_state.md) | P2 | ✅ _fin 260701 (ADAPT: 1 slice) |
 | U11 | 044 | [10.044 plugin/extensibility bundle](./10.044_gjc_chase_plugin_extensibility_bundle.md) | P2 | ⬜ |
 | U12 | 045 | [10.045 computer-use native control](./10.045_gjc_chase_computer_use_native_control.md) | P2 | ⬜ |
-| U13 | 048 | [10.048 dev/CI/release packaging](./10.048_gjc_chase_dev_ci_release_packaging.md) | P2 | ⬜ |
+| U13 | 048 | [10.048 dev/CI/release packaging](./_fin/10/10.048_gjc_chase_dev_ci_release_packaging.md) | P2 | ✅ _fin 260701 · ADAPT affected-path false-green guard (`8b3ab60`); matrix fanout/release credentials deferred |
 | U14 | 050 | [10.050 session/tmux/team/worktree](./10.050_gjc_chase_session_tmux_team_worktree.md) | P2 | ⬜ |
 | U15 | 046 | [10.046 RLM/research mode](./10.046_gjc_chase_rlm_research_mode.md) | P3 | ⬜ |
 | U16 | 049 | [10.049 perf/bench/corpus](./10.049_gjc_chase_performance_bench_corpus.md) | P3 | ⬜ |
