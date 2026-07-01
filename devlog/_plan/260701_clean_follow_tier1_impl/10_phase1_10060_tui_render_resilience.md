@@ -16,7 +16,7 @@ Class: C3. This is a cross-package TUI/product slice spanning `packages/tui`, `p
   - `packages/tui/src/components/editor.ts` still treats Ctrl+Enter variants as newline in the base editor.
   - `packages/coding-agent/src/modes/components/hook-editor.ts` already submits Ctrl+Enter in hook mode.
   - `packages/coding-agent/src/modes/components/status-line/segments.ts` already has a usage segment, but no used/remaining mode option.
-  - `packages/tui/src/components/settings-list.ts` lacks the fixed description-row support from upstream.
+  - `packages/coding-agent/src/modes/components/settings-selector.ts` does not contain upstream `StatusLineCustomEditor`; upstream custom-editor UX depends on a feature that JWC previously deferred under `10.058`.
   - `packages/tui/src/tui.ts` currently renders child and overlay components without the upstream `safeRenderComponent` isolation.
 
 ## Scope
@@ -25,16 +25,17 @@ IN:
 
 1. Add component render isolation so one throwing component produces a visible fallback line and does not abort the entire frame.
 2. Change base editor Ctrl+Enter and Ctrl+Shift+Enter variants from newline to submit, while keeping Shift+Enter as newline.
-3. Add status-line usage display mode (`used` vs `remaining`) adapted to JWC's current usage data shape.
-4. Improve status-line custom editor UX by keeping the parent preview current and stabilizing the settings-list description area.
-5. Close `10.060` docs and move the card to `_fin/10` after verification.
+3. Add status-line usage display mode (`used` vs `remaining`) adapted to JWC's current usage data shape at the config/rendering layer.
+4. Close `10.060` docs and move the card to `_fin/10` after verification.
 
 OUT:
 
 - No `10.041` Windows/psmux work.
 - No `20.006 resetDisplay` work unless a new regression appears during focused testing.
 - No welcome/banner/scroll visual simplification.
-- No broad status-line preset redesign beyond the usage option.
+- No upstream status-line custom editor import or custom-editor UX polish from `0e537348`; JWC lacks `StatusLineCustomEditor`, and importing it would reopen the `10.058` deferred custom-editor surface.
+- No `packages/tui/src/components/settings-list.ts` description-row changes, because the only identified consumer is the deferred custom status-line editor.
+- No settings-selector UI for usage mode in this cycle; the mode remains configurable through existing `statusLine.segmentOptions` storage and is regression-tested at render level.
 
 ## Planned file changes
 
@@ -45,7 +46,7 @@ OUT:
 - Use it in:
   - `Container.render` child loop.
   - overlay compositing in `#compositeOverlays`.
-  - bottom-pinned measurement in `#expandViewportFill`.
+- Do not add an `#expandViewportFill` wrapper in JWC: current JWC `#expandViewportFill` operates on pre-rendered `string[]` and has no component `render()` call.
 - Fallback line format: `[render error: <ComponentName>]`.
 - Log each unique component/where/error combination once, with a bounded cache.
 
@@ -79,25 +80,11 @@ OUT:
   - `remaining`: display `100 - used` and invert warning/error thresholds.
 - Keep JWC's current `fiveHour`/`sevenDay` usage data shape; do not copy upstream's window-array type.
 
-### MODIFY `packages/coding-agent/src/modes/components/settings-selector.ts`
+### ADD/MODIFY tests
 
-- Add usage mode select options.
-- Add a `Usage: mode` row when editing the `usage` segment.
-- Thread `usage.mode` into `segmentOptions`.
-- Refresh the parent status-line preview while editing/cancelling the custom editor.
-- Do not reintroduce inline current/narrow preview rows inside the custom editor.
-
-### MODIFY `packages/tui/src/components/settings-list.ts`
-
-- Add optional `onSelectionChange` callback and optional fixed `descriptionRows`.
-- Invoke selection callback on init, item replacement, navigation, and submenu close.
-- When `descriptionRows > 0`, reserve that many description rows even when the selected item has no description.
-
-### MODIFY tests
-
-- `packages/coding-agent/test/status-line-usage.test.ts`: add remaining quota display case.
-- `packages/coding-agent/test/modes/components/settings-selector-status-line-custom.test.ts`: add usage-mode placement, parent preview refresh, and stable description height checks.
-- `packages/tui/test/settings-list.test.ts`: add fixed description-row behavior if adjacent coverage is not already sufficient.
+- `packages/coding-agent/test/status-line-usage.test.ts`: add a new focused usage-segment test file if no adjacent file exists, covering used and remaining display against JWC's current usage shape.
+- Do not add `packages/coding-agent/test/modes/components/settings-selector-status-line-custom.test.ts` in this cycle because `StatusLineCustomEditor` is absent by design.
+- Do not modify `packages/tui/test/settings-list.test.ts` unless render-isolation work reveals a direct settings-list regression.
 
 ### MOVE/MODIFY chase docs after code verification
 
@@ -115,7 +102,7 @@ OUT:
 Focused tests:
 
 ```bash
-bun test packages/tui/test/render-loop-resilience.test.ts packages/tui/test/editor.test.ts packages/tui/test/settings-list.test.ts packages/coding-agent/test/status-line-usage.test.ts packages/coding-agent/test/modes/components/settings-selector-status-line-custom.test.ts
+bun test packages/tui/test/render-loop-resilience.test.ts packages/tui/test/editor.test.ts packages/coding-agent/test/status-line-usage.test.ts
 ```
 
 Required broad gates:
