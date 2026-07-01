@@ -26,6 +26,11 @@ const WEB_SEARCH_ENV_KEYS = [
 const originalAgentDir = process.env.GJC_CODING_AGENT_DIR;
 const fallbackAgentDir = path.join(getConfigRootDir(), "agent");
 
+const DDG_HTML_FIXTURE = `<html><body>
+<a class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fduck.example%2Fresult">Duck result</a>
+<a class="result__snippet">Duck snippet</a>
+</body></html>`;
+
 let tempAgentDir: TempDir | undefined;
 let originalEnv: Partial<Record<(typeof WEB_SEARCH_ENV_KEYS)[number], string | undefined>> = {};
 let originalExitCode: typeof process.exitCode;
@@ -49,6 +54,9 @@ function makeFetchMock(): typeof fetch {
 					}),
 					{ status: 200, headers: { "Content-Type": "application/json" } },
 				);
+			}
+			if (url.startsWith("https://html.duckduckgo.com")) {
+				return new Response(DDG_HTML_FIXTURE, { status: 200 });
 			}
 			return new Response(`unexpected URL: ${url}`, { status: 500 });
 		},
@@ -129,6 +137,7 @@ describe("runSearchCommand provider settings", () => {
 		await runSearchCommand({ query: "explicit override", provider: "auto", limit: 1, expanded: false });
 
 		const plain = stripVTControlCharacters(stdout);
+		expect(plain).toContain("Provider: DuckDuckGo");
 		expect(plain).not.toContain("Provider: Tavily");
 	});
 });
