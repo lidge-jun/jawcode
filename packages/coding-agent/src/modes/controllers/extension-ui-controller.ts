@@ -656,6 +656,10 @@ export class ExtensionUiController {
 				wrapFocused: dialogOptions?.wrapFocused,
 				scrollTitleRows,
 				maxVisible,
+				autocompleteProvider:
+					dialogOptions?.customInput || dialogOptions?.customInputDocked || dialogOptions?.customInputListSlot
+						? this.ctx.editor.getAutocompleteProvider()
+						: undefined,
 				customInput: dialogOptions?.customInput
 					? {
 							optionLabel: dialogOptions.customInput.optionLabel,

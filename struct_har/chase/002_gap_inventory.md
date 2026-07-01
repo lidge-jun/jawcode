@@ -74,7 +74,7 @@
 | web search/read | syntactic private-network read/fetch guards, provider-alias mapping, citation fail-closed; exact local-baseUrl resolver-context guard deferred | 높음 — network boundary | [_fin/10.043](./_fin/10/10.043_gjc_chase_web_search_insane_security.md) |
 | agent/composer/toolcalls | anchor/edit discipline, text part normalization, tool IO bounds | 높음 — agent correctness | [10.051](./_fin/10/10.051_gjc_chase_agent_composer_toolcall_integrity.md) ✅ _fin |
 | harness/receipts | startup blockers, active-turn persistence, phase rollup | 중 — operator evidence | [10.039](./10.039_gjc_chase_harness_receipts_phase_rollup.md) |
-| TUI/input/psmux | keystroke echo, Windows psmux, selector identity, redraw metrics | 중 — UX/runtime | [10.041](./10.041_gjc_chase_tui_input_render_windows_psmux.md) |
+| TUI/input/psmux | selector inline/list-slot autocomplete closed; Windows psmux/team split remains separate | 중 — UX/runtime | [10.041](./_fin/10/10.041_gjc_chase_tui_input_render_windows_psmux.md) ✅ _fin · [10.057](./10.057_gjc_chase_windows_hardening.md) / [10.061](./10.061_gjc_chase_tmux_team_windows_psmux_titles.md) |
 | goal/interview/ask | HUD sync, red-team review, ralplan continuation, busy guard | 중 — workflow state | [10.042](./_fin/10/10.042_gjc_chase_deep_interview_ask_goal_state.md) |
 | plugin/extensibility | Hermes/OpenClaw/controller docs, generated bundles, MCP bridge | 중 — integration boundary | [10.044](./10.044_gjc_chase_plugin_extensibility_bundle.md) |
 | computer-use | native controller and control readiness docs | 중 — desktop control | [10.045](./10.045_gjc_chase_computer_use_native_control.md) |

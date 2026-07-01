@@ -52,7 +52,7 @@ Recommended first user-value path: **028 → 029 → 030 → 032**, then 031/034
 | U6 | 043 | [10.043 web-search/read URL hardening](./_fin/10/10.043_gjc_chase_web_search_insane_security.md) | **P1** | ✅ _fin · phases 24-26, 29 |
 | U7 | 051 | [10.051 agent/composer/toolcall integrity](./_fin/10/10.051_gjc_chase_agent_composer_toolcall_integrity.md) | **P1** | ✅ _fin · phases 6,15,19,59 |
 | U8 | 039 | [10.039 harness receipts/phase rollup](./10.039_gjc_chase_harness_receipts_phase_rollup.md) | P2 | ⬜ |
-| U9 | 041 | [10.041 TUI/input/render/Windows psmux](./10.041_gjc_chase_tui_input_render_windows_psmux.md) | P2 | ⬜ |
+| U9 | 041 | [10.041 TUI/input/render/Windows psmux](./_fin/10/10.041_gjc_chase_tui_input_render_windows_psmux.md) | P2 | ✅ _fin 260701 · ADAPT inline/list-slot autocomplete; Windows/psmux split remains 10.057/10.061/10.050 |
 | U10 | 042 | [10.042 deep-interview/ask/goal state](./_fin/10/10.042_gjc_chase_deep_interview_ask_goal_state.md) | P2 | ✅ _fin 260701 (ADAPT: 1 slice) |
 | U11 | 044 | [10.044 plugin/extensibility bundle](./10.044_gjc_chase_plugin_extensibility_bundle.md) | P2 | ⬜ |
 | U12 | 045 | [10.045 computer-use native control](./10.045_gjc_chase_computer_use_native_control.md) | P2 | ⬜ |

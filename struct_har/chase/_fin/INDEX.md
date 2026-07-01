@@ -46,6 +46,7 @@
 | 10.038 | 10.038 — gjc chase: RPC control plane v2 | [10/10.038_gjc_chase_rpc_control_plane_v2](./10/10.038_gjc_chase_rpc_control_plane_v2.md) |
 | 10.051 | 10.051 — gjc chase: agent composer toolcall integrity | [10/10.051_gjc_chase_agent_composer_toolcall_integrity](./10/10.051_gjc_chase_agent_composer_toolcall_integrity.md) |
 | 10.040 | 10.040 — gjc chase: compaction pruning and resident memory | [10/10.040_gjc_chase_compaction_pruning_resident_memory](./10/10.040_gjc_chase_compaction_pruning_resident_memory.md) |
+| 10.041 | 10.041 — gjc chase: TUI input render Windows psmux — ADAPT inline/list-slot autocomplete | [10/10.041_gjc_chase_tui_input_render_windows_psmux](./10/10.041_gjc_chase_tui_input_render_windows_psmux.md) |
 | 10.043 | 10.043 — gjc chase: web search and public URL hardening | [10/10.043_gjc_chase_web_search_insane_security](./10/10.043_gjc_chase_web_search_insane_security.md) |
 | 10.047 | 10.047 — gjc chase: security/privacy guardrails | [10/10.047_gjc_chase_security_privacy_guardrails](./10/10.047_gjc_chase_security_privacy_guardrails.md) |
 | 10.048 | 10.048 — gjc chase: dev CI release packaging — ADAPT affected-path false-green guard | [10/10.048_gjc_chase_dev_ci_release_packaging](./10/10.048_gjc_chase_dev_ci_release_packaging.md) |

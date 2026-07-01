@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { HookSelectorComponent } from "@jawcode-dev/coding-agent/modes/components/hook-selector";
 import { getThemeByName, setThemeInstance } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import type { AutocompleteProvider } from "@jawcode-dev/tui";
 
 beforeAll(async () => {
 	const themeInstance = await getThemeByName("red-claw");
@@ -20,7 +21,31 @@ interface Callbacks {
 	submitted: string[];
 }
 
-function createSelector(opts?: { scrollTitleRows?: number }): {
+const pathAutocompleteProvider: AutocompleteProvider = {
+	async getSuggestions(lines, cursorLine, cursorCol) {
+		const textBeforeCursor = (lines[cursorLine] ?? "").slice(0, cursorCol);
+		if (!textBeforeCursor.endsWith("@")) return null;
+		return {
+			prefix: "@",
+			items: [{ value: "src/app.ts", label: "src/app.ts" }],
+		};
+	},
+	applyCompletion(lines, cursorLine, cursorCol, item) {
+		const line = lines[cursorLine] ?? "";
+		const before = line.slice(0, cursorCol - 1);
+		const after = line.slice(cursorCol);
+		const completed = `@${item.value}`;
+		const nextLines = [...lines];
+		nextLines[cursorLine] = `${before}${completed}${after}`;
+		return {
+			lines: nextLines,
+			cursorLine,
+			cursorCol: before.length + completed.length,
+		};
+	},
+};
+
+function createSelector(opts?: { scrollTitleRows?: number; autocompleteProvider?: AutocompleteProvider }): {
 	component: HookSelectorComponent;
 	calls: Callbacks;
 } {
@@ -36,6 +61,7 @@ function createSelector(opts?: { scrollTitleRows?: number }): {
 				onSubmit: text => calls.submitted.push(text),
 			},
 			scrollTitleRows: opts?.scrollTitleRows,
+			autocompleteProvider: opts?.autocompleteProvider,
 		},
 	);
 	return { component, calls };
@@ -92,6 +118,35 @@ describe("HookSelectorComponent inline custom input", () => {
 		component.handleInput("\r");
 
 		expect(calls.submitted).toEqual(["hi"]);
+		expect(calls.selected).toEqual([]);
+		expect(calls.cancelled).toBe(0);
+	});
+
+	it("applies @ autocomplete before submitting inline custom input", async () => {
+		const { component, calls } = createSelector({ autocompleteProvider: pathAutocompleteProvider });
+		moveToOther(component);
+		component.handleInput("\r");
+
+		component.handleInput("@");
+		await Bun.sleep(0);
+		component.handleInput("\r");
+		expect(calls.submitted).toEqual([]);
+
+		component.handleInput("\r");
+		expect(calls.submitted).toEqual(["@src/app.ts"]);
+		expect(calls.selected).toEqual([]);
+		expect(calls.cancelled).toBe(0);
+	});
+
+	it("submits literal @ when inline custom input has no autocomplete provider", () => {
+		const { component, calls } = createSelector();
+		moveToOther(component);
+		component.handleInput("\r");
+
+		component.handleInput("@");
+		component.handleInput("\r");
+
+		expect(calls.submitted).toEqual(["@"]);
 		expect(calls.selected).toEqual([]);
 		expect(calls.cancelled).toBe(0);
 	});

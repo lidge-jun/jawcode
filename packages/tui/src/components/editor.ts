@@ -425,6 +425,10 @@ export class Editor implements Component, Focusable {
 		this.#autocompleteProvider = provider;
 	}
 
+	getAutocompleteProvider(): AutocompleteProvider | undefined {
+		return this.#autocompleteProvider;
+	}
+
 	/**
 	 * Set custom content for the top border (e.g., status line).
 	 * Pass undefined to use the default plain border.
