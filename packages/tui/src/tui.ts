@@ -4,7 +4,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { performance } from "node:perf_hooks";
-import { $flag, getDebugLogPath } from "@jawcode-dev/utils";
+import { $flag, getDebugLogPath, logger } from "@jawcode-dev/utils";
 import { VIEWPORT_FILL_SENTINEL } from "./components/viewport-fill";
 import { buildInsertHistorySequence, detectHistoryLaneMode, type HistoryLaneMode } from "./insert-history";
 import { isKeyRelease, matchesKey } from "./keys";
@@ -246,9 +246,33 @@ export class Container implements Component {
 			// Commit lane (083.9 P4): committed pixels live in the scrollback —
 			// the frame must not carry a second copy.
 			if (child.committed) continue;
-			lines.push(...child.render(width));
+			lines.push(...safeRenderComponent(child, width, "container-child"));
 		}
 		return lines;
+	}
+}
+
+const MAX_REPORTED_RENDER_ERRORS = 200;
+const reportedRenderErrors = new Set<string>();
+
+function safeRenderComponent(component: Component, width: number, where: string): string[] {
+	try {
+		return component.render(width);
+	} catch (error) {
+		const name = component.constructor?.name || "Component";
+		const message = error instanceof Error ? error.message : String(error);
+		const key = `${where}:${name}:${message}`;
+		if (!reportedRenderErrors.has(key)) {
+			if (reportedRenderErrors.size >= MAX_REPORTED_RENDER_ERRORS) reportedRenderErrors.clear();
+			reportedRenderErrors.add(key);
+			logger.error("Component render failed; emitting fallback line", {
+				where,
+				component: name,
+				error: message,
+				stack: error instanceof Error ? error.stack : undefined,
+			});
+		}
+		return [`[render error: ${name}]`];
 	}
 }
 
@@ -1033,7 +1057,7 @@ export class TUI extends Container {
 			component.setOverlayViewportRows?.(Math.max(1, maxHeight ?? termHeight));
 
 			// Render component at calculated width
-			let overlayLines = component.render(width);
+			let overlayLines = safeRenderComponent(component, width, "overlay");
 
 			// Apply maxHeight if specified
 			if (maxHeight !== undefined && overlayLines.length > maxHeight) {

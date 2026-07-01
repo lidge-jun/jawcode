@@ -562,10 +562,20 @@ const sessionNameSegment: StatusLineSegment = {
 	},
 };
 
-function pickUsageColor(percent: number): "muted" | "warning" | "error" {
+function pickUsageColor(percent: number, mode: "used" | "remaining"): "muted" | "warning" | "error" {
+	if (mode === "remaining") {
+		if (percent <= 20) return "error";
+		if (percent <= 50) return "warning";
+		return "muted";
+	}
 	if (percent >= 80) return "error";
 	if (percent >= 50) return "warning";
 	return "muted";
+}
+
+function usageDisplayPercent(percent: number, mode: "used" | "remaining"): number {
+	const clamped = Math.max(0, Math.min(100, percent));
+	return mode === "remaining" ? 100 - clamped : clamped;
 }
 
 function formatUsageReset(value: number, unit: "m" | "h"): string {
@@ -590,10 +600,11 @@ const usageSegment: StatusLineSegment = {
 		if (!u || (!u.fiveHour && !u.sevenDay)) {
 			return { content: "", visible: false };
 		}
+		const mode = ctx.options.usage?.mode === "remaining" ? "remaining" : "used";
 		const parts: string[] = [];
 		if (u.fiveHour) {
-			const pct = u.fiveHour.percent;
-			const pctText = theme.fg(pickUsageColor(pct), `${Math.round(pct)}%`);
+			const pct = usageDisplayPercent(u.fiveHour.percent, mode);
+			const pctText = theme.fg(pickUsageColor(pct, mode), `${Math.round(pct)}%`);
 			const reset =
 				u.fiveHour.resetMinutes !== undefined
 					? theme.fg("muted", ` (${formatUsageReset(u.fiveHour.resetMinutes, "m")})`)
@@ -601,8 +612,8 @@ const usageSegment: StatusLineSegment = {
 			parts.push(`5h ${pctText}${reset}`);
 		}
 		if (u.sevenDay) {
-			const pct = u.sevenDay.percent;
-			const pctText = theme.fg(pickUsageColor(pct), `${Math.round(pct)}%`);
+			const pct = usageDisplayPercent(u.sevenDay.percent, mode);
+			const pctText = theme.fg(pickUsageColor(pct, mode), `${Math.round(pct)}%`);
 			const reset =
 				u.sevenDay.resetHours !== undefined
 					? theme.fg("muted", ` (${formatUsageReset(u.sevenDay.resetHours, "h")})`)

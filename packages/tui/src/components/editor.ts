@@ -24,6 +24,19 @@ const SLASH_COMMAND_SELECT_LIST_LAYOUT: SelectListLayoutOptions = {
 	maxPrimaryColumnWidth: 32,
 };
 
+const LEGACY_SHIFT_ENTER_SEQUENCES = new Set(["\x1b[13;2~", "\x1b[13;2u"]);
+const LEGACY_CTRL_SHIFT_ENTER_SEQUENCES = new Set(["\x1b[13;6u", "\x1b[27;6;13~", "\x1b[13;6~"]);
+
+function isSubmitEnter(data: string, kb: KeybindingsManager): boolean {
+	return (
+		matchesKey(data, "ctrl+enter") ||
+		matchesKey(data, "ctrl+shift+enter") ||
+		LEGACY_CTRL_SHIFT_ENTER_SEQUENCES.has(data) ||
+		kb.matches(data, "tui.input.submit") ||
+		data === "\n"
+	);
+}
+
 function sanitizeLoadedText(text: string): string {
 	// Normalize CRLF/CR → LF, then strip C0 control chars except \n.
 	return replaceTabs(text.replace(/\r\n?/g, "\n"))
@@ -1182,14 +1195,11 @@ export class Editor implements Component, Focusable {
 				this.#addNewLine();
 			}
 		}
-		// New line
+		// New line. Shift+Enter is the dedicated multiline chord; Ctrl+Enter submits.
 		else if (
-			(data.charCodeAt(0) === 10 && data.length > 1) || // Ctrl+Enter with modifiers
-			matchesKey(data, "ctrl+enter") || // Ctrl+Enter (Kitty/modifyOtherKeys, including lock bits/keypad Enter)
 			data === "\x1b\r" || // Option+Enter in some terminals (legacy)
-			data === "\x1b[13;2~" || // Shift+Enter in some terminals (legacy format)
+			LEGACY_SHIFT_ENTER_SEQUENCES.has(data) || // Shift+Enter in some terminals (legacy formats)
 			kb.matches(data, "tui.input.newLine") || // Shift+Enter (Kitty protocol, handles lock bits)
-			(data.length > 1 && data.includes("\x1b") && data.includes("\r")) ||
 			(data === "\n" && data.length === 1) // Shift+Enter from iTerm2 mapping
 		) {
 			if (this.#shouldSubmitOnBackslashEnter(data, kb)) {
@@ -1199,8 +1209,8 @@ export class Editor implements Component, Focusable {
 			}
 			this.#addNewLine();
 		}
-		// Plain Enter - submit (handles both legacy \r and Kitty protocol with lock bits)
-		else if (kb.matches(data, "tui.input.submit") || data === "\n") {
+		// Enter/Ctrl+Enter - submit (handles both legacy \r and Kitty protocol with lock bits)
+		else if (isSubmitEnter(data, kb)) {
 			// If submit is disabled, do nothing
 			if (this.disableSubmit) {
 				return;

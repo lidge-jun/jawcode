@@ -78,12 +78,12 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 
 ### 10.059-065 v0.7.8 델타 (2026-07-01, `fa995807..20c299eb` 21 commits)
 
-신규 7카드 (전부 ⬜ open). 21커밋 전부 카드 또는 chore/docs no-card 귀속 (미할당 0). 권장 우선순위: 보안/data-safety + 사용자 가치 먼저 (059 render guard·ask gate → 060 render resilience → 062 provider → 064 daemon → 061 tmux → 065 prompt → 063 packaging).
+신규 7카드. 21커밋 전부 카드 또는 chore/docs no-card 귀속 (미할당 0). 권장 우선순위: 보안/data-safety + 사용자 가치 먼저 (059 render guard·ask gate → 060 render resilience → 062 provider → 064 daemon → 061 tmux → 065 prompt → 063 packaging).
 
 | 순 | NNN | 문서 | P | 상태 |
 |---|-----|------|---|------|
 | V1 | 059 | [10.059 deep-interview/ralplan/ultragoal ask gate + render guard](./_fin/10/10.059_gjc_chase_deep_interview_ask_ralplan_gate.md) | P2 | ✅ _fin 260701 (ADAPT+IMPORT: 4 slices) |
-| V2 | 060 | [10.060 TUI render resilience + Ctrl+Enter + status-line](./10.060_gjc_chase_tui_render_resilience_editor_submit.md) | P2 | ⬜ |
+| V2 | 060 | [10.060 TUI render resilience + Ctrl+Enter + status-line](./_fin/10/10.060_gjc_chase_tui_render_resilience_editor_submit.md) | P2 | ✅ _fin 260701 (IMPORT/ADAPT; custom editor UX deferred) |
 | V3 | 062 | [10.062 DeepInfra provider + Gemini UA](./_fin/10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md) | P2 | ✅ _fin 260701 · IMPORT (adapt) DeepInfra provider+service-tier + Gemini UA as JWC code (`b249348`/`ad6ec8f`/`27311f6`); goal `f8909338-255` |
 | V4 | 064 | [10.064 Telegram daemon entrypoint + Windows bell](./10.064_gjc_chase_telegram_daemon_entrypoint_notify.md) | P2 | ⬜ |
 | V5 | 061 | [10.061 tmux/team Windows psmux titles](./10.061_gjc_chase_tmux_team_windows_psmux_titles.md) | P3 | ⬜ |

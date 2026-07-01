@@ -116,3 +116,17 @@ Review:
 
 - Dispatch a read-only Frontend/TUI audit in A phase to validate the plan paths, upstream mapping, tests, and TUI visual/scroll boundary.
 - Dispatch a read-only verification after B if the implementation touches all planned paths.
+
+## B implementation evidence (260701)
+
+- Implemented `packages/tui/src/tui.ts` render isolation for container children and overlays with bounded logged fallback lines.
+- Implemented `packages/tui/src/components/editor.ts` submit semantics for Ctrl+Enter and Ctrl+Shift+Enter while preserving Shift+Enter multiline input.
+- Implemented `packages/coding-agent/src/modes/components/status-line.ts` and `status-line/segments.ts` usage mode rendering (`used` default, `remaining` optional).
+- Added focused regression tests:
+  - `packages/tui/test/render-loop-resilience.test.ts`
+  - `packages/tui/test/editor.test.ts`
+  - `packages/coding-agent/test/status-line-usage.test.ts`
+- Focused verification: `bun test packages/tui/test/render-loop-resilience.test.ts packages/tui/test/editor.test.ts packages/coding-agent/test/status-line-usage.test.ts` → 122 pass / 0 fail.
+- B verifier: Frontend read-only verifier PASS; no blockers, residual only deferred `StatusLineCustomEditor` UX.
+- C gates: `bun run check:ts` → exit 0; `git diff --check` → exit 0.
+- Closure docs: `struct_har/chase/_fin/10/10.060_gjc_chase_tui_render_resilience_editor_submit.md`, `struct_har/chase/10_gjc_chase_MOC.md`, `struct_har/chase/007_follow_index.md`, `struct_har/chase/10.001_gjc_chase_cycle.md`, `struct_har/chase/_fin/INDEX.md`.
