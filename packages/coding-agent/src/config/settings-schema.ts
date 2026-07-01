@@ -409,7 +409,8 @@ export const SETTINGS_SCHEMA = {
 		ui: {
 			tab: "interaction",
 			label: "Terminal Bell",
-			description: "Emit a BEL character for local terminal notifications",
+			description:
+				"Emit a BEL character for local terminal notifications. Windows Terminal may keep BEL silent depending on profile/system sound settings; use completion.notifyCommand for a PowerShell Console.Beep workaround.",
 		},
 	},
 	"notifications.bellOnComplete": {
@@ -1197,7 +1198,7 @@ export const SETTINGS_SCHEMA = {
 			tab: "interaction",
 			label: "Completion Notification Command",
 			description:
-				"Optional user-level shell command to run when an agent turn completes; receives JWC_NOTIFICATION_* environment variables.",
+				"Optional user-level shell command to run when an agent turn completes; receives JWC_NOTIFICATION_* environment variables. On Windows, this can call PowerShell [Console]::Beep when terminal BEL is silent.",
 		},
 	},
 

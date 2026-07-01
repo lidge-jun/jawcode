@@ -62,6 +62,7 @@ async function main(): Promise<void> {
 					"../stats/src/sync-worker.ts",
 					"./src/tools/browser/tab-worker-entry.ts",
 					"./src/eval/js/worker-entry.ts",
+					"./src/notifications/daemon-cli.ts",
 					"--outfile",
 					"dist/jwc",
 				],

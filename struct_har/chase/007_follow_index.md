@@ -85,7 +85,7 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 | V1 | 059 | [10.059 deep-interview/ralplan/ultragoal ask gate + render guard](./_fin/10/10.059_gjc_chase_deep_interview_ask_ralplan_gate.md) | P2 | ✅ _fin 260701 (ADAPT+IMPORT: 4 slices) |
 | V2 | 060 | [10.060 TUI render resilience + Ctrl+Enter + status-line](./_fin/10/10.060_gjc_chase_tui_render_resilience_editor_submit.md) | P2 | ✅ _fin 260701 (IMPORT/ADAPT; custom editor UX deferred) |
 | V3 | 062 | [10.062 DeepInfra provider + Gemini UA](./_fin/10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md) | P2 | ✅ _fin 260701 · IMPORT (adapt) DeepInfra provider+service-tier + Gemini UA as JWC code (`b249348`/`ad6ec8f`/`27311f6`); goal `f8909338-255` |
-| V4 | 064 | [10.064 Telegram daemon entrypoint + Windows bell](./10.064_gjc_chase_telegram_daemon_entrypoint_notify.md) | P2 | ⬜ |
+| V4 | 064 | [10.064 Telegram daemon entrypoint + Windows bell](./_fin/10/10.064_gjc_chase_telegram_daemon_entrypoint_notify.md) | P2 | ✅ _fin 260701 · ADAPT hidden `notify daemon-internal` adapter + Windows Terminal bell docs |
 | V5 | 061 | [10.061 tmux/team Windows psmux titles](./_fin/10/10.061_gjc_chase_tmux_team_windows_psmux_titles.md) | P3 | ✅ _fin 260701 · ADAPT tmux titles + Windows/psmux launch/team dispatch |
 | V6 | 065 | [10.065 prompt self-awareness grounding](./_fin/10/10.065_gjc_chase_prompt_self_awareness_grounding.md) | P3 | ✅ _fin 260701 (ADAPT) |
 | V7 | 063 | [10.063 natives platform split packages](./10.063_gjc_chase_natives_platform_split_packages.md) | P3 | ⬜ |

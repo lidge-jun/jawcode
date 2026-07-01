@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { resetSettingsForTest, Settings, settings } from "@jawcode-dev/coding-agent/config/settings";
+import { SETTINGS_SCHEMA } from "@jawcode-dev/coding-agent/config/settings-schema";
 import { classifyHookSelectorBellEvent, ringTerminalBell } from "@jawcode-dev/coding-agent/modes/utils/terminal-bell";
 
 beforeEach(async () => {
@@ -53,6 +54,17 @@ describe("terminal bell notifications", () => {
 
 		expect(() => ringTerminalBell("complete", output)).not.toThrow();
 		expect(output.write).not.toHaveBeenCalled();
+	});
+
+	it("documents Windows Terminal BEL limitations in config help", () => {
+		const terminalBell = SETTINGS_SCHEMA["notifications.terminalBell"];
+		const notifyCommand = SETTINGS_SCHEMA["completion.notifyCommand"];
+
+		expect(terminalBell.ui?.description).toContain("Windows Terminal");
+		expect(terminalBell.ui?.description).toContain("completion.notifyCommand");
+		expect(notifyCommand.ui?.description).toContain("PowerShell [Console]::Beep");
+		expect(notifyCommand.ui?.description).toContain("JWC_NOTIFICATION_*");
+		expect(notifyCommand.ui?.description).not.toContain("GJC_NOTIFICATION_*");
 	});
 
 	it("classifies approval-like selector titles separately from generic ask prompts", () => {
