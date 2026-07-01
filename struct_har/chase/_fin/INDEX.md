@@ -2,7 +2,7 @@
 
 완료된 `10.NNN` / `20.NNN` — 본문은 `_fin/10/` · `_fin/20/`.
 
-> Inventory refreshed 2026-07-01 against actual files: GJC `_fin/10` = 49, OMP `_fin/20` = 19. Duplicate NNNs are intentionally file-level rows.
+> Inventory refreshed 2026-07-01 against actual files: GJC `_fin/10` = 51, OMP `_fin/20` = 19. Duplicate NNNs are intentionally file-level rows.
 
 ## GJC `_fin/10`
 
@@ -56,6 +56,7 @@
 | 10.042 | 10.042 — gjc chase: deep-interview ask + goal state — ADAPT 1 slice (round-shape write guard) | [10/10.042_gjc_chase_deep_interview_ask_goal_state](./10/10.042_gjc_chase_deep_interview_ask_goal_state.md) |
 | 10.065 | 10.065 — gjc chase: system prompt self-awareness source grounding — ADAPT 1 slice (JWC-authored, identity-safe) | [10/10.065_gjc_chase_prompt_self_awareness_grounding](./10/10.065_gjc_chase_prompt_self_awareness_grounding.md) |
 | 10.062 | 10.062 — gjc chase: DeepInfra provider + service-tier · Gemini CLI user-agent alignment | [10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua](./10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md) |
+| 10.057 | 10.057 — gjc chase: Windows hardening — ADAPT npm shims · worker PowerShell · error preservation | [10/10.057_gjc_chase_windows_hardening](./10/10.057_gjc_chase_windows_hardening.md) |
 
 ## OMP `_fin/20`
 

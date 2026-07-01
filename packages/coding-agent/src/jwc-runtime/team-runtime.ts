@@ -580,6 +580,42 @@ function teamDir(stateRoot: string, teamName: string): string {
 function shellQuote(value: string): string {
 	return `'${value.replace(/'/g, "'\\''")}'`;
 }
+function powershellQuote(value: string): string {
+	return `'${value.replace(/'/g, "''")}'`;
+}
+function splitCommandWords(command: string): string[] {
+	const words: string[] = [];
+	let current = "";
+	let quote: "'" | '"' | null = null;
+	for (let index = 0; index < command.length; index += 1) {
+		const char = command[index] ?? "";
+		if (quote) {
+			if (char === quote) quote = null;
+			else current += char;
+			continue;
+		}
+		if (char === "'" || char === '"') {
+			quote = char;
+			continue;
+		}
+		if (/\s/.test(char)) {
+			if (current) {
+				words.push(current);
+				current = "";
+			}
+			continue;
+		}
+		current += char;
+	}
+	if (current) words.push(current);
+	return words;
+}
+function buildPowerShellInvocation(command: string, args: string[]): string {
+	const normalized = command.trim().startsWith("& ") ? command.trim().slice(2).trim() : command.trim();
+	const words = splitCommandWords(normalized);
+	const commandWords = words.length > 0 ? words : [normalized];
+	return ["&", ...commandWords.map(powershellQuote), ...args.map(powershellQuote)].join(" ");
+}
 function safePathSegment(kind: string, value: string): string {
 	assertSafeId(kind, value);
 	return value;
@@ -1689,18 +1725,38 @@ function readCurrentTmuxLeaderContext(tmuxCommand: string, env: NodeJS.ProcessEn
 	}
 	return { sessionName, windowIndex, leaderPaneId, target: `${sessionName}:${windowIndex}` };
 }
-export function resolveJwcWorkerCommand(cwd = process.cwd(), env: NodeJS.ProcessEnv = process.env): string {
+export interface JwcWorkerCommandRuntimeOptions {
+	platform?: NodeJS.Platform;
+	argv?: string[];
+	execPath?: string;
+}
+
+export function resolveJwcWorkerCommand(
+	cwd = process.cwd(),
+	env: NodeJS.ProcessEnv = process.env,
+	runtime: JwcWorkerCommandRuntimeOptions = {},
+): string {
 	const explicit = env.GJC_TEAM_WORKER_COMMAND?.trim();
 	if (explicit) return explicit;
-	const entrypoint = process.argv[1];
-	if (entrypoint?.endsWith(".ts"))
-		return `${shellQuote(process.execPath)} ${shellQuote(path.resolve(cwd, entrypoint))}`;
+	const platform = runtime.platform ?? process.platform;
+	const argv = runtime.argv ?? process.argv;
+	const execPath = runtime.execPath ?? process.execPath;
+	const entrypoint = argv[1];
+	const resolvedEntrypoint = entrypoint ? path.resolve(cwd, entrypoint) : "";
+	if (entrypoint && platform === "win32" && /\.(?:ts|js|mjs)$/i.test(entrypoint))
+		return `${powershellQuote(execPath)} ${powershellQuote(resolvedEntrypoint)}`;
+	if (entrypoint?.endsWith(".ts")) return `${shellQuote(execPath)} ${shellQuote(resolvedEntrypoint)}`;
 	const base = entrypoint ? path.basename(entrypoint) : "";
-	if (entrypoint && (base.startsWith("jwc") || base.startsWith("gjc")))
-		return shellQuote(path.resolve(cwd, entrypoint));
+	if (entrypoint && (base.startsWith("jwc") || base.startsWith("gjc"))) {
+		return platform === "win32" ? powershellQuote(resolvedEntrypoint) : shellQuote(resolvedEntrypoint);
+	}
 	return "jwc";
 }
-function buildWorkerCommand(config: JwcTeamConfig, worker: JwcTeamWorker): string {
+export function buildWorkerCommand(
+	config: JwcTeamConfig,
+	worker: JwcTeamWorker,
+	platform: NodeJS.Platform = process.platform,
+): string {
 	const workspace = worker.worktree_path
 		? `Worker worktree: ${worker.worktree_path}.`
 		: `Worker cwd: ${config.leader.cwd}.`;
@@ -1723,6 +1779,19 @@ function buildWorkerCommand(config: JwcTeamConfig, worker: JwcTeamWorker): strin
 		`GJC_TEAM_DISPLAY_NAME=${shellQuote(config.display_name)}`,
 		...(worker.worktree_path ? [`GJC_TEAM_WORKTREE_PATH=${shellQuote(worker.worktree_path)}`] : []),
 	];
+	if (platform === "win32") {
+		const envAssignments = [
+			["GJC_TEAM_WORKER", `${config.team_name}/${worker.id}`],
+			["GJC_TEAM_INTERNAL_WORKER", `${config.team_name}/${worker.id}`],
+			["GJC_TEAM_NAME", config.team_name],
+			["GJC_TEAM_WORKER_ID", worker.id],
+			["GJC_TEAM_STATE_ROOT", config.state_root],
+			["GJC_TEAM_LEADER_CWD", config.leader.cwd],
+			["GJC_TEAM_DISPLAY_NAME", config.display_name],
+			...(worker.worktree_path ? ([["GJC_TEAM_WORKTREE_PATH", worker.worktree_path]] as const) : []),
+		].map(([key, value]) => `$env:${key} = ${powershellQuote(value)}`);
+		return `${envAssignments.join("; ")}; ${buildPowerShellInvocation(config.worker_command, [prompt])}`;
+	}
 	return `${env.join(" ")} ${config.worker_command} ${shellQuote(prompt)}`;
 }
 interface JwcTeamInitialLane {

@@ -6,8 +6,10 @@ import {
 	buildReleaseBinaryUrlForTest,
 	formatBinaryDownloadFailureMessageForTest,
 	formatManualUpdateInstructionsForTest,
+	isNpmManagedWindowsShimForTest,
 	replaceBinaryForUpdate,
 	resolveUpdateMethodForTest,
+	runPackageManagerUpdateForTest,
 } from "../src/cli/update-cli";
 
 const tempDirs: string[] = [];
@@ -39,6 +41,37 @@ describe("update-cli install target detection", () => {
 		const method = resolveUpdateMethodForTest("/Users/test/.local/bin/jwc", undefined);
 
 		expect(method).toBe("binary");
+	});
+
+	it("detects Windows npm-managed cmd shims for jawcode", async () => {
+		const dir = await makeTempDir();
+		const shimPath = path.join(dir, "jwc.cmd");
+		await Bun.write(
+			shimPath,
+			`@ECHO off\r\n"%dp0%\\node.exe" "%dp0%\\node_modules\\jawcode\\dist\\bin\\cli-jaw.js" %*\r\n`,
+		);
+
+		expect(await isNpmManagedWindowsShimForTest(shimPath, "win32")).toBe(true);
+		expect(await isNpmManagedWindowsShimForTest(shimPath, "linux")).toBe(false);
+	});
+
+	it("detects Windows npm-managed powershell shims for jawcode", async () => {
+		const dir = await makeTempDir();
+		const shimPath = path.join(dir, "jwc.ps1");
+		await Bun.write(
+			shimPath,
+			`#!/usr/bin/env pwsh\n& "$basedir/node" "$basedir/node_modules/jawcode/dist/bin/cli-jaw.js" $args\n`,
+		);
+
+		expect(await isNpmManagedWindowsShimForTest(shimPath, "win32")).toBe(true);
+	});
+
+	it("rejects unrelated Windows shims", async () => {
+		const dir = await makeTempDir();
+		const shimPath = path.join(dir, "jwc.cmd");
+		await Bun.write(shimPath, `"node" "%dp0%\\node_modules\\other-package\\bin.js" %*\r\n`);
+
+		expect(await isNpmManagedWindowsShimForTest(shimPath, "win32")).toBe(false);
 	});
 });
 
@@ -149,5 +182,55 @@ describe("update-cli binary replacement", () => {
 		expect(await Bun.file(targetPath).text()).toBe("new binary");
 		expect(await Bun.file(tempPath).exists()).toBe(false);
 		expect(await Bun.file(backupPath).exists()).toBe(false);
+	});
+
+	it("keeps verified replacements when backup cleanup fails", async () => {
+		const dir = await makeTempDir();
+		const targetPath = path.join(dir, "jwc");
+		const tempPath = `${targetPath}.new`;
+		const backupPath = `${targetPath}.bak`;
+		await Bun.write(targetPath, "old binary");
+		await Bun.write(tempPath, "new binary");
+
+		const result = await replaceBinaryForUpdate({
+			targetPath,
+			tempPath,
+			backupPath,
+			expectedVersion: "15.1.8",
+			verifyInstalledVersion: async () => ({ ok: true, actual: "15.1.8", path: targetPath }),
+			removeBackupPath: async () => {
+				throw new Error("permission denied");
+			},
+		});
+
+		expect(result.ok).toBe(true);
+		expect(result.cleanupWarning).toContain("backup_cleanup_failed");
+		expect(await Bun.file(targetPath).text()).toBe("new binary");
+		expect(await Bun.file(backupPath).text()).toBe("old binary");
+	});
+});
+
+describe("update-cli package manager verification", () => {
+	it("accepts nonzero package-manager installs when the installed version verifies", async () => {
+		const result = await runPackageManagerUpdateForTest({
+			manager: "npm",
+			expectedVersion: "15.1.8",
+			runInstall: async () => ({ exitCode: 1 }),
+			verifyInstalledVersion: async () => ({ ok: true, actual: "15.1.8", path: "/usr/local/bin/jwc" }),
+		});
+
+		expect(result.ok).toBe(true);
+		expect(result.actual).toBe("15.1.8");
+	});
+
+	it("rejects nonzero package-manager installs when the installed version does not verify", async () => {
+		await expect(
+			runPackageManagerUpdateForTest({
+				manager: "bun",
+				expectedVersion: "15.1.8",
+				runInstall: async () => ({ exitCode: 1 }),
+				verifyInstalledVersion: async () => ({ ok: false, actual: "15.1.7", path: "/usr/local/bin/jwc" }),
+			}),
+		).rejects.toThrow("bun install failed with exit code 1");
 	});
 });

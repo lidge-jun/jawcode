@@ -20,6 +20,10 @@ export function buildJwcTmuxExactOptionTarget(sessionName: string): string {
 	return `=${sessionName}:`;
 }
 
+export function buildJwcTmuxExactSessionTarget(sessionName: string): string {
+	return `=${sessionName}`;
+}
+
 export interface JwcTmuxProfileCommand {
 	description: string;
 	args: string[];

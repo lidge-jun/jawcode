@@ -2,14 +2,69 @@
  * Root command for the coding agent CLI.
  */
 
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
 import { THINKING_EFFORTS } from "@jawcode-dev/ai";
 import { APP_NAME, setProjectDir } from "@jawcode-dev/utils";
 import { Args, Command, Flags } from "@jawcode-dev/utils/cli";
 import { parseArgs } from "../cli/args";
 import { launchDefaultTmuxIfNeeded } from "../jwc-runtime/launch-tmux";
 import { prepareLaunchWorktree } from "../jwc-runtime/launch-worktree";
+import {
+	GJC_COORDINATOR_SESSION_ID_ENV,
+	GJC_COORDINATOR_SESSION_STATE_FILE_ENV,
+	JWC_COORDINATOR_SESSION_ID_ENV,
+	JWC_COORDINATOR_SESSION_STATE_FILE_ENV,
+} from "../jwc-runtime/session-state-sidecar";
 import { runRootCommand } from "../main";
 import { prepareAcpTerminalAuthArgs } from "../modes/acp/terminal-auth";
+
+async function persistCoordinatorLaunchFailure(cwd: string, error: unknown): Promise<void> {
+	const stateFile =
+		process.env[JWC_COORDINATOR_SESSION_STATE_FILE_ENV]?.trim() ||
+		process.env[GJC_COORDINATOR_SESSION_STATE_FILE_ENV]?.trim();
+	if (!stateFile) return;
+	const message = error instanceof Error ? error.message : String(error);
+	let previous: Record<string, unknown> = {};
+	try {
+		previous = JSON.parse(await Bun.file(stateFile).text()) as Record<string, unknown>;
+	} catch {
+		previous = {};
+	}
+	const now = new Date().toISOString();
+	const payload = {
+		schema_version: 1,
+		session_id:
+			process.env[JWC_COORDINATOR_SESSION_ID_ENV]?.trim() ||
+			process.env[GJC_COORDINATOR_SESSION_ID_ENV]?.trim() ||
+			(typeof previous.session_id === "string" ? previous.session_id : "unknown"),
+		state: "errored",
+		ready_for_input: false,
+		current_turn_id: typeof previous.current_turn_id === "string" ? previous.current_turn_id : null,
+		last_turn_id: typeof previous.last_turn_id === "string" ? previous.last_turn_id : null,
+		updated_at: now,
+		source: "agent_session_event",
+		live: false,
+		reason: message,
+		event: "launch_worktree_error",
+		cwd,
+		final_response: {
+			text: message,
+			format: "markdown",
+			source: "runtime_state",
+			artifact_path: null,
+			truncated: false,
+		},
+	};
+	try {
+		await fs.mkdir(path.dirname(stateFile), { recursive: true });
+		await Bun.write(stateFile, `${JSON.stringify(payload, null, 2)}\n`);
+	} catch (persistError) {
+		console.error(
+			`Failed to persist coordinator launch failure: ${persistError instanceof Error ? persistError.message : String(persistError)}`,
+		);
+	}
+}
 
 export default class Index extends Command {
 	static description = "Red-claw AI coding assistant";
@@ -157,7 +212,13 @@ export default class Index extends Command {
 			return;
 		}
 
-		const launch = prepareLaunchWorktree(process.cwd(), args);
+		let launch: ReturnType<typeof prepareLaunchWorktree>;
+		try {
+			launch = prepareLaunchWorktree(process.cwd(), args);
+		} catch (error) {
+			await persistCoordinatorLaunchFailure(process.cwd(), error);
+			throw error;
+		}
 		if (launch.worktree.enabled) {
 			process.chdir(launch.cwd);
 			setProjectDir(launch.cwd);

@@ -132,6 +132,7 @@ interface CoordinatorSessionState {
 	source: "coordinator" | "agent_session_event";
 	live: boolean | null;
 	reason: string | null;
+	final_response?: unknown;
 }
 
 const ACTIVE_TURN_STATUSES = new Set<TurnStatus>(["delivering", "active", "waiting_for_answer", "completing"]);
@@ -470,6 +471,7 @@ async function markTurnTerminalFromSessionState(
 ): Promise<TurnRecord> {
 	const terminalStatus: TurnStatus = sessionState.state === "errored" ? "failed" : "completed";
 	const timestamp = new Date().toISOString();
+	const finalResponse = normalizeSessionStateFinalResponse(sessionState.final_response);
 	const resolved: TurnRecord = {
 		...turn,
 		status: terminalStatus,
@@ -478,13 +480,7 @@ async function markTurnTerminalFromSessionState(
 			prompt_acknowledged: true,
 			state: "acknowledged",
 		},
-		final_response: {
-			text: null,
-			format: "markdown",
-			source: "runtime_state",
-			artifact_path: null,
-			truncated: false,
-		},
+		final_response: finalResponse,
 		error:
 			terminalStatus === "failed"
 				? { code: "runtime_errored", message: sessionState.reason ?? "runtime_errored", recoverable: true }
@@ -500,6 +496,26 @@ async function markTurnTerminalFromSessionState(
 		reason: sessionState.reason,
 	});
 	return resolved;
+}
+
+function normalizeSessionStateFinalResponse(value: unknown): TurnRecord["final_response"] {
+	if (value && typeof value === "object") {
+		const response = value as Record<string, unknown>;
+		return {
+			text: typeof response.text === "string" ? response.text : null,
+			format: "markdown",
+			source: typeof response.source === "string" ? response.source : "runtime_state",
+			artifact_path: typeof response.artifact_path === "string" ? response.artifact_path : null,
+			truncated: response.truncated === true,
+		};
+	}
+	return {
+		text: null,
+		format: "markdown",
+		source: "runtime_state",
+		artifact_path: null,
+		truncated: false,
+	};
 }
 
 function shellQuote(value: string): string {
@@ -793,7 +809,8 @@ export function createCoordinatorMcpServer(options: CoordinatorMcpServerOptions 
 		if (
 			sessionState &&
 			ACTIVE_TURN_STATUSES.has(turn.status) &&
-			sessionState.current_turn_id === turn.turn_id &&
+			(sessionState.current_turn_id === turn.turn_id ||
+				(sessionState.current_turn_id === null && sessionState.source === "agent_session_event")) &&
 			(sessionState.state === "completed" || sessionState.state === "errored")
 		) {
 			resolvedTurn = await markTurnTerminalFromSessionState(namespaceDir, turn, sessionState);

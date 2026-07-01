@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import type { Args } from "../cli/args";
 import {
+	buildJwcTmuxExactSessionTarget,
 	buildJwcTmuxProfileCommands,
 	buildJwcTmuxSessionName,
 	buildJwcTmuxSessionSlug,
@@ -191,7 +192,7 @@ function readCurrentBranch(cwd: string): string | null {
 }
 
 function cleanupCreatedTmuxSession(plan: TmuxLaunchPlan, spawnSync: TmuxSpawnSync, options: TmuxSpawnOptions): void {
-	spawnSync(plan.tmuxCommand, ["kill-session", "-t", `=${plan.sessionName}`], options);
+	spawnSync(plan.tmuxCommand, ["kill-session", "-t", buildJwcTmuxExactSessionTarget(plan.sessionName)], options);
 }
 
 export function buildDefaultTmuxLaunchPlan(context: TmuxLaunchContext): TmuxLaunchPlan | undefined {
@@ -262,7 +263,11 @@ export function launchDefaultTmuxIfNeeded(context: TmuxLaunchContext): boolean {
 		stderr: "inherit",
 	};
 	if (plan.attachSessionName) {
-		const attached = spawnSync(plan.tmuxCommand, ["attach-session", "-t", `=${plan.attachSessionName}`], options);
+		const attached = spawnSync(
+			plan.tmuxCommand,
+			["attach-session", "-t", buildJwcTmuxExactSessionTarget(plan.attachSessionName)],
+			options,
+		);
 		return attached.exitCode === 0;
 	}
 	const created = spawnSync(plan.tmuxCommand, plan.newSessionArgs, options);
