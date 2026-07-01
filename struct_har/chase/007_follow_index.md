@@ -150,7 +150,7 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 | W2.5 | 019 | [20.019 codex/AI config](./_fin/20/20.019_omp_chase_codex_ai_config.md) | ref→ADAPT | ✅ _fin 260701 · ADAPT 2 JWC slices: codex base-url host-boundary fix (`bc79608`) + textVerbosity official-endpoint plumbing (`027c3a9`); all_turns inapplicable, default-verbosity/tiny-role defer→③; goal `f8909338-255` |
 | W3 | 027 | [20.027 prompts/subagent/discovery (identity)](./_fin/20/20.027_omp_chase_prompts_subagent_discovery_rules.md) | ref | ✅ _fin |
 | W4 | 025 | [20.025 compaction/snapcompact/session-scope](./_fin/20/20.025_omp_chase_compaction_snapcompact_session_scope.md) | ref | ✅ _fin 260701 (IMPORT) |
-| W5 | 028 | [20.028 web-search/provider settings](./20.028_omp_chase_web_search_provider_settings.md) | ref | ⬜ |
+| W5 | 028 | [20.028 web-search/provider settings](./_fin/20/20.028_omp_chase_web_search_provider_settings.md) | ref | ✅ _fin 260701 · IMPORT: DDG browser-aligned request + CLI provider settings; gemini api-key defer③ |
 | W6 | 026 | [20.026 TUI loader/MCP-enable](./20.026_omp_chase_tui_input_loader_mcp_enable.md) | ref | ⬜ |
 | W7 | 029 | [20.029 stats sync worker/perf](./20.029_omp_chase_stats_sync_worker_perf.md) | ref | ⬜ |
 | W8 | 030 | [20.030 misc dictation/binary/font/yield/irc/win](./20.030_omp_chase_misc_dictation_binary_font_yield_irc_win.md) | ref | ⬜ |

@@ -45,7 +45,7 @@
 | WP | card | 판정 |
 |----|------|------|
 | 13 | 10.019 jwc gc | ADAPT |
-| 14 | 20.028 web-search provider settings | IMPORT |
+| 14 ✅ | 20.028 web-search provider settings | IMPORT |
 | 15 | 10.048 dev/CI/release packaging | ADAPT |
 
 ## 진행 ledger
@@ -62,6 +62,7 @@
 - [x] WP11 10.065 prompt self-awareness — ✅ _fin (ADAPT, identity-safe)
 - [x] WP12 20.027 (정체성: subagent 이름) — ✅ _fin (ADAPT: 1 ADOPT #5 agent-param optional+default, 5 defer/reject; OMP reference-only)
 - [~] WP13 10.019 jwc gc (ADAPT) — ✅ Phase 1 (file-lock GC LIVE vertical) landed (6171283, 7cd9d54); card OPEN (Phases 2-4 team/tmux/harness/registry defer on 10.011)
-- [ ] WP14 20.028 web-search provider settings (IMPORT) — next · WP15 10.048 (단독) — pending
+- [x] WP14 20.028 web-search provider settings (IMPORT) — ✅ _fin (DDG browser-aligned request + CLI provider settings; gemini api-key defer③)
+- [ ] WP15 10.048 dev/CI/release packaging (ADAPT) — next
 
 각 WP 상세 diff-level 플랜은 해당 사이클 P phase에서 `NN_phaseN_<card>.md`로 작성.
