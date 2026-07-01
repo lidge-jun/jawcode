@@ -6,6 +6,8 @@ This document maps the main parts of the Jawcode repository. The root README sta
 
 Jawcode (`jwc`) is centered on `packages/coding-agent/`, with `packages/jwc/` providing the public npm package, `jwc` bin, and `jawcode/sdk` import surface. The public workflow surface is intentionally fixed at four source-bundled definitions, while the callable task-role surface contains five public role subagents. Runtime state, specs, plans, goals, team state, and local overrides live under `.jwc/`.
 
+External integration status is summarized in `docs/external-integrations.md`. Use that matrix before copying upstream integration docs into JWC: only shipped JWC surfaces should be described as supported, while design-only or upstream-only surfaces must stay explicitly gated or deferred.
+
 Default workflow definitions are embedded from:
 
 ```text

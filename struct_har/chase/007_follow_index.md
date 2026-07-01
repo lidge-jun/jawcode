@@ -60,7 +60,7 @@ Recommended first user-value path: **028 → 029 → 030 → 032**, then 031/034
 | U14 | 050 | [10.050 session/tmux/team/worktree](./10.050_gjc_chase_session_tmux_team_worktree.md) | P2 | ⬜ |
 | U15 | 046 | [10.046 RLM/research mode](./10.046_gjc_chase_rlm_research_mode.md) | P3 | ⬜ |
 | U16 | 049 | [10.049 perf/bench/corpus](./10.049_gjc_chase_performance_bench_corpus.md) | P3 | ⬜ |
-| U17 | 052 | [10.052 docs/external integrations](./10.052_gjc_chase_docs_external_integrations.md) | P3 | ⬜ |
+| U17 | 052 | [10.052 docs/external integrations](./_fin/10/10.052_gjc_chase_docs_external_integrations.md) | P3 | ✅ _fin 260701 · ADAPT docs matrix, bridge-client namespace, generated-docs guard |
 
 Recommended order after Telegram MVP: **036/047 security-auth first**, then runtime/RPC/compaction, then UX/docs/perf reference cards.
 

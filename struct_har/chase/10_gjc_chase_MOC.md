@@ -89,7 +89,7 @@
 | 049 | [10.049_gjc_chase_performance_bench_corpus.md](./10.049_gjc_chase_performance_bench_corpus.md) | perf/bench/corpus | P3 | ⬜ |
 | 050 | [10.050_gjc_chase_session_tmux_team_worktree.md](./10.050_gjc_chase_session_tmux_team_worktree.md) | session/tmux/team/worktree | P2 | ⬜ |
 | 051 | [10.051_gjc_chase_agent_composer_toolcall_integrity.md](./_fin/10/10.051_gjc_chase_agent_composer_toolcall_integrity.md) | agent/composer/toolcall integrity | **P1** | ✅ _fin |
-| 052 | [10.052_gjc_chase_docs_external_integrations.md](./10.052_gjc_chase_docs_external_integrations.md) | docs/external integrations | P3 | ⬜ |
+| 052 | [10.052_gjc_chase_docs_external_integrations.md](./_fin/10/10.052_gjc_chase_docs_external_integrations.md) | docs/external integrations | P3 | ✅ **_fin** 260701 (ADAPT: conservative external integration matrix + docs guards) |
 | 053 | [10.053_gjc_chase_local_provider_terminal_bell_windows.md](./10.053_gjc_chase_local_provider_terminal_bell_windows.md) | split index → 054-058 | P2 | ✅ split |
 | 054 | [10.054_gjc_chase_local_provider_discovery.md](./_fin/10/10.054_gjc_chase_local_provider_discovery.md) | local provider discovery + fallback (split←053) | P2 | ✅ **_fin** [10.054](./_fin/10/10.054_gjc_chase_local_provider_discovery.md) 260701 |
 | 055 | [10.055_gjc_chase_codex_replay_stability.md](./_fin/10/10.055_gjc_chase_codex_replay_stability.md) | Codex/AI replay stability + sanitization (split←053) | **P1** | ✅ **_fin** [10.055](./_fin/10/10.055_gjc_chase_codex_replay_stability.md) 260629 |

@@ -83,7 +83,7 @@
 | session/tmux/team/worktree | lock GC, psmux, session registry, tmux/worktree lifecycle | 중 — state/process | [10.050](./10.050_gjc_chase_session_tmux_team_worktree.md) |
 | RLM/research mode | research command, venv, autonomous/resume gate | 낮음/중 — separate product lane | [10.046](./10.046_gjc_chase_rlm_research_mode.md) |
 | perf/bench/corpus | optimization suite, redraw repro, geobench/corpus | 낮음 — track/reference | [10.049](./10.049_gjc_chase_performance_bench_corpus.md) |
-| docs/integrations | Grok Build, remote design, Telegram roadmap, OpenClaw notes | 낮음 — docs/reference | [10.052](./10.052_gjc_chase_docs_external_integrations.md) |
+| docs/integrations | Grok Build, remote design, Telegram roadmap, OpenClaw notes | 낮음 — docs/reference | [10.052](./_fin/10/10.052_gjc_chase_docs_external_integrations.md) ✅ _fin — conservative JWC integration matrix |
 
 ### RPC 한 묶음 (PABCD 권장)
 
