@@ -396,6 +396,50 @@ describe("native gjc team runtime", () => {
 		expect(command).toContain("You are worker-1 in gjc team qa''team.");
 	});
 
+	it("normalizes worker prompts so psmux send-keys cannot split embedded newlines", () => {
+		const worker: JwcTeamWorker = {
+			id: "worker-1",
+			name: "Worker 1",
+			index: 0,
+			agent_type: "executor",
+			role: "executor",
+			status: "idle",
+			last_heartbeat: "2026-07-01T00:00:00.000Z",
+			assigned_tasks: [],
+		};
+		const config: JwcTeamConfig = {
+			team_name: "newline-team",
+			display_name: "Newline Team",
+			requested_name: "newline",
+			task: "\uFEFFline one\nline two\r\nline three",
+			agent_type: "executor",
+			worker_count: 1,
+			max_workers: 20,
+			state_root: "C:\\repo\\.jwc\\state\\team",
+			worker_command: "bun cli.ts",
+			worker_cli_plan: ["gjc"],
+			tmux_command: "psmux",
+			tmux_session: "dry-run",
+			tmux_session_name: "dry-run",
+			tmux_target: "dry-run",
+			workspace_mode: "direct",
+			dry_run: true,
+			leader: { session_id: "session", pane_id: "%1", cwd: "C:\\repo" },
+			leader_cwd: "C:\\repo",
+			team_state_root: "C:\\repo\\.jwc\\state\\team",
+			workers: [worker],
+			created_at: "2026-07-01T00:00:00.000Z",
+			updated_at: "2026-07-01T00:00:00.000Z",
+		};
+
+		const command = buildWorkerCommand(config, worker, "win32");
+
+		expect(command).not.toContain("\n");
+		expect(command).not.toContain("\r");
+		expect(command).not.toContain("\uFEFF");
+		expect(command).toContain("line one line two line three");
+	});
+
 	it("keeps worker CLI selection limited to GJC teammate sessions", async () => {
 		expect(resolveJwcTeamWorkerCli({})).toBe("gjc");
 		expect(resolveJwcTeamWorkerCli({ GJC_TEAM_WORKER_CLI: "auto" })).toBe("gjc");
@@ -521,6 +565,32 @@ describe("native gjc team runtime", () => {
 		expect(tmuxLog).not.toContain("set-option -g");
 		expect(tmuxLog).not.toContain("new-session");
 		expect(tmuxLog).not.toContain("kill-session");
+	});
+
+	it("dispatches psmux worker commands with literal send-keys followed by Enter", async () => {
+		cleanupRoot = await createGitRepo();
+		const fakeTmux = await createFakeTmuxBin(cleanupRoot);
+		const fakePsmux = path.join(path.dirname(fakeTmux), "psmux");
+		await fs.copyFile(fakeTmux, fakePsmux);
+		await fs.chmod(fakePsmux, 0o755);
+
+		const snapshot = await startJwcTeam({
+			workerCount: 1,
+			agentType: "executor",
+			task: "Use psmux literal dispatch",
+			teamName: "psmux-dispatch-team",
+			cwd: cleanupRoot,
+			env: { PATH: process.env.PATH ?? "", GJC_TEAM_WORKER_COMMAND: "true", GJC_TEAM_TMUX_COMMAND: fakePsmux },
+		});
+
+		expect(snapshot.workers[0]?.pane_id).toBe("%2");
+		const tmuxLog = await Bun.file(path.join(cleanupRoot, "tmux.log")).text();
+		const splitLine = tmuxLog.split("\n").find(line => line.startsWith("split-window -h -t %1 -d -P -F"));
+		expect(splitLine).toBeTruthy();
+		expect(splitLine).not.toContain("worker-startup-ack");
+		expect(tmuxLog).toContain("send-keys -l -t %2");
+		expect(tmuxLog).toContain("worker-startup-ack");
+		expect(tmuxLog).toContain("send-keys -t %2 Enter");
 	});
 
 	it("starts multiple runtime workers before tmux state mutation", async () => {

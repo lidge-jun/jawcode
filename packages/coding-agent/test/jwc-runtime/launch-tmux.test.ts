@@ -1,9 +1,11 @@
 import { describe, expect, it } from "bun:test";
+import { Buffer } from "node:buffer";
 import type { Args } from "@jawcode-dev/coding-agent/cli/args";
 import {
 	applyJwcTmuxProfile,
 	buildDefaultTmuxLaunchPlan,
 	buildJwcTmuxProfileCommands,
+	buildJwcTmuxWindowTitle,
 	GJC_TMUX_LAUNCHED_ENV,
 	GJC_TMUX_SESSION_PREFIX,
 	launchDefaultTmuxIfNeeded,
@@ -22,6 +24,17 @@ function args(overrides: Partial<Args> = {}): Args {
 const interactiveTty = { stdin: true, stdout: true };
 
 describe("default GJC tmux launch", () => {
+	it("builds sanitized JWC project and branch tmux window titles", () => {
+		expect(buildJwcTmuxWindowTitle("/repo", "feature/demo")).toBe("JWC-repo-feature/demo");
+		expect(buildJwcTmuxWindowTitle("/repo:backend", "release:main")).toBe("JWC-repo-backend-release-main");
+		expect(buildJwcTmuxWindowTitle("/tmp/.jwc", null)).toBe("JWC-dot-jwc");
+		expect(buildJwcTmuxWindowTitle("/tmp/...", "feature/demo")).toBe("JWC-jwc-feature/demo");
+		const wide = buildJwcTmuxWindowTitle("/저장소", `feature/${"界".repeat(80)}끝`);
+		expect(Bun.stringWidth(wide)).toBeLessThanOrEqual(48);
+		expect(wide.startsWith("JWC-저장소-…")).toBe(true);
+		expect(wide.endsWith("끝")).toBe(true);
+	});
+
 	it("does not plan tmux for interactive root launch without --tmux", () => {
 		const plan = buildDefaultTmuxLaunchPlan({
 			parsed: args({ messages: ["hello world"] }),
@@ -58,9 +71,8 @@ describe("default GJC tmux launch", () => {
 		expect(plan.tmuxCommand).toBe("tmux");
 		expect(plan.newSessionArgs.slice(0, 6)).toEqual(["new-session", "-d", "-s", plan.sessionName, "-c", "/repo"]);
 		expect(plan?.innerCommand).toContain(`${GJC_TMUX_LAUNCHED_ENV}=1`);
-		expect(plan?.innerCommand).toContain(
-			"'/bin/bun' '/repo/packages/coding-agent/src/cli.ts' '--tmux' 'hello world'",
-		);
+		expect(plan?.innerCommand).toContain("'/bin/bun' '/repo/packages/coding-agent/src/cli.ts' 'hello world'");
+		expect(plan?.innerCommand).not.toContain("'--tmux'");
 	});
 	it("uses a host command for compiled Bun virtual entrypoints", () => {
 		const plan = buildDefaultTmuxLaunchPlan({
@@ -80,7 +92,8 @@ describe("default GJC tmux launch", () => {
 
 		expect(plan.innerCommand).not.toContain("$bunfs");
 		expect(plan.innerCommand).toContain(`${GJC_TMUX_LAUNCHED_ENV}=1`);
-		expect(plan.innerCommand).toContain("'/home/me/.local/bin/gjc' '--tmux' 'hello world'");
+		expect(plan.innerCommand).toContain("'/home/me/.local/bin/gjc' 'hello world'");
+		expect(plan.innerCommand).not.toContain("'--tmux'");
 	});
 
 	it("falls back to jwc when compiled Bun virtual entrypoint has no host exec path", () => {
@@ -97,7 +110,69 @@ describe("default GJC tmux launch", () => {
 		});
 
 		expect(plan?.innerCommand).not.toContain("$bunfs");
-		expect(plan?.innerCommand).toContain("'jwc' '--tmux'");
+		expect(plan?.innerCommand).toContain("'jwc'");
+		expect(plan?.innerCommand).not.toContain("'--tmux'");
+	});
+
+	it("renames managed tmux windows and configures the root terminal title", () => {
+		const calls: { command: string; args: string[]; options: TmuxSpawnOptions }[] = [];
+		const handled = launchDefaultTmuxIfNeeded({
+			parsed: args({ messages: ["hello world"], tmux: true }),
+			rawArgs: ["--tmux", "hello world"],
+			cwd: "/repo",
+			env: {},
+			argv: ["bun", "packages/coding-agent/src/cli.ts"],
+			execPath: "/bin/bun",
+			platform: "darwin",
+			tty: interactiveTty,
+			tmuxAvailable: true,
+			currentBranch: "feature/#S/demo",
+			existingBranchSessionName: null,
+			spawnSync: (command, spawnArgs, options) => {
+				calls.push({ command, args: spawnArgs, options });
+				return { exitCode: 0 };
+			},
+		});
+
+		expect(handled).toBe(true);
+		expect(calls.find(call => call.args[0] === "rename-window")?.args).toEqual([
+			"rename-window",
+			"-t",
+			expect.stringMatching(/^=gajae_code_.*$/),
+			"--",
+			"JWC-repo-feature/#S/demo",
+		]);
+		expect(calls.find(call => call.args[3] === "set-titles-string")?.args.at(-1)).toBe("JWC: repo-feature/##S/demo");
+		expect(calls.some(call => call.args[3] === "set-titles" && call.args[4] === "on")).toBe(true);
+	});
+
+	it("emits a BOM-less PowerShell encoded command for native Windows --tmux plans", () => {
+		const plan = buildDefaultTmuxLaunchPlan({
+			parsed: args({ messages: ["hello world"], tmux: true }),
+			rawArgs: ["--tmux", "hello world"],
+			cwd: "C:\\repo",
+			env: { JWC_TMUX_COMMAND: "psmux", JWC_PSMUX_COMMAND: "psmux", JWC_POWERSHELL_COMMAND: "powershell.exe" },
+			argv: ["bun.exe", "packages\\coding-agent\\src\\cli.ts"],
+			execPath: "C:\\Users\\jun\\.bun\\bin\\bun.exe",
+			platform: "win32",
+			tty: interactiveTty,
+			tmuxAvailable: true,
+		});
+
+		expect(plan).toBeDefined();
+		const encoded = plan?.innerCommand.match(/-EncodedCommand\s+([A-Za-z0-9+/=]+)/)?.[1];
+		expect(encoded).toBeTruthy();
+		if (!encoded) throw new Error("expected encoded command");
+		const decoded = Buffer.from(encoded, "base64");
+		expect(decoded[0]).not.toBe(0xff);
+		expect(decoded[1]).not.toBe(0xfe);
+		const script = decoded.toString("utf16le");
+		expect(script[0]).toBe("$");
+		expect(script).toContain("$env:GJC_TMUX_LAUNCHED = '1'");
+		expect(script).toContain("& 'C:\\Users\\jun\\.bun\\bin\\bun.exe'");
+		expect(script).toContain("'hello world'");
+		expect(script).not.toContain("'--tmux'");
+		expect(plan?.innerCommand.startsWith("powershell.exe ")).toBe(true);
 	});
 
 	it("attaches existing tagged session for matching worktree branch", () => {
@@ -308,10 +383,38 @@ describe("default GJC tmux launch", () => {
 		expect(handled).toBe(true);
 		expect(calls.some(call => call.args[0] === "new-session")).toBe(true);
 		expect(calls.some(call => call.args[0] === "attach-session")).toBe(true);
-		expect(calls.some(call => call.args[0] === "kill-session")).toBe(false);
+		expect(calls.some(call => call.args[0] === "kill-session")).toBe(true);
 		expect(diagnostics).toHaveLength(1);
 		expect(diagnostics[0]).toStartWith("jwc --tmux failed after creating tmux session: attach failed.");
 		expect(diagnostics[0].length).toBeLessThan(320);
+	});
+
+	it("does not duplicate new-session when psmux has not registered the session yet", () => {
+		const calls: { command: string; args: string[]; options: TmuxSpawnOptions }[] = [];
+		const diagnostics: string[] = [];
+		const handled = launchDefaultTmuxIfNeeded({
+			parsed: args({ messages: ["hello world"], tmux: true }),
+			rawArgs: ["--tmux", "hello world"],
+			cwd: "C:\\repo",
+			env: { JWC_TMUX_COMMAND: "psmux", JWC_PSMUX_COMMAND: "psmux" },
+			argv: ["bun.exe", "packages\\coding-agent\\src\\cli.ts"],
+			execPath: "C:\\Users\\jun\\.bun\\bin\\bun.exe",
+			platform: "win32",
+			tty: interactiveTty,
+			tmuxAvailable: true,
+			diagnosticWriter: message => diagnostics.push(message),
+			spawnSync: (command, spawnArgs, options) => {
+				calls.push({ command, args: spawnArgs, options });
+				if (spawnArgs[0] === "has-session") return { exitCode: 1, stderr: "psmux: no server running" };
+				return { exitCode: 0 };
+			},
+		});
+
+		expect(handled).toBe(false);
+		expect(calls.filter(call => call.args[0] === "new-session")).toHaveLength(1);
+		expect(calls.filter(call => call.args[0] === "has-session").length).toBeGreaterThan(1);
+		expect(calls.some(call => call.args[0] === "kill-session")).toBe(true);
+		expect(diagnostics[0]).toContain("session registration failed");
 	});
 
 	it("falls through to direct launch when tmux is unavailable", () => {

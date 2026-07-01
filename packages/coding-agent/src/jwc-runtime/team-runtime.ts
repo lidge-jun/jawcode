@@ -17,7 +17,13 @@ import {
 	writeReport,
 	writeWorkflowEnvelopeAtomic,
 } from "./state-writer";
-import { buildJwcTmuxExactOptionTarget, GJC_TMUX_PROFILE_OPTION, GJC_TMUX_PROFILE_VALUE } from "./tmux-common";
+import {
+	buildJwcTmuxExactOptionTarget,
+	detectPsmux,
+	GJC_TMUX_PROFILE_OPTION,
+	GJC_TMUX_PROFILE_VALUE,
+	resolveJwcTmuxCommand as resolveSharedJwcTmuxCommand,
+} from "./tmux-common";
 
 export type JwcTeamPhase = "starting" | "running" | "awaiting_integration" | "complete" | "failed" | "cancelled";
 export type JwcTeamTaskStatus = "pending" | "blocked" | "in_progress" | "completed" | "failed";
@@ -1659,7 +1665,7 @@ async function ensureWorkerWorktree(
 }
 
 export function resolveJwcTmuxCommand(env: NodeJS.ProcessEnv = process.env): string {
-	return env.GJC_TEAM_TMUX_COMMAND?.trim() || "tmux";
+	return resolveSharedJwcTmuxCommand(env);
 }
 function buildTeamTmuxLeaderRequirementMessage(detail?: string): string {
 	const suffix = detail?.trim() ? `:${detail.trim()}` : "";
@@ -1667,7 +1673,14 @@ function buildTeamTmuxLeaderRequirementMessage(detail?: string): string {
 }
 function readJwcTmuxProfileValue(tmuxCommand: string, sessionName: string): string {
 	const result = Bun.spawnSync(
-		[tmuxCommand, "show-options", "-qv", "-t", buildJwcTmuxExactOptionTarget(sessionName), GJC_TMUX_PROFILE_OPTION],
+		[
+			tmuxCommand,
+			"show-options",
+			"-qv",
+			"-t",
+			buildJwcTmuxExactOptionTarget(sessionName, { env: process.env }),
+			GJC_TMUX_PROFILE_OPTION,
+		],
 		{
 			stdout: "pipe",
 			stderr: "pipe",
@@ -1687,7 +1700,7 @@ function tagJwcTmuxSessionAsLeader(tmuxCommand: string, sessionName: string): bo
 			tmuxCommand,
 			"set-option",
 			"-t",
-			buildJwcTmuxExactOptionTarget(sessionName),
+			buildJwcTmuxExactOptionTarget(sessionName, { env: process.env }),
 			GJC_TMUX_PROFILE_OPTION,
 			GJC_TMUX_PROFILE_VALUE,
 		],
@@ -1760,7 +1773,12 @@ export function buildWorkerCommand(
 	const workspace = worker.worktree_path
 		? `Worker worktree: ${worker.worktree_path}.`
 		: `Worker cwd: ${config.leader.cwd}.`;
-	const prompt = [
+	const normalizePrompt = (raw: string): string =>
+		raw
+			.replace(/[\uFEFF\u200B]/g, "")
+			.replace(/\r?\n+/g, " ")
+			.trim();
+	const rawPrompt = [
 		`You are ${worker.id} in gjc team ${config.team_name}.`,
 		`Team state root: ${config.state_root}.`,
 		workspace,
@@ -1769,6 +1787,7 @@ export function buildWorkerCommand(
 		`Before claiming work, send startup ACK: gjc team api worker-startup-ack --input '{"team_name":"${config.team_name}","worker_id":"${worker.id}","protocol_version":"1"}' --json.`,
 		`Use gjc team api update-worker-status to report task-local activity, then claim-task/transition-task-status with this worker id; keep heartbeat current during long work, record completion_evidence (summary plus a passed command or verified inspection/artifact item) before completed, and do not mutate leader-owned goal state.`,
 	].join("\n");
+	const prompt = normalizePrompt(rawPrompt) || `Worker ${worker.id} ready.`;
 	const env = [
 		`GJC_TEAM_WORKER=${shellQuote(`${config.team_name}/${worker.id}`)}`,
 		`GJC_TEAM_INTERNAL_WORKER=${shellQuote(`${config.team_name}/${worker.id}`)}`,
@@ -1893,32 +1912,52 @@ async function startTmuxSession(
 	try {
 		const workers: JwcTeamWorker[] = [];
 		let rightStackRootPaneId: string | null = null;
+		const tmuxCommandName = (
+			config.tmux_command.replace(/\\/g, "/").split("/").pop() ?? config.tmux_command
+		).toLowerCase();
+		const literalDispatch =
+			process.platform === "win32" ||
+			tmuxCommandName === "psmux" ||
+			tmuxCommandName === "psmux.exe" ||
+			tmuxCommandName === "pmux" ||
+			tmuxCommandName === "pmux.exe" ||
+			detectPsmux(config.tmux_command, { env });
 		for (const worker of config.workers) {
 			const splitDirection: string = worker.index === 1 ? "-h" : "-v";
 			const splitTarget: string =
 				worker.index === 1 ? config.leader.pane_id : (rightStackRootPaneId ?? config.leader.pane_id);
-			const split: Bun.SyncSubprocess<"pipe", "pipe"> = Bun.spawnSync(
-				[
-					config.tmux_command,
-					"split-window",
-					splitDirection,
-					"-t",
-					splitTarget,
-					"-d",
-					"-P",
-					"-F",
-					"#{pane_id}",
-					"-c",
-					worker.worktree_path ?? config.leader.cwd,
-					buildWorkerCommand(config, worker),
-				],
-				{ stdout: "pipe", stderr: "pipe" },
-			);
+			const splitArgs = [
+				config.tmux_command,
+				"split-window",
+				splitDirection,
+				"-t",
+				splitTarget,
+				"-d",
+				"-P",
+				"-F",
+				"#{pane_id}",
+				"-c",
+				worker.worktree_path ?? config.leader.cwd,
+			];
+			if (!literalDispatch) splitArgs.push(buildWorkerCommand(config, worker));
+			const split: Bun.SyncSubprocess<"pipe", "pipe"> = Bun.spawnSync(splitArgs, { stdout: "pipe", stderr: "pipe" });
 			if (split.exitCode !== 0)
 				throw new Error(split.stderr.toString().trim() || `tmux_split_failed:${config.tmux_target}:${worker.id}`);
 			const paneId: string = split.stdout.toString().trim().split(/\r?\n/)[0]?.trim() ?? "";
 			if (!paneId.startsWith("%")) throw new Error(`tmux_split_missing_pane:${config.tmux_target}:${worker.id}`);
 			rollbackPaneIds.push(paneId);
+			if (literalDispatch) {
+				const body = buildWorkerCommand(config, worker);
+				Bun.spawnSync([config.tmux_command, "send-keys", "-l", "-t", paneId, body], {
+					stdout: "ignore",
+					stderr: "ignore",
+				});
+				const submitted = Bun.spawnSync([config.tmux_command, "send-keys", "-t", paneId, "Enter"], {
+					stdout: "ignore",
+					stderr: "ignore",
+				});
+				void submitted.exitCode;
+			}
 			if (worker.index === 1) rightStackRootPaneId = paneId;
 			workers.push({ ...worker, pane_id: paneId });
 		}

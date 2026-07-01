@@ -1,3 +1,6 @@
+import type { ResolvedTmuxBinary } from "./psmux-detect";
+import { resolveJwcTmuxBinary } from "./psmux-detect";
+
 export const GJC_DEFAULT_TMUX_SESSION = "gajae_code";
 export const GJC_TMUX_SESSION_PREFIX = `${GJC_DEFAULT_TMUX_SESSION}_`;
 export const GJC_TMUX_COMMAND_ENV = "GJC_TMUX_COMMAND";
@@ -16,11 +19,21 @@ export const GJC_TMUX_PROJECT_OPTION = "@gjc-project";
  * the exact-session match while giving tmux the window-qualified target those commands
  * require. (gajae-code#580; verified against tmux 3.6a.)
  */
-export function buildJwcTmuxExactOptionTarget(sessionName: string): string {
+export function buildJwcTmuxExactOptionTarget(
+	sessionName: string,
+	opts: { env?: NodeJS.ProcessEnv; platform?: NodeJS.Platform; binary?: ResolvedTmuxBinary } = {},
+): string {
+	const binary = opts.binary ?? resolveJwcTmuxBinary({ env: opts.env, platform: opts.platform });
+	if (binary.isPsmux) return sessionName;
 	return `=${sessionName}:`;
 }
 
-export function buildJwcTmuxExactSessionTarget(sessionName: string): string {
+export function buildJwcTmuxExactSessionTarget(
+	sessionName: string,
+	opts: { env?: NodeJS.ProcessEnv; platform?: NodeJS.Platform; binary?: ResolvedTmuxBinary } = {},
+): string {
+	const binary = opts.binary ?? resolveJwcTmuxBinary({ env: opts.env, platform: opts.platform });
+	if (binary.isPsmux) return sessionName;
 	return `=${sessionName}`;
 }
 
@@ -43,9 +56,15 @@ export function envDisabled(value: string | undefined): boolean {
 	return normalized === "0" || normalized === "false" || normalized === "off" || normalized === "no";
 }
 
-export function resolveJwcTmuxCommand(env: NodeJS.ProcessEnv = process.env): string {
-	return env[GJC_TMUX_COMMAND_ENV]?.trim() || env.GJC_TEAM_TMUX_COMMAND?.trim() || "tmux";
+export function resolveJwcTmuxCommand(
+	env: NodeJS.ProcessEnv = process.env,
+	platform: NodeJS.Platform = process.platform,
+): string {
+	return resolveJwcTmuxBinary({ env, platform }).command;
 }
+
+export type { PsmuxProbe, ResolvedTmuxBinary, ResolveJwcTmuxBinaryOptions } from "./psmux-detect";
+export { clearPsmuxDetectionCache, detectPsmux, probePsmux, resolveJwcTmuxBinary } from "./psmux-detect";
 
 export function sanitizeTmuxToken(value: string): string {
 	return (
