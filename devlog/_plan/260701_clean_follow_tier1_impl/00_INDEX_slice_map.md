@@ -73,6 +73,10 @@ Docs-only or docs-plus-tests closure for external integration documentation. Do 
 
 Reference-only closure after rechecking `10.048` overlap. If no new JWC owner remains, close as track-only with explicit evidence rather than release implementation.
 
+Plan file: `80_phase8_20015_release_test_leak_hardening.md`.
+
+Result: track-only closure. `20.015` moves to `_fin/20` as OMP release/test leak hardening evidence; no product code changes because `10.048` owns and already closed the JWC release/CI/package implementation surface.
+
 ## PABCD discipline
 
 At the end of each D phase, if cards remain, re-enter P for the next card. Do not batch multiple cards into one B phase.

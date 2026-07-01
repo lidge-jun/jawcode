@@ -137,7 +137,7 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 | O4 | 012 | [20.012 bash snapshot/env security](./_fin/20/20.012_omp_chase_bash_snapshot_env_security.md) | P2 | ✅ _fin · ref · phases 10,61 |
 | O5 | 013 | [20.013 plugin virtual registry/bundle](./_fin/20/20.013_omp_chase_plugin_virtual_registry_bundle.md) | P2 | ✅ _fin · ref · phases 10,61 |
 | O6 | 014 | [20.014 goal compaction/provider concurrency](./_fin/20/20.014_omp_chase_goal_compaction_provider_concurrency.md) | P2 | ✅ _fin · ref · phases 10,61 |
-| O7 | 015 | [20.015 release/test leak hardening](./20.015_omp_chase_release_test_leak_hardening.md) | P3 | ⬜ |
+| O7 | 015 | [20.015 release/test leak hardening](./_fin/20/20.015_omp_chase_release_test_leak_hardening.md) | P3 | ✅ _fin |
 
 ### 20.023-030 v16.2.9 델타 (2026-07-01, `ca9f2847e..b6c9747d4` 175 commits, reference-only)
 

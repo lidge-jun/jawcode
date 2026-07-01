@@ -2,7 +2,7 @@
 
 완료된 `10.NNN` / `20.NNN` — 본문은 `_fin/10/` · `_fin/20/`.
 
-> Inventory refreshed 2026-07-01 against actual files: GJC `_fin/10` = 55, OMP `_fin/20` = 19. Duplicate NNNs are intentionally file-level rows.
+> Inventory refreshed 2026-07-01 against actual files: GJC `_fin/10` = 55, OMP `_fin/20` = 20. Duplicate NNNs are intentionally file-level rows.
 
 ## GJC `_fin/10`
 
@@ -77,6 +77,7 @@
 | 20.011 | 20.011 — omp chase: TUI image drafts and terminal edges (reference audit) | [20/20.011_omp_chase_tui_image_drafts_terminal_edges](./20/20.011_omp_chase_tui_image_drafts_terminal_edges.md) |
 | 20.012 | 20.012 — omp chase: bash snapshot and env security (reference audit) | [20/20.012_omp_chase_bash_snapshot_env_security](./20/20.012_omp_chase_bash_snapshot_env_security.md) |
 | 20.013 | 20.013 — omp chase: plugin virtual registry bundle (reference audit) | [20/20.013_omp_chase_plugin_virtual_registry_bundle](./20/20.013_omp_chase_plugin_virtual_registry_bundle.md) |
+| 20.015 | 20.015 — omp chase: release/test leak hardening (track-only reference closure) | [20/20.015_omp_chase_release_test_leak_hardening](./20/20.015_omp_chase_release_test_leak_hardening.md) |
 | 20.019 | 20.019 — omp chase: codex/AI config (base URL · reasoning · verbosity · tiny role) — ADAPT 2 slices | [20/20.019_omp_chase_codex_ai_config](./20/20.019_omp_chase_codex_ai_config.md) |
 | 20.021 | 20.021 — omp chase: v2 streaming integrity — IMPORT 1 slice (partialJson terminal scrub) | [20/20.021_omp_chase_v2_streaming_integrity](./20/20.021_omp_chase_v2_streaming_integrity.md) |
 | 20.025 | 20.025 — omp chase: compaction/snapcompact caps + session-scope — IMPORT 1 slice (bounded edit snapshots) | [20/20.025_omp_chase_compaction_snapcompact_session_scope](./20/20.025_omp_chase_compaction_snapcompact_session_scope.md) |

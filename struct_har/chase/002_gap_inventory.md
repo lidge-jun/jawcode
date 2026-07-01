@@ -112,7 +112,7 @@ Executor v2 (260614): **011 YES**, **008/026 RISKY**; **018 registry TS+Py lande
 | bash snapshot/env security | `cc0c67be..0fc6d136` | reference-only split | [20.012](./_fin/20/20.012_omp_chase_bash_snapshot_env_security.md) ✅ _fin |
 | plugin virtual registry/bundle | `cc0c67be..0fc6d136` | reference-only split | [20.013](./_fin/20/20.013_omp_chase_plugin_virtual_registry_bundle.md) ✅ _fin |
 | goal compaction/provider concurrency | `cc0c67be..0fc6d136` | reference-only split | [20.014](./_fin/20/20.014_omp_chase_goal_compaction_provider_concurrency.md) ✅ _fin |
-| release/test leak hardening | `cc0c67be..0fc6d136` | reference-only split | [20.015](./20.015_omp_chase_release_test_leak_hardening.md) |
+| release/test leak hardening | `cc0c67be..0fc6d136` | ✅ _fin 260701 (track-only reference closure) | [20.015](./_fin/20/20.015_omp_chase_release_test_leak_hardening.md) |
 
 ## 260613–14 jwc 독자 성과 (chase 비대상 완료)
 
