@@ -58,6 +58,15 @@ async function runCommand(command: readonly string[]): Promise<number> {
 After:
 
 ```ts
+export interface PackageManifest {
+	name?: string;
+	scripts?: Record<string, string>;
+	dependencies?: Record<string, string>;
+	devDependencies?: Record<string, string>;
+	peerDependencies?: Record<string, string>;
+	optionalDependencies?: Record<string, string>;
+}
+
 export interface Task {
 	key: string;
 	description: string;
@@ -84,6 +93,18 @@ if (import.meta.main) {
 	await main();
 }
 
+export async function runCommand(command: readonly string[], cwd: string = repoRoot): Promise<number> {
+	const [head, ...rest] = command;
+	const proc = Bun.spawn([head, ...rest], {
+		cwd,
+		env: process.env,
+		stdin: "inherit",
+		stdout: "inherit",
+		stderr: "inherit",
+	});
+	return proc.exited;
+}
+
 export function packageScriptCommand(script: string): readonly string[] {
 	return ["bun", "run", script];
 }
@@ -108,7 +129,7 @@ if (paths.some(isWorkflowOrScriptPath)) {
 
 Implementation notes:
 
-- `planTasks`, `WorkspacePackage`, `Task`, `runCommand`, `packageScriptCommand`, and `resolvePackageCwd` become exported so the test can assert observable planner behavior without running the whole CI script at import time.
+- `PackageManifest`, `WorkspacePackage`, `Task`, `planTasks`, `runCommand`, `packageScriptCommand`, and `resolvePackageCwd` become exported so the test can assert observable planner behavior without running the whole CI script at import time.
 - The top-level script body moves into `main()` behind `if (import.meta.main)`; existing CLI behavior remains unchanged when executed as `bun scripts/ci-dev-affected.ts`.
 - `printPlan()` appends `(cwd: <repo-relative>)` for tasks with a cwd, preserving debuggability without changing commands.
 - `add()` accepts an optional `cwd` and stores it on `Task`.
