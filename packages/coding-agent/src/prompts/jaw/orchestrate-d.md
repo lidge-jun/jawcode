@@ -18,6 +18,11 @@ Then perform two reflections:
 - Which constraints were missing?
 - What would change if we revised the ontology?
 
+**PESSIMIST** ("Is the direction still right?" — LOOP-PESSIMIST-01, for loop/multi-pass work):
+- What did NOT improve this cycle, and which hypothesis died?
+- One sentence: what evidence would show the current direction is wrong?
+- The next P must quote this. Treat D→idle→P as a context/bias-flush boundary: the next cycle resumes from disk artifacts (loop plan MOC, receipts, devlog), not from transcript momentum. Report the honest terminal state — budget/time exhaustion is budget-exhausted with best-so-far evidence, never "complete".
+
 Closing:
 - The summary + reflections text is the user-facing artifact; the pabcd state records the closing receipt (jwc receipt convention).
 - If significant issues surfaced: suggest "Improve the spec: `orchestrate i`".
