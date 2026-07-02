@@ -37,6 +37,7 @@
 | `packages/coding-agent/src/prompts/agents/{planner,architect,critic}.md` | HARD-EDIT+INVERTED-GUARD | 085.5-M1·M3 | 동일 | CONFLICT-EXPECTED | frontmatter는 jwc 접두 |
 | `packages/coding-agent/src/prompts/goals/goal-{continuation,mode-active}.md` | HARD-EDIT | 060-061 | 061_design_goal_merge.md | CONFLICT-EXPECTED | — |
 | `packages/coding-agent/src/prompts/jaw/` (orchestrate-* 6종 + audit 2종) | NEW | 054/057 | 054_plan_orchestrate_impl.md | N/A | — |
+| `packages/coding-agent/src/prompts/identity/tone-{sarcastic,savage,deadpan,hype,uhehe}.md` | NEW | 260702 | devlog/_plan/260702_tone_command/10_plan.md | N/A | /tone 프리셋 본문 — settings `identity.tone` |
 
 ### defaults/jwc/skills — HARD-EDIT
 
@@ -144,6 +145,9 @@
 | `packages/coding-agent/src/modes/controllers/event-controller.ts`·`input-controller.ts` | HARD-EDIT | 99.20.04 + 99.20.03 | MANUAL-REVIEW | 커밋 폴딩(라이브 존 라우팅·커밋점 2곳·agent_end 잔여) + 압축 트리거(슬래시·ctrl+o/t) |
 | `packages/coding-agent/src/config/settings-schema.ts` | HARD-EDIT | 083.7/99.20.04 | AUTO | `tui.composerPin`·`tool.renderMode` (브랜드 기본) |
 | `packages/coding-agent/src/modes/components/settings-selector.ts`·`packages/tui/src/components/settings-list.ts` | HARD-EDIT | 99.20.04 핫픽스 (260613) | AUTO | undefined currentValue 가드 ("default" 표기) — truncateToWidth 크래시 회귀 방지 |
+| `packages/coding-agent/src/config/settings-schema.ts` | HARD-EDIT | 260702 /tone | AUTO | `identity.tone`/`identity.toneCustom` 키 + SettingValue default-undefined enum widen(`V[number]\|undefined`) + vibe description 손질 |
+| `packages/coding-agent/src/system-prompt.ts` | HARD-EDIT | 260702 /tone | MANUAL-REVIEW | `TONE_PRESETS` 상수 + `renderIdentityBlock()` tone 주입(Vibe 뒤·language 앞) + null-gate 확장 |
+| `packages/coding-agent/src/slash-commands/builtin-registry.ts` | HARD-EDIT | 260702 /tone | MANUAL-REVIEW | `/tone` 스펙(handle-only, TUI는 adaptTuiSlashRuntime 위임) + `/identity` tone 2행 + buildToneCustomInstruction |
 | `packages/coding-agent/src/modes/interactive-mode.ts` | HARD-EDIT (예정) | 99.30.01 | MANUAL-REVIEW | `#renderTodoList` 전부 `completed` 시 1줄 접힘 — [session_storage.md](./22_session_storage.md) |
 
 ## 리베이스/체리픽 절차 (요약 — 상세: 067.1 §5)
