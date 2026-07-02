@@ -2,7 +2,7 @@
 
 완료된 `10.NNN` / `20.NNN` — 본문은 `_fin/10/` · `_fin/20/`.
 
-> Inventory refreshed 2026-07-01 against actual files: GJC `_fin/10` = 55, OMP `_fin/20` = 20. Duplicate NNNs are intentionally file-level rows.
+> Inventory refreshed 2026-07-02 against actual files: GJC `_fin/10` = 56, OMP `_fin/20` = 20. Duplicate NNNs are intentionally file-level rows.
 
 ## GJC `_fin/10`
 
@@ -61,6 +61,7 @@
 | 10.062 | 10.062 — gjc chase: DeepInfra provider + service-tier · Gemini CLI user-agent alignment | [10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua](./10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md) |
 | 10.064 | 10.064 — gjc chase: compiled Telegram daemon entrypoint · Windows Terminal bell workaround | [10/10.064_gjc_chase_telegram_daemon_entrypoint_notify](./10/10.064_gjc_chase_telegram_daemon_entrypoint_notify.md) |
 | 10.057 | 10.057 — gjc chase: Windows hardening — ADAPT npm shims · worker PowerShell · error preservation | [10/10.057_gjc_chase_windows_hardening](./10/10.057_gjc_chase_windows_hardening.md) |
+| 10.069 | 10.069 — gjc chase: provider/search/docs/model support — evidence-close Tavily + Claude retry, reject reverted Aside | [10/10.069_gjc_chase_provider_search_docs_model_support](./10/10.069_gjc_chase_provider_search_docs_model_support.md) |
 
 ## OMP `_fin/20`
 

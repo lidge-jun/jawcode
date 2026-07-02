@@ -11,7 +11,7 @@
 
 | 축 | jwc가 **앞서거나 유일** | jwc가 **뒤처지거나 약함** |
 |---|---|---|
-| **gjc** | orchestrate/PABCD, jaw 표면, `.jwc`, lazy `computer_use`, pi-shell·submit gate(10.009·10.010 ✅), goal busy-loop #616 ✅, session compaction/progress ✅, RPC lifecycle/receipt spool/registry/team profile `_fin`(10.008·10.011·10.018·10.007 ✅) | active GJC upstream/dev chase cards include 10.027, 10.039, 10.044-050, 10.063, and new 10.066-069 |
+| **gjc** | orchestrate/PABCD, jaw 표면, `.jwc`, lazy `computer_use`, pi-shell·submit gate(10.009·10.010 ✅), goal busy-loop #616 ✅, session compaction/progress ✅, RPC lifecycle/receipt spool/registry/team profile `_fin`(10.008·10.011·10.018·10.007 ✅), provider/search docs/retry evidence 10.069 ✅ | active GJC upstream/dev chase cards include 10.027, 10.039, 10.044-050, 10.063, and new 10.066-068 |
 | **omp** | 4 workflow 번들, jaw 워크플로 | task-agent, session ops, memory, pruning and new v16.3.1 native/AI/session/TUI/tool references = **참조** ([20.031](./20.031_omp_chase_native_search_pipeline.md)-[20.035](./20.035_omp_chase_tool_schema_task_tts_stats.md)) |
 | **자체** | 100 Node 완료, TUI O(n²) 수정, 99.03·99.01·99.07 부분 | 99.02·99.04·99.05·99.06 · M2 110+ |
 
@@ -87,7 +87,7 @@
 
 ### RPC 한 묶음 (PABCD 권장)
 
-**011 → 008 → 018 → 026** — [007_follow_index](./007_follow_index.md) · [03 feasibility](../../devlog/_fin/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md).  
+**011 → 008 → 018 → 026** — [007_follow_index](./007_follow_index.md) · [03 feasibility](../../devlog/_fin/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md).
 Executor v2 (260614): **011 YES**, **008/026 RISKY**; **018 registry TS+Py landed** @ `d60b7822`; UDS `--listen` + issues 06–08 client API **갭**.
 
 ## G2 — omp 참조만
@@ -118,12 +118,12 @@ Executor v2 (260614): **011 YES**, **008/026 RISKY**; **018 registry TS+Py lande
 
 | 축 | range | 신규 카드 |
 |---|---|---|
-| GJC | `20c299eb..79b42377` (54 commits) | [10.066](./10.066_gjc_chase_composer_command_model_selector_ux.md) · [10.067](./10.067_gjc_chase_goal_plan_skill_state_refresh.md) · [10.068](./10.068_gjc_chase_tmux_telegram_session_resilience.md) · [10.069](./10.069_gjc_chase_provider_search_docs_model_support.md) |
+| GJC | `20c299eb..79b42377` (54 commits) | [10.066](./10.066_gjc_chase_composer_command_model_selector_ux.md) · [10.067](./10.067_gjc_chase_goal_plan_skill_state_refresh.md) · [10.068](./10.068_gjc_chase_tmux_telegram_session_resilience.md) · [10.069](./_fin/10/10.069_gjc_chase_provider_search_docs_model_support.md) ✅ _fin |
 | OMP | `b6c9747d4..0ea6ea630` (433 commits) | [20.031](./20.031_omp_chase_native_search_pipeline.md) · [20.032](./20.032_omp_chase_ai_thinking_catalog_speech.md) · [20.033](./20.033_omp_chase_session_patch_rewind_integrity.md) · [20.034](./20.034_omp_chase_tui_collab_browser_resilience.md) · [20.035](./20.035_omp_chase_tool_schema_task_tts_stats.md) |
 
 ## 260613–14 jwc 독자 성과 (chase 비대상 완료)
 
-Codex reformation · TUI O(n²) · xAI `/searchengine` · 100 Node · MCP discovery · 99.xx TUI — [structure/50_status.md](../../structure/50_status.md).  
+Codex reformation · TUI O(n²) · xAI `/searchengine` · 100 Node · MCP discovery · 99.xx TUI — [structure/50_status.md](../../structure/50_status.md).
 **260614**: upstream pull +68 gjc / +370 omp; chase 카드 10.018–026 발급; **008 명명 계약**.
 
 ## 구현가치 (MLB) — 활성 핵심

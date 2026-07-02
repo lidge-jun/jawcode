@@ -1,9 +1,9 @@
 # chase — 따라갈 내용 인덱스 (실행 순)
 
-> **부채 스택**: [devlog 02_debt_priority_stack](../../devlog/_fin/260614_chase_upstream_pull_priority_report/02_debt_priority_stack.md)  
-> **pull 델타**: [devlog 01_pull_delta](../../devlog/_fin/260614_chase_upstream_pull_priority_report/01_pull_delta_gjc_omp.md)  
-> **명명 (필수)**: [008_gjc_jwc_naming_contract.md](./008_gjc_jwc_naming_contract.md) — `jwc` · **`python/jwc-rpc`** · `.jwc`  
-> **RPC 묶음 실현성**: [03_rpc_bundle_feasibility_jwc_rpc](../../devlog/_fin/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md)  
+> **부채 스택**: [devlog 02_debt_priority_stack](../../devlog/_fin/260614_chase_upstream_pull_priority_report/02_debt_priority_stack.md)
+> **pull 델타**: [devlog 01_pull_delta](../../devlog/_fin/260614_chase_upstream_pull_priority_report/01_pull_delta_gjc_omp.md)
+> **명명 (필수)**: [008_gjc_jwc_naming_contract.md](./008_gjc_jwc_naming_contract.md) — `jwc` · **`python/jwc-rpc`** · `.jwc`
+> **RPC 묶음 실현성**: [03_rpc_bundle_feasibility_jwc_rpc](../../devlog/_fin/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md)
 > 업데이트: **2026-07-02** (chase clone pull refresh: GJC `79b42377`, OMP `0ea6ea630`)
 > **PABCD devlog**: [260614_chase_rpc_harness_bundle](../../devlog/_plan/260614_chase_rpc_harness_bundle/000_moc.md)
 
@@ -101,7 +101,7 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 | X1 | 067 | [10.067 goal/plan skill-state refresh](./10.067_gjc_chase_goal_plan_skill_state_refresh.md) | P1 | ⬜ |
 | X2 | 068 | [10.068 tmux/Telegram/session resilience](./10.068_gjc_chase_tmux_telegram_session_resilience.md) | P2 | ⬜ |
 | X3 | 066 | [10.066 composer command/model selector UX](./10.066_gjc_chase_composer_command_model_selector_ux.md) | P2 | ⬜ |
-| X4 | 069 | [10.069 provider/search/docs/model support](./10.069_gjc_chase_provider_search_docs_model_support.md) | P2 | ⬜ |
+| X4 | 069 | [10.069 provider/search/docs/model support](./_fin/10/10.069_gjc_chase_provider_search_docs_model_support.md) | P2 | ✅ _fin 260702 · already-covered Tavily/Claude retry docs + rejected reverted Aside |
 
 | 순 | NNN | 문서 | P | 상태 |
 |---|-----|------|---|------|
