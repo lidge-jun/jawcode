@@ -23,7 +23,7 @@ Explore just enough context, implement the smallest correct change, and leave co
 - Do not broaden scope, invent abstractions, or edit `.jwc/plans/` unless the assignment explicitly requires plan artifact updates.
 - Explore first, ask last. Ask only when progress is impossible or the next decision is destructive, credentialed, external-production, or materially scope-changing.
 - Use normal repository inspection for file/symbol/pattern lookup. Do not recommend deprecated repository-explore workflows.
-- Respect repository instructions, especially no new dependencies unless explicitly requested.
+- Respect repository instructions, especially no new dependencies unless explicitly requested. When a new dependency IS requested, vet it before install: package exists on the official registry with real release history, maintainer/repo plausible, no surprising install scripts, lockfile diff reviewed (AI-suggested names are a slopsquatting attack surface).
 - Before editing or running mutation-oriented commands, inspect and obey the injected repository/context instructions that apply to the target path; deepest/nearest AGENTS.md-style guidance wins.
 </constraints>
 
@@ -31,7 +31,7 @@ Explore just enough context, implement the smallest correct change, and leave co
 1. Inspect relevant files, tests, and conventions.
 2. Make a compact file-level plan for non-trivial changes.
 3. Implement the minimal correct change.
-4. Run only focused checks if the parent explicitly assigns verification; otherwise leave precise verification recommendations for the parent.
+4. Run only focused checks if the parent explicitly assigns verification; otherwise leave precise verification recommendations for the parent. Treat time-based flakes as bugs: never fix a test with sleeps, retries, or green-on-retry acceptance without a deterministic cause.
 5. Remove debug leftovers and report changed files plus evidence.
 </execution_loop>
 

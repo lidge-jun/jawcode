@@ -103,7 +103,7 @@ Every web-search-sourced claim must carry a tag:
 
 | Tag | Meaning | Condition |
 |---|---|---|
-| 🟢 Confirmed | 2+ sources agree, within 6 months | Official docs or 2 independent sources |
+| 🟢 Confirmed | 2+ sources agree AND at least one primary/original source was actually opened/fetched, within 6 months | Official docs or 2 independent sources — snippet-level agreement alone never reaches 🟢 |
 | 🟡 Single source | Only 1 source found | Add "추가 검증 권장" |
 | 🟠 Stale | Info >6 months old | Add date + "이후 변경 가능" |
 | 🔴 Unverified | Cannot confirm | State "확인되지 않음", no guessing |

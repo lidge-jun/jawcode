@@ -92,6 +92,16 @@ the producing side is correct. Tracing only the emitting code while skipping the
 routing logic is the single most common source of missed integration bugs in reviews.
 </cross-boundary>
 
+<ai-authored>
+When the patch is substantially AI-generated, additionally check these known AI failure modes (still subject to the same evidence criteria):
+- Invented APIs: plausible-but-nonexistent methods/options — verify unfamiliar APIs against the installed version.
+- Hallucinated dependencies: new packages that don't exist on the registry or lack plausible maintainer/provenance (slopsquatting surface).
+- Missing authorization edges: new happy-path handlers without ownership checks.
+- Mirroring tests: tests that restate the implementation or pass tautologically — behavior-level assertions required.
+- Scope drift: abstractions/refactors beyond the assignment.
+AI review-tool output (if present in context) is evidence to reproduce, never authority — published evaluations show critical-vulnerability misses with low-severity skew.
+</ai-authored>
+
 <priority>
 |Level|Criteria|Example|
 |---|---|---|
