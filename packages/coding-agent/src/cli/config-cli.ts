@@ -103,6 +103,12 @@ export function parseConfigArgs(args: string[]): ConfigCommandArgs | undefined {
 	const positionalArgs: string[] = [];
 	for (let i = 2; i < args.length; i++) {
 		const arg = args[i];
+		if (arg === "--") {
+			// End-of-flags separator: everything after `--` is positional even
+			// when it starts with `-` (e.g. free-form identity.toneCustom text).
+			positionalArgs.push(...args.slice(i + 1));
+			break;
+		}
 		if (arg === "--json") {
 			result.flags.json = true;
 		} else if (!arg.startsWith("-")) {

@@ -62,10 +62,12 @@ function buildToneCustomInstruction(): string {
 	const configPath = path.join(getAgentDir(), "config.yml");
 	return [
 		"Help me set a custom persona tone for the agent.",
-		"Ask me, in the language I have been using, to paste the tone text in one message (multi-line is fine; it will be preserved verbatim).",
+		"Ask me, in the language I have been using, to paste the tone text in one message (multi-line is fine; interior newlines are preserved, ends are trimmed).",
 		"If I decline or paste nothing, save nothing and reply that the tone settings were not changed.",
-		`Otherwise persist it with: ${APP_NAME} config set identity.toneCustom "<text>" (keep newlines as given)`,
+		"Otherwise write the pasted text VERBATIM to a temp file using a single-quoted heredoc (cat > /tmp/tone-custom.txt <<'TONE_EOF' ... TONE_EOF) so quotes, $, and leading dashes survive, then persist it with:",
+		`${APP_NAME} config set identity.toneCustom -- "$(cat /tmp/tone-custom.txt)"`,
 		`then: ${APP_NAME} config set identity.tone custom`,
+		"(the `--` keeps values that start with `-` from being read as flags)",
 		`(settings file: ${configPath})`,
 		"Finish with a one-line summary of what was saved, and note that the tone applies to new prompts.",
 	].join("\n");
