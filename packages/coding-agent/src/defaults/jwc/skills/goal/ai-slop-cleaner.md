@@ -24,6 +24,7 @@ Classify every finding against the full taxonomy:
 5. **Boundary violations** — hidden coupling, leaky responsibilities, wrong-layer imports or side effects.
 6. **UI/design slop** — context-sensitive signals, not absolute bans; preserve intentional brand/design-system/accessibility/product rationale. Signals: small Korean body copy (challenge 11-12px; Korean body text generally needs 14px+ unless a dense accessible system supports smaller), gratuitous shadows/depth, repetitive eyebrow+title+description scaffolding and filler/emoji badges, default blue/purple palettes (e.g. #3B82F6) without rationale, over-perfect uniform 3/4-column grids, and extreme "AI demo" gradients.
 7. **Missing tests** — behavior not locked, weak regression coverage, missing edge/failure-mode cases.
+8. **Unvetted dependencies** — new packages introduced by the story without registry vetting. AI-suggested package names are a slopsquatting attack surface (hallucinated names get registered by attackers). Blocking signals: package does not exist on the official registry, release history is days old, maintainer/repository link is implausible or missing, install scripts do surprising network/exec work, or the lockfile diff was never reviewed. Report the finding; the leader routes registry vetting — this cleaner never installs or removes packages.
 
 ## Blocking vs advisory
 
@@ -46,6 +47,7 @@ Advisory Findings: [none, or numbered findings with file, category, evidence, wh
 Fallback Findings: [none, or finding -> masking fallback slop / grounded compatibility/fail-safe fallback -> blocking/advisory]
 UI/Design Findings: [none/N/A, or signal -> blocking/advisory -> rationale]
 Missing Test Findings: [none, or gap -> blocking/advisory -> required coverage]
+Dependency Findings: [none/N/A, or new package -> vetting signal -> blocking/advisory]
 Recursion Guard: [confirmed no nested orchestrate/team/jaw-interview/goal spawned; broad findings handed to leader]
 Changed Files Reviewed:
 - [path] - [reviewed / no relevant edits]

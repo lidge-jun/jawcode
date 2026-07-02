@@ -169,7 +169,7 @@ The completion-gate cleanup sweep is driven by `ai-slop-cleaner`, an internal Go
 
 - It is not slash-command discoverable, has no public skill-listing entry, and is never resolvable through `skill://`.
 - It is a read-only detector+reporter over the active story's changed files only: it never edits code, writes files, mutates `.jwc/`, checkpoints, calls goal tools, or spawns workflows.
-- It classifies every finding as blocking or advisory across the full taxonomy (fallback-like masking vs. grounded, duplication, dead code, needless abstraction, boundary violations, UI/design slop, missing tests).
+- It classifies every finding as blocking or advisory across the full taxonomy (fallback-like masking vs. grounded, duplication, dead code, needless abstraction, boundary violations, UI/design slop, missing tests, unvetted dependencies/slopsquatting).
 - The leader and a leader-spawned `executor` own all fixes; the cleaner reruns until zero blocking findings remain. Advisory findings live in the gate report only.
 - Recursion guard: it must not spawn nested `orchestrate`/`team`/`jaw-interview`/`goal`; broad or architectural findings are handed back to the leader as review blockers.
 
@@ -300,6 +300,32 @@ Receipts are freshness-scoped:
 - Per-goal receipts remain fresh for their target goal unless that goal, its blocker metadata, or its supersession metadata changes.
 - Normal later `goal_started` or clean receipt-backed `goal_checkpointed` events for other goals do not stale older per-goal receipts.
 - Appending required goals or changing final required-goal state stales final aggregate receipts. Final aggregate completion requires a fresh final aggregate receipt proving no incomplete, blocked, or `review_blocked` required goals remain.
+
+## Optimization-loop discipline (score/objective goals)
+
+When the aggregate goal maximizes a score/metric against an evaluator (benchmarks,
+win-rates, graded suites), apply plateau discipline on top of the normal gate:
+
+- Track each discarded candidate's killing stage and change class (parameter-tweak |
+  branch-toggle | state-space redesign | evaluator change). After N consecutive
+  same-class discards (starting value N=3 — tune per domain), the next story MUST
+  target the killing mechanism itself — usually the evaluation gate — not another
+  candidate of that class.
+- Each new story/plan quotes the previous story's conclusion and next-direction from
+  `ledger.jsonl`; contradicting the recorded direction requires an explicit stated
+  reason. The ledger is the continuity spine, not just an audit trail.
+- Source divergence candidates from domain-state evidence (logs, trajectories,
+  instance/opponent analysis), not only from existing code parameters. An
+  all-threshold-tweak candidate list signals parameter-space anchoring — regenerate
+  from the state space.
+- When the true evaluator is rate-limited and local checks are proxies, quantify
+  proxy/oracle divergence before trusting proxy accept/reject; an optimistic proxy is
+  never sole acceptance evidence. Replay-based evidence is prefix-valid only — state
+  the divergence point when citing it.
+- A hard invariant that vetoes 3+ consecutive candidates targeting strictly larger
+  gains must be re-justified with expected-value reasoning or downgraded to a soft cost.
+- Verification lanes treat time-based flakes as bugs: no sleep-based synchronization,
+  no retry-as-fix, no green-on-retry acceptance without a deterministic cause.
 
 ## Handoff back to planning
 
