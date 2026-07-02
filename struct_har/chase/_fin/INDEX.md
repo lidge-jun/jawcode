@@ -2,7 +2,7 @@
 
 완료된 `10.NNN` / `20.NNN` — 본문은 `_fin/10/` · `_fin/20/`.
 
-> Inventory refreshed 2026-07-02 against actual files: GJC `_fin/10` = 56, OMP `_fin/20` = 20. Duplicate NNNs are intentionally file-level rows.
+> Inventory refreshed 2026-07-02 against actual files: GJC `_fin/10` = 56, OMP `_fin/20` = 21. Duplicate NNNs are intentionally file-level rows.
 
 ## GJC `_fin/10`
 
@@ -86,6 +86,7 @@
 | 20.023 | 20.023 — omp chase: AI providers · model catalog · per-family service-tier (reference-triage) | [20/20.023_omp_chase_ai_providers_catalog_service_tier](./20/20.023_omp_chase_ai_providers_catalog_service_tier.md) |
 | 20.014 | 20.014 — omp chase: goal compaction and provider concurrency (reference audit) | [20/20.014_omp_chase_goal_compaction_provider_concurrency](./20/20.014_omp_chase_goal_compaction_provider_concurrency.md) |
 | 20.027 | 20.027 — omp chase: system prompt · tester/sonic subagent · discovery rules — ADAPT 1 ADOPT (agent param optional+default), 5 defer/reject | [20/20.027_omp_chase_prompts_subagent_discovery_rules](./20/20.027_omp_chase_prompts_subagent_discovery_rules.md) |
+| 20.035 | 20.035 — omp chase: tool schema/task/TTS/stats — reference-triage, public schema change rejected | [20/20.035_omp_chase_tool_schema_task_tts_stats](./20/20.035_omp_chase_tool_schema_task_tts_stats.md) |
 
 ## superseded (devlog)
 

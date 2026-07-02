@@ -175,7 +175,7 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 | 순 | NNN | 문서 | P | 상태 |
 |---|-----|------|---|------|
 | Z1 | 033 | [20.033 session/patch/rewind integrity](./20.033_omp_chase_session_patch_rewind_integrity.md) | ref | ⬜ |
-| Z2 | 035 | [20.035 tool schema/task/TTS/stats](./20.035_omp_chase_tool_schema_task_tts_stats.md) | ref | ⬜ |
+| Z2 | 035 | [20.035 tool schema/task/TTS/stats](./_fin/20/20.035_omp_chase_tool_schema_task_tts_stats.md) | ref | ✅ _fin 260702 · reference-triage; public schema change rejected, task/stats/voice split |
 | Z3 | 031 | [20.031 native/search pipeline](./20.031_omp_chase_native_search_pipeline.md) | ref | ⬜ |
 | Z4 | 032 | [20.032 AI thinking/catalog/speech](./20.032_omp_chase_ai_thinking_catalog_speech.md) | ref | ⬜ |
 | Z5 | 034 | [20.034 TUI/collab/browser resilience](./20.034_omp_chase_tui_collab_browser_resilience.md) | ref | ⬜ |

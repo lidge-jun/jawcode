@@ -12,7 +12,7 @@
 | 축 | jwc가 **앞서거나 유일** | jwc가 **뒤처지거나 약함** |
 |---|---|---|
 | **gjc** | orchestrate/PABCD, jaw 표면, `.jwc`, lazy `computer_use`, pi-shell·submit gate(10.009·10.010 ✅), goal busy-loop #616 ✅, session compaction/progress ✅, RPC lifecycle/receipt spool/registry/team profile `_fin`(10.008·10.011·10.018·10.007 ✅), provider/search docs/retry evidence 10.069 ✅ | active GJC upstream/dev chase cards include 10.027, 10.039, 10.044-050, 10.063, and new 10.066-068 |
-| **omp** | 4 workflow 번들, jaw 워크플로 | task-agent, session ops, memory, pruning and new v16.3.1 native/AI/session/TUI/tool references = **참조** ([20.031](./20.031_omp_chase_native_search_pipeline.md)-[20.035](./20.035_omp_chase_tool_schema_task_tts_stats.md)) |
+| **omp** | 4 workflow 번들, jaw 워크플로; 20.035 public tool contract reference triaged ✅ | task-agent, session ops, memory, pruning and remaining v16.3.1 native/AI/session/TUI references = **참조** ([20.031](./20.031_omp_chase_native_search_pipeline.md)-[20.034](./20.034_omp_chase_tui_collab_browser_resilience.md)) |
 | **자체** | 100 Node 완료, TUI O(n²) 수정, 99.03·99.01·99.07 부분 | 99.02·99.04·99.05·99.06 · M2 110+ |
 
 ## 밴드별
@@ -119,7 +119,7 @@ Executor v2 (260614): **011 YES**, **008/026 RISKY**; **018 registry TS+Py lande
 | 축 | range | 신규 카드 |
 |---|---|---|
 | GJC | `20c299eb..79b42377` (54 commits) | [10.066](./10.066_gjc_chase_composer_command_model_selector_ux.md) · [10.067](./10.067_gjc_chase_goal_plan_skill_state_refresh.md) · [10.068](./10.068_gjc_chase_tmux_telegram_session_resilience.md) · [10.069](./_fin/10/10.069_gjc_chase_provider_search_docs_model_support.md) ✅ _fin |
-| OMP | `b6c9747d4..0ea6ea630` (433 commits) | [20.031](./20.031_omp_chase_native_search_pipeline.md) · [20.032](./20.032_omp_chase_ai_thinking_catalog_speech.md) · [20.033](./20.033_omp_chase_session_patch_rewind_integrity.md) · [20.034](./20.034_omp_chase_tui_collab_browser_resilience.md) · [20.035](./20.035_omp_chase_tool_schema_task_tts_stats.md) |
+| OMP | `b6c9747d4..0ea6ea630` (433 commits) | [20.031](./20.031_omp_chase_native_search_pipeline.md) · [20.032](./20.032_omp_chase_ai_thinking_catalog_speech.md) · [20.033](./20.033_omp_chase_session_patch_rewind_integrity.md) · [20.034](./20.034_omp_chase_tui_collab_browser_resilience.md) · [20.035](./_fin/20/20.035_omp_chase_tool_schema_task_tts_stats.md) ✅ _fin |
 
 ## 260613–14 jwc 독자 성과 (chase 비대상 완료)
 

@@ -43,7 +43,7 @@
 | TUI 입력 micro | Esc draft clear + selector `resetDisplay` (`e914bf0`); double-esc history **revert** (`d055f64`); ast-edit status 공백 축약 (`3d646d8`) | **[20.006](./_fin/20/20.006_omp_chase_tui_input_micro_fixes.md)** ✅ _fin — Esc draft-clear+ast collapse 채택(jwc `a291199`), resetDisplay defer(`ui.resetDisplay()` 부재); collab/brew 비채택 |
 | OMP 15.12→15.13 | session split, auto-learn, STT/TTS, compaction UI | [20.008](./_fin/20/20.008_omp_chase_pull_15_13_delta.md) |
 | OMP v16.2.5→16.2.9 (175 commits, `ca9f2847e..b6c9747d4`) | 8 reference 클러스터: AI providers/catalog/service-tier, MCP oauth/reauth, compaction/snapcompact/session-scope, TUI loader/MCP-enable, prompts/subagent/discovery, web-search/provider, stats sync/perf, misc(dictation·binary·CJK font·yield·irc·windows) | [20.023](./20.023_omp_chase_ai_providers_catalog_service_tier.md)–[20.030](./20.030_omp_chase_misc_dictation_binary_font_yield_irc_win.md) reference-only (1:1 port ❌) — 미래 설계 입력 |
-| OMP v16.2.9→16.3.1 (433 commits, `b6c9747d4..0ea6ea630`) | 5 reference 클러스터: native/search pipeline, AI thinking/catalog/speech, session/patch/rewind integrity, TUI/collab/browser resilience, tool schema/task/TTS/stats | [20.031](./20.031_omp_chase_native_search_pipeline.md)–[20.035](./20.035_omp_chase_tool_schema_task_tts_stats.md) reference-only (1:1 port ❌) — 미래 설계 입력 |
+| OMP v16.2.9→16.3.1 (433 commits, `b6c9747d4..0ea6ea630`) | 5 reference 클러스터: native/search pipeline, AI thinking/catalog/speech, session/patch/rewind integrity, TUI/collab/browser resilience, tool schema/task/TTS/stats | [20.031](./20.031_omp_chase_native_search_pipeline.md)–[20.034](./20.034_omp_chase_tui_collab_browser_resilience.md) active reference; [20.035](./_fin/20/20.035_omp_chase_tool_schema_task_tts_stats.md) ✅ _fin reference-triage |
 
 ## 활성 (`20.NNN`)
 
@@ -83,7 +83,7 @@
 | 032 | [20.032_omp_chase_ai_thinking_catalog_speech.md](./20.032_omp_chase_ai_thinking_catalog_speech.md) | AI thinking/catalog + speech | reference | ⬜ |
 | 033 | [20.033_omp_chase_session_patch_rewind_integrity.md](./20.033_omp_chase_session_patch_rewind_integrity.md) | session/patch/rewind integrity | reference | ⬜ |
 | 034 | [20.034_omp_chase_tui_collab_browser_resilience.md](./20.034_omp_chase_tui_collab_browser_resilience.md) | TUI/collab/browser resilience | reference | ⬜ |
-| 035 | [20.035_omp_chase_tool_schema_task_tts_stats.md](./20.035_omp_chase_tool_schema_task_tts_stats.md) | tool schema/task/TTS/stats | reference | ⬜ |
+| 035 | [20.035_omp_chase_tool_schema_task_tts_stats.md](./_fin/20/20.035_omp_chase_tool_schema_task_tts_stats.md) | tool schema/task/TTS/stats | reference | ✅ _fin 260702 (public schema reject; task/stats/voice split) |
 
 ## 완료
 
