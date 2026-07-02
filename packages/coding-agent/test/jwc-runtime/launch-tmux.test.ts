@@ -74,6 +74,74 @@ describe("default GJC tmux launch", () => {
 		expect(plan?.innerCommand).toContain("'/bin/bun' '/repo/packages/coding-agent/src/cli.ts' 'hello world'");
 		expect(plan?.innerCommand).not.toContain("'--tmux'");
 	});
+
+	it("sizes detached tmux new-session to the caller terminal when dimensions are known", () => {
+		const plan = buildDefaultTmuxLaunchPlan({
+			parsed: args({ messages: ["hello world"], tmux: true }),
+			rawArgs: ["--tmux", "hello world"],
+			cwd: "/repo",
+			env: {},
+			argv: ["bun", "packages/coding-agent/src/cli.ts"],
+			execPath: "/bin/bun",
+			platform: "darwin",
+			tty: { stdin: true, stdout: true, columns: 178, rows: 35 },
+			tmuxAvailable: true,
+		});
+
+		expect(plan).toBeDefined();
+		if (!plan) throw new Error("expected tmux plan");
+		expect(plan.initialSize).toEqual({ columns: 178, rows: 35 });
+		expect(plan.newSessionArgs.slice(0, 10)).toEqual([
+			"new-session",
+			"-d",
+			"-x",
+			"178",
+			"-y",
+			"35",
+			"-s",
+			plan.sessionName,
+			"-c",
+			"/repo",
+		]);
+	});
+
+	it("omits detached tmux sizing when caller dimensions are unknown", () => {
+		const plan = buildDefaultTmuxLaunchPlan({
+			parsed: args({ messages: ["hello world"], tmux: true }),
+			rawArgs: ["--tmux", "hello world"],
+			cwd: "/repo",
+			env: {},
+			argv: ["bun", "packages/coding-agent/src/cli.ts"],
+			execPath: "/bin/bun",
+			platform: "darwin",
+			tty: interactiveTty,
+			tmuxAvailable: true,
+		});
+
+		expect(plan).toBeDefined();
+		if (!plan) throw new Error("expected tmux plan");
+		expect(plan.initialSize).toBeUndefined();
+		expect(plan.newSessionArgs).not.toContain("-x");
+		expect(plan.newSessionArgs).not.toContain("-y");
+		expect(plan.newSessionArgs.slice(0, 6)).toEqual(["new-session", "-d", "-s", plan.sessionName, "-c", "/repo"]);
+	});
+
+	it("does not plan managed tmux from a non-tty root launch", () => {
+		const plan = buildDefaultTmuxLaunchPlan({
+			parsed: args({ messages: ["hello world"], tmux: true }),
+			rawArgs: ["--tmux", "hello world"],
+			cwd: "/repo",
+			env: {},
+			argv: ["bun", "packages/coding-agent/src/cli.ts"],
+			execPath: "/bin/bun",
+			platform: "darwin",
+			tty: { stdin: true, stdout: false, columns: 178, rows: 35 },
+			tmuxAvailable: true,
+		});
+
+		expect(plan).toBeUndefined();
+	});
+
 	it("uses a host command for compiled Bun virtual entrypoints", () => {
 		const plan = buildDefaultTmuxLaunchPlan({
 			parsed: args({ messages: ["hello world"], tmux: true }),
@@ -144,6 +212,47 @@ describe("default GJC tmux launch", () => {
 		]);
 		expect(calls.find(call => call.args[3] === "set-titles-string")?.args.at(-1)).toBe("JWC: repo-feature/##S/demo");
 		expect(calls.some(call => call.args[3] === "set-titles" && call.args[4] === "on")).toBe(true);
+	});
+
+	it("reasserts caller dimensions before attaching a newly created managed tmux session", () => {
+		const calls: { command: string; args: string[]; options: TmuxSpawnOptions }[] = [];
+		const handled = launchDefaultTmuxIfNeeded({
+			parsed: args({ messages: ["hello world"], tmux: true }),
+			rawArgs: ["--tmux", "hello world"],
+			cwd: "/repo",
+			env: {},
+			argv: ["bun", "packages/coding-agent/src/cli.ts"],
+			execPath: "/bin/bun",
+			platform: "darwin",
+			tty: { stdin: true, stdout: true, columns: 178, rows: 35 },
+			tmuxAvailable: true,
+			currentBranch: "feature/demo",
+			existingBranchSessionName: null,
+			spawnSync: (command, spawnArgs, options) => {
+				calls.push({ command, args: spawnArgs, options });
+				return { exitCode: 0 };
+			},
+		});
+
+		expect(handled).toBe(true);
+		const newSession = calls.find(call => call.args[0] === "new-session");
+		const resizeIndex = calls.findIndex(call => call.args[0] === "resize-window");
+		const attachIndex = calls.findIndex(call => call.args[0] === "attach-session");
+		expect(newSession?.args).toContain("-x");
+		expect(newSession?.args).toContain("178");
+		expect(newSession?.args).toContain("-y");
+		expect(newSession?.args).toContain("35");
+		expect(resizeIndex).toBeGreaterThan(0);
+		expect(resizeIndex).toBeLessThan(attachIndex);
+		expect(calls[resizeIndex]?.args).toEqual([
+			"resize-window",
+			"-t",
+			expect.stringMatching(/^=gajae_code_.*:$/),
+			"-x",
+			"178",
+			"-y",
+			"35",
+		]);
 	});
 
 	it("emits a BOM-less PowerShell encoded command for native Windows --tmux plans", () => {
