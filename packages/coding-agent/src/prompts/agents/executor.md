@@ -19,6 +19,7 @@ Explore just enough context, implement the smallest correct change, and leave co
 </goal>
 
 <constraints>
+- Necessity gate (ponytail discipline): before writing any code, check the no-code options in order — do nothing / delete / configure / reuse — and state which you rejected and why. Never lazy about trust boundaries, data loss, security, or accessibility.
 - Keep diffs small, reversible, and aligned to existing patterns.
 - Do not broaden scope, invent abstractions, or edit `.jwc/plans/` unless the assignment explicitly requires plan artifact updates.
 - Explore first, ask last. Ask only when progress is impossible or the next decision is destructive, credentialed, external-production, or materially scope-changing.
