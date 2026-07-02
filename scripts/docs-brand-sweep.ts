@@ -45,7 +45,7 @@ const REPLACEMENTS: Repl[] = [
 	[/upstream 문서는 `\.gjc` 표기 잔존 가능/g, "upstream 문서는 legacy `.gjc` 표기 잔존 가능"],
 	[/`packages\/coding-agent` \| GJC\/JWC CLI 본체/g, "`packages/coding-agent` | jwc CLI 본체"],
 	[/GJC backend bridge/g, "jwc backend bridge"],
-	[/`gjc-stats` bin/g, "`jwc-stats` / `gjc-stats` bin"],
+	[/`gjc-stats` bin/g, "`jwc-stats` bin"],
 	[/npm one-line install wrapper\. `gjc` bin wrapper/g, "npm one-line install wrapper. legacy `gjc` bin wrapper"],
 	[/project dir는 `\.gjc`/g, "project dir는 `.jwc`"],
 	[/project-level `\.gjc\/skills`/g, "project-level `.jwc/skills`"],

@@ -21,16 +21,14 @@ const BUNDLED_NON_WORKFLOW_SKILLS = new Set(["browse", "search"]);
 const ALLOWED_PUBLIC_PACKAGE_VERSIONS = new Map<string, string>([["jawcode", "1.0.9"]]);
 const ALLOWED_PRIVATE_PACKAGE_VERSIONS = new Map<string, string>([
 	["@jawcode-dev/orchestration-token-benchmark", "0.0.1"],
-	["jawcode-compat", "0.4.5"],
 	["@jawcode-dev/typescript-edit-benchmark", "0.0.1"],
 ]);
-const ALLOWED_UNSCOPED_PACKAGE_NAMES = new Set<string>(["jawcode-monorepo", "jawcode", "jawcode-compat", "jawcode-cu-mcp-server"]);
+const ALLOWED_UNSCOPED_PACKAGE_NAMES = new Set<string>(["jawcode-monorepo", "jawcode", "jawcode-cu-mcp-server"]);
 const ALLOWED_PACKAGE_BINARIES = new Map<string, readonly string[]>([
 	["@jawcode-dev/ai", ["pi-ai"]],
-	["@jawcode-dev/coding-agent", ["gjc"]],
+	["@jawcode-dev/coding-agent", []],
 	["jawcode-cu-mcp-server", ["cu-mcp-server"]],
-	["jawcode-compat", ["gjc"]],
-	["@jawcode-dev/stats", ["gjc-stats"]],
+	["@jawcode-dev/stats", ["jwc-stats"]],
 	["jawcode", ["jwc"]],
 	["@jawcode-dev/typescript-edit-benchmark", ["typescript-edit-benchmark"]],
 ]);
@@ -183,17 +181,22 @@ console.log("\nG002 gate verification passed.");
 async function verifyRebrandSurface(): Promise<GateResult> {
 	const rootPackage = await readJson("package.json");
 	const codingPackage = await readJson("packages/coding-agent/package.json");
+	const jwcPackage = await readJson("packages/jwc/package.json");
 	const bin = isRecord(codingPackage.bin) ? codingPackage.bin : {};
+	const jwcBin = isRecord(jwcPackage.bin) ? jwcPackage.bin : {};
 	const details: string[] = [];
 
 	const rootName = typeof rootPackage.name === "string" ? rootPackage.name : "<missing>";
 	const codingName = typeof codingPackage.name === "string" ? codingPackage.name : "<missing>";
-	const hasJwcBin = typeof (bin.jwc ?? bin.gjc) === "string"; // transition: bin key renames with 065.1
-	const hasLegacyBin = ("om" + "p") in bin;
+	// The public CLI surface lives in packages/jwc (bin `jwc`); coding-agent stays
+	// binless so linking it can never shadow an upstream gajae-code `gjc` install.
+	const hasJwcBin = typeof jwcBin.jwc === "string";
+	const hasLegacyBin = ("om" + "p") in bin || "gjc" in bin;
 
 	details.push(`root package name: ${rootName}`);
 	details.push(`coding-agent package name: ${codingName}`);
-	details.push(`bin keys: ${Object.keys(bin).sort().join(", ") || "<none>"}`);
+	details.push(`coding-agent bin keys: ${Object.keys(bin).sort().join(", ") || "<none>"}`);
+	details.push(`jwc package bin keys: ${Object.keys(jwcBin).sort().join(", ") || "<none>"}`);
 
 	return {
 		name: "rebrand CLI/package surface",

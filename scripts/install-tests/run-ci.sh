@@ -59,7 +59,7 @@ SOURCE_BUN_HOME="$WORK_DIR/bun-source"
 (
 	export BUN_INSTALL="$SOURCE_BUN_HOME"
 	export PATH="$BUN_INSTALL/bin:$PATH"
-	bun --cwd="$ROOT_DIR/packages/coding-agent" link
+	bun --cwd="$ROOT_DIR/packages/jwc" link
 	smoke_cli "$BUN_INSTALL/bin/jwc"
 )
 

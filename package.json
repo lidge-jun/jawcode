@@ -78,7 +78,7 @@
   },
   "overrides": {},
   "scripts": {
-    "install:dev": "bun install && bun --cwd=packages/coding-agent link && bun --cwd=packages/ai link && bun packages/coding-agent/src/cli.ts setup defaults",
+    "install:dev": "bun install && bun --cwd=packages/jwc link && bun --cwd=packages/ai link && bun packages/coding-agent/src/cli.ts setup defaults",
     "install:defaults": "bun packages/coding-agent/src/cli.ts setup defaults",
     "setup": "bun install && node packages/jwc/scripts/bootstrap-cli-jaw-home.cjs && bun run install:defaults",
     "dev": "bun --cwd=packages/coding-agent src/cli.ts",
