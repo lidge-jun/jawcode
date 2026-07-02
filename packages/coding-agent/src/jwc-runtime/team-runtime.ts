@@ -701,7 +701,7 @@ function workerIntegrationDedupePath(dir: string, worker: string): string {
 }
 
 export function resolveJwcTeamStateRoot(cwd = process.cwd(), env: NodeJS.ProcessEnv = process.env): string {
-	const explicit = env.GJC_TEAM_STATE_ROOT?.trim();
+	const explicit = (env.JWC_TEAM_STATE_ROOT ?? env.GJC_TEAM_STATE_ROOT)?.trim();
 	if (explicit) return path.resolve(cwd, explicit);
 	return path.join(cwd, ".jwc", "state", "team");
 }
@@ -1793,6 +1793,7 @@ export function buildWorkerCommand(
 		`GJC_TEAM_INTERNAL_WORKER=${shellQuote(`${config.team_name}/${worker.id}`)}`,
 		`GJC_TEAM_NAME=${shellQuote(config.team_name)}`,
 		`GJC_TEAM_WORKER_ID=${shellQuote(worker.id)}`,
+		`JWC_TEAM_STATE_ROOT=${shellQuote(config.state_root)}`,
 		`GJC_TEAM_STATE_ROOT=${shellQuote(config.state_root)}`,
 		`GJC_TEAM_LEADER_CWD=${shellQuote(config.leader.cwd)}`,
 		`GJC_TEAM_DISPLAY_NAME=${shellQuote(config.display_name)}`,
@@ -1804,6 +1805,7 @@ export function buildWorkerCommand(
 			["GJC_TEAM_INTERNAL_WORKER", `${config.team_name}/${worker.id}`],
 			["GJC_TEAM_NAME", config.team_name],
 			["GJC_TEAM_WORKER_ID", worker.id],
+			["JWC_TEAM_STATE_ROOT", config.state_root],
 			["GJC_TEAM_STATE_ROOT", config.state_root],
 			["GJC_TEAM_LEADER_CWD", config.leader.cwd],
 			["GJC_TEAM_DISPLAY_NAME", config.display_name],
@@ -3066,6 +3068,7 @@ async function computeLifecycleNudges(
 		}
 		const heartbeat = await readJwcWorkerHeartbeat(config.team_name, worker.id, config.leader.cwd, {
 			...env,
+			JWC_TEAM_STATE_ROOT: config.state_root,
 			GJC_TEAM_STATE_ROOT: config.state_root,
 		});
 		const heartbeatAt = Date.parse(heartbeat?.last_turn_at ?? worker.last_heartbeat);

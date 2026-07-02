@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
-import { $resolveEnv, filterProcessEnv, parseEnvFile, parseShellEnvFile } from "../src/env";
+import { $legacyEnvIsolated, $resolveEnv, filterProcessEnv, parseEnvFile, parseShellEnvFile } from "../src/env";
 
 const tempDirs: string[] = [];
 
@@ -196,5 +196,34 @@ describe("JWC_ → GJC_ load-time mirror (062.1 safety net)", () => {
 			},
 		);
 		expect(proc.stdout.toString().trim()).toBe("mirrored");
+	});
+});
+
+describe("JWC_ISOLATE_LEGACY_ENV (dual-install isolation)", () => {
+	afterEach(() => {
+		delete Bun.env.JWC_ISOLATE_LEGACY_ENV;
+		delete Bun.env.JWC_ISOLATE_TEST;
+		delete Bun.env.GJC_ISOLATE_TEST;
+	});
+
+	it("is off by default", () => {
+		expect($legacyEnvIsolated()).toBe(false);
+	});
+
+	it("reflects an explicit env argument", () => {
+		expect($legacyEnvIsolated({ JWC_ISOLATE_LEGACY_ENV: "1" })).toBe(true);
+	});
+
+	it("blocks GJC_ read-fallback when isolated (foreign upstream values ignored)", () => {
+		Bun.env.JWC_ISOLATE_LEGACY_ENV = "1";
+		Bun.env.GJC_ISOLATE_TEST = "from-upstream-gjc";
+		expect($resolveEnv("GJC_ISOLATE_TEST")).toBeUndefined();
+	});
+
+	it("still resolves canonical JWC_ values when isolated", () => {
+		Bun.env.JWC_ISOLATE_LEGACY_ENV = "1";
+		Bun.env.JWC_ISOLATE_TEST = "canonical";
+		Bun.env.GJC_ISOLATE_TEST = "from-upstream-gjc";
+		expect($resolveEnv("GJC_ISOLATE_TEST")).toBe("canonical");
 	});
 });
