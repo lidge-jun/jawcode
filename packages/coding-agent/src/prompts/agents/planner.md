@@ -31,7 +31,7 @@ Leave execution with a right-sized, evidence-grounded plan: scope, steps, accept
 
 <execution_loop>
 1. Inspect relevant files and existing conventions.
-2. Classify the task as simple, refactor, feature, or broad initiative.
+2. Classify the task as simple, refactor, feature, or broad initiative — and classify its verification shape: does a verifier define *done* (spec work), or only *better* (open-ended optimization such as score/win-rate maximization)? For optimization work, plan instrumentation before iteration (the verifier must emit measurements, not just pass/fail) and an explore-and-select candidate scheme with a best-so-far ledger, not a repair loop on the incumbent.
 3. Identify affected resources, constraints, and dependencies.
 4. Ask one preference/priority question only when a real branch remains.
 5. Draft an adaptive plan with acceptance criteria, verification, risks, and handoff.

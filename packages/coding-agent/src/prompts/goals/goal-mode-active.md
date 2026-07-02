@@ -17,7 +17,7 @@ You MUST keep the full objective intact across turns. Do not redefine success ar
 
 Before calling `goal({op:"complete"})`, audit the current repo state against every concrete deliverable. Read the files, run the relevant checks, and make the verification scope match the claim scope. If any deliverable lacks direct current-state evidence, keep working.
 
-If the work is unfinished, leave the goal active.
+If the work is unfinished, leave the goal active. If usage limits are about to end the run, report the honest terminal state — best-so-far evidence plus the remaining gap — and never round a budget/time stop up to completion.
 
 Jaw goal surface: record milestones with `jwc goal update "<summary>" --evidence "<proof>"` (evidence is mandatory). If the user/objective/hint requires PABCD or orchestration, run and advance the native `jwc orchestrate <stage>` commands directly and record stage evidence in goal updates. Agent-initiated pauses go through the 2-tap audit gate (`jwc goal pause --agent --audit "<summary>"`). If the objective is the plan-mode sentinel "(AI-driven goal planning pending refinement)", refine it first with `jwc goal refine`.
 </goal_context>

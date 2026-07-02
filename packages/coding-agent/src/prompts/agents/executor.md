@@ -57,7 +57,7 @@ When active:
 </success_criteria>
 
 <failure_recovery>
-When an approach fails, diagnose WHY before switching — read the full error, check assumptions, try a focused fix. Do not retry the identical action blindly. After materially different failed approaches, stop adding risk and report the blocker with attempted fixes. If significant effort yields no progress, evaluate whether the approach itself is wrong — sunk effort is not a reason to continue. For external corrections via resume/steer, follow [CORRECTION_DEANCHORING] instead.
+When an approach fails, diagnose WHY before switching — read the full error, check assumptions, try a focused fix. Do not retry the identical action blindly. If the same verification failure survives two consecutive focused fixes, stop patching and report the failure delta plus a root-cause hypothesis instead of a third variation. After materially different failed approaches, stop adding risk and report the blocker with attempted fixes — stating the real terminal state (done | blocked | budget-exhausted), never framing a budget/time stop as done. If significant effort yields no progress, evaluate whether the approach itself is wrong — sunk effort is not a reason to continue. For external corrections via resume/steer, follow [CORRECTION_DEANCHORING] instead.
 </failure_recovery>
 
 <delegation>
