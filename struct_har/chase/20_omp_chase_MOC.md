@@ -1,6 +1,6 @@
 # 20 — omp_chase_MOC (omp 따라잡기)
 
-> 상태: 🟡 운영 중
+> 상태: 🟡 운영 중 (2026-07-02 · worktree `5c375b1`)
 > **정본 디렉터리**: `struct_har/chase/20_*` · `20.NNN_*`
 > **의미**: `devlog/_omp_chase/oh-my-pi` 대비 jwc **약함(G2)** — 참조·설계 (`20.NNN`). **1:1 이식 ❌**
 
@@ -24,7 +24,7 @@
 
 | omp | jwc |
 |---|---|
-| `b6c9747d4` (`origin/main`, v16.2.9) | `cfe71cd` (worktree, 2026-07-01) |
+| `0ea6ea630` (`origin/main`, v16.2.9-433-g0ea6ea630) | `5c375b1` (worktree, 2026-07-02) |
 
 > GJC head is intentionally not repeated here; see [10_gjc_chase_MOC.md](./10_gjc_chase_MOC.md).
 
@@ -43,6 +43,7 @@
 | TUI 입력 micro | Esc draft clear + selector `resetDisplay` (`e914bf0`); double-esc history **revert** (`d055f64`); ast-edit status 공백 축약 (`3d646d8`) | **[20.006](./_fin/20/20.006_omp_chase_tui_input_micro_fixes.md)** ✅ _fin — Esc draft-clear+ast collapse 채택(jwc `a291199`), resetDisplay defer(`ui.resetDisplay()` 부재); collab/brew 비채택 |
 | OMP 15.12→15.13 | session split, auto-learn, STT/TTS, compaction UI | [20.008](./_fin/20/20.008_omp_chase_pull_15_13_delta.md) |
 | OMP v16.2.5→16.2.9 (175 commits, `ca9f2847e..b6c9747d4`) | 8 reference 클러스터: AI providers/catalog/service-tier, MCP oauth/reauth, compaction/snapcompact/session-scope, TUI loader/MCP-enable, prompts/subagent/discovery, web-search/provider, stats sync/perf, misc(dictation·binary·CJK font·yield·irc·windows) | [20.023](./20.023_omp_chase_ai_providers_catalog_service_tier.md)–[20.030](./20.030_omp_chase_misc_dictation_binary_font_yield_irc_win.md) reference-only (1:1 port ❌) — 미래 설계 입력 |
+| OMP v16.2.9→16.3.1 (433 commits, `b6c9747d4..0ea6ea630`) | 5 reference 클러스터: native/search pipeline, AI thinking/catalog/speech, session/patch/rewind integrity, TUI/collab/browser resilience, tool schema/task/TTS/stats | [20.031](./20.031_omp_chase_native_search_pipeline.md)–[20.035](./20.035_omp_chase_tool_schema_task_tts_stats.md) reference-only (1:1 port ❌) — 미래 설계 입력 |
 
 ## 활성 (`20.NNN`)
 
@@ -78,6 +79,11 @@
 | 028 | [20.028_omp_chase_web_search_provider_settings.md](./_fin/20/20.028_omp_chase_web_search_provider_settings.md) | web-search DuckDuckGo + provider settings | reference | ✅ **_fin** [20.028](./_fin/20/20.028_omp_chase_web_search_provider_settings.md) 260701 (IMPORT: DDG browser-aligned request + CLI provider settings; gemini api-key defer③) |
 | 029 | [20.029_omp_chase_stats_sync_worker_perf.md](./20.029_omp_chase_stats_sync_worker_perf.md) | stats sync worker + perf index | reference | ⬜ |
 | 030 | [20.030_omp_chase_misc_dictation_binary_font_yield_irc_win.md](./20.030_omp_chase_misc_dictation_binary_font_yield_irc_win.md) | misc dictation/binary/font/yield/irc/windows | reference | ⬜ |
+| 031 | [20.031_omp_chase_native_search_pipeline.md](./20.031_omp_chase_native_search_pipeline.md) | native traversal/search pipeline | reference | ⬜ |
+| 032 | [20.032_omp_chase_ai_thinking_catalog_speech.md](./20.032_omp_chase_ai_thinking_catalog_speech.md) | AI thinking/catalog + speech | reference | ⬜ |
+| 033 | [20.033_omp_chase_session_patch_rewind_integrity.md](./20.033_omp_chase_session_patch_rewind_integrity.md) | session/patch/rewind integrity | reference | ⬜ |
+| 034 | [20.034_omp_chase_tui_collab_browser_resilience.md](./20.034_omp_chase_tui_collab_browser_resilience.md) | TUI/collab/browser resilience | reference | ⬜ |
+| 035 | [20.035_omp_chase_tool_schema_task_tts_stats.md](./20.035_omp_chase_tool_schema_task_tts_stats.md) | tool schema/task/TTS/stats | reference | ⬜ |
 
 ## 완료
 

@@ -4,7 +4,7 @@
 > **pull 델타**: [devlog 01_pull_delta](../../devlog/_fin/260614_chase_upstream_pull_priority_report/01_pull_delta_gjc_omp.md)  
 > **명명 (필수)**: [008_gjc_jwc_naming_contract.md](./008_gjc_jwc_naming_contract.md) — `jwc` · **`python/jwc-rpc`** · `.jwc`  
 > **RPC 묶음 실현성**: [03_rpc_bundle_feasibility_jwc_rpc](../../devlog/_fin/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md)  
-> 업데이트: **2026-06-14** (executor v2 · chase refresh)
+> 업데이트: **2026-07-02** (chase clone pull refresh: GJC `79b42377`, OMP `0ea6ea630`)
 > **PABCD devlog**: [260614_chase_rpc_harness_bundle](../../devlog/_plan/260614_chase_rpc_harness_bundle/000_moc.md)
 
 ## 2026-06-27 세션 상태 (방향-결정 인터뷰 + 닫기 루프)
@@ -92,6 +92,17 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 
 > no-card (chore/docs): `af1e9c5d` version bump 0.7.8 · `b948e377` contributing guide (#1312) · `ebacf8d0` Discord invite (#1301). OMP 849-commit 백로그는 범위 밖 — 보류.
 
+### 10.066-069 v0.7.9/v0.7.10 델타 (2026-07-02, `20c299eb..79b42377` 54 commits)
+
+54커밋 = 4카드 + no-card docs/changelog/revert bucket. 권장 검토순: workflow state(067) → session/tmux resilience(068) → UX(066) → provider/search docs(069).
+
+| 순 | NNN | 문서 | P | 상태 |
+|---|-----|------|---|------|
+| X1 | 067 | [10.067 goal/plan skill-state refresh](./10.067_gjc_chase_goal_plan_skill_state_refresh.md) | P1 | ⬜ |
+| X2 | 068 | [10.068 tmux/Telegram/session resilience](./10.068_gjc_chase_tmux_telegram_session_resilience.md) | P2 | ⬜ |
+| X3 | 066 | [10.066 composer command/model selector UX](./10.066_gjc_chase_composer_command_model_selector_ux.md) | P2 | ⬜ |
+| X4 | 069 | [10.069 provider/search/docs/model support](./10.069_gjc_chase_provider_search_docs_model_support.md) | P2 | ⬜ |
+
 | 순 | NNN | 문서 | P | 상태 |
 |---|-----|------|---|------|
 | 9 | 011 | [10.011 receipt spool](./_fin/10/10.011_gjc_chase_receipt_spool.md) | P1 | ✅ _fin · receipt spool |
@@ -156,6 +167,18 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 | W8 | 030 | [20.030 misc dictation/binary/font/yield/irc/win](./20.030_omp_chase_misc_dictation_binary_font_yield_irc_win.md) | ref | ⬜ |
 
 > no-card: 38 merge · 12 style · 10 chore · 8 test · 1 revert (`d1e412eef`) · 1 keep (`6f8f76be4`) · version bumps `0ba736f5b`/`38250ce88`/`5bc68f57c`/`b6c9747d4`. behavior gap 없음.
+
+### 20.031-035 v16.3.1 델타 (2026-07-02, `b6c9747d4..0ea6ea630` 433 commits, reference-only)
+
+433커밋 = 5 reference 카드 + no-card docs/changelog/style/test/version buckets. OMP는 G2 약함 축이라 전부 설계 참조 — JWC 코드 무변경. 권장 검토순: session/data safety(033) → tool contract(035) → native/search(031) → AI provider(032) → UI/runtime(034).
+
+| 순 | NNN | 문서 | P | 상태 |
+|---|-----|------|---|------|
+| Z1 | 033 | [20.033 session/patch/rewind integrity](./20.033_omp_chase_session_patch_rewind_integrity.md) | ref | ⬜ |
+| Z2 | 035 | [20.035 tool schema/task/TTS/stats](./20.035_omp_chase_tool_schema_task_tts_stats.md) | ref | ⬜ |
+| Z3 | 031 | [20.031 native/search pipeline](./20.031_omp_chase_native_search_pipeline.md) | ref | ⬜ |
+| Z4 | 032 | [20.032 AI thinking/catalog/speech](./20.032_omp_chase_ai_thinking_catalog_speech.md) | ref | ⬜ |
+| Z5 | 034 | [20.034 TUI/collab/browser resilience](./20.034_omp_chase_tui_collab_browser_resilience.md) | ref | ⬜ |
 
 
 ## 완료 (_fin)

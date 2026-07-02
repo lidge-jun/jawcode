@@ -1,6 +1,6 @@
 # 10 — gjc_chase_MOC
 
-> 상태: 🟡 운영 중 (2026-07-01 · worktree `cfe71cd`)
+> 상태: 🟡 운영 중 (2026-07-02 · worktree `5c375b1`)
 > **정본 디렉터리**: `struct_har/chase/10_*` · `10.NNN_*`
 > **의미**: `devlog/_gjc_chase/gajae-code` 대비 jwc **뒤쳐짐(G1)** — **1갭 = 문서 1개** (`10.NNN`, `001`~)
 
@@ -26,7 +26,7 @@
 
 | gjc | jwc |
 |---|---|
-| `20c299eb` (`upstream/dev`, v0.7.8) | `cfe71cd` (worktree, 2026-07-01) |
+| `79b42377` (`upstream/dev`, v0.7.8-73-g79b42377) | `5c375b1` (worktree, 2026-07-02) |
 
 > OMP head is intentionally not repeated here; see [20_omp_chase_MOC.md](./20_omp_chase_MOC.md).
 
@@ -36,6 +36,7 @@
 |---|---|---|
 | 053 | local OpenAI-compatible provider (#1257,#1260-#1263), terminal bell (#1278), Windows npm shims (#1274), replay encrypted sanitization (#1208,#1214,#1218), harmony invoke-envelope leak (#1219), GPT-5.5 context cap (#1231) — 55 commits `a791d72a..fa995807` (v0.7.4→0.7.7) | ✅ split → 054-058 |
 | 059-065 | v0.7.8 delta `fa995807..20c299eb` (21 commits): deep-interview/ralplan/ultragoal ask gate + render guard (#1287,#1290,#1294), TUI render isolation + Ctrl+Enter + status-line (#1291,#1296,#1298,#1302), tmux/Windows psmux titles (#1303,#1306), DeepInfra provider + Gemini UA (#1284,#1314), natives platform split (#1300), Telegram daemon entrypoint + Windows bell (#1299), prompt self-awareness grounding | ⬜ → 059-065 (3 no-card chore/docs) |
+| 066-069 | v0.7.9/v0.7.10 delta `20c299eb..79b42377` (54 commits): composer command/model selector UX, goal/plan skill-state refresh, tmux/Telegram/session resilience, provider/search/docs/model support | ⬜ → 066-069 (docs/changelog/reverted Aside noted) |
 | 004 | pre-send `#checkEstimatedContextBeforePrompt()` before message packing; pruning/compaction at sanctioned maintenance boundary (`devlog/_gjc_chase/gajae-code/packages/coding-agent/src/session/agent-session.ts:4747-4756,6517-6533,6537-6558`) | ✅ **_fin** [10.004](./_fin/10/10.004_gjc_chase_session_compaction.md) |
 | 007 | `GJC_TMUX_LAUNCHED_ENV`-guarded `@gjc-profile` retag only for genuinely launched leaders (`team-runtime.ts:1646-1683`; changelog `:17-18`) | ownership invariant; rebrand-safe team gap |
 | 008 | RPC lifecycle stdio | ✅ **_fin** [10.008](./_fin/10/10.008_gjc_chase_rpc_lifecycle.md) |
@@ -103,6 +104,10 @@
 | 063 | [10.063_gjc_chase_natives_platform_split_packages.md](./10.063_gjc_chase_natives_platform_split_packages.md) | split @natives into per-platform packages (v0.7.8) | P3 | ⬜ |
 | 064 | [10.064_gjc_chase_telegram_daemon_entrypoint_notify.md](./_fin/10/10.064_gjc_chase_telegram_daemon_entrypoint_notify.md) | compiled Telegram daemon entrypoint · Windows Terminal bell (v0.7.8) | P2 | ✅ **_fin** 260701 (ADAPT: hidden daemon adapter + Windows bell docs) |
 | 065 | [10.065_gjc_chase_prompt_self_awareness_grounding.md](./_fin/10/10.065_gjc_chase_prompt_self_awareness_grounding.md) | system prompt self-awareness source grounding (v0.7.8) | P3 | ✅ **_fin** 260701 (ADAPT) |
+| 066 | [10.066_gjc_chase_composer_command_model_selector_ux.md](./10.066_gjc_chase_composer_command_model_selector_ux.md) | composer command/model selector UX (v0.7.9/0.7.10) | P2 | ⬜ |
+| 067 | [10.067_gjc_chase_goal_plan_skill_state_refresh.md](./10.067_gjc_chase_goal_plan_skill_state_refresh.md) | goal/plan skill-state refresh + role artifacts | P1 | ⬜ |
+| 068 | [10.068_gjc_chase_tmux_telegram_session_resilience.md](./10.068_gjc_chase_tmux_telegram_session_resilience.md) | tmux/Telegram/session resilience | P2 | ⬜ |
+| 069 | [10.069_gjc_chase_provider_search_docs_model_support.md](./10.069_gjc_chase_provider_search_docs_model_support.md) | provider/search/docs/model support | P2 | ⬜ |
 
 ## 완료
 
