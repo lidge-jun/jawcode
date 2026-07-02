@@ -284,7 +284,7 @@ export const SETTINGS_SCHEMA = {
 		ui: {
 			tab: "identity",
 			label: "Vibe",
-			description: "Tone and personality lines (separate with ; or newlines)",
+			description: "Free-form personality lines, distinct from the /tone preset (separate with ; or newlines)",
 		},
 	},
 	"identity.language": {
@@ -294,6 +294,25 @@ export const SETTINGS_SCHEMA = {
 			tab: "identity",
 			label: "Language",
 			description: "Preferred response language (e.g. Korean, English)",
+		},
+	},
+	"identity.tone": {
+		type: "enum",
+		values: ["sarcastic", "savage", "deadpan", "hype", "uhehe", "custom"] as const,
+		default: undefined, // precedent: tool.renderMode (enum + default undefined)
+		ui: {
+			tab: "identity",
+			label: "Tone",
+			description: "Persona tone preset rendered as ## Tone (set via /tone)",
+		},
+	},
+	"identity.toneCustom": {
+		type: "string",
+		default: undefined,
+		ui: {
+			tab: "identity",
+			label: "Custom Tone",
+			description: "Free-form tone text used when identity.tone = custom",
 		},
 	},
 
@@ -3086,15 +3105,19 @@ export type SettingValue<P extends SettingPath> = Schema[P] extends { type: "boo
 		? string | undefined
 		: Schema[P] extends { type: "number" }
 			? number
-			: Schema[P] extends { type: "enum"; values: infer V }
+			: Schema[P] extends { type: "enum"; values: infer V; default: undefined }
 				? V extends readonly string[]
-					? V[number]
+					? V[number] | undefined
 					: never
-				: Schema[P] extends { type: "array"; default: infer D }
-					? D
-					: Schema[P] extends { type: "record"; default: infer D }
+				: Schema[P] extends { type: "enum"; values: infer V }
+					? V extends readonly string[]
+						? V[number]
+						: never
+					: Schema[P] extends { type: "array"; default: infer D }
 						? D
-						: never;
+						: Schema[P] extends { type: "record"; default: infer D }
+							? D
+							: never;
 
 /** Get the default value for a setting path */
 export function getDefault<P extends SettingPath>(path: P): SettingValue<P> {

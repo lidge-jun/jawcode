@@ -45,6 +45,32 @@ function parseEffortArg(raw: string): ThinkingLevel | undefined {
 	return level === "inherit" ? undefined : level;
 }
 
+/** jwc fork (devlog 260702_tone_command): /tone dispatch vocabulary. */
+const TONE_PRESET_NAMES = ["sarcastic", "savage", "deadpan", "hype", "uhehe"] as const;
+type TonePresetName = (typeof TONE_PRESET_NAMES)[number];
+const TONE_COMMAND_OPTIONS = "sarcastic|savage|deadpan|hype|uhehe|custom|off|status";
+
+function isTonePreset(verb: string): verb is TonePresetName {
+	return (TONE_PRESET_NAMES as readonly string[]).includes(verb);
+}
+
+/**
+ * Shared instruction for the `/tone custom` no-args interview lane (both the
+ * text/ACP dispatcher and the TUI dispatcher reach this through `handle`).
+ */
+function buildToneCustomInstruction(): string {
+	const configPath = path.join(getAgentDir(), "config.yml");
+	return [
+		"Help me set a custom persona tone for the agent.",
+		"Ask me, in the language I have been using, to paste the tone text in one message (multi-line is fine; it will be preserved verbatim).",
+		"If I decline or paste nothing, save nothing and reply that the tone settings were not changed.",
+		`Otherwise persist it with: ${APP_NAME} config set identity.toneCustom "<text>" (keep newlines as given)`,
+		`then: ${APP_NAME} config set identity.tone custom`,
+		`(settings file: ${configPath})`,
+		"Finish with a one-line summary of what was saved, and note that the tone applies to new prompts.",
+	].join("\n");
+}
+
 import { buildContextReportText } from "./helpers/context-report";
 import { formatDuration } from "./helpers/format";
 import { handleMcpAcp } from "./helpers/mcp";
@@ -578,8 +604,15 @@ const BUILTIN_SLASH_COMMAND_REGISTRY: ReadonlyArray<SlashCommandSpec> = [
 		description: "Show agent identity settings and where to configure them",
 		handle: async (_command, runtime) => {
 			const configPath = path.join(getAgentDir(), "config.yml");
-			const value = (key: "identity.name" | "identity.emoji" | "identity.vibe" | "identity.language") =>
-				runtime.settings.get(key) ?? "(unset)";
+			const value = (
+				key:
+					| "identity.name"
+					| "identity.emoji"
+					| "identity.vibe"
+					| "identity.language"
+					| "identity.tone"
+					| "identity.toneCustom",
+			) => runtime.settings.get(key) ?? "(unset)";
 			await runtime.output(
 				[
 					"Identity settings (rendered into the system prompt identity block when set):",
@@ -587,6 +620,8 @@ const BUILTIN_SLASH_COMMAND_REGISTRY: ReadonlyArray<SlashCommandSpec> = [
 					`  identity.emoji    = ${value("identity.emoji")}`,
 					`  identity.vibe     = ${value("identity.vibe")}`,
 					`  identity.language = ${value("identity.language")}`,
+					`  identity.tone     = ${value("identity.tone")}`,
+					`  identity.toneCustom = ${value("identity.toneCustom")}`,
 					"",
 					"Configure via:",
 					"  /settings → Identity tab",
@@ -973,6 +1008,67 @@ const BUILTIN_SLASH_COMMAND_REGISTRY: ReadonlyArray<SlashCommandSpec> = [
 			refreshStatusLine(runtime.ctx);
 			runtime.ctx.showStatus(`Reasoning effort set to ${runtime.ctx.session.thinkingLevel ?? "off"}.`);
 			runtime.ctx.editor.setText("");
+		},
+	},
+	{
+		// jwc fork (devlog 260702_tone_command): persona tone presets + custom lane.
+		// handle-only by design — the TUI dispatcher delegates through
+		// adaptTuiSlashRuntime, so status/output routes via showStatus.
+		name: "tone",
+		description: "Set persona tone preset for the system prompt (identity.tone)",
+		acpDescription: "Set persona tone preset",
+		acpInputHint: "[sarcastic|savage|deadpan|hype|uhehe|custom|off|status]",
+		subcommands: [
+			{ name: "sarcastic", description: "빈정거리지만 정확 — dry sarcasm" },
+			{ name: "savage", description: "매운맛 — profanity allowed, brutal honesty" },
+			{ name: "deadpan", description: "건조 극단 — facts only, zero flair" },
+			{ name: "hype", description: "텐션 최대 — maximum enthusiasm" },
+			{ name: "uhehe", description: "어흐흐 — 변태적 미소녀 톤" },
+			{ name: "custom", description: "Paste your own tone text", usage: "[text]" },
+			{ name: "off", description: "Clear tone preset" },
+			{ name: "status", description: "Show current tone" },
+		],
+		allowArgs: true,
+		handle: async (command, runtime) => {
+			// First token only is normalized for dispatch; the remainder stays
+			// verbatim (case/newlines preserved) for `custom` text.
+			const args = command.args.trim();
+			const firstToken = args.match(/^\S+/)?.[0] ?? "";
+			const verb = firstToken.toLowerCase();
+			const rest = args.slice(firstToken.length).trim();
+			if (!verb || verb === "status") {
+				const tone = runtime.settings.get("identity.tone");
+				const custom = runtime.settings.get("identity.toneCustom");
+				const detail =
+					tone === "custom" ? (custom ? " (custom text set)" : " (no custom text — run /tone custom <text>)") : "";
+				await runtime.output(`Tone: ${tone ?? "(unset)"}${detail}. Options: ${TONE_COMMAND_OPTIONS}.`);
+				return commandConsumed();
+			}
+			if (verb === "off") {
+				runtime.settings.set("identity.tone", undefined);
+				await runtime.notifyConfigChanged?.();
+				await runtime.output("Tone preset cleared (custom text kept for reuse). Applies to new prompts.");
+				return commandConsumed();
+			}
+			if (verb === "custom") {
+				if (!rest) {
+					await runtime.session.prompt(buildToneCustomInstruction());
+					return commandConsumed();
+				}
+				runtime.settings.set("identity.toneCustom", rest);
+				runtime.settings.set("identity.tone", "custom");
+				await runtime.notifyConfigChanged?.();
+				await runtime.output("Tone set to custom. Applies to new prompts.");
+				return commandConsumed();
+			}
+			if (isTonePreset(verb)) {
+				runtime.settings.set("identity.tone", verb);
+				await runtime.notifyConfigChanged?.();
+				await runtime.output(`Tone set to ${verb}. Applies to new prompts.`);
+				return commandConsumed();
+			}
+			await runtime.output(`Unknown tone "${firstToken}". Options: ${TONE_COMMAND_OPTIONS}.`);
+			return commandConsumed();
 		},
 	},
 	{

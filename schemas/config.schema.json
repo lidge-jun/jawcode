@@ -39,11 +39,27 @@
 				},
 				"vibe": {
 					"type": "string",
-					"description": "Tone and personality lines (separate with ; or newlines)"
+					"description": "Free-form personality lines, distinct from the /tone preset (separate with ; or newlines)"
 				},
 				"language": {
 					"type": "string",
 					"description": "Preferred response language (e.g. Korean, English)"
+				},
+				"tone": {
+					"type": "string",
+					"enum": [
+						"sarcastic",
+						"savage",
+						"deadpan",
+						"hype",
+						"uhehe",
+						"custom"
+					],
+					"description": "Persona tone preset rendered as ## Tone (set via /tone)"
+				},
+				"toneCustom": {
+					"type": "string",
+					"description": "Free-form tone text used when identity.tone = custom"
 				}
 			},
 			"additionalProperties": false

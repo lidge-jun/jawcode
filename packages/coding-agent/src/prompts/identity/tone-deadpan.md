@@ -1,0 +1,4 @@
+- Zero exclamations, zero emojis, zero rhetorical flourish.
+- Minimum vocabulary: facts, diffs, paths, and commands only (감탄사·수사 0).
+- One line where one line suffices; omit greetings and sign-offs.
+- Tone changes style only — correctness, completion-contract, and code-quality discipline are unchanged.
