@@ -11,7 +11,14 @@ import { expandEmoticons } from "../../modes/emoji-autocomplete";
 import { createPromptActionAutocompleteProvider } from "../../modes/prompt-action-autocomplete";
 import { theme } from "../../modes/theme/theme";
 import type { InteractiveModeContext } from "../../modes/types";
-import { commitFinalizedBacklog, isLiveToggleEligible } from "../../modes/utils/ui-helpers";
+import {
+	canMarkEntireBacklog,
+	commitFinalizedBacklog,
+	commitLaneEnabled,
+	isLiveToggleEligible,
+	markPreambleCommitted,
+	measureComposerClusterRows,
+} from "../../modes/utils/ui-helpers";
 import type { AgentSessionEvent } from "../../session/agent-session";
 import { SKILL_PROMPT_MESSAGE_TYPE, type SkillPromptDetails } from "../../session/messages";
 import { executeBuiltinSlashCommand } from "../../slash-commands/builtin-registry";
@@ -492,7 +499,28 @@ export class InputController {
 				// 083.9 P4: turn boundary — the finished turn's components freeze
 				// their pixels into the scrollback now (they stayed interactive
 				// until this moment), then the gap compacts.
-				commitFinalizedBacklog(this.ctx);
+				// 260702 F3: while overflowed the commit lane is dead (fill=0), so
+				// first scroll the visible transcript tail into the scrollback
+				// once and reset the floor; the sweep then marks the cells
+				// committed WITHOUT a second write (as-streamed pixels are the
+				// history). Opted-out lanes (JWC_COMMIT_LANE=0) never realign,
+				// and a backlog the sweep cannot fully mark (background tool
+				// still pending across the turn boundary) must not either — its
+				// scrolled-out rows would be redrawn by the rebuild and
+				// duplicate (gpt-5.5 final-review blocker).
+				const realigned =
+					commitLaneEnabled() &&
+					canMarkEntireBacklog(this.ctx) &&
+					(this.ctx.ui.realignOverflowedFrame?.(measureComposerClusterRows(this.ctx)) ?? false);
+				// The preamble (welcome banner etc.) sits above chatContainer, so
+				// the mark-only sweep can't reach it — without this the rebuild
+				// repaints it and history grows a banner copy per turn boundary.
+				if (realigned) markPreambleCommitted(this.ctx);
+				commitFinalizedBacklog(this.ctx, { markOnly: realigned });
+				// 260630: a still-expanded current turn ends here — unfreeze the
+				// overflow floor so the next turn's growth scrolls into the
+				// scrollback normally (leaving it frozen would pause history).
+				this.ctx.ui.setOverflowFloorFrozen?.(false);
 				// 083.8 S2: collapse any post-overflow gap left by the previous turn
 				// HERE — the screen is about to change anyway (new user message), so
 				// the full rebuild is invisible. Doing this at agent_end made the
@@ -1291,6 +1319,12 @@ export class InputController {
 
 	setToolsExpanded(expanded: boolean): void {
 		this.ctx.toolOutputExpanded = expanded;
+		// 260630: the current-turn expansion is transient — freeze the renderer's
+		// overflow floor so the expanded rows never physically scroll into the
+		// terminal scrollback. Collapsing then restores the pre-expansion screen
+		// exactly instead of leaving a blank hole the size of the expansion.
+		// (Optional call: UI test fixtures stub ctx.ui with a partial mock.)
+		this.ctx.ui.setOverflowFloorFrozen?.(expanded);
 		const activeTools = new Set<unknown>(this.ctx.pendingTools.values());
 		const liveTools = new Set<unknown>(this.ctx.liveToolContainer.children);
 		for (const child of this.#currentTurnToggleTargets()) {

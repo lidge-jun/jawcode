@@ -1292,18 +1292,102 @@ export class TUI extends Container {
 		);
 	}
 
-	/** Frame-length floor while the pinned frame overflows the viewport (083.7 §9). */
-	#viewportFillFloor = 0;
-	/** Blank rows currently held by the floor between content and composer (083.7 §10). */
-	#viewportFillGap = 0;
+	/**
+	 * Physical frame length while the frame overflows the viewport (260630).
+	 * The terminal cannot un-scroll: once an N-row frame was painted, rows may
+	 * already live in the scrollback, so the frame must stay N rows long until
+	 * a deliberate clearing full render realigns screen and frame. Shrinks are
+	 * absorbed by #restoreOverflowFloor tombstones instead of shifting rows.
+	 */
+	#overflowFloor = 0;
+	/**
+	 * Raw (post-fill, pre-composite, pre-prepare) lines of the last frame.
+	 * #restoreOverflowFloor scans these to anchor shrink tombstones at the
+	 * exact first changed row; survives forced renders so the floor invariant
+	 * holds across requestRender(true).
+	 */
+	#previousRawLines: string[] = [];
+	/** Tombstone rows inserted by the last #restoreOverflowFloor pass. */
+	#lastTombstoneRows = 0;
+	/** Whether the current frame carries a ViewportFill sentinel (pin model). */
+	#fillSentinelPresent = false;
+	/**
+	 * While true (transient in-frame expansion, e.g. ctrl+o), growth must not
+	 * physically scroll the terminal: the grown rows are painted via viewport
+	 * repaint only and the overflow floor stays frozen, so collapsing back
+	 * restores the pre-expansion screen exactly instead of leaving a blank
+	 * residue the height of the expansion (260630 ctrl+o hole follow-up).
+	 */
+	#overflowFloorFrozen = false;
 
 	/**
-	 * Collapse the post-overflow gap the viewport-fill floor accumulated
-	 * (083.7 §10): resets the floor and forces a full repaint, so the
-	 * transcript tail hugs the composer again. The full repaint re-emits the
-	 * entire frame, so terminal scrollback is rebuilt consistently. Call at
-	 * quiet points (turn end) — no-op when there is no gap.
+	 * Mark the current in-frame expansion as transient (see
+	 * #overflowFloorFrozen). Callers freeze before rendering the expansion and
+	 * unfreeze when it collapses or the turn ends; leaving it frozen only
+	 * degrades to viewport-repaint growth (no duplication, scrollback pauses).
 	 */
+	setOverflowFloorFrozen(frozen: boolean): void {
+		this.#overflowFloorFrozen = frozen;
+	}
+
+	/**
+	 * 260702 F3 — turn-boundary scroll-out realign. While the frame overflows,
+	 * the visible transcript tail exists only on screen; preserving it as
+	 * history means physically scrolling it into the scrollback ONCE via a
+	 * bottom-anchored newline scroll (default full-screen scroll region keeps
+	 * top = row 1, so pushed rows enter real scrollback — a top > 1 region
+	 * would DISCARD them, see insert-history.ts). The composer cluster
+	 * (`liveClusterRows` at the frame end) is NOT scrolled out — no composer
+	 * pixels pollute history. Afterwards the floor is reset and a forced
+	 * rebuild is scheduled: the caller's mark-only sweep shrinks the frame to
+	 * fit, so the rebuild repaints a clean pinned screen (2J-only — the
+	 * scroll-out makes the scrollback canonical, 3J stays forbidden).
+	 *
+	 * Returns false (pure no-op) unless every physical precondition holds.
+	 * The caller additionally gates on commitLaneEnabled() so opted-out
+	 * sessions stay byte-identical.
+	 */
+	realignOverflowedFrame(liveClusterRows: number): boolean {
+		if (this.#stopped || !this.terminalAvailable) return false;
+		if (!this.#fillSentinelPresent) return false;
+		if (this.#historyLane !== "standard") return false;
+		if (this.overlayStack.length > 0) return false;
+		const height = this.terminal.rows;
+		// Overflowing means EITHER a materialized floor beyond the viewport OR
+		// a quarantined logical frame (floor reset by a previous realign whose
+		// forced rebuild immediately re-overflowed and was downgraded to a
+		// viewport repaint — #hasCommittedHistory forbids the 2J replay). The
+		// quarantined case must stay realignable or the commit lane would be
+		// permanently dead again (B-verify finding 1): the scroll-out preserves
+		// the visible tail; rows that never materialized during the quarantine
+		// window are the documented history-gap tradeoff.
+		if (Math.max(this.#overflowFloor, this.#maxLinesRendered) <= height) return false;
+		// A negative/NaN cluster measurement means the caller could not locate
+		// the composer cluster — scrolling blind would push composer pixels
+		// into history, so refuse.
+		if (!Number.isFinite(liveClusterRows) || liveClusterRows < 0) return false;
+		const scrollRows = height - liveClusterRows;
+		if (scrollRows <= 0) return false;
+		let buffer = "\x1b[?2026h";
+		buffer += `\x1b[${height};1H`;
+		buffer += "\r\n".repeat(scrollRows);
+		buffer += "\x1b[?2026l";
+		if (!this.#writeTerminal(buffer)) return false;
+		// The scrolled-out rows are canonical history now — 3J must never wipe
+		// them, even in sessions that had no insert-history commits yet.
+		this.#hasCommittedHistory = true;
+		this.#committedScreenRows = 0;
+		this.#overflowFloor = 0;
+		this.#previousRawLines = [];
+		this.#lastTombstoneRows = 0;
+		this.#maxLinesRendered = 0;
+		this.#viewportTopRow = 0;
+		this.#hardwareCursorRow = 0;
+		this.#cursorRow = 0;
+		this.requestRender(true, "realign overflowed frame");
+		return true;
+	}
+
 	/**
 	 * Scroll the history region (screen rows 1..regionBottom, 1-based) up by
 	 * `count` rows: its top rows enter the scrollback and `count` blank rows
@@ -1360,9 +1444,15 @@ export class TUI extends Container {
 	}
 
 	compactViewportFill(): void {
-		if (this.#viewportFillGap === 0) return;
-		this.#viewportFillFloor = 0;
-		this.#viewportFillGap = 0;
+		// 260630: the post-overflow top gap no longer exists — shrink residue is
+		// kept as in-place tombstone rows (#restoreOverflowFloor) that later
+		// growth consumes, because inserting the gap at the frame top shifted
+		// every row below over pixels already in the scrollback and duplicated
+		// the viewport-top rows. The forced render remains as the compact pass:
+		// while 3J is still allowed it rebuilds the buffer without tombstones,
+		// and fullRender downgrades it to a viewport repaint whenever a
+		// clearing replay could duplicate the scrollback.
+		if (this.#lastTombstoneRows === 0) return;
 		this.requestRender(true, "viewportFill compact");
 	}
 
@@ -1374,8 +1464,8 @@ export class TUI extends Container {
 	 */
 	#expandViewportFill(lines: string[], height: number): string[] {
 		const first = lines.indexOf(VIEWPORT_FILL_SENTINEL);
+		this.#fillSentinelPresent = first !== -1;
 		if (first === -1) {
-			this.#viewportFillFloor = 0;
 			this.#lastFillRows = 0;
 			return lines;
 		}
@@ -1384,35 +1474,106 @@ export class TUI extends Container {
 		for (const line of lines) {
 			if (line !== VIEWPORT_FILL_SENTINEL) result.push(line);
 		}
-		// While content overflows the viewport (083.7 §9/§12): scrolled-out rows
-		// cannot be reclaimed, so a shrink (autocomplete close, collapse) grows
-		// the gap to keep the frame length — the composer stays on the floor.
-		// The gap is STICKY upward only: it must not shrink back on growth,
-		// because consuming top blanks shifts every row below and turns each
-		// streaming append into a full redraw (3J storm — 260613 00:36 진단).
-		// Growth extends the frame at the end instead (append-only diff); the
-		// gap is cleared by compactViewportFill() at quiet points, or naturally
-		// when content fits the viewport again (full-redraw reset).
+		// While content overflows the viewport, no top fill is emitted (260630).
+		// The old policy grew a sticky top gap on shrink to preserve the frame
+		// length; that shifted every content row DOWN over pixels already in
+		// the terminal scrollback, so the viewport repaint duplicated the last
+		// scrolled-out rows at the viewport top (scroll-seam-duplication repro).
+		// Post-overflow shrinks are now absorbed by #restoreOverflowFloor with
+		// in-place tombstone rows at the first changed row instead.
 		const overflowed = result.length > height;
-		let fill: number;
-		if (overflowed) {
-			this.#viewportFillGap = Math.max(this.#viewportFillGap, this.#viewportFillFloor - result.length, 0);
-			fill = this.#viewportFillGap;
-		} else {
-			fill = Math.max(0, height - result.length);
-			this.#viewportFillGap = 0;
-		}
+		const fill = overflowed ? 0 : Math.max(0, height - result.length);
 		if (fill > 0) {
 			const blanks = new Array<string>(fill).fill("");
 			result.splice(first, 0, ...blanks);
 		}
 		// 083.9 P2: the fill region doubles as the history region — record its
 		// painted height so commitLines/growth scroll-out know the region bottom.
+		// While overflowed the fill rows would sit ABOVE the viewport, not at the
+		// screen top, so the commit lane must stay disabled (fill = 0).
 		this.#lastFillRows = first === 0 ? fill : 0;
-		// Track the final frame length (shrink detection baseline).
-		this.#viewportFillFloor = result.length > height ? result.length : 0;
 		if (renderMetrics.enabled) renderMetrics.recordHelper("viewportFill", renderMetrics.now() - expandStart);
 		return result;
+	}
+
+	/**
+	 * Enforce the overflow frame-length floor (260630 seam fix). While the
+	 * frame overflows the viewport, its head rows physically live in the
+	 * terminal scrollback and cannot be reclaimed; a net shrink therefore must
+	 * not move any surviving row. The removed rows are replaced by tombstones
+	 * at the first changed row: rows above the old viewport top keep their
+	 * previously painted bytes (frozen pixels), visible rows become blank.
+	 * The prefix keeps its absolute indices, the suffix realigns to its
+	 * previous rows, and subsequent growth consumes the tombstones in place
+	 * before the frame extends again.
+	 */
+	#restoreOverflowFloor(lines: string[], width: number, height: number): string[] {
+		// The floor invariant belongs to the composer-pin model. Legacy frames
+		// (no ViewportFill sentinel) keep their original shrink behavior
+		// byte-identically (clearOnShrink full rebuild).
+		if (!this.#fillSentinelPresent) {
+			this.#overflowFloor = 0;
+			this.#lastTombstoneRows = 0;
+			return lines;
+		}
+		const realResize =
+			(this.#previousWidth > 0 && this.#previousWidth !== width) ||
+			(this.#previousHeight > 0 && this.#previousHeight !== height);
+		// A forced rebuild (requestRender(true) marks dimensions -1) that is
+		// still allowed to clear the scrollback (3J) realigns screen and frame
+		// from scratch — the compact path. Once the scrollback is canonical
+		// (committed history) or user-navigated (multiplexer) the rebuild is
+		// downgraded to a viewport repaint, so the floor must survive.
+		const forcedRebuild = this.#previousWidth === -1;
+		const canClearScrollback = !isMultiplexerSession() && !this.#hasCommittedHistory;
+		if (realResize || (forcedRebuild && canClearScrollback)) {
+			// Re-wrap / full clear invalidates row identity; the clearing full
+			// render that follows realigns screen and frame, so the floor restarts.
+			this.#overflowFloor = 0;
+			this.#previousRawLines = [];
+			this.#lastTombstoneRows = 0;
+		} else if (this.#overflowFloor > height && lines.length < this.#overflowFloor) {
+			const prev = this.#previousRawLines;
+			const missing = this.#overflowFloor - lines.length;
+			let firstChanged = 0;
+			const scanEnd = Math.min(lines.length, prev.length);
+			while (firstChanged < scanEnd && lines[firstChanged] === prev[firstChanged]) firstChanged++;
+			// 260702: freeze only rows PHYSICALLY in the scrollback. The logical
+			// #viewportTopRow can exceed the physical seam after repaint-only
+			// growth (quarantine state); frozen pixels below the real seam would
+			// resurface stale transcript rows inside the visible viewport.
+			const physicalSeam = Math.max(0, this.#overflowFloor - height);
+			const freezeEnd = Math.min(physicalSeam, prev.length);
+			const tombstones = new Array<string>(missing);
+			for (let i = 0; i < missing; i++) {
+				const row = firstChanged + i;
+				tombstones[i] = row < freezeEnd ? prev[row] : "";
+			}
+			lines.splice(firstChanged, 0, ...tombstones);
+			this.#lastTombstoneRows = missing;
+			// Fixed-C recurrence guard (260702): raw content that fits again can
+			// have re-inserted top fill (#expandViewportFill ran first), but the
+			// padded frame still overflows the viewport — that fill is NOT a
+			// screen-top history region, so the commit lane must stay on its
+			// fallback until the floor is genuinely reset.
+			this.#lastFillRows = 0;
+		} else {
+			this.#lastTombstoneRows = 0;
+		}
+		// The floor is NOT raised here: it tracks the physically materialized
+		// frame length, so it only advances in paths that actually scroll or
+		// fully print the frame (diff append, append-growth, real fullRender).
+		// Growth painted via viewportRepaint (unknown viewport, frozen floor)
+		// leaves the floor behind on purpose — those rows never entered the
+		// scrollback, so a later shrink may repaint over them freely.
+		return lines;
+	}
+
+	/** Raise the physical floor after a path that scrolled/printed the frame. */
+	#raiseOverflowFloor(frameLength: number, height: number): void {
+		if (frameLength > height) {
+			this.#overflowFloor = Math.max(this.#overflowFloor, frameLength);
+		}
 	}
 
 	#doRender(): void {
@@ -1443,6 +1604,17 @@ export class TUI extends Container {
 		// legacy path stays byte-identical.
 		const prevFillRows = this.#lastFillRows;
 		newLines = this.#expandViewportFill(newLines, height);
+
+		// 260630 seam fix: while overflowed, absorb net shrinks with in-place
+		// tombstones so no row shifts over pixels already in the scrollback.
+		// Must run before overlay compositing (overlays anchor on the final
+		// frame) and the raw copy must be taken before cursor extraction and
+		// line preparation mutate the array. Updating the raw snapshot before
+		// the terminal write is safe because a failed write marks the terminal
+		// unavailable and stops rendering permanently — a stale snapshot can
+		// never be consumed by a later frame (codex audit 260630 발견 1).
+		newLines = this.#restoreOverflowFloor(newLines, width, height);
+		this.#previousRawLines = [...newLines];
 
 		// Composite overlays into the rendered lines (before differential compare)
 		if (this.overlayStack.length > 0) {
@@ -1478,6 +1650,20 @@ export class TUI extends Container {
 		// Width/height changes need full re-render handling below.
 		// Helper to clear scrollback and viewport and render all new lines
 		const fullRender = (clear: boolean, reason = "full render"): void => {
+			// 260630: once 3J is forbidden (committed history is canonical, or a
+			// multiplexer owns the scrollback), a clearing replay of an
+			// overflowing frame pushes a duplicate copy of every above-viewport
+			// row into the scrollback. Repaint the visible viewport instead;
+			// above-viewport pixels stay as immutable history.
+			if (
+				clear &&
+				newLines.length > height &&
+				!useLegacyMultiplexerFullRender() &&
+				(isMultiplexerSession() || this.#hasCommittedHistory)
+			) {
+				viewportRepaint(`${reason} (scrollback-safe downgrade)`);
+				return;
+			}
 			// 083.9 P2: a clearing render would erase committed pixels that have
 			// not scrolled into the scrollback yet — push the whole history
 			// region out first (the bottom committed row needs regionBottom
@@ -1512,6 +1698,9 @@ export class TUI extends Container {
 			} else {
 				this.#maxLinesRendered = Math.max(this.#maxLinesRendered, newLines.length);
 			}
+			// A full render realigns physical screen and frame — the overflow
+			// floor restarts from this frame's length (260630).
+			this.#overflowFloor = newLines.length > height ? newLines.length : 0;
 			this.#viewportTopRow = Math.max(0, this.#maxLinesRendered - height);
 			this.#previousLines = newLines;
 			this.#previousWidth = width;
@@ -1613,6 +1802,7 @@ export class TUI extends Container {
 			this.#previousLines = newLines;
 			this.#previousWidth = width;
 			this.#previousHeight = height;
+			this.#raiseOverflowFloor(newLines.length, height);
 		};
 
 		const debugRedraw = $flag("PI_DEBUG_REDRAW");
@@ -1650,6 +1840,26 @@ export class TUI extends Container {
 				fullRender(true, "terminal height changed");
 				return;
 			}
+		}
+
+		// 260702 misaligned-viewport quarantine: #maxLinesRendered beyond
+		// Math.max(#overflowFloor, height) means rows were painted via viewport
+		// repaint only and never physically materialized — the logical frame is
+		// longer than the terminal's real scroll history. Any relative diff
+		// would map frame rows onto wrong physical rows (confirmed drift: the
+		// frame tail painted at the viewport top, composer mid-screen, stale
+		// bands — scroll-misalignment.test.ts). Every render stays on the
+		// absolute viewport repaint until a frame realigns: a shrink back to
+		// the floor (tombstone-padded to exactly #overflowFloor) or a fitting
+		// frame lets viewportRepaint record #maxLinesRendered = length again.
+		// Evaluated on the POST-overlay frame (overlays can extend the frame);
+		// resize branches above keep their own reset semantics. Legacy frames
+		// (no ViewportFill sentinel) never enter this state.
+		if (this.#fillSentinelPresent && this.#maxLinesRendered > Math.max(this.#overflowFloor, height)) {
+			viewportRepaint(
+				`misaligned viewport quarantine (max=${this.#maxLinesRendered} > floor=${this.#overflowFloor})`,
+			);
+			return;
 		}
 
 		// Content shrunk below the previous render and no overlays - re-render to clear empty rows
@@ -1760,7 +1970,15 @@ export class TUI extends Container {
 			const viewportAtBottom = this.terminal.isViewportAtBottom?.();
 			if (useLegacyMultiplexerFullRender()) {
 				fullRender(true, "firstChanged < viewportTop");
-			} else if (grew && !isMultiplexerSession() && viewportAtBottom === true) {
+			} else if (
+				grew &&
+				!isMultiplexerSession() &&
+				viewportAtBottom === true &&
+				// The floor freeze belongs to the composer-pin model — legacy
+				// no-sentinel frames must stay byte-identical even when a caller
+				// set the flag (260702 gpt-5.5 review finding).
+				!(this.#overflowFloorFrozen && this.#fillSentinelPresent)
+			) {
 				appendGrowthAndRepaintViewport(`firstChanged < viewportTop (${firstChanged} < ${prevViewportTop})`);
 			} else {
 				viewportRepaint(`firstChanged < viewportTop (${firstChanged} < ${prevViewportTop})`);
@@ -1772,6 +1990,23 @@ export class TUI extends Container {
 		// Build buffer with all updates wrapped in synchronized output
 		let buffer = "\x1b[?2026h"; // Begin synchronized output
 		const prevViewportBottom = prevViewportTop + height - 1;
+		// 260630 ctrl+o follow-up: a transient expansion must not scroll the
+		// terminal — pushed rows can never be un-scrolled, leaving a blank
+		// residue the size of the expansion after collapse. Any differential
+		// render that would walk the cursor past the current screen bottom
+		// (explicit scroll or the paint loop itself) repaints the viewport in
+		// place instead; the floor stays frozen so collapsing restores the
+		// pre-expansion screen exactly.
+		if (
+			this.#overflowFloorFrozen &&
+			// Pin-model only — legacy no-sentinel frames ignore the freeze so
+			// their write stream stays byte-identical (260702 gpt-5.5 review).
+			this.#fillSentinelPresent &&
+			Math.min(lastChanged, newLines.length - 1) > prevViewportBottom
+		) {
+			viewportRepaint(`growth while floor frozen (${lastChanged} > ${prevViewportBottom})`);
+			return;
+		}
 		const moveTargetRow = appendStart ? firstChanged - 1 : firstChanged;
 		if (moveTargetRow > prevViewportBottom) {
 			const currentScreenRow = Math.max(0, Math.min(height - 1, hardwareCursorRow - prevViewportTop));
@@ -1873,6 +2108,10 @@ export class TUI extends Container {
 		this.#previousLines = newLines;
 		this.#previousWidth = width;
 		this.#previousHeight = height;
+		// The differential path walks the cursor through every appended row, so
+		// any growth beyond the previous bottom physically scrolled — the frame
+		// is materialized to its full length.
+		this.#raiseOverflowFloor(newLines.length, height);
 	}
 
 	/**

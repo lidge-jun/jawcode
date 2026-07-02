@@ -1,6 +1,6 @@
 import type { AgentMessage } from "@jawcode-dev/agent-core";
 import type { AssistantMessage, ImageContent, Message } from "@jawcode-dev/ai";
-import { type Component, Spacer, Text, TruncatedText } from "@jawcode-dev/tui";
+import { type Component, Spacer, Text, TruncatedText, ViewportFill } from "@jawcode-dev/tui";
 import { APP_NAME } from "@jawcode-dev/utils";
 import { settings } from "../../config/settings";
 import { AssistantMessageComponent } from "../../modes/components/assistant-message";
@@ -94,20 +94,102 @@ function hasCommittedRenderer(component: unknown): component is CommittedRendera
  * the first non-committable child (streaming component, pending tool awaiting
  * a result, or a commitLines fallback).
  */
-export function commitFinalizedBacklog(ctx: InteractiveModeContext): void {
+/**
+ * The contiguous-prefix stopper set shared by the sweep and the realign gate
+ * (they MUST stay identical — gpt-5.5 review rounds 1/3): the streaming
+ * component, a pending agent tool, or any component that declares itself not
+ * yet committable (`isBacklogCommittable()` — user `!`/`$` bash/eval
+ * executions still running across a turn boundary; committing them freezes
+ * their pixels and their later result updates could never render).
+ */
+function stopsBacklogSweep(ctx: InteractiveModeContext, pending: Set<unknown>, child: unknown): boolean {
+	if (child === ctx.streamingComponent || pending.has(child)) return true;
+	const committable = (child as { isBacklogCommittable?: () => boolean }).isBacklogCommittable;
+	return typeof committable === "function" && committable.call(child) === false;
+}
+
+export function commitFinalizedBacklog(ctx: InteractiveModeContext, options?: { markOnly?: boolean }): void {
 	// The typeof guard doubles as a harness escape hatch: partial UI fixtures
 	// (and any non-TUI surface) simply stay on the virtual lane.
 	if (!commitLaneEnabled() || typeof ctx.ui.commitLines !== "function") return;
+	// 260702 F3: after a successful scroll-out realign the finalized cells'
+	// pixels are already in the physical scrollback (as-streamed) — mark them
+	// committed WITHOUT a second insert-history write, or the content would
+	// appear twice in history.
+	const markOnly = options?.markOnly === true;
 	const width = Math.max(1, ctx.ui.terminal?.columns ?? 80);
-	const pending = new Set(ctx.pendingTools.values());
+	const pending = new Set<unknown>(ctx.pendingTools.values());
 	for (const child of ctx.chatContainer.children) {
 		if (child.committed) continue;
-		if (child === ctx.streamingComponent || pending.has(child as never)) return;
-		const lines = hasCommittedRenderer(child) ? child.renderCommitted(width) : child.render(width);
-		if (lines.length > 0 && !ctx.ui.commitLines(lines)) return;
+		if (stopsBacklogSweep(ctx, pending, child)) return;
+		if (!markOnly) {
+			const lines = hasCommittedRenderer(child) ? child.renderCommitted(width) : child.render(width);
+			if (lines.length > 0 && !ctx.ui.commitLines(lines)) return;
+		}
 		child.committed = true;
 		markLiveToggleEligible(child, false);
 	}
+}
+
+/**
+ * 260702 F3 (gpt-5.5 review blocker) — the scroll-out realign is only safe
+ * when the sweep that follows can mark the ENTIRE backlog: a still-pending
+ * component (background/detached tool parked in chatContainer between turns)
+ * or the streaming component stops the contiguous-prefix sweep, and its rows
+ * — already pushed into the scrollback by the scroll-out — would be redrawn
+ * by the forced rebuild, duplicating content across scrollback and frame.
+ */
+export function canMarkEntireBacklog(ctx: InteractiveModeContext): boolean {
+	// Partial UI fixtures may omit these structures — refuse (skip realign)
+	// rather than throw; realign is an optimization, not a correctness need.
+	if (!ctx.pendingTools || !ctx.chatContainer?.children) return false;
+	const pending = new Set<unknown>(ctx.pendingTools.values());
+	for (const child of ctx.chatContainer.children) {
+		if (child.committed) continue;
+		if (stopsBacklogSweep(ctx, pending, child)) return false;
+	}
+	return true;
+}
+
+/**
+ * 260702 F3 follow-up (user e2e: duplicated welcome banner) — after a
+ * successful scroll-out realign the frame preamble (config warnings, spacers,
+ * welcome banner, changelog — every direct UI child mounted ABOVE
+ * chatContainer) is physically in the scrollback like everything else, but it
+ * is outside the chatContainer sweep, so the forced rebuild repainted it and
+ * pushed a fresh copy into history at every turn boundary. Mark it committed
+ * (frame assembly skips committed children); the ViewportFill spacer must
+ * stay live — it carries the pin sentinel.
+ */
+export function markPreambleCommitted(ctx: InteractiveModeContext): void {
+	const children = ctx.ui.children;
+	if (!Array.isArray(children)) return;
+	for (const child of children) {
+		if (child === (ctx.chatContainer as unknown as Component)) break;
+		if (child instanceof ViewportFill) continue;
+		child.committed = true;
+	}
+}
+
+/**
+ * 260702 F3 — measure the composer cluster: every component mounted BELOW the
+ * live tool container (status/todo/btw containers, breathing-room spacer,
+ * status line, hook widgets, editor, composer footer, background panel).
+ * Walking the actual TUI child list keeps anonymous members (the Spacer) and
+ * future additions counted. Returns -1 when the cluster cannot be located —
+ * the realign refuses rather than scrolling composer pixels into history.
+ */
+export function measureComposerClusterRows(ctx: InteractiveModeContext): number {
+	const children = ctx.ui.children;
+	if (!Array.isArray(children)) return -1;
+	const start = children.indexOf(ctx.liveToolContainer as never);
+	if (start === -1) return -1;
+	const width = Math.max(1, ctx.ui.terminal?.columns ?? 80);
+	let rows = 0;
+	for (let i = start + 1; i < children.length; i++) {
+		rows += children[i].render(width).length;
+	}
+	return rows;
 }
 
 export class UiHelpers {
