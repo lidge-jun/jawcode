@@ -46,6 +46,8 @@ Inspired by the [Ouroboros project](https://github.com/Q00/ouroboros) which demo
 - Gather codebase facts via `explore` agent BEFORE asking the user about them
 - For brownfield confirmation questions, cite the repo evidence that triggered the question (file path, symbol, or pattern) instead of asking the user to rediscover it
 - Internal audit every round: re-assess all four dimensions (goal/constraints/criteria/ontology) yourself and accumulate a known/unknown tracker where each known fact carries source (user_statement, repo_fact, inference, assumption, default) and confidence
+- **INTERVIEW-CLASSIFY-01:** before the interview can hand off to planning or execution, settle two classifications: the task shape and the loop archetype. Ask, explicitly or implicitly from evidence, whether a verifier defines done for this work or only better. Record the answer as `spec-satisfaction` or `open-ended-optimization`; discovering this only after candidates have been burned is an interview failure, not a build failure.
+- For optimization-shaped work, confirm what instrumentation or telemetry is needed before candidate generation. If the current verifier is scalar-only, the interview spec must flag that the plan/build path starts with measurement, not candidate patches.
 - When appending each round to `state.rounds[]`, record `ambiguity` (the post-round score) and `dimensions` — the four per-dimension clarity levels mapped to a 0..3 integer scale (low=0, medium=1, high/xhigh=2, max=3). The HUD renders these as mini gauges; rounds without the fields stay backward-compatible.
 - Negativity bias: treat every answer as a claim to pressure-test. If an answer is vague, hedging ("maybe", "아마", "~일 수도"), or lacks concrete detail, DOWNGRADE the affected dimension score and stay on that dimension until one layer deeper, one assumption clearer, or one boundary tighter. Never raise a score to close the interview faster
 - The ontology dimension score is the ontology stability_ratio mapped to the tracker (display only); the external ambiguity formula and gate stay on the three scored dimensions (+brownfield context)
@@ -476,6 +478,9 @@ Spec structure:
 - Rounds: {count}
 - Final Ambiguity Score: {score}%
 - Type: greenfield | brownfield
+- Task Shape: {simple|refactor|feature|broad initiative|high-risk}
+- Loop Archetype: {spec-satisfaction|open-ended-optimization}
+- Verifier Semantics: {defines-done|measures-better}
 - Generated: {timestamp}
 - Threshold: {threshold}
 - Threshold Source: <resolvedThresholdSource>
@@ -513,6 +518,12 @@ Spec structure:
 ## Non-Goals
 - {explicitly excluded scope 1}
 - {explicitly excluded scope 2}
+
+## Loop Classification
+- Task shape: {simple, refactor, feature, broad initiative, or high-risk, and why}
+- Loop archetype: {spec-satisfaction | open-ended-optimization}
+- Verifier question: Does the verifier define done, or only better? {answer}
+- Measurement prerequisite: {instrumentation/telemetry needed before candidates, or none}
 
 ## Acceptance Criteria
 - [ ] {testable criterion 1}
@@ -563,7 +574,7 @@ Spec structure:
 
 **Research workflow override:** if `--research-setup` is active, skip the standard execution options below and write a pending-approval spec that names research setup as an unresolved follow-up. Do not invoke deprecated research workflow shims.
 
-**Loop assessment** (skipped when `--research-setup` is active): Before presenting the execution options below, assess whether the spec describes work that should be split into multiple PABCD cycles. If so, note it in the question preamble so the user can make an informed choice. Do not bypass the execution options — loop is a mode of Option 1 (orchestrate P), not a separate gate.
+**Loop assessment** (skipped when `--research-setup` is active): Before presenting the execution options below, use the spec's Loop Classification to assess whether the work should be split into multiple PABCD cycles and whether the verifier defines done or only better. If so, note it in the question preamble so the user can make an informed choice. Do not bypass the execution options — loop is a mode of Option 1 (orchestrate P), not a separate gate.
 
 
 After the spec is written, mark it `pending approval` and present execution options via the `ask` tool. Until the user selects an execution option, the jaw-interview module MUST NOT run mutation-oriented shell commands, edit source files, commit, push, open PRs, invoke execution skills, or delegate implementation tasks:

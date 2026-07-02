@@ -60,6 +60,10 @@ requiring a separate linked execution loop up front. jwc team supports current-w
 - **Escalation:** use a new explicit follow-up task only when later manual work still needs a persistent single-owner fix/verification loop.
 - **Deprecation:** nested team execution commands have been removed. Use plain `jwc team ...` for coordinated execution.
 
+### Candidate Population / League Runs
+
+When Team is used for an open-ended optimization loop, treat workers as isolated solo builders for candidate strategies. Assign one candidate per lane/worker/worktree with its own hypothesis, allowed patch surface, and evidence contract. Do not use co-authoring, shared editing of one candidate, majority voting, or worker self-ranking as selection. The leader evaluates all completed candidates on the same instances with the plan's deterministic selection rule, keeps best-so-far, records losing evidence, and hands the result back to Goal or planning for the next generation.
+
 ### Team + Goal bridge
 
 Use `$goal` for durable leader-owned goal/ledger tracking and `$team` for parallel visible tmux execution lanes. When Team is launched with an active `.jwc/goal/goals.json`, worker task/status context may include leader-owned Goal context: `.jwc/goal/goals.json`, `.jwc/goal/ledger.jsonl`, the active goal id, jwc goal mode, and the `fresh_leader_goal_get_required` checkpoint policy.

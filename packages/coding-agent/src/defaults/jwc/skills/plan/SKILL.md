@@ -57,6 +57,16 @@ After a role agent persists a stage artifact, its model-facing response to the c
 
 RECEIPT-ONLY guideline: role agents (`planner`, `architect`, and `critic`) persist durable outputs via `jwc planphase --write` and return ONLY the receipt fields (`run_id`, `path`, `sha256`) plus verdict/status routing fields; include `stage` and `stage_n` when available, and never return the full persisted body.
 
+### Loop-Spec and Evidence-Pointer Attestations
+
+For non-trivial plans, the final plan starts with a compact loop-spec header:
+
+`Archetype` / `Trigger` / `Goal` / `Non-goals` / `Verifier and what it measures` / `Stop` / `Memory artifact` / `Terminal states` / `Escalation`.
+
+Carry the archetype from jaw-interview when a spec exists. Use `spec-satisfaction` when the verifier defines done and the normal repair loop can converge. Use `open-ended-optimization` when the verifier only measures better; those plans must include descriptor axes, candidate count, deterministic selection rule, telemetry schema, and an explicit best-so-far plus `BUDGET_EXHAUSTED` stop path. Instrumentation precedes candidates: when the verifier lacks useful telemetry, the first build item is measurement, not another candidate.
+
+Every plan, review, revision, and final handoff should include evidence pointers rather than bare claims: spec or planphase path, inspected file list, expected changed files, verifier command, and expected exit/status evidence. The gate may only persist markdown, but later readers must be able to re-check the claim from disk artifacts.
+
 This skill runs jwc planning in consensus mode for the provided arguments.
 
 The consensus workflow:

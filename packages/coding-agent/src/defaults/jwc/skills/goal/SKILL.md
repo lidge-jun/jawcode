@@ -103,6 +103,21 @@ Loop until `jwc goal status` reports all goals complete:
    `jwc goal checkpoint --goal-id <id> --status blocked --evidence "<completed legacy jwc goal blocks goal create in this thread>" --gjc-goal-json <goal-get-json-or-path>`
 11. Resume failed goals with `jwc goal complete-goals --retry-failed`.
 
+## Loop execution contract
+
+For each active story, carry the approved plan's loop-spec into `.jwc/goal/ledger.jsonl`: archetype, trigger, goal, non-goals, verifier and what it measures, stop condition, memory artifact, terminal states, escalation, and resource bounds for unattended runs. Memory lives on disk, not in the transcript; every checkpoint evidence string should point to durable artifacts such as the plan/spec path, changed files, verifier command, exit/status result, and quality-gate receipt.
+
+Terminal states are report/checkpoint vocabulary, not new inline goal states: `DONE` means verified success, `NOOP` means nothing needed, `BLOCKED` means an external dependency stops progress, `UNSAFE` means a human risk decision is required, `NEEDS_HUMAN` means the next decision is user judgment, and `BUDGET_EXHAUSTED` means resources ran out and any best-so-far result must be labeled as such. Budget exhaustion is never success.
+
+Classify the story before choosing the loop shape (`LOOP-ARCHETYPE-01`):
+
+- **Spec-satisfaction**: the verifier defines done, such as tests, contracts, typecheck, or a quality gate. Use the normal repair loop: implement, run verifier, read the failure delta, repair only that delta, and re-verify.
+- **Open-ended optimization**: the verifier only defines better, such as scores, win rates, or adversarial evaluators. Use explore-and-select: generate diverse candidates, evaluate them on the same instances, keep best-so-far, regenerate from evidence, and stop on plateau or budget as `BUDGET_EXHAUSTED`, not `DONE`.
+
+Repair thresholds apply inside a story (`LOOP-REPAIR-01`). Two consecutive failed repairs of the same failure require root-cause analysis before another patch. Three require replan or handoff back to jaw-interview. Three same-phase gate/checkpoint failures in one story count as no-progress and force a clarification return instead of another retry.
+
+Unattended goal loops must state tool/credential scope, token or cost budget, and wall-clock bound before execution. Missing resource bounds on high-risk surfaces are a stop-and-ask condition.
+
 ## Dynamic steering
 
 Use `jwc goal steer` when real findings or blockers prove the current story decomposition should change while the aggregate objective and constraints stay fixed. Steering is explicit-only and evidence-backed; broad natural-language requests are rejected instead of guessed.
@@ -314,6 +329,11 @@ win-rates, graded suites), apply plateau discipline on top of the normal gate:
 - Each new story/plan quotes the previous story's conclusion and next-direction from
   `ledger.jsonl`; contradicting the recorded direction requires an explicit stated
   reason. The ledger is the continuity spine, not just an audit trail.
+- `LOOP-REANALYZE-01`: every generation starts with an analysis deliverable before candidate patches:
+  updated problem/opponent model from telemetry, replays, and failure deltas; plus
+  capability-gap hypotheses describing what the artifact cannot yet sense or do.
+  A gap hypothesis may expand the allowed patch surface, but only by explicit
+  steering or a P-level plan amendment.
 - Source divergence candidates from domain-state evidence (logs, trajectories,
   instance/opponent analysis), not only from existing code parameters. An
   all-threshold-tweak candidate list signals parameter-space anchoring — regenerate
@@ -326,6 +346,10 @@ win-rates, graded suites), apply plateau discipline on top of the normal gate:
   gains must be re-justified with expected-value reasoning or downgraded to a soft cost.
 - Verification lanes treat time-based flakes as bugs: no sleep-based synchronization,
   no retry-as-fix, no green-on-retry acceptance without a deterministic cause.
+- `LOOP-PESSIMIST-01`: optimization close-out is pessimistic: record what did not improve, which hypothesis
+  died, and what evidence would falsify the current direction. Treat
+  story-complete -> idle -> next-plan as a context and bias flush; resume from the
+  disk artifacts, not from transcript momentum.
 
 ## Handoff back to planning
 
