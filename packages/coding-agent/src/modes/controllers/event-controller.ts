@@ -20,6 +20,7 @@ import { CompactionProgressPresenter } from "../../modes/utils/compaction-progre
 import {
 	commitFinalizedBacklogMidTurn,
 	commitLaneEnabled,
+	commitPreamble,
 	consumeSignatureCredit,
 	markLiveToggleEligible,
 	takeFirstSignature,
@@ -275,6 +276,10 @@ export class EventController {
 	}
 
 	async #handleAgentStart(_event: Extract<AgentSessionEvent, { type: "agent_start" }>): Promise<void> {
+		// 260704: preamble first — chat rows must never commit above an
+		// in-frame banner (reading order), and committing it moves the banner
+		// to the scrollback seam (top-flow layout, no banner-vs-chat gap).
+		commitPreamble(this.ctx);
 		// 260703 WP3b-min: flush parked committed rows BEFORE marking the
 		// streaming phase (the flush itself must not be gated), so streaming
 		// never starts with parked rows that would force scroll-fighting

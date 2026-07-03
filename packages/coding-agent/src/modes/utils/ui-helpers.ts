@@ -234,6 +234,31 @@ export function canMarkEntireBacklog(ctx: InteractiveModeContext): boolean {
  * (frame assembly skips committed children); the ViewportFill spacer must
  * stay live — it carries the pin sentinel.
  */
+/**
+ * 260704 gap fix — commit the PREAMBLE (welcome banner, warnings, changelog)
+ * into the scrollback via the top-anchored write lane. With the fill sentinel
+ * now the first frame child, the lane is alive from frame 1; committing the
+ * preamble at the first stream start moves the banner to the scrollback seam
+ * so all later content flows top-down beneath it (no banner-vs-chat gap) and
+ * — critically — GUARANTEES reading order: chat rows must never commit above
+ * an in-frame banner. Idempotent; stops at the first refusal and retries at
+ * the next stream start.
+ */
+export function commitPreamble(ctx: InteractiveModeContext): void {
+	if (!commitLaneEnabled() || typeof ctx.ui.commitLines !== "function") return;
+	const children = ctx.ui.children;
+	if (!Array.isArray(children)) return;
+	const width = Math.max(1, ctx.ui.terminal?.columns ?? 80);
+	for (const child of children) {
+		if (child === (ctx.chatContainer as unknown as Component)) break;
+		if (child instanceof ViewportFill) continue;
+		if (child.committed) continue;
+		const lines = hasCommittedRenderer(child) ? child.renderCommitted(width) : child.render(width);
+		if (lines.length > 0 && !ctx.ui.commitLines(lines)) return;
+		child.committed = true;
+	}
+}
+
 export function markPreambleCommitted(ctx: InteractiveModeContext): void {
 	const children = ctx.ui.children;
 	if (!Array.isArray(children)) return;

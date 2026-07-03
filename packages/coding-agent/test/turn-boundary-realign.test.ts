@@ -6,6 +6,7 @@ import {
 	canMarkEntireBacklog,
 	commitFinalizedBacklog,
 	commitFinalizedBacklogMidTurn,
+	commitPreamble,
 	markPreambleCommitted,
 	measureComposerClusterRows,
 } from "../src/modes/utils/ui-helpers";
@@ -322,5 +323,51 @@ describe("boundary adoption when realign refuses (260704 duplication fix)", () =
 		commitFinalizedBacklog(ctx, { markOnly: adopt });
 		expect(calls).toEqual([["err-a"], ["err-b"]]);
 		expect(children.every(c => c.committed)).toBe(true);
+	});
+});
+
+describe("commitPreamble (260704 top-flow layout)", () => {
+	function makePreambleCtx(commitResult = true) {
+		const calls: string[][] = [];
+		const fill = new ViewportFill();
+		const banner = { render: () => ["jwc v1.1.2", "bite · build · ship"], committed: false, invalidate() {} };
+		const chatContainer = { children: [], render: () => [], committed: false, invalidate() {} };
+		const composer = { render: () => ["> input"], committed: false, invalidate() {} };
+		const ctx = {
+			ui: {
+				terminal: { columns: 80 },
+				children: [fill, banner, chatContainer, composer],
+				commitLines(lines: string[]): boolean {
+					calls.push(lines);
+					return commitResult;
+				},
+			},
+			chatContainer,
+		} as unknown as InteractiveModeContext;
+		return { ctx, calls, banner, chatContainer, composer, fill };
+	}
+
+	it("commits preamble children to the seam, skips the fill, stops at chatContainer", () => {
+		const { ctx, calls, banner, chatContainer, composer } = makePreambleCtx(true);
+		commitPreamble(ctx);
+		expect(calls).toEqual([["jwc v1.1.2", "bite · build · ship"]]);
+		expect(banner.committed).toBe(true);
+		expect(chatContainer.committed).toBe(false);
+		expect(composer.committed).toBe(false);
+	});
+
+	it("is idempotent and retries cleanly after a refusal", () => {
+		const { ctx, calls, banner } = makePreambleCtx(false);
+		commitPreamble(ctx);
+		expect(banner.committed).toBe(false); // refusal → stays virtual, retried later
+		expect(calls.length).toBe(1);
+		(ctx.ui as unknown as { commitLines: (l: string[]) => boolean }).commitLines = (l: string[]) => {
+			calls.push(l);
+			return true;
+		};
+		commitPreamble(ctx);
+		expect(banner.committed).toBe(true);
+		commitPreamble(ctx); // committed → no further writes
+		expect(calls.length).toBe(2);
 	});
 });

@@ -519,6 +519,13 @@ export class InteractiveMode implements InteractiveModeContext {
 		const startupQuiet = settings.get("startup.quiet");
 		this.#welcomeComponent = undefined;
 
+		// 260704 gap fix: the fill sentinel is the FIRST frame child, so the
+		// blank pad sits ABOVE the preamble instead of between the banner and
+		// the chat (the fresh-session mega-gap), and #expandViewportFill's
+		// `first === 0` condition holds from the very first frame — the commit
+		// lane is alive before the preamble is committed.
+		this.ui.addChild(this.#viewportFill);
+
 		for (const warning of this.session.configWarnings) {
 			this.ui.addChild(new Text(theme.fg("warning", `Warning: ${warning}`), 1, 0));
 			this.ui.addChild(new Spacer(1));
@@ -568,7 +575,6 @@ export class InteractiveMode implements InteractiveModeContext {
 		// Unset setting = brand default (jwc on).
 		const composerPinSetting = settings.get("tui.composerPin");
 		this.#viewportFill.setEnabled(!$flag("PI_NO_COMPOSER_PIN") && (composerPinSetting ?? isJawBrand()));
-		this.ui.addChild(this.#viewportFill);
 		this.ui.addChild(this.chatContainer);
 		this.ui.addChild(this.pendingMessagesContainer);
 		// 99.20.04 live zone — active tool previews render here (above the status
