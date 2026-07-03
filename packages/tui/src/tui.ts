@@ -322,6 +322,12 @@ export class TUI extends Container {
 	#hasMaterializedOverflow = false;
 	/** Fill rows at the top of the frame as last painted (= history region height). */
 	#lastFillRows = 0;
+	/**
+	 * 260704 S5-2 — rows BELOW the fill region (the composer cluster) as last
+	 * painted. The live-zone flush geometry scrolls region [1..height-#composerRows]
+	 * so the pinned composer is never pushed across the seam.
+	 */
+	#composerRows = 0;
 	#renderTimer: NodeJS.Timeout | undefined;
 	#lastRenderAt = 0;
 	static readonly #MIN_RENDER_INTERVAL_MS = 16;
@@ -1912,6 +1918,10 @@ export class TUI extends Container {
 		// While overflowed the fill rows would sit ABOVE the viewport, not at the
 		// screen top, so the commit lane must stay disabled (fill = 0).
 		this.#lastFillRows = first === 0 ? fill : 0;
+		// 260704 S5-2 bookkeeping: rows after the fill region = the composer
+		// cluster (top-flow layout mounts the sentinel between transcript and
+		// composer). No consumer yet — armed by the live-zone flush rewrite.
+		this.#composerRows = first === -1 ? 0 : Math.max(0, result.length - first - fill);
 		if (renderMetrics.enabled) renderMetrics.recordHelper("viewportFill", renderMetrics.now() - expandStart);
 		return result;
 	}
