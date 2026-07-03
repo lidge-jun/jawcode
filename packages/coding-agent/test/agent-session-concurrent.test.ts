@@ -618,6 +618,128 @@ describe("AgentSession concurrent prompt guard", () => {
 			await sessionB.dispose();
 		}
 	});
+
+	it("dispose drains owned terminal deliveries and retains running async jobs", async () => {
+		const model = getBundledModel("anthropic", "claude-sonnet-4-5")!;
+		const authStorage = await AuthStorage.create(path.join(tempDir, "testauth-dispose-async.db"));
+		authStorages.push(authStorage);
+		const modelRegistry = new ModelRegistry(authStorage, path.join(tempDir, "models-dispose-async.yml"));
+		authStorage.setRuntimeApiKey("anthropic", "test-key");
+		const settings = Settings.isolated();
+		const ownerId = "dispose-owner";
+		const delivered: string[] = [];
+		const asyncJobManager = new AsyncJobManager({
+			maxRunningJobs: 3,
+			retentionMs: 1_000,
+			onJobComplete: async (jobId, text) => {
+				delivered.push(`${jobId}:${text}`);
+			},
+		});
+		AsyncJobManager.setInstance(asyncJobManager);
+
+		const disposeAgent = new Agent({
+			getApiKey: () => "test-key",
+			initialState: { model, systemPrompt: ["Test"], tools: [] },
+			streamFn: createMockModel({ handler: () => ({ content: ["Done"] }) }).stream,
+		});
+		const disposeSession = new AgentSession({
+			agent: disposeAgent,
+			sessionManager: SessionManager.inMemory(),
+			settings,
+			modelRegistry,
+			agentId: ownerId,
+			ownedAsyncJobManager: asyncJobManager,
+		});
+
+		const completedJobId = asyncJobManager.register("task", "completed", async () => "terminal output", {
+			id: "dispose-completed",
+			ownerId,
+		});
+		const runningJobId = asyncJobManager.register(
+			"bash",
+			"running",
+			async ({ signal }) => {
+				await new Promise<void>(resolve => {
+					signal.addEventListener("abort", () => resolve(), { once: true });
+				});
+				return "cancelled";
+			},
+			{ id: "dispose-running", ownerId },
+		);
+
+		try {
+			const completedDeadline = Date.now() + 2_000;
+			while (asyncJobManager.getJob(completedJobId)?.status === "running") {
+				if (Date.now() >= completedDeadline) throw new Error("Timed out waiting for completed job");
+				await Bun.sleep(5);
+			}
+
+			await disposeSession.dispose();
+
+			expect(delivered).toEqual(["dispose-completed:terminal output"]);
+			expect(AsyncJobManager.instance()).toBe(asyncJobManager);
+			expect(asyncJobManager.getJob(runningJobId)?.status).toBe("running");
+			expect(asyncJobManager.getRunningJobs({ ownerId }).map(job => job.id)).toEqual([runningJobId]);
+		} finally {
+			asyncJobManager.cancel(runningJobId, { ownerId });
+			await asyncJobManager.dispose({ timeoutMs: 1_000 });
+			if (AsyncJobManager.instance() === asyncJobManager) {
+				AsyncJobManager.setInstance(undefined);
+			}
+		}
+	});
+
+	it("dispose preserves retained subagent records even when no jobs remain", async () => {
+		const model = getBundledModel("anthropic", "claude-sonnet-4-5")!;
+		const authStorage = await AuthStorage.create(path.join(tempDir, "testauth-dispose-record.db"));
+		authStorages.push(authStorage);
+		const modelRegistry = new ModelRegistry(authStorage, path.join(tempDir, "models-dispose-record.yml"));
+		authStorage.setRuntimeApiKey("anthropic", "test-key");
+		const settings = Settings.isolated();
+		const ownerId = "dispose-record-owner";
+		const asyncJobManager = new AsyncJobManager({
+			maxRunningJobs: 3,
+			retentionMs: 1_000,
+			onJobComplete: async () => {},
+		});
+		AsyncJobManager.setInstance(asyncJobManager);
+		asyncJobManager.registerSubagentRecord({
+			subagentId: "retained-subagent",
+			ownerId,
+			currentJobId: null,
+			historicalJobIds: ["evicted-job"],
+			status: "paused",
+			sessionFile: "/tmp/retained-subagent.json",
+			resumable: true,
+		});
+
+		const disposeAgent = new Agent({
+			getApiKey: () => "test-key",
+			initialState: { model, systemPrompt: ["Test"], tools: [] },
+			streamFn: createMockModel({ handler: () => ({ content: ["Done"] }) }).stream,
+		});
+		const disposeSession = new AgentSession({
+			agent: disposeAgent,
+			sessionManager: SessionManager.inMemory(),
+			settings,
+			modelRegistry,
+			agentId: ownerId,
+			ownedAsyncJobManager: asyncJobManager,
+		});
+
+		try {
+			await disposeSession.dispose();
+
+			expect(AsyncJobManager.instance()).toBe(asyncJobManager);
+			expect(asyncJobManager.getSubagentRecord("retained-subagent", { ownerId })?.status).toBe("paused");
+			expect(asyncJobManager.isEmptyForDisposal()).toBe(false);
+		} finally {
+			await asyncJobManager.dispose({ timeoutMs: 1_000 });
+			if (AsyncJobManager.instance() === asyncJobManager) {
+				AsyncJobManager.setInstance(undefined);
+			}
+		}
+	});
 });
 
 describe("AgentSession TTSR resume gate", () => {

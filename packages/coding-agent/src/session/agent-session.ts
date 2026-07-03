@@ -1674,18 +1674,36 @@ export class AgentSession {
 	}
 
 	/**
-	 * Cancel async jobs registered by *this* agent only. Used by lifecycle
-	 * transitions (newSession, switchSession, handoff, dispose) so a subagent
-	 * cleans up its own background work without touching its parent's jobs.
+	 * Release async jobs registered by *this* agent without cancelling retained
+	 * background work. Used by normal session teardown so already-terminal
+	 * deliveries get a bounded final chance while still-running jobs/subagents
+	 * remain addressable through AsyncJobManager.
+	 *
 	 * No-op when no manager is installed or this session has no agent id.
+	 */
+	async #releaseOwnAsyncJobsForDispose(timeoutMs = 3_000): Promise<void> {
+		if (!this.#agentId) return;
+		const manager = AsyncJobManager.instance();
+		if (!manager) return;
+		const { drained, deliveryState } = await manager.releaseOwnerForSessionDispose(
+			{ ownerId: this.#agentId },
+			{ timeoutMs },
+		);
+		if (!drained) {
+			logger.warn("Async job completion deliveries still pending during owner dispose", { ...deliveryState });
+		}
+	}
+
+	/**
+	 * Cancel async jobs registered by *this* agent only. Used by explicit
+	 * lifecycle transitions that abandon the current session state (new session,
+	 * handoff, branch switch) so old-session background work cannot leak into the
+	 * replacement transcript.
 	 */
 	#cancelOwnAsyncJobs(): void {
 		if (!this.#agentId) return;
 		const manager = AsyncJobManager.instance();
 		if (!manager) return;
-		// Run owner cleanups first so cron timers (and any other owner-scoped
-		// resource cleanup) cannot register fresh jobs while we tear down the
-		// existing ones. Cleanup callbacks are error-isolated inside the manager.
 		manager.runOwnerCleanups({ ownerId: this.#agentId });
 		manager.cancelAll({ ownerId: this.#agentId });
 	}
@@ -3438,13 +3456,9 @@ export class AgentSession {
 			}
 		}
 		await this.#cancelPostPromptTasks();
-		// Cancel jobs this agent registered so a subagent's teardown doesn't
-		// leak its background bash/task work into the parent's manager. Only
-		// the session that owns the manager goes on to dispose it (which itself
-		// nukes any leftover jobs and pending deliveries).
-		this.#cancelOwnAsyncJobs();
+		await this.#releaseOwnAsyncJobsForDispose(3_000);
 		const ownedAsyncManager = this.#ownedAsyncJobManager;
-		if (ownedAsyncManager) {
+		if (ownedAsyncManager?.isEmptyForDisposal()) {
 			const drained = await ownedAsyncManager.dispose({ timeoutMs: 3_000 });
 			const deliveryState = ownedAsyncManager.getDeliveryState();
 			if (drained === false && deliveryState) {

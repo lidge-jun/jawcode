@@ -42,7 +42,7 @@ Phase 80 has been implemented and verified; remaining chase hardening phases are
 | 80 | `/goal` and `/goalplan` force new goal state | done | `80_plan.md`, `80.6_c_check.md`, commits `238e04e`, `1fbb4c7` |
 | 10 | `10.071` search/utils/edit safety | done | `10_plan.md`, `10.6_b_verifier.md`, `10.7_c_check.md`, commits `67129ab`, `3d98fd2` |
 | 20 | `20.038` hashline/tool/plugin/task safety | done | `20_plan.md`, `20.6_b_verifier.md`, `20.7_c_check.md`, commit `5894e86` |
-| 30 | `20.037` session async/plan integrity | active | next P cycle |
+| 30 | `20.037` session async/plan integrity | active | `30_plan.md`, `30.4_b_verifier.md` |
 | 40 | `10.073` RPC/session/notifications lifecycle | pending | — |
 | 50 | `20.039` TUI terminal/render resilience | pending | — |
 | 60 | `10.072` tmux/cmux hardening subset | pending | — |

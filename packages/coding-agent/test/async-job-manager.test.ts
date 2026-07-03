@@ -330,6 +330,83 @@ describe("AsyncJobManager", () => {
 		expect(await manager.drainDeliveries({ timeoutMs: 200 })).toBe(true);
 	});
 
+	test("releaseOwnerForSessionDispose drains terminal deliveries without cancelling running owner jobs", async () => {
+		const completions: string[] = [];
+		let ownerCleanupCalls = 0;
+		const manager = new AsyncJobManager({
+			onJobComplete: async (jobId, text) => {
+				completions.push(`${jobId}:${text}`);
+			},
+		});
+		manager.registerOwnerCleanup("owner-1", () => {
+			ownerCleanupCalls += 1;
+		});
+		manager.registerSubagentRecord({
+			subagentId: "subagent-1",
+			ownerId: "owner-1",
+			currentJobId: "running-job",
+			historicalJobIds: ["running-job"],
+			status: "running",
+			sessionFile: "/tmp/subagent-1.json",
+			resumable: true,
+		});
+
+		const completedJobId = manager.register("task", "completed", async () => "done", {
+			id: "completed-job",
+			ownerId: "owner-1",
+		});
+		const runningJobId = manager.register(
+			"bash",
+			"running",
+			async ({ signal }) => {
+				await new Promise<void>(resolve => {
+					signal.addEventListener("abort", () => resolve(), { once: true });
+				});
+				return "cancelled";
+			},
+			{ id: "running-job", ownerId: "owner-1" },
+		);
+
+		const completedDeadline = Date.now() + 2_000;
+		while (manager.getJob(completedJobId)?.status === "running") {
+			if (Date.now() >= completedDeadline) throw new Error("Timed out waiting for completed job");
+			await Bun.sleep(5);
+		}
+
+		const release = await manager.releaseOwnerForSessionDispose({ ownerId: "owner-1" }, { timeoutMs: 1_000 });
+
+		expect(release.drained).toBe(true);
+		expect(ownerCleanupCalls).toBe(1);
+		expect(completions).toEqual(["completed-job:done"]);
+		expect(manager.getJob(runningJobId)?.status).toBe("running");
+		expect(manager.getRunningJobs({ ownerId: "owner-1" }).map(job => job.id)).toEqual([runningJobId]);
+		expect(manager.getSubagentRecord("subagent-1")?.status).toBe("running");
+
+		manager.cancel(runningJobId, { ownerId: "owner-1" });
+		await manager.waitForAll();
+	});
+
+	test("releaseOwnerForSessionDispose keeps no-job subagent records out of empty-disposal state", async () => {
+		const manager = new AsyncJobManager({ onJobComplete: async () => {} });
+		expect(manager.isEmptyForDisposal()).toBe(true);
+
+		manager.registerSubagentRecord({
+			subagentId: "subagent-no-job",
+			ownerId: "owner-1",
+			currentJobId: null,
+			historicalJobIds: ["old-job"],
+			status: "paused",
+			sessionFile: "/tmp/subagent-no-job.json",
+			resumable: true,
+		});
+
+		const release = await manager.releaseOwnerForSessionDispose({ ownerId: "owner-1" }, { timeoutMs: 10 });
+
+		expect(release.drained).toBe(true);
+		expect(manager.getSubagentRecord("subagent-no-job")?.status).toBe("paused");
+		expect(manager.hasRetainedControlState({ ownerId: "owner-1" })).toBe(true);
+		expect(manager.isEmptyForDisposal()).toBe(false);
+	});
 	test("cancelAll with ownerId only cancels matching jobs", async () => {
 		const manager = new AsyncJobManager({
 			onJobComplete: async () => {},
