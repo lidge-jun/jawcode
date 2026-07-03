@@ -8,8 +8,10 @@
 //! - Ellipsis decoded lazily
 //! - truncateToWidth returns the original `JsString` when possible
 
-use std::cell::RefCell;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::{
+	cell::RefCell,
+	sync::atomic::{AtomicBool, Ordering},
+};
 
 use napi::{JsString, bindgen_prelude::*};
 use napi_derive::napi;
