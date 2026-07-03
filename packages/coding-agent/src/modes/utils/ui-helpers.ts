@@ -281,7 +281,7 @@ export function commitPreamble(ctx: InteractiveModeContext): void {
 export function rebuildTranscriptForResize(ctx: InteractiveModeContext): void {
 	const ui = ctx.ui as unknown as {
 		terminal?: { columns?: number };
-		replayTranscript?: (lines: string[]) => void;
+		replayTranscript?: (lines: string[], opts?: { clusterRows?: number }) => void;
 		children?: Component[];
 	};
 	if (typeof ui.replayTranscript !== "function" || !Array.isArray(ui.children)) return;
@@ -303,7 +303,10 @@ export function rebuildTranscriptForResize(ctx: InteractiveModeContext): void {
 		lines.push(...renderOf(child));
 		child.committed = true;
 	}
-	ui.replayTranscript(lines);
+	// Bottom-anchored rebuild: the composer cluster keeps the floor and the
+	// replayed tail stays visible above it (260704 user UX round 3).
+	const cluster = measureComposerClusterRows(ctx);
+	ui.replayTranscript(lines, cluster > 0 ? { clusterRows: cluster } : undefined);
 }
 
 export function markPreambleCommitted(ctx: InteractiveModeContext): void {

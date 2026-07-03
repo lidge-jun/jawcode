@@ -1605,38 +1605,66 @@ export class TUI extends Container {
 	 * scrollback-immutability policy permits to touch history, and it is what
 	 * heals hard-wrapped rows after a width change.
 	 */
-	replayTranscript(lines: string[]): void {
+	replayTranscript(lines: string[], opts?: { clusterRows?: number }): void {
 		if (this.#stopped || !this.terminalAvailable) return;
 		const width = this.terminal.columns;
 		const widthUsed = width;
+		const height = this.terminal.rows;
 		const { lines: prepared, stats } = this.#prepareLinesForTerminal([...lines], width);
 		this.#recordPreparedLineStats(stats, "commit");
+		// BOTTOM-ANCHORED rebuild (260704 user UX round 3): keep the last
+		// `parked` transcript rows visible at the screen top and let the
+		// frame's cluster sit on the floor, so the post-resize screen looks
+		// like the pre-resize one. The parked rows use the realign contract
+		// (mirror-blank) and drain progressively as later growth shrinks the
+		// fill — the oracle-tested v3 behavior.
+		const clusterRows = Math.max(0, Math.min(opts?.clusterRows ?? 0, height - 1));
+		const parked = clusterRows > 0 ? Math.min(prepared.length, height - clusterRows) : 0;
 		let buffer = "\x1b[?2026h";
 		buffer += "\x1b[2J\x1b[H\x1b[3J";
 		for (const line of prepared) {
 			buffer += line;
 			buffer += "\r\n";
 		}
+		if (parked > 0) {
+			// Scroll until exactly `parked` tail rows remain on screen: of the
+			// L printed rows, printing itself scrolled max(0, L+1-height) out.
+			const extra = Math.max(0, prepared.length - parked - Math.max(0, prepared.length + 1 - height));
+			buffer += `\x1b[${height};1H`;
+			buffer += "\n".repeat(extra);
+		}
 		buffer += "\x1b[?2026l";
 		if (!this.#writeTerminal(buffer)) return;
-		// Seed the renderer to APPEND the live frame at the cursor (right
-		// below the replayed tail) instead of clearing again: empty mirrors +
-		// CURRENT dimensions route the next pass through the first-render
-		// branch (fullRender without clear).
-		this.#previousLines = [];
-		this.#previousRawLines = [];
 		this.#previousWidth = this.terminal.columns;
 		this.#previousHeight = this.terminal.rows;
 		this.#clearPreparedLineCaches();
 		this.#cursorRow = 0;
-		this.#hardwareCursorRow = 0;
 		this.#viewportTopRow = 0;
-		this.#maxLinesRendered = 0;
 		this.#overflowFloor = 0;
 		this.#lastTombstoneRows = 0;
-		this.#committedScreenRows = 0;
-		this.#committedBottomRow = 0;
 		this.#hasCommittedHistory = true;
+		if (parked > 0) {
+			// Parked-contract seed: mirrors declare every row blank, so the
+			// next diff paints ONLY the frame's cluster rows (the fill rows are
+			// blank on both sides) and the parked tail pixels survive.
+			const preparedBlank = this.#prepareLinesForTerminal([""], width).lines[0];
+			this.#previousLines = new Array<string>(height).fill(preparedBlank);
+			this.#previousRawLines = new Array<string>(height).fill("");
+			this.#hardwareCursorRow = height - 1;
+			this.#maxLinesRendered = height;
+			this.#committedScreenRows = parked;
+			this.#committedBottomRow = parked;
+			this.#lastFillRows = parked;
+		} else {
+			// Legacy/top-anchored mode (no cluster info): the live frame
+			// appends at the cursor right below the replayed tail.
+			this.#previousLines = [];
+			this.#previousRawLines = [];
+			this.#hardwareCursorRow = 0;
+			this.#maxLinesRendered = 0;
+			this.#committedScreenRows = 0;
+			this.#committedBottomRow = 0;
+		}
 		this.requestRender(false, "resize transcript rebuild");
 		// GPT Pro round-8 belt-and-suspenders: a resize DURING the replay
 		// leaves a stale-width transcript (no duplication — full replace);
