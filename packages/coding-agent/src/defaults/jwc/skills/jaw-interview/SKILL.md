@@ -183,6 +183,47 @@ The first line of this announcement MUST be exactly the Phase 0 threshold marker
 > **Project type:** {greenfield|brownfield}
 > **Current ambiguity:** 100% (we haven't started yet)
 
+## Phase 1.5: Catalog Discovery (conditional, INTERVIEW-CATALOG-01)
+
+When the initial idea is a vague product/domain request ("사주 앱 만들고 싶어") with no prior
+codebase context (`state.type === "greenfield"` AND no file paths, function names, or error
+descriptions — just a domain/product concept), activate catalog discovery before Round 0.
+
+**Hard barrier — design/UX LEADS (CATALOG-DESIGN-FIRST-01).** Load the option ontology from
+`catalog-discovery-axes.md`. Iterate stages ascending; do NOT present a stage until every
+required entry of all earlier stages is answered:
+
+1. **Stage 1 — Design/UX** (all 6 dials required): use Product-Personality-Selection
+   methodology. Present each dial's options with trade-offs (from `catalog-discovery-axes.md`),
+   then ask. Map answers to design tokens. May spawn `auto-research-catalog.md` for structured
+   option presentation.
+2. **Stage 2 — Domain**: app type selection. Seeds stage-3 derivation via `implies[]`.
+3. **Stage 3 — Derived**: surface backend entries whose `derived_from` matches selected
+   stage 1+2 entry IDs, or whose `auto_activate_rules` keywords match the initial idea text.
+   Never dump a flat list. Confirm high-impact activations with the user.
+
+**Output**: store selections in `state.catalog_discovery`:
+```json
+"catalog_discovery": {
+  "mode": "completed",
+  "personality": {"mood": "mystical", "lightness": "dark", ...},
+  "domain": "content_service",
+  "derived_entries": ["security.pii_protection", "data.retention_policy", ...],
+  "completed_at": "round_0_pre"
+}
+```
+
+The derived component list from stage 3 becomes the **candidate list for Round 0 topology
+enumeration** — the user confirms/edits topology as normal, but seeded from catalog selections
+instead of free-form extraction.
+
+**Ambiguity pre-seeding**: personality selection → pre-seed goal clarity; domain → constraint
+clarity; derived architecture → context clarity. This gives the Socratic loop a non-1.0
+starting ambiguity when Phase 2 begins.
+
+**Skip**: if the user wants standard Socratic flow, already specifies components, or the
+request is brownfield, skip catalog discovery and go straight to Round 0.
+
 ## Round 0: Topology Enumeration Gate
 
 Run this gate exactly once after Phase 1 initialization and before any Phase 2 ambiguity scoring. The goal is to lock the **shape** of the user's scope before depth-first Socratic questioning can overfit to the most-described component.
