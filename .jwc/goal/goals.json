@@ -10,11 +10,11 @@
       "objective": "Run the chase hardening and /goal state-replacement work through clean PABCD loops, committing verified documentation/planning changes first and then proceeding phase-by-phase with explicit checks while preserving unrelated worktree changes.",
       "status": "active",
       "createdAt": "2026-07-03T10:53:20.027Z",
-      "updatedAt": "2026-07-03T11:21:18.379Z",
+      "updatedAt": "2026-07-03T11:21:40.818Z",
       "startedAt": "2026-07-03T10:53:20.034Z",
-      "evidence": "A-stage audit passed for Phase 80; Stage A dual audit a-r0: Planner FAIL addressed in devlog/_plan/260703_chase_hardening_goal_passthrough/80.3_a_synthesis_round1.md, Planner delta PASS in 80.4_a_planner_delta_round1.md, Architect PASS at .jwc/plans/planphase/2026-07-02-1325-8f6b/stage-80-architect.md; jwc orchestrate status reports Audit: pass and Next: jwc orchestrate b."
+      "evidence": "pabcd a→b (audit=pass, verification=pending); /Users/jun/Developer/new/700_projects/jawcode/.jwc/state/pabcd-state.json"
     }
   ],
   "createdAt": "2026-07-03T10:53:20.027Z",
-  "updatedAt": "2026-07-03T11:21:18.379Z"
+  "updatedAt": "2026-07-03T11:21:40.818Z"
 }

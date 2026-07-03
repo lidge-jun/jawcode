@@ -37,6 +37,27 @@ External second opinions in flight (results folded in as they land): Codex gpt-5
 RCA (xterm-headless repro probes), ChatGPT Pro review with tui.ts/terminal.ts/
 insert-history.ts attached.
 
+GPT Pro round 1 (full text: session scratchpad `gpt-pro-answer.md`; conversation is being
+continued per-WP with the pushed GitHub commits): confirmed R1–R3, re-ranked R2+R3 as the
+dominant live-corruption mechanism, and added two findings of its own — (R5) a concrete
+no-resize hazard: `#scrollOutCommittedRows()` mutates the terminal with DECSTBM
+mid-`#doRender` while the already-captured locals (`hardwareCursorRow`,
+`prevViewportTop`) and `#previousLines` (non-widened case) stay stale, so the same-pass
+relative diff can paint fragments without any resize; and (R6) exact-width writes are a
+deferred-wrap hazard — with DECAWM on, never write a printable cell into the last
+column. Recommended minimum patch: DECAWM off + fresh ioctl size + post-DECSTBM resync.
+
+User evidence round 2 (no resize, no scroll): right-aligned `Thinking … +3 lines` /
+`jaw` labels drifting to random indents mid-stream; a tool line wrapping with tail
+`evlo…`. Consistent with ambiguous-width mismatch (`…` `§` `✔` are East Asian AMBIGUOUS:
+Bun.stringWidth 1 vs CJK-configured terminals 2) on full-width padded lines → R3.
+
+User evidence round 3: the corrupted band renders like a block PINNED AT THE TOP that
+re-asserts itself and interferes with native scrollback scrolling while streaming; same
+sentences duplicated 2–4× at different wrap offsets. Points at the commit-lane
+scroll-region machinery (R5) + per-frame absolute repaints fighting user scroll —
+raises WP3 (scroll-out lane hardening) priority.
+
 ## Work-phase slice map (small → certain first)
 
 | WP | Slice | Class | Status |
