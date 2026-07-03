@@ -10,6 +10,7 @@ import {
 } from "@jawcode-dev/natives";
 import { getDefaultTabWidth, getIndentation } from "@jawcode-dev/utils";
 import { renderMetrics } from "./metrics";
+import { terminalSupportsBce } from "./terminal-capabilities";
 
 export { Ellipsis } from "@jawcode-dev/natives";
 
@@ -390,12 +391,26 @@ export function moveWordRight(text: string, cursor: number): number {
  * @param bgFn - Background color function
  * @returns Line with background applied and padded to width
  */
+/**
+ * 260704 WP5.3 — zero-width row-background marker (APC; terminals ignore
+ * it). A line carrying this marker asks the RENDERER to paint the row's
+ * background to end-of-line at write time (SGR bg + EL under BCE) instead
+ * of storing full-width literal spaces — the padding that terminal reflow
+ * shreds on every width change and that amplified the ambiguous-width
+ * overflows. Kept out of component strings' cell model so overlay
+ * compositing and width math are untouched (ANSI passthrough).
+ */
+export const ROW_BG_MARKER = "\x1b_pi:rowbg\x07";
+
 export function applyBackgroundToLine(line: string, width: number, bgFn: (text: string) => string): string {
-	// Calculate padding needed
+	if (terminalSupportsBce()) {
+		// WP5.3: no trailing cells — the write path paints the remainder via
+		// EL while the row's background is still active (BCE).
+		return bgFn(ROW_BG_MARKER + line);
+	}
+	// Fallback (no BCE): literal padding, today's behavior.
 	const visibleLen = visibleWidth(line);
 	const paddingNeeded = Math.max(0, width - visibleLen);
-
-	// Apply background to content + padding
 	const withPadding = line + padding(paddingNeeded);
 	return bgFn(withPadding);
 }
