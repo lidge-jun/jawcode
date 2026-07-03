@@ -180,6 +180,30 @@ describe("EventController message_start (user role)", () => {
 		expect(ctx.currentTurnStartIndex).toBe(0);
 	});
 
+	it("does not move the Ctrl+O boundary for a steering delivery (260703 WP3)", async () => {
+		// A steer lands MID-turn: the run's already-rendered output must stay
+		// inside the ctrl+o scope. The session flags the lane at dequeue time.
+		const { ctx, chatContainer } = createContext({ editorText: "" });
+		chatContainer.children.push({ render: () => ["assistant output"], invalidate() {} });
+		ctx.currentTurnStartIndex = 0;
+		// Identity-keyed like the real session: only the tagged message object
+		// counts as a steering delivery (ordering-race safe by construction).
+		const steerMessage = createUserMessage("steer me");
+		const tagged = new WeakSet<object>([steerMessage]);
+		(ctx as unknown as { session: { consumeSteeringUserDelivery: (m: unknown) => boolean } }).session = {
+			consumeSteeringUserDelivery: (m: unknown) => tagged.delete(m as object),
+		};
+		const controller = new EventController(ctx);
+
+		await controller.handleEvent({ type: "message_start", message: steerMessage });
+		// Steering delivery: boundary untouched (pre-steer output stays toggleable).
+		expect(ctx.currentTurnStartIndex).toBe(0);
+
+		await controller.handleEvent({ type: "message_start", message: createUserMessage("next turn") });
+		// Untagged delivery moves the boundary again.
+		expect(ctx.currentTurnStartIndex).toBe(chatContainer.children.length);
+	});
+
 	it("dedups BOTH deliveries when the same text was submitted optimistically twice (260703 WP2)", async () => {
 		// The old scalar signature was overwritten by the second submission and
 		// consumed by the first delivery — the second delivery then re-added a

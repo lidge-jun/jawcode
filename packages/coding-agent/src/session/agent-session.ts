@@ -1898,6 +1898,21 @@ export class AgentSession {
 
 	// Track last assistant message for auto-compaction check
 	#lastAssistantMessage: AssistantMessage | undefined = undefined;
+	#steeringDeliveredMessages = new WeakSet<object>();
+
+	/**
+	 * 260703 WP3 — whether this user `message_start` payload was dequeued from
+	 * the STEERING queue (delivered mid-turn), so the interactive UI does not
+	 * treat it as a turn opener (ctrl+o boundary). Keyed by message object
+	 * identity — the event pipeline forwards `event.message` by reference —
+	 * because extension emission makes delivery ordering async and a global
+	 * transient could be overwritten by a back-to-back second delivery
+	 * (B-verify finding). Consumed on read; unknown messages return false.
+	 */
+	consumeSteeringUserDelivery(message: unknown): boolean {
+		if (typeof message !== "object" || message === null) return false;
+		return this.#steeringDeliveredMessages.delete(message);
+	}
 
 	/** Internal handler for agent events - shared by subscribe and reconnect */
 	#handleAgentEvent = async (event: AgentEvent): Promise<void> => {
@@ -1910,6 +1925,10 @@ export class AgentSession {
 				const steeringIndex = this.#steeringMessages.findIndex(e => e.text === messageText);
 				if (steeringIndex !== -1) {
 					this.#steeringMessages.splice(steeringIndex, 1);
+					// 260703 WP3: a steering delivery lands MID-turn — tag the
+					// message object so the UI does not treat it as a turn opener
+					// (ctrl+o boundary) when this event reaches it.
+					this.#steeringDeliveredMessages.add(event.message);
 				} else {
 					// Check follow-up queue
 					const followUpIndex = this.#followUpMessages.findIndex(e => e.text === messageText);

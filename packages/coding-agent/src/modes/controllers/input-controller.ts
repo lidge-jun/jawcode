@@ -521,6 +521,11 @@ export class InputController {
 				// overflow floor so the next turn's growth scrolls into the
 				// scrollback normally (leaving it frozen would pause history).
 				this.ctx.ui.setOverflowFloorFrozen?.(false);
+				// 260703 WP3: the expansion flags are current-turn state. Left
+				// stale, the next turn's first ctrl+o flips an already-matching
+				// flag and visibly does nothing (press-twice symptom).
+				this.ctx.toolOutputExpanded = false;
+				this.ctx.thinkingExpanded = false;
 				// 083.8 S2: collapse any post-overflow gap left by the previous turn
 				// HERE — the screen is about to change anyway (new user message), so
 				// the full rebuild is invisible. Doing this at agent_end made the

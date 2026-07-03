@@ -339,7 +339,14 @@ export class EventController {
 			// would race with the user typing the next prompt while the previous
 			// large redraw lands and erase their in-progress draft (#783).
 			if (!event.message.synthetic) {
-				this.ctx.currentTurnStartIndex = this.ctx.chatContainer.children.length;
+				// 260703 WP3: a steering delivery lands MID-turn — moving the
+				// ctrl+o boundary past the run's already-rendered output would
+				// silently exclude exactly what the user is looking at. The
+				// session tagged the message object at dequeue time; consume here.
+				const wasSteeringDelivery = this.ctx.session?.consumeSteeringUserDelivery?.(event.message) === true;
+				if (!wasSteeringDelivery) {
+					this.ctx.currentTurnStartIndex = this.ctx.chatContainer.children.length;
+				}
 				if (!wasLocallySubmitted) {
 					this.ctx.editor.setText("");
 				}
