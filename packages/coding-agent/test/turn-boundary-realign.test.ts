@@ -1,9 +1,11 @@
-import { describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { resetSettingsForTest, Settings, settings } from "../src/config/settings";
 import { ViewportFill } from "@jawcode-dev/tui";
 import type { InteractiveModeContext } from "../src/modes/types";
 import {
 	canMarkEntireBacklog,
 	commitFinalizedBacklog,
+	commitFinalizedBacklogMidTurn,
 	markPreambleCommitted,
 	measureComposerClusterRows,
 } from "../src/modes/utils/ui-helpers";
@@ -209,5 +211,68 @@ describe("commitFinalizedBacklog markOnly mode (260702 F3)", () => {
 		expect(calls).toEqual([["cell-a"]]);
 		expect(children[0].committed).toBe(false);
 		expect(children[1].committed).toBe(false);
+	});
+});
+
+describe("commitFinalizedBacklogMidTurn (260703 WP6b)", () => {
+	beforeAll(async () => {
+		await Settings.init({ inMemory: true });
+	});
+
+	afterAll(() => {
+		resetSettingsForTest();
+	});
+
+	afterEach(() => {
+		settings.set("tool.renderMode", undefined);
+		delete process.env.JWC_COMMIT_ON_COMPLETION;
+	});
+
+	function makeMidTurnCtx() {
+		const calls: string[][] = [];
+		const streaming = { render: () => ["streaming"], committed: false, invalidate() {} };
+		const children = [
+			{ render: () => ["done-a"], committed: false, invalidate() {} },
+			{ render: () => ["done-b"], committed: false, invalidate() {} },
+			streaming,
+		];
+		const ctx = {
+			ui: {
+				terminal: { columns: 80 },
+				commitLines(lines: string[]): boolean {
+					calls.push(lines);
+					return true;
+				},
+			},
+			chatContainer: { children },
+			pendingTools: new Map(),
+			streamingComponent: streaming,
+		} as unknown as InteractiveModeContext;
+		return { ctx, calls, children, streaming };
+	}
+
+	it("commits the finalized prefix mid-turn and never passes the streaming component", () => {
+		settings.set("tool.renderMode", "commit");
+		const { ctx, calls, children, streaming } = makeMidTurnCtx();
+		commitFinalizedBacklogMidTurn(ctx);
+		expect(calls).toEqual([["done-a"], ["done-b"]]);
+		expect(children[0].committed).toBe(true);
+		expect(children[1].committed).toBe(true);
+		expect(streaming.committed).toBe(false);
+	});
+
+	it("JWC_COMMIT_ON_COMPLETION=0 keeps the turn-boundary-only cadence", () => {
+		settings.set("tool.renderMode", "commit");
+		process.env.JWC_COMMIT_ON_COMPLETION = "0";
+		const { ctx, calls } = makeMidTurnCtx();
+		commitFinalizedBacklogMidTurn(ctx);
+		expect(calls).toEqual([]);
+	});
+
+	it("verbose mode never commits mid-turn (renderCommitted would force-collapse it)", () => {
+		settings.set("tool.renderMode", "verbose");
+		const { ctx, calls } = makeMidTurnCtx();
+		commitFinalizedBacklogMidTurn(ctx);
+		expect(calls).toEqual([]);
 	});
 });

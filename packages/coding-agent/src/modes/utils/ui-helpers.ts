@@ -68,6 +68,35 @@ export function toolRenderModeIsCommit(): boolean {
 	return (mode ?? (isJawBrand() ? "commit" : "verbose")) === "commit";
 }
 
+/**
+ * 260703 WP6b — commit-on-completion: finalized blocks reach the terminal
+ * scrollback as they complete instead of waiting for the next prompt submit
+ * (codex-rs model). JWC_COMMIT_ON_COMPLETION=0 opts out.
+ */
+export function commitOnCompletionEnabled(): boolean {
+	const env = process.env.JWC_COMMIT_ON_COMPLETION;
+	if (env !== undefined) return env !== "0" && env !== "false";
+	return true;
+}
+
+/**
+ * 260703 WP6b — mid-turn contiguous-prefix commit. Reuses the exact
+ * turn-boundary sweep (same stopper set: streaming component, pending tools,
+ * non-committable children — so it can never commit past live content or out
+ * of order), and every refusal lane degrades to today's behavior: the block
+ * stays in the virtual lane and the next boundary sweep retries. Refusals
+ * come free from TUI.commitLines (overlay open, frame overflowed, WP3b-min
+ * off-bottom/mux gate while streaming, width probe unresolved). COMMIT MODE
+ * ONLY: renderCommitted() forces the collapsed form, which is the committed
+ * contract for commit mode but would violate verbose permanence — verbose
+ * keeps its boundary-only cadence.
+ */
+export function commitFinalizedBacklogMidTurn(ctx: InteractiveModeContext): void {
+	if (!commitOnCompletionEnabled()) return;
+	if (!toolRenderModeIsCommit()) return;
+	commitFinalizedBacklog(ctx);
+}
+
 export function markLiveToggleEligible(component: unknown, eligible: boolean): void {
 	if (typeof component === "object" && component !== null) {
 		(component as LiveToggleEligible).liveToggleEligible = eligible;

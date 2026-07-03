@@ -18,6 +18,7 @@ import { getSymbolTheme, theme } from "../../modes/theme/theme";
 import type { InteractiveModeContext, TodoPhase } from "../../modes/types";
 import { CompactionProgressPresenter } from "../../modes/utils/compaction-progress";
 import {
+	commitFinalizedBacklogMidTurn,
 	commitLaneEnabled,
 	consumeSignatureCredit,
 	markLiveToggleEligible,
@@ -189,9 +190,13 @@ export class EventController {
 		this.ctx.liveToolContainer.removeChild(component);
 		component.setMinimized?.(true);
 		markLiveToggleEligible(component, true);
-		// 083.9 P4: stays interactive in the chat until the next prompt submit —
-		// the turn-boundary backlog sweep (commitFinalizedBacklog) commits it.
 		this.ctx.chatContainer.addChild(component);
+		// 260703 WP6b — commit-on-completion: the finalized prefix (previous
+		// settled segments + this collapsed tool) reaches the scrollback NOW;
+		// any refusal (overflow, overlay, off-bottom gate) leaves it in the
+		// virtual lane for the turn-boundary sweep exactly as before. Committed
+		// blocks are immutable — ctrl+o keeps toggling the still-live remainder.
+		commitFinalizedBacklogMidTurn(this.ctx);
 	}
 
 	#getReadGroup(): ReadToolGroupComponent {
