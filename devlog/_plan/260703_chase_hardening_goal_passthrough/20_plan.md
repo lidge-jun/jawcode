@@ -10,11 +10,11 @@ Work class: C3, cross-surface safety hardening (`edit`, `tools`, `extensibility`
 - Loop archetype: verifier defines done. This phase imports only deterministic safety behaviors with local regression tests.
 - Trigger: OMP chase card `20.038` groups hashline/edit recovery, tool argument/path coercion, custom tool/plugin exit guards, task/worktree isolation, and subprocess lifecycle hardening.
 - Goal: adopt the hardening pieces JWC can prove locally without changing public workflow semantics or adding new provider/plugin/task concepts.
-- Non-goals: no new workflow skill; no new task role; no broad plugin marketplace rewrite; no SSH/DAP process-manager rewrite in this phase; no adoption of OMP package names; no live network/process leak test that depends on external daemons.
+- Non-goals: no new workflow skill; no new task role; no broad plugin marketplace rewrite; no plugin marketplace cache-ordering change; no extension-agent discovery change; no SSH/DAP/subprocess process-manager rewrite in this phase; no adoption of OMP package names; no live network/process leak test that depends on external daemons.
 - Verifier: focused Bun tests covering path/header rejection, tool argument coercion, extension handler timeout/shutdown safety, task worktree path containment, plus existing adjacent tests; then `git diff --check`, `bun run check:tools`, and `bun run check:ts`.
 - Stop condition: every adopted slice has a behavior/regression test, B verifier returns DONE, C gates pass.
 - Memory artifact: this plan, A/B/C/D receipts beside it, and implementation commit hashes.
-- Expected terminal states: done (all selected hardening slices implemented/tested), noop (JWC already satisfies a selected slice with direct test evidence), blocked (a slice needs external daemon/live process infrastructure to verify), needs-human (a slice changes public semantics), budget-exhausted (partial selected slices with explicit remaining gap).
+- Expected terminal states: done (all selected hardening slices implemented/tested and explicitly deferred slices recorded), noop (JWC already satisfies a selected slice with direct test evidence), blocked (a selected slice needs external daemon/live process infrastructure to verify), needs-human (a selected slice changes public semantics), budget-exhausted (partial selected slices with explicit remaining gap).
 - Escalation condition: if a selected slice requires changing task role dispatch semantics, plugin API shape, or edit grammar accepted syntax beyond rejecting malformed/unsafe inputs, return to P/A before coding.
 
 ## Current-state evidence
@@ -77,15 +77,17 @@ MODIFY `packages/coding-agent/src/tools/jtd-utils.ts`:
 ```ts
 export function requireRecordToolArgs(value: unknown, toolName: string): Record<string, unknown>;
 export function rejectUnknownToolArgs(args: Record<string, unknown>, allowed: ReadonlySet<string>, toolName: string): void;
+export function allowedToolArgKeysFromWireSchema(schema: Record<string, unknown>): ReadonlySet<string> | null;
 ```
 
 - `requireRecordToolArgs()` rejects arrays, null, and primitives with a compact message.
 - `rejectUnknownToolArgs()` produces deterministic sorted unknown-field names.
+- `allowedToolArgKeysFromWireSchema()` reads canonical JSON Schema object `properties` after schema conversion and returns `null` when the schema is not a closed object shape this phase can safely validate.
 
 MODIFY `packages/coding-agent/src/extensibility/custom-tools/wrapper.ts`:
 
 - In `CustomToolAdapter.execute()`, call `requireRecordToolArgs(params, this.name)` before forwarding to `this.tool.execute()`.
-- For strict custom tools with object-like `parameters` containing `properties` and/or `optionalProperties`, build an allowed-key set from those schema fields and call `rejectUnknownToolArgs()`.
+- For strict custom tools, derive allowed keys from the canonical provider wire schema: call `toolWireSchema(this.tool)` from `@jawcode-dev/ai/utils/schema`, pass the result to `allowedToolArgKeysFromWireSchema()`, and call `rejectUnknownToolArgs()` only when the helper returns a key set. This covers Zod, zod-backed TypeBox, and raw JSON Schema through the existing schema owner instead of reading raw `parameters.properties` directly.
 - Do **not** coerce values or mutate `params`; this phase only rejects non-record and unknown-field custom-tool arguments at the third-party/custom-tool boundary.
 - Preserve existing forwarding order, `toolCallId`, `onUpdate`, `context`, and `signal` behavior.
 
@@ -96,7 +98,7 @@ NEW tests:
 - Integration tests through `CustomToolAdapter.execute()`:
   - accepts a record with declared keys and forwards it unchanged;
   - rejects primitive/array params before custom tool execution;
-  - rejects unknown keys for `strict: true` object-like custom tools;
+  - rejects unknown keys for `strict: true` Zod object, zod-backed TypeBox object, and raw JSON Schema object custom tools;
   - does not reject unknown keys for non-strict custom tools.
 
 Acceptance:
@@ -143,11 +145,16 @@ Acceptance:
 
 - Worktree path safety is tested through public worktree helpers, not private implementation exports added only for tests.
 
-### Cluster E — defer subprocess/SSH/DAP lifecycle to later split unless a local no-risk bug is found
+### Cluster E — explicit deferrals from the broad OMP card
 
-This phase explicitly does **not** rewrite `packages/coding-agent/src/ssh/*` or `packages/coding-agent/src/dap/*` process lifecycle. Those are high-risk and need their own P/A if a concrete leak is found.
+This phase explicitly defers the following `20.038` source clusters:
 
-B-stage may add a documentation note to the D summary listing this as deferred, but must not fake-close it.
+- plugin marketplace cache ordering / plugin loader cache invalidation;
+- extension-agent discovery safety;
+- SSH/DAP/subprocess process lifecycle leak hardening.
+
+These are not selected Phase 20 implementation slices. They require their own P/A cycles if pursued later. B-stage must record these deferrals in the build/check/done receipts and must not claim this phase closes them.
+
 
 ## Verification plan
 
@@ -172,8 +179,8 @@ C-stage will run affected focused tests plus `bun run check`.
 ## Acceptance criteria
 
 - Parser-level apply-patch path headers reject malformed/unsafe paths before preview/execution, and hashline streaming preview drops malformed path headers without unsafe preview entries, while valid relative paths with spaces remain accepted.
-- Tool argument record/unknown-field validation has a shared helper, independent tests, and `CustomToolAdapter.execute()` integration tests for strict/non-strict custom tools.
+- Tool argument record/unknown-field validation has a shared helper, independent tests, and `CustomToolAdapter.execute()` integration tests for strict/non-strict custom tools across Zod, zod-backed TypeBox, and raw JSON Schema object schemas.
 - Extension handler timeout/shutdown behavior is either hardened or explicitly proven as current behavior with regression tests; no unhandled late rejection can be introduced by a timeout path.
 - Task worktree paths are proven to stay under their root and cleanup cannot target outside-root paths.
-- SSH/DAP/subprocess lifecycle remains deferred unless B finds a local no-risk bug; deferral is recorded instead of claiming closure.
+- Plugin marketplace cache ordering, extension-agent discovery safety, and SSH/DAP/subprocess lifecycle hardening are explicitly deferred and recorded as not closed by this phase.
 - All adopted slices have regression tests; no broad lint-only closure.
