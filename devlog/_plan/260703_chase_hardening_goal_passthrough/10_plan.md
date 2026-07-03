@@ -70,7 +70,7 @@ NEW `packages/utils/test/glob.test.ts`:
 
 MODIFY `packages/utils/src/format.ts`:
 
-1. Add helper for integer compact units used by the current rounded K/M/B bands:
+1. Add helper for integer compact units used only by bounded below-next-suffix integer bands:
 
 ```ts
 function compactIntegerUnit(n: number, unit: number): string {
@@ -78,7 +78,7 @@ function compactIntegerUnit(n: number, unit: number): string {
 }
 ```
 
-2. Use `compactIntegerUnit()` only for the integer K/M/B bands (`10_000..1_000_000`, `10_000_000..1_000_000_000`, and `>=10_000_000_000`) so values below the next suffix never format as `1000K`, `1000M`, or `1000B`. Keep the existing `trim1()` decimal bands (`1_000..10_000`, `1_000_000..10_000_000`, `1_000_000_000..10_000_000_000`) unchanged.
+2. Use `compactIntegerUnit()` only for bounded integer transitions (`10_000..1_000_000` K-before-M and `10_000_000..1_000_000_000` M-before-B) so values below the next supported suffix never format as `1000K` or `1000M`. Keep the existing `trim1()` decimal bands (`1_000..10_000`, `1_000_000..10_000_000`, `1_000_000_000..10_000_000_000`) unchanged. Leave the unbounded `>=10_000_000_000` B branch on current `Math.round(n / 1_000_000_000)` behavior unless a later phase adds T suffixes.
 3. Add byte helper:
 
 ```ts
@@ -88,13 +88,15 @@ function formatByteUnit(bytes: number, unit: number): string {
 }
 ```
 
-4. Use byte helper in `formatBytes()` for KB/MB/GB bands.
+4. Use byte helper only for bounded byte transitions (KB-before-MB and MB-before-GB). Leave the unbounded GB branch on current `(bytes / (1024 * 1024 * 1024)).toFixed(1)` behavior unless a later phase adds TB suffixes.
 
 NEW `packages/utils/test/format.test.ts`:
 
 - `formatNumber(999_499) === "999K"` and `formatNumber(999_999) === "999K"`.
 - `formatNumber(999_999_999) === "999M"` and exact threshold values remain `1M`, `1B`.
+- Very large values preserve current unbounded behavior: `formatNumber(1_000_000_000_000) === "1000B"` unless a later phase adds T suffixes.
 - `formatBytes(1024 * 1024 - 1) === "1023.9KB"` and threshold values remain `1.0MB`, `1.0GB`.
+- Very large byte values preserve current unbounded behavior: `formatBytes(1024 ** 4) === "1024.0GB"` unless a later phase adds TB suffixes.
 
 ### Cluster C — edit UTF-8 BOM preservation
 
@@ -115,17 +117,18 @@ NEW `packages/coding-agent/test/edit-read-file.test.ts` or add to the nearest ed
 
 MODIFY `packages/coding-agent/src/web/search/providers/utils.ts`:
 
-- Change legacy `SEARCH_HARD_TIMEOUT_MS` to 300_000 and add `SEARCH_API_TIMEOUT_MS = 15_000`, `SEARCH_LLM_TIMEOUT_MS = 120_000`, `SearchTimeoutClass = "api" | "llm"`, `TIMEOUT_CLASS_MS`.
+- Keep `SEARCH_HARD_TIMEOUT_MS` at JWC's current 60_000 omitted/default ceiling, and add opt-in `SEARCH_API_TIMEOUT_MS = 15_000`, `SEARCH_LLM_TIMEOUT_MS = 120_000`, `SearchTimeoutClass = "api" | "llm"`, `TIMEOUT_CLASS_MS`. Do not adopt GJC's 300_000 omitted default in JWC; unclassified no-arg `withHardTimeout(signal)` callsites must retain today's 60s safety ceiling.
 - Change configured timeout state from always-set number to optional override.
 - Change `setSearchHardTimeoutMs(ms)` to accept `number | undefined`, clear on non-finite/non-positive values, and return `void` (or keep return only if current callsites require it; A-stage must verify).
 - Add `SearchTimeoutSettingSource` and `applyConfiguredSearchTimeout(settings)` so schema defaults do not silently reinstall uniform timeout.
-- Change `withHardTimeout(signal, msOrClass?: number | SearchTimeoutClass)` so explicit numbers win; configured override wins over class defaults; omitted uses legacy ceiling.
+- Change `withHardTimeout(signal, msOrClass?: number | SearchTimeoutClass)` so explicit numbers win; configured override wins over class defaults; class arguments use class defaults; omitted still uses the existing 60s legacy ceiling.
 
 MODIFY provider callsites under `packages/coding-agent/src/web/search/providers/`:
 
 - API-class: `brave.ts`, `duckduckgo.ts`, `exa.ts`, `jina.ts`, `parallel.ts`, `searxng.ts`, `synthetic.ts`, `tavily.ts`, `zai.ts`, and `packages/coding-agent/src/web/kagi.ts` use `withHardTimeout(..., "api")` unless they already pass an explicit timeout.
 - LLM-class: `perplexity.ts` use `"llm"` for LLM-mediated calls; `anthropic.ts`, `codex.ts`, `gemini.ts`, `xai.ts` preserve explicit `timeoutMs` behavior where present and otherwise use `"llm"`.
-- Kimi: preserve its current semantics unless A-stage confirms GJC's explicit 30s budget is directly compatible with JWC's provider implementation.
+- Kimi: preserve current transport semantics explicitly by passing a documented numeric ceiling compatible with its existing 30s API budget (for example 60_000, matching current JWC no-arg behavior), not the 15s API class and not an accidental omitted default.
+- Shared no-arg users outside provider callsites, especially `packages/coding-agent/src/web/parallel.ts`, are intentionally not changed by the class rollout and must continue to observe the 60s omitted default.
 
 MODIFY `packages/coding-agent/src/web/search/provider.ts`:
 
@@ -138,12 +141,13 @@ MODIFY `packages/coding-agent/src/web/search/provider.ts`:
 MODIFY `packages/coding-agent/src/web/search/index.ts`:
 
 - Add configurable `DDG_HEDGE_DELAY_MS` default, `setDdgHedgeDelayMs(ms?: number)` test hook.
-- In `executeSearch()`, when provider chain has a non-primary DuckDuckGo fallback, start a DuckDuckGo search in the background after a short delay while the primary is still running.
+- Define the hedge rule precisely: if the provider chain contains DuckDuckGo at any non-zero index, schedule exactly one DuckDuckGo hedge after `DDG_HEDGE_DELAY_MS` while the first non-DDG primary attempt is still running. The hedge is reused only after all earlier non-DDG providers attempted before DuckDuckGo fail; if another pre-DDG provider succeeds, the hedge is ignored/aborted. Do not start a new hedge after each provider.
 - If the primary succeeds first, abort/cancel/ignore the hedge.
 - If the primary fails after the hedge has settled, reuse the hedged DuckDuckGo result instead of starting DuckDuckGo cold.
 - Preserve user cancellation: `throwIfAborted(signal)` still exits immediately and must not turn into provider fallback.
 - Preserve final error formatting and source/citation formatting.
 - Replace the current `WebSearchTool.execute()` settings timeout wiring (`settings.get("web_search.timeout")` → `setSearchHardTimeoutMs(...)`) with `applyConfiguredSearchTimeout(this.#session.settings)` or equivalent source-aware logic so schema defaults do not override class defaults.
+- Update exposed timeout copy in `webSearchSchema` description, `providers/base.ts` parameter descriptions, and `settings-schema.ts` `web_search.timeout` description so user/model-facing text reflects class defaults plus explicit override instead of advertising one uniform 60s fast ceiling.
 
 NEW `packages/coding-agent/test/web/search/speed-improvements.test.ts`:
 
@@ -151,7 +155,9 @@ NEW `packages/coding-agent/test/web/search/speed-improvements.test.ts`:
 - Explicit `web_search.timeout` override applies only when settings source `has("web_search.timeout")` is true; unset clears override and leaves class defaults active.
 - Explicit millisecond argument to `withHardTimeout()` wins over configured/class defaults.
 - `resolveProviderChain()` skips repeated availability probes for the same storage/context/generation and re-probes after `clearResolvedChainCache()` or generation change.
+- Add a static callsite assertion test or fixture-backed review test that every named provider/Kagi timeout callsite uses `withHardTimeout(..., "api" | "llm")` or a documented explicit numeric timeout; Kimi and existing explicit `timeoutMs` providers are allowed exceptions.
 - Hedged DuckDuckGo: with fake provider chain `[slow failing primary, duckduckgo]`, DuckDuckGo starts before primary failure and final result is DuckDuckGo without a second DuckDuckGo call.
+- Longer hedge chain: with fake provider chain `[slow failing primary, second slow failing provider, duckduckgo]`, exactly one DuckDuckGo hedge starts while the first provider is still running and is reused only after both pre-DDG providers fail.
 - Primary success aborts/ignores hedge without surfacing warnings.
 
 ## Verification plan
@@ -161,7 +167,7 @@ Run focused tests:
 ```bash
 bun test packages/utils/test/glob.test.ts packages/utils/test/format.test.ts
 bun test packages/coding-agent/test/edit-read-file.test.ts
-bun test packages/coding-agent/test/web/search/speed-improvements.test.ts packages/coding-agent/test/tools/web-search-hard-timeout.test.ts packages/coding-agent/test/web/search/abort-and-timeout.test.ts
+bun test packages/coding-agent/test/web/search/speed-improvements.test.ts packages/coding-agent/test/tools/web-search-hard-timeout.test.ts packages/coding-agent/test/web/search/abort-and-timeout.test.ts packages/coding-agent/test/tools/web-search-parallel.test.ts
 ```
 
 Then gates:
@@ -177,9 +183,9 @@ C-stage will run affected focused tests plus `bun run check`.
 ## Acceptance criteria
 
 - `globPaths()` precompiles effective exclude globs once per call and preserves default `node_modules`/`.git` behavior with custom excludes.
-- `formatNumber()` never rounds below-threshold values into the next suffix, while exact thresholds still advance suffixes.
-- `formatBytes()` never rounds below-threshold byte values into the next unit, while exact thresholds still advance units.
+- `formatNumber()` never rounds below-threshold values into the next supported suffix (K→M, M→B), exact thresholds still advance suffixes, and very large values above the supported B range preserve current unbounded B behavior unless a later phase adds T suffixes.
+- `formatBytes()` never rounds below-threshold values into the next supported byte unit (KB→MB, MB→GB), exact thresholds still advance units, and very large values above the supported GB range preserve current unbounded GB behavior unless a later phase adds TB suffixes.
 - `readEditFileText()` preserves UTF-8 BOM for normal files; non-BOM and notebook behavior remain unchanged.
-- Web-search API-class providers, including Kagi's shared helper in `packages/coding-agent/src/web/kagi.ts`, use short class timeouts; LLM-mediated providers use longer class timeouts or explicit provider timeout where already supported; and user-configured timeout override semantics are tested through the actual `WebSearchTool.execute()` settings path.
+- Web-search API-class providers, including Kagi's shared helper in `packages/coding-agent/src/web/kagi.ts`, use short class timeouts; LLM-mediated providers use longer class timeouts or explicit provider timeout where already supported; Kimi uses an explicit transport timeout compatible with its existing 30s API budget; no-arg non-provider callsites such as `packages/coding-agent/src/web/parallel.ts` retain the 60s omitted default; and user-configured timeout override semantics are tested through the actual `WebSearchTool.execute()` settings path.
 - `resolveProviderChain()` caches chain resolution per AuthStorage/context/generation without changing provider ordering or DuckDuckGo terminal fallback semantics.
-- DuckDuckGo hedge improves slow-primary fallback without breaking cancellation, primary success, or final formatting.
+- DuckDuckGo hedge improves slow-primary fallback for two-provider and longer pre-DDG chains without breaking cancellation, primary success, or final formatting.
