@@ -253,6 +253,7 @@ describe("commitFinalizedBacklogMidTurn (260703 WP6b)", () => {
 
 	it("commits the finalized prefix mid-turn and never passes the streaming component", () => {
 		settings.set("tool.renderMode", "commit");
+		process.env.JWC_COMMIT_ON_COMPLETION = "1"; // default OFF since the 260704 rollback
 		const { ctx, calls, children, streaming } = makeMidTurnCtx();
 		commitFinalizedBacklogMidTurn(ctx);
 		expect(calls).toEqual([["done-a"], ["done-b"]]);
@@ -261,9 +262,8 @@ describe("commitFinalizedBacklogMidTurn (260703 WP6b)", () => {
 		expect(streaming.committed).toBe(false);
 	});
 
-	it("JWC_COMMIT_ON_COMPLETION=0 keeps the turn-boundary-only cadence", () => {
+	it("stays on the turn-boundary-only cadence by default (260704 rollback)", () => {
 		settings.set("tool.renderMode", "commit");
-		process.env.JWC_COMMIT_ON_COMPLETION = "0";
 		const { ctx, calls } = makeMidTurnCtx();
 		commitFinalizedBacklogMidTurn(ctx);
 		expect(calls).toEqual([]);
@@ -271,6 +271,7 @@ describe("commitFinalizedBacklogMidTurn (260703 WP6b)", () => {
 
 	it("verbose mode never commits mid-turn (renderCommitted would force-collapse it)", () => {
 		settings.set("tool.renderMode", "verbose");
+		process.env.JWC_COMMIT_ON_COMPLETION = "1";
 		const { ctx, calls } = makeMidTurnCtx();
 		commitFinalizedBacklogMidTurn(ctx);
 		expect(calls).toEqual([]);
