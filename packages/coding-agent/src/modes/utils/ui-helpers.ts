@@ -3,6 +3,7 @@ import type { AssistantMessage, ImageContent, Message } from "@jawcode-dev/ai";
 import { type Component, Spacer, Text, TruncatedText, ViewportFill } from "@jawcode-dev/tui";
 import { APP_NAME } from "@jawcode-dev/utils";
 import { settings } from "../../config/settings";
+import { isJawBrand } from "../../discovery/helpers";
 import { AssistantMessageComponent } from "../../modes/components/assistant-message";
 import { BashExecutionComponent } from "../../modes/components/bash-execution";
 import { BranchSummaryMessageComponent } from "../../modes/components/branch-summary-message";
@@ -53,6 +54,18 @@ export function commitLaneEnabled(): boolean {
 	const env = process.env.JWC_COMMIT_LANE;
 	if (env !== undefined) return env !== "0" && env !== "false";
 	return true;
+}
+
+/**
+ * 99.20.04 / 260703 WP6a-B — tool render mode. `commit` (jaw brand default):
+ * live-zone previews + collapsed-on-completion + ctrl+o current-turn
+ * expansion. `verbose` (engine default, gjc upstream parity): every tool and
+ * thinking block renders fully expanded, permanently — no minimize on the
+ * next tool, no fold toggle.
+ */
+export function toolRenderModeIsCommit(): boolean {
+	const mode = settings.get("tool.renderMode");
+	return (mode ?? (isJawBrand() ? "commit" : "verbose")) === "commit";
 }
 
 export function markLiveToggleEligible(component: unknown, eligible: boolean): void {

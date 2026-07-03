@@ -5,7 +5,6 @@ import { parseRateLimitReason } from "@jawcode-dev/ai";
 import { type Component, Loader, TERMINAL, Text } from "@jawcode-dev/tui";
 import { logger } from "@jawcode-dev/utils";
 import { settings } from "../../config/settings";
-import { isJawBrand } from "../../discovery/helpers";
 import { AssistantMessageComponent } from "../../modes/components/assistant-message";
 import {
 	ReadToolGroupComponent,
@@ -23,6 +22,7 @@ import {
 	consumeSignatureCredit,
 	markLiveToggleEligible,
 	takeFirstSignature,
+	toolRenderModeIsCommit,
 } from "../../modes/utils/ui-helpers";
 import type { PlanApprovalDetails } from "../../plan-mode/approved-plan";
 import type { AgentSessionEvent } from "../../session/agent-session";
@@ -175,8 +175,7 @@ export class EventController {
 
 	/** 99.20.04 — unset setting falls back to the brand default (jwc: commit). */
 	#commitFoldingEnabled(): boolean {
-		const mode = settings.get("tool.renderMode");
-		return (mode ?? (isJawBrand() ? "commit" : "verbose")) === "commit";
+		return toolRenderModeIsCommit();
 	}
 
 	/**
@@ -368,13 +367,14 @@ export class EventController {
 			this.#segmentStartIndex = 0;
 			this.#resetReadGroup();
 			// 083.1: a new assistant message means the previous tool batch is done —
-			// collapse its last tool too (new tools in this message start a new chain).
-			this.ctx.lastToolComponent?.setMinimized?.(true);
+			// collapse its last tool too (new tools in this message start a new
+			// chain). 260703 WP6a-B: verbose mode never minimizes (gjc parity).
+			if (this.#commitFoldingEnabled()) this.ctx.lastToolComponent?.setMinimized?.(true);
 			this.ctx.lastToolComponent = undefined;
 			this.ctx.streamingComponent = new AssistantMessageComponent(undefined, this.ctx.hideThinkingBlock, () =>
 				this.ctx.ui.requestRender(),
 			);
-			this.ctx.streamingComponent.setThinkingExpanded(this.ctx.thinkingExpanded);
+			this.ctx.streamingComponent.setThinkingExpanded(this.#commitFoldingEnabled() ? this.ctx.thinkingExpanded : true);
 			this.ctx.streamingComponent.setStreaming(true);
 			markLiveToggleEligible(this.ctx.streamingComponent, true);
 			this.ctx.streamingMessage = event.message;
@@ -453,15 +453,18 @@ export class EventController {
 					.some(c => (c.type === "text" && c.text.trim()) || (c.type === "thinking" && c.thinking.trim()));
 				if (hasPostToolContent) {
 					this.#segmentStartIndex = lastToolIndex + 1;
-					// The tools above this segment are done — collapse the last one (083.1).
-					this.ctx.lastToolComponent?.setMinimized?.(true);
+					// The tools above this segment are done — collapse the last one
+					// (083.1). 260703 WP6a-B: verbose never minimizes (gjc parity).
+					if (this.#commitFoldingEnabled()) this.ctx.lastToolComponent?.setMinimized?.(true);
 					this.ctx.lastToolComponent = undefined;
 					// The previous segment is settled — its trailing thinking collapses (083.5).
 					this.ctx.streamingComponent.setStreaming(false);
 					this.ctx.streamingComponent = new AssistantMessageComponent(undefined, this.ctx.hideThinkingBlock, () =>
 						this.ctx.ui.requestRender(),
 					);
-					this.ctx.streamingComponent.setThinkingExpanded(this.ctx.thinkingExpanded);
+					this.ctx.streamingComponent.setThinkingExpanded(
+						this.#commitFoldingEnabled() ? this.ctx.thinkingExpanded : true,
+					);
 					this.ctx.streamingComponent.setStreaming(true);
 					markLiveToggleEligible(this.ctx.streamingComponent, true);
 					this.ctx.chatContainer.addChild(this.ctx.streamingComponent);
