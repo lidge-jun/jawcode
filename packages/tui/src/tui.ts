@@ -360,6 +360,15 @@ export class TUI extends Container {
 	 * truncated pixels into canonical scrollback forever.
 	 */
 	#ambiguousWidthResolved = true;
+	/**
+	 * 260703 WP3b-min — true while a high-churn output phase is in progress
+	 * (the embedding app streams a response). While streaming and the user
+	 * may be scrolled off-bottom, DECSTBM history insertions fight native
+	 * scrolling (the top-pinned-block symptom) — new commits then defer to
+	 * the virtual lane. Agent-agnostic on purpose: the TUI stays
+	 * message-agnostic.
+	 */
+	#streamingActive = false;
 	#showHardwareCursor = $flag("PI_HARDWARE_CURSOR");
 	#clearOnShrink = $flag("PI_CLEAR_ON_SHRINK"); // Clear empty rows when content shrinks (default: off)
 	#maxLinesRendered = 0; // Line count from last render, used for viewport calculation
@@ -1702,6 +1711,57 @@ export class TUI extends Container {
 	 * unavailable (no fill region, overlay open, unsupported terminal); the
 	 * caller falls back to virtual-lane behavior (chatContainer append).
 	 */
+	/**
+	 * 260703 WP3b-min — mark the boundaries of a high-churn output phase.
+	 * While active, the history lane defers new commits whenever the user may
+	 * be scrolled off-bottom (see #canUseHistoryLaneNow). Callers should
+	 * flushHistoryLane() at both boundaries: before streaming so the phase
+	 * never starts with parked rows (which would force mandatory mid-stream
+	 * drains), and after it so deferred content reaches the scrollback in one
+	 * discrete write.
+	 */
+	setStreamingActive(active: boolean): void {
+		this.#streamingActive = active;
+	}
+
+	/**
+	 * 260703 WP3b-min — the gating policy (GPT Pro round-5 spec): an overlay
+	 * always blocks; outside a streaming phase the lane is free; while
+	 * streaming, a known off-bottom viewport blocks, and an UNKNOWN viewport
+	 * blocks only in multiplexers (tmux/screen pane history is where DECSTBM
+	 * churn visibly fights user scrolling — direct terminals allow in v1;
+	 * JWC_TUI_DEFER_UNKNOWN_BOTTOM=1 opts into the conservative policy).
+	 */
+	#canUseHistoryLaneNow(): boolean {
+		if (this.overlayStack.length > 0) return false;
+		if (!this.#streamingActive) return true;
+		const bottom = this.terminal.isViewportAtBottom?.();
+		if (bottom === false) return false;
+		if (bottom === undefined && (isMultiplexerSession() || $flag("JWC_TUI_DEFER_UNKNOWN_BOTTOM"))) return false;
+		return true;
+	}
+
+	/**
+	 * 260703 WP3b-min — push any committed rows still parked on screen into
+	 * the terminal scrollback in one discrete write, then resync. Called at
+	 * streaming boundaries so per-growth-frame drains (which mutate the top
+	 * region while the user may be reading history) become rare. Safe by the
+	 * mirror-blank contract: the flushed region is logically blank in the
+	 * mirrors, and the resync repaints the frame absolutely.
+	 */
+	flushHistoryLane(): void {
+		if (this.#stopped || !this.terminalAvailable) return;
+		if (this.#historyLane !== "standard") return;
+		if (this.overlayStack.length > 0) return;
+		if (this.#committedScreenRows <= 0) return;
+		const flushBottom = this.#committedBottomRow > 0 ? this.#committedBottomRow : this.#lastFillRows;
+		if (flushBottom <= 0) return;
+		this.#scrollOutCommittedRows(flushBottom, flushBottom);
+		this.#committedScreenRows = 0;
+		this.#committedBottomRow = 0;
+		this.resyncViewport("history lane flush");
+	}
+
 	commitLines(lines: string[]): boolean {
 		if (this.#historyLane !== "standard" || this.#stopped || !this.terminalAvailable) return false;
 		if (this.overlayStack.length > 0) return false;
@@ -1709,6 +1769,10 @@ export class TUI extends Container {
 		// width tables may still change — committed pixels are immutable, so
 		// defer to the virtual lane until the mode is resolved (~150ms max).
 		if (!this.#ambiguousWidthResolved) return false;
+		// 260703 WP3b-min: while streaming with the user possibly off-bottom,
+		// creating NEW parked rows would guarantee scroll-fighting drains —
+		// defer to the virtual lane (the turn-boundary sweep retries).
+		if (!this.#canUseHistoryLaneNow()) return false;
 		// 260703 v3: while a realign-parked block sits at rows 1..bottom, new
 		// commits must insert DIRECTLY below it — inserting at the (taller) raw
 		// fill bottom would fragment the committed region around the
@@ -1974,6 +2038,14 @@ export class TUI extends Container {
 		// below the block can never enter the scrollback.
 		const historyBottom = this.#committedBottomRow > 0 ? this.#committedBottomRow : prevFillRows;
 		if (this.#committedScreenRows > 0 && this.#lastFillRows < historyBottom) {
+			// 260703 WP3b-min: this drain is MANDATORY even while the history
+			// lane is gated — the live zone is about to paint over the parked
+			// rows, and skipping the scroll-out would erase committed pixels
+			// (the class WP3a fixed). Gating prevents NEW parked rows instead;
+			// record when the corner still fires so the policy is observable.
+			if (renderMetrics.enabled && !this.#canUseHistoryLaneNow()) {
+				renderMetrics.recordCounter("tui.historyLane", "mandatoryDrainWhileBlocked", 1);
+			}
 			this.#scrollOutCommittedRows(historyBottom - this.#lastFillRows, historyBottom);
 			this.#committedScreenRows = Math.min(this.#committedScreenRows, this.#lastFillRows);
 			this.#committedBottomRow =

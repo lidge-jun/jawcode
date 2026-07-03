@@ -271,6 +271,12 @@ export class EventController {
 	}
 
 	async #handleAgentStart(_event: Extract<AgentSessionEvent, { type: "agent_start" }>): Promise<void> {
+		// 260703 WP3b-min: flush parked committed rows BEFORE marking the
+		// streaming phase (the flush itself must not be gated), so streaming
+		// never starts with parked rows that would force scroll-fighting
+		// mid-stream drains while the user reads history.
+		this.ctx.ui.flushHistoryLane?.();
+		this.ctx.ui.setStreamingActive?.(true);
 		this.#lastIntent = undefined;
 		this.#readToolCallArgs.clear();
 		this.#readToolCallAssistantComponents.clear();
@@ -825,6 +831,10 @@ export class EventController {
 	}
 
 	async #handleAgentEnd(_event: Extract<AgentSessionEvent, { type: "agent_end" }>): Promise<void> {
+		// 260703 WP3b-min: streaming off FIRST (unknown-mux no longer blocks),
+		// then one discrete flush moves deferred history into the scrollback.
+		this.ctx.ui.setStreamingActive?.(false);
+		this.ctx.ui.flushHistoryLane?.();
 		if (this.ctx.loadingAnimation) {
 			this.ctx.loadingAnimation.stop();
 			this.ctx.loadingAnimation = undefined;

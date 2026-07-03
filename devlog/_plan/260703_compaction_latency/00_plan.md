@@ -36,7 +36,7 @@
   **skips hydrating kept messages** when `replacementHistory` exists (`:706-717`); the textual
   summary is only the cross-provider fallback + expanded display. The remote `compactionItem`
   may itself carry plaintext (`type: "compaction_summary"`, `summary?: string` —
-  `openai.ts:39-43,510-514`).
+  `packages/agent/src/compaction/openai.ts:39-43,510-514`).
 - Effort support varies by model: `GEMINI_3_PRO_EFFORTS = [Low, High]`,
   `GPT_5_1_CODEX_MINI_EFFORTS = [Medium, High]` (packages/ai/src/model-thinking.ts:47,53).
   OpenAI path `resolveOpenAiReasoningEffort` uses `requireSupportedEffort` which **throws** on
@@ -79,21 +79,42 @@ All changes in `packages/agent/src/compaction/compaction.ts` unless noted.
 
 In `compact()` (:1165-1230):
 - Build `shortSummaryPromise = generateShortSummary(recentMessages, previousSummary, ...)`
-  (NOTE: `previousSummary`, not the fresh summary) BEFORE awaiting the main summary work,
-  then `Promise.all` with the main-summary branch.
-- Progress: emit segment `parallel_local_summaries` (already exists for the split-turn case)
-  when both run concurrently; keep `short_summary` segment for the remote-path case only.
-- Failure isolation: short-summary rejection must not fail compaction — catch and log,
-  return `shortSummary: undefined` (display degrades gracefully per consumer facts above).
+  (NOTE: `previousSummary`, not the fresh summary) BEFORE awaiting the main summary work.
+  Promise creation order (main first, short second) preserves the synchronous
+  `completeSimple` call order that `mockResolvedValueOnce` chains in existing tests depend on.
+- **Failure policy (audit fix):** attach `.catch(err => { logger.warn(...); return undefined })
+  ` to `shortSummaryPromise` AT CREATION — this (a) isolates short-summary failure
+  (compaction returns `shortSummary: undefined`), and (b) prevents an unhandled rejection
+  when the MAIN summary throws first and `compact()` rethrows without awaiting the short
+  promise. Main-summary failure semantics unchanged: it propagates; the in-flight short call
+  is left to settle harmlessly (same `signal` aborts both on user cancel; a non-abort main
+  failure does not cancel it — accepted, it is a ≤512-token call).
+- **Progress (audit fix):** the parallel short-summary call gets `onProgress: undefined` so
+  `generateShortSummary`'s internal `short_summary`(82%) emit (compaction.ts:902-909) never
+  interleaves with `local_summary` (hold 81) — avoiding the presenter percent-cap regression
+  (compaction-progress.ts:153-161). Instead `compact()` emits one
+  `parallel_local_summaries` update before awaiting. The `short_summary` segment remains only
+  where short summary runs alone (remote early-return path).
 
-### ④ Remote-success early return (MODIFY)
+### ④ Remote-success skip of local summarization (MODIFY)
 
-In `compact()` remote branch (:1124-1163):
-- On `requestOpenAiRemoteCompaction` success where `remote.compactionItem.type === "compaction_summary"`
-  and `remote.compactionItem.summary` is a non-empty string:
-  - `summary = remote.compactionItem.summary` (then `upsertFileOperations` as today),
-  - await the parallel `shortSummaryPromise`,
-  - return early — skip local `generateSummary` entirely.
+In `compact()` remote branch (:1124-1163) — restructured as a BRANCH into the common
+finalization tail, NOT a literal early return (audit fix: `upsertFileOperations`, `details`,
+`firstKeptEntryId`, `tokensBefore` in :1232-1247 must run on every path):
+- On `requestOpenAiRemoteCompaction` success where
+  `remote.compactionItem.type === "compaction_summary"` and
+  `remote.compactionItem.summary.trim().length >= MIN_REMOTE_SUMMARY_CHARS` (new named
+  constant, 80 — sanity floor against degenerate/empty server summaries):
+  set `summary = remote.compactionItem.summary` and SKIP local `generateSummary`; flow
+  continues into the shared tail (await parallel short summary → `upsertFileOperations` →
+  return full `CompactionResult` incl. `preserveData`).
+- **Residual risk (audit finding, accepted with mitigation):** repo code cannot prove the
+  server plaintext matches the structured local summary shape. Exposure is limited to
+  cross-provider switch + fork seeds (same-provider replay uses native items, never the text
+  — openai-responses.ts:587-598, openai-codex-responses.ts:2604-2616). Mitigations: the
+  length floor above, plus the summary text is wrapped by `renderCompactionSummaryContext`
+  exactly like local summaries. Below-floor or non-plaintext results fall through to local
+  summarization (behavior unchanged).
 - Encrypted-only success (`type: "compaction"`): behavior unchanged (local summary still
   generated as cross-provider fallback) — conservative; revisit after telemetry.
 - Remote failure: unchanged fallback to local summarization.
