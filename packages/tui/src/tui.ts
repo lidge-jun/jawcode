@@ -308,6 +308,16 @@ export class TUI extends Container {
 	#committedBottomRow = 0;
 	/** True once any line was committed — the scrollback is then canonical and 3J is forbidden. */
 	#hasCommittedHistory = false;
+	/**
+	 * 260703 WP5 — sticky: true once an overflowing frame was PHYSICALLY
+	 * printed/scrolled (above-viewport rows exist as real terminal history).
+	 * Multiplexer clearing replays downgrade to a viewport repaint only after
+	 * this point — downgrading a first-ever overflow render instead LOSES the
+	 * rows for good (no 3J-less path ever materializes them; mux golden repro).
+	 * Never reset: #restoreOverflowFloor zeroes the floor on every no-sentinel
+	 * render, so the floor cannot serve as this memory for legacy frames.
+	 */
+	#hasMaterializedOverflow = false;
 	/** Fill rows at the top of the frame as last painted (= history region height). */
 	#lastFillRows = 0;
 	#renderTimer: NodeJS.Timeout | undefined;
@@ -1658,6 +1668,7 @@ export class TUI extends Container {
 	#raiseOverflowFloor(frameLength: number, height: number): void {
 		if (frameLength > height) {
 			this.#overflowFloor = Math.max(this.#overflowFloor, frameLength);
+			this.#hasMaterializedOverflow = true;
 		}
 	}
 
@@ -1763,11 +1774,15 @@ export class TUI extends Container {
 			// overflowing frame pushes a duplicate copy of every above-viewport
 			// row into the scrollback. Repaint the visible viewport instead;
 			// above-viewport pixels stay as immutable history.
+			// 260703 WP5: a multiplexer downgrades only AFTER something was
+			// physically materialized — downgrading the first-ever overflow
+			// render silently drops the above-viewport rows from the pane
+			// history instead of preventing a duplicate (there is none yet).
 			if (
 				clear &&
 				newLines.length > height &&
 				!useLegacyMultiplexerFullRender() &&
-				(isMultiplexerSession() || this.#hasCommittedHistory)
+				(this.#hasCommittedHistory || (isMultiplexerSession() && this.#hasMaterializedOverflow))
 			) {
 				viewportRepaint(`${reason} (scrollback-safe downgrade)`);
 				return;
@@ -1813,6 +1828,7 @@ export class TUI extends Container {
 			// A full render realigns physical screen and frame — the overflow
 			// floor restarts from this frame's length (260630).
 			this.#overflowFloor = newLines.length > height ? newLines.length : 0;
+			if (newLines.length > height) this.#hasMaterializedOverflow = true;
 			this.#viewportTopRow = Math.max(0, this.#maxLinesRendered - height);
 			this.#previousLines = newLines;
 			this.#previousWidth = width;

@@ -1,4 +1,6 @@
 termux-line-00
+termux-line-01
+termux-line-00
 termux-keyboard-height
 termux-line-02
 termux-line-03
