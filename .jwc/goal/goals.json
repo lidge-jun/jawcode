@@ -1,20 +1,20 @@
 {
   "version": 1,
-  "brief": "(AI-driven goal planning pending refinement)\nhint: 커밋하면서 전부 pabcd 반복하면서 진행 클린하게 유지하면서",
+  "brief": "(AI-driven goal planning pending refinement)\nhint: openai는 codex에서 알아서 관리하니까 상관없어 그런거 전부 pabcd 반복해서 구현해놔",
   "jwcGoalMode": "aggregate",
-  "jwcObjective": "Run the chase hardening and /goal state-replacement work through clean PABCD loops, committing verified documentation/planning changes first and then proceeding phase-by-phase with explicit checks while preserving unrelated worktree changes.",
+  "jwcObjective": "Complete the durable goal plan in .jwc/goal/goals.json, including later accepted/appended stories, under the original brief constraints; use .jwc/goal/ledger.jsonl as the audit trail.",
   "goals": [
     {
       "id": "G001",
       "title": "(AI-driven goal planning pending refinement)",
-      "objective": "Run the chase hardening and /goal state-replacement work through clean PABCD loops, committing verified documentation/planning changes first and then proceeding phase-by-phase with explicit checks while preserving unrelated worktree changes.",
+      "objective": "(AI-driven goal planning pending refinement)\nhint: openai는 codex에서 알아서 관리하니까 상관없어 그런거 전부 pabcd 반복해서 구현해놔",
       "status": "active",
-      "createdAt": "2026-07-03T10:53:20.027Z",
-      "updatedAt": "2026-07-03T14:28:13.127Z",
-      "startedAt": "2026-07-03T10:53:20.034Z",
-      "evidence": "Phase 30 C passed after retry; final tests 86 pass; bun run check pass; bun run check:ts pass; adversarial review CLEAR; devlog 30.7_c_check.md"
+      "createdAt": "2026-07-03T16:41:11.912Z",
+      "updatedAt": "2026-07-03T16:57:03.211Z",
+      "startedAt": "2026-07-03T16:41:11.921Z",
+      "evidence": "pabcd a→b (audit=fail, verification=pending); /Users/jun/Developer/new/700_projects/jawcode/.jwc/state/pabcd-state.json"
     }
   ],
-  "createdAt": "2026-07-03T10:53:20.027Z",
-  "updatedAt": "2026-07-03T14:28:13.127Z"
+  "createdAt": "2026-07-03T16:41:11.912Z",
+  "updatedAt": "2026-07-03T16:57:03.211Z"
 }

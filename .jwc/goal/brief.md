@@ -1,2 +1,2 @@
 (AI-driven goal planning pending refinement)
-hint: 커밋하면서 전부 pabcd 반복하면서 진행 클린하게 유지하면서
+hint: openai는 codex에서 알아서 관리하니까 상관없어 그런거 전부 pabcd 반복해서 구현해놔
