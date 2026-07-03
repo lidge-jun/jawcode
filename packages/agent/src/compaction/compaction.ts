@@ -7,6 +7,7 @@
 
 import {
 	type AssistantMessage,
+	clampThinkingLevelForModel,
 	Effort,
 	type Message,
 	type MessageAttribution,
@@ -777,7 +778,11 @@ export async function generateSummary(
 			maxTokens,
 			signal,
 			apiKey,
-			reasoning: Effort.High,
+			// Summarization is extraction, not reasoning — a High thinking budget
+			// dominates compaction wall-clock without improving the summary.
+			// Clamp per model: fixed literals below High throw on models with
+			// narrow effort support (requireSupportedEffort).
+			reasoning: clampThinkingLevelForModel(model, Effort.Low),
 			initiatorOverride: options?.initiatorOverride,
 			metadata: options?.metadata,
 		},
