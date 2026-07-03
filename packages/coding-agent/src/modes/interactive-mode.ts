@@ -519,13 +519,6 @@ export class InteractiveMode implements InteractiveModeContext {
 		const startupQuiet = settings.get("startup.quiet");
 		this.#welcomeComponent = undefined;
 
-		// 260704 gap fix: the fill sentinel is the FIRST frame child, so the
-		// blank pad sits ABOVE the preamble instead of between the banner and
-		// the chat (the fresh-session mega-gap), and #expandViewportFill's
-		// `first === 0` condition holds from the very first frame — the commit
-		// lane is alive before the preamble is committed.
-		this.ui.addChild(this.#viewportFill);
-
 		for (const warning of this.session.configWarnings) {
 			this.ui.addChild(new Text(theme.fg("warning", `Warning: ${warning}`), 1, 0));
 			this.ui.addChild(new Spacer(1));
@@ -583,6 +576,15 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.ui.addChild(this.statusContainer);
 		this.ui.addChild(this.todoContainer);
 		this.ui.addChild(this.btwContainer);
+		// 260704 FINAL FORM (top-flow): the fill sits BETWEEN the transcript and
+		// the composer cluster. Content flows top-down under the banner like a
+		// standard terminal; the only blank region is the shrinking pad above
+		// the pinned composer. Side effect (intended): the sentinel is no
+		// longer frame line 0, so #lastFillRows stays 0 and the mid-turn
+		// commit WRITE lane is inert — history is owned by the proven
+		// turn-boundary realign lane (as-streamed pixels, no blank traffic,
+		// no mid-screen parked blocks). All gap producers die with it.
+		this.ui.addChild(this.#viewportFill);
 		this.ui.addChild(new Spacer(1)); // Breathing room between the last response and the composer cluster.
 		this.ui.addChild(this.statusLine); // Main status rail + hook statuses; composer chrome is rendered by the editor — attached directly below the rail, no gap.
 		this.ui.addChild(this.hookWidgetContainerAbove);
