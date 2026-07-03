@@ -10,11 +10,11 @@
       "objective": "Run the chase hardening and /goal state-replacement work through clean PABCD loops, committing verified documentation/planning changes first and then proceeding phase-by-phase with explicit checks while preserving unrelated worktree changes.",
       "status": "active",
       "createdAt": "2026-07-03T10:53:20.027Z",
-      "updatedAt": "2026-07-03T13:15:04.476Z",
+      "updatedAt": "2026-07-03T13:23:00.995Z",
       "startedAt": "2026-07-03T10:53:20.034Z",
-      "evidence": "Phase 20 D summary recorded; devlog/_plan/260703_chase_hardening_goal_passthrough/20.8_d_done_summary.md; MOC phase 20 done and phase 30 active"
+      "evidence": "Phase 30 P plan finalized; devlog/_plan/260703_chase_hardening_goal_passthrough/30_plan.md; critic OKAY .jwc/plans/planphase/2026-07-02-1325-8f6b/stage-30-critic.md; final .jwc/plans/planphase/2026-07-02-1325-8f6b/stage-30-final.md"
     }
   ],
   "createdAt": "2026-07-03T10:53:20.027Z",
-  "updatedAt": "2026-07-03T13:15:04.476Z"
+  "updatedAt": "2026-07-03T13:23:00.995Z"
 }
