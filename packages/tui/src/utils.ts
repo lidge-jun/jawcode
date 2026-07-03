@@ -2,6 +2,7 @@ import {
 	Ellipsis,
 	type ExtractSegmentsResult,
 	extractSegments as nativeExtractSegments,
+	setAmbiguousWidthWide as nativeSetAmbiguousWidthWide,
 	sliceWithWidth as nativeSliceWithWidth,
 	truncateToWidth as nativeTruncateToWidth,
 	wrapTextWithAnsi as nativeWrapTextWithAnsi,
@@ -109,6 +110,31 @@ function normalizeForWidth(str: string): string {
 	const normalized = str.normalize("NFC");
 	return normalized === str ? str : normalized;
 }
+
+/**
+ * East Asian Ambiguous width policy (260703 WP2.5). Terminals resolve EAW-A
+ * characters (…, §, ·) by context — 1 cell in non-CJK setups, 2 in
+ * CJK-leaning ones. The TUI probes the terminal at startup (CPR round-trip)
+ * and mirrors the answer BOTH into Bun.stringWidth (visibleWidth below) and
+ * into the native width table (pi-natives — truncate/wrap/slice/segments),
+ * so padding and truncation can never disagree about a character's width.
+ */
+let ambiguousIsNarrow = true;
+
+export function setAmbiguousWidthMode(mode: "narrow" | "wide"): void {
+	ambiguousIsNarrow = mode === "narrow";
+	try {
+		nativeSetAmbiguousWidthWide(mode === "wide");
+	} catch {
+		// Native addon unavailable (loader stub throws). Consistency holds:
+		// every native text op throws the same way, so no mixed-width layout
+		// can be produced from this state.
+	}
+}
+
+export function getAmbiguousWidthMode(): "narrow" | "wide" {
+	return ambiguousIsNarrow ? "narrow" : "wide";
+}
 export function visibleWidthRaw(str: string): number {
 	if (!str) {
 		return 0;
@@ -134,7 +160,8 @@ export function visibleWidthRaw(str: string): number {
 	}
 
 	const normalized = normalizeForWidth(str);
-	const sw = typeof Bun !== "undefined" ? Bun.stringWidth : (s: string) => s.length;
+	const sw =
+		typeof Bun !== "undefined" ? (s: string) => Bun.stringWidth(s, { ambiguousIsNarrow }) : (s: string) => s.length;
 	if (tabCount === 0) return sw(normalized);
 	return sw(normalized.replaceAll("\t", " ".repeat(getDefaultTabWidth())));
 }

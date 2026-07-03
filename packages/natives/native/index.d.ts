@@ -1271,6 +1271,12 @@ export interface SearchResult {
   error?: string
 }
 
+/**
+ * Select the East Asian Ambiguous width policy for all text measurement.
+ * `wide=true` renders EAW-A characters as 2 cells (CJK context).
+ */
+export declare function setAmbiguousWidthWide(wide: boolean): void
+
 /** Options for executing a shell command via brush-core. */
 export interface ShellExecuteOptions {
   /** Command string to execute in the shell. */

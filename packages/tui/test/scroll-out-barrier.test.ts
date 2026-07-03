@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { type Component, TUI, ViewportFill } from "@jawcode-dev/tui";
 import { VirtualTerminal } from "./virtual-terminal";
 
@@ -10,6 +10,21 @@ import { VirtualTerminal } from "./virtual-terminal";
  * mirrors. The barrier finishes every such pass with the absolute viewport
  * repaint. Plan: devlog/_plan/260703_tui_resize_stability/30_wp3a.
  */
+
+let previousTerm: string | undefined;
+
+beforeEach(() => {
+	previousTerm = process.env.TERM;
+	process.env.TERM = "xterm-256color";
+});
+
+afterEach(() => {
+	if (previousTerm === undefined) {
+		delete process.env.TERM;
+	} else {
+		process.env.TERM = previousTerm;
+	}
+});
 
 class MutableContent implements Component {
 	#lines: string[];
@@ -108,6 +123,39 @@ describe("scroll-out repaint barrier (260703 WP3a)", () => {
 		const i0 = all.indexOf("c-0");
 		expect(all.indexOf("c-1")).toBe(i0 + 1);
 		expect(all.indexOf("c-2")).toBe(i0 + 2);
+		tui.stop();
+	});
+
+	it("overlay + ordinary committed rows + growth: flushed fully, never erased or duplicated", async () => {
+		const { term, content, tui } = setup(12, lines("live", 2));
+		await flushRender(term);
+		expect(tui.commitLines(["c-0", "c-1"])).toBe(true);
+		await term.flush();
+
+		// Ordinary (non-parked) committed rows, then an overlay opens…
+		const overlay = {
+			render: () => ["OVERLAY"],
+			invalidate: () => {},
+		};
+		tui.showOverlay(overlay, { anchor: "bottom-center", width: 10 });
+		await flushRender(term);
+
+		// …and the live zone grows while it is open: the growth scroll-out
+		// fires with the overlay present. Bottom-aligned committed rows need
+		// flushBottom (not #committedScreenRows) scrolls to cross row 1 —
+		// the round-4 review found the shorter count left tail rows for the
+		// full repaint to erase.
+		content.setLines(lines("live", 6));
+		tui.requestRender();
+		await flushRender(term);
+
+		const all = term.getScrollBuffer().filter(l => l.trim() !== "" && l.trim() !== "OVERLAY");
+		for (const marker of ["c-0", "c-1"]) {
+			const count = all.filter(l => l === marker).length;
+			expect(`${marker}:${count}`).toBe(`${marker}:1`);
+		}
+		const i0 = all.indexOf("c-0");
+		expect(all.indexOf("c-1")).toBe(i0 + 1);
 		tui.stop();
 	});
 

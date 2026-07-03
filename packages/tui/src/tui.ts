@@ -4,7 +4,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { performance } from "node:perf_hooks";
-import { $flag, getDebugLogPath, logger } from "@jawcode-dev/utils";
+import { $env, $flag, getDebugLogPath, logger } from "@jawcode-dev/utils";
 import { VIEWPORT_FILL_SENTINEL } from "./components/viewport-fill";
 import { buildInsertHistorySequence, detectHistoryLaneMode, type HistoryLaneMode } from "./insert-history";
 import { isKeyRelease, matchesKey } from "./keys";
@@ -14,7 +14,9 @@ import { ImageProtocol, setCellDimensions, setTerminalImageProtocol, TERMINAL } 
 import {
 	Ellipsis,
 	extractSegments,
+	getAmbiguousWidthMode,
 	normalizeTerminalOutput,
+	setAmbiguousWidthMode,
 	sliceByColumn,
 	sliceWithWidth,
 	truncateToWidth,
@@ -344,6 +346,18 @@ export class TUI extends Container {
 	#sixelProbeBuffer = "";
 	#sixelProbeTimeout?: NodeJS.Timeout;
 	#sixelProbeUnsubscribe?: () => void;
+	// ── Ambiguous-width probe (260703 WP2.5) ───────────────────────────
+	#ambiguousProbePending = false;
+	#ambiguousProbeBuffer = "";
+	#ambiguousProbeTimeout?: NodeJS.Timeout;
+	#ambiguousProbeUnsubscribe?: () => void;
+	/**
+	 * False only while a CPR probe is outstanding. commitLines() refuses
+	 * while unresolved: a mismeasured PAINT is row-safe (DECAWM off) and
+	 * repainted after the probe, but a mismeasured COMMIT would bake wrongly
+	 * truncated pixels into canonical scrollback forever.
+	 */
+	#ambiguousWidthResolved = true;
 	#showHardwareCursor = $flag("PI_HARDWARE_CURSOR");
 	#clearOnShrink = $flag("PI_CLEAR_ON_SHRINK"); // Clear empty rows when content shrinks (default: off)
 	#maxLinesRendered = 0; // Line count from last render, used for viewport calculation
@@ -513,6 +527,7 @@ export class TUI extends Container {
 		this.#hideCursor();
 		this.#querySixelSupport();
 		this.#queryCellSize();
+		this.#queryAmbiguousWidth();
 		this.requestRender(true);
 	}
 
@@ -530,6 +545,8 @@ export class TUI extends Container {
 			if (renderMetrics.enabled) renderMetrics.setTimerGauge("tui.renderTimer", 0);
 		}
 		this.#clearSixelProbeState();
+		this.#clearAmbiguousProbeState();
+		this.#ambiguousWidthResolved = true;
 	}
 
 	#writeTerminal(data: string): boolean {
@@ -708,8 +725,115 @@ export class TUI extends Container {
 		this.#writeTerminal("\x1b[16t");
 	}
 
+	/**
+	 * 260703 WP2.5 — learn how the terminal renders East Asian AMBIGUOUS
+	 * characters. One invisible round-trip before the first frame: clear the
+	 * line, print three EAW-A probes, ask for the cursor position (CPR),
+	 * clear again — the reply (CSI row;col R) arrives async. col-1 of 6 means
+	 * ambiguous-wide (3 chars × 2 cells); 3 means narrow. The verdict feeds
+	 * BOTH width tables (Bun.stringWidth and pi-natives) via
+	 * setAmbiguousWidthMode. Env override JWC_AMBIGUOUS_WIDTH=1|narrow|2|wide
+	 * wins and skips the probe (also the deterministic path for replays).
+	 * Timeout keeps the current default: most terminals render ambiguous
+	 * narrow, and post-WP2 (DECAWM off) a wrong narrow only clips a cell,
+	 * while a wrong wide would mis-lay-out every padded line.
+	 */
+	#queryAmbiguousWidth(): void {
+		const override = $env.JWC_AMBIGUOUS_WIDTH;
+		if (override === "2" || override === "wide") {
+			setAmbiguousWidthMode("wide");
+			return;
+		}
+		if (override === "1" || override === "narrow") {
+			setAmbiguousWidthMode("narrow");
+			return;
+		}
+		if (!process.stdout.isTTY) return;
+		// A terminal too narrow for the probe chars would clip them (DECAWM
+		// off) and report a meaningless column.
+		if (this.terminal.columns < 8) return;
+
+		this.#clearAmbiguousProbeState();
+		this.#ambiguousProbePending = true;
+		this.#ambiguousWidthResolved = false;
+		this.#ambiguousProbeUnsubscribe = this.addInputListener(data => this.#handleAmbiguousProbeInput(data));
+		// Single write: clear, probe chars, CPR snapshot, clear again — the
+		// terminal processes in order, so the screen is never visibly
+		// disturbed and the cursor ends at column 1 exactly as the first
+		// render (fullRender without clear) expects.
+		if (!this.#writeTerminal("\r\x1b[2K§…·\x1b[6n\r\x1b[2K")) {
+			this.#resolveAmbiguousProbe(null);
+			return;
+		}
+		this.#ambiguousProbeTimeout = setTimeout(() => {
+			this.#resolveAmbiguousProbe(null);
+		}, 150);
+	}
+
+	#handleAmbiguousProbeInput(data: string): InputListenerResult {
+		if (!this.#ambiguousProbePending) return undefined;
+		this.#ambiguousProbeBuffer += data;
+
+		const match = this.#ambiguousProbeBuffer.match(/\x1b\[(\d+);(\d+)R/);
+		if (match?.index !== undefined) {
+			const passthrough =
+				this.#ambiguousProbeBuffer.slice(0, match.index) +
+				this.#ambiguousProbeBuffer.slice(match.index + match[0].length);
+			this.#ambiguousProbeBuffer = "";
+			this.#resolveAmbiguousProbe(Number.parseInt(match[2], 10));
+			if (passthrough.length === 0) return { consume: true };
+			return { data: passthrough };
+		}
+
+		// Keep a plausible CPR prefix (plain CSI — the terminal-side
+		// reassembler only covers private `ESC[?` replies); pass everything
+		// before it through so user keystrokes are never swallowed.
+		const lastEsc = this.#ambiguousProbeBuffer.lastIndexOf("\x1b");
+		if (lastEsc >= 0 && /^\x1b(\[[0-9;]*)?$/.test(this.#ambiguousProbeBuffer.slice(lastEsc))) {
+			const passthrough = this.#ambiguousProbeBuffer.slice(0, lastEsc);
+			this.#ambiguousProbeBuffer = this.#ambiguousProbeBuffer.slice(lastEsc);
+			if (passthrough.length === 0) return { consume: true };
+			return { data: passthrough };
+		}
+
+		const passthrough = this.#ambiguousProbeBuffer;
+		this.#ambiguousProbeBuffer = "";
+		if (passthrough.length === 0) return { consume: true };
+		return { data: passthrough };
+	}
+
+	/** Apply the probe verdict; null = timeout/failure (keep current mode). */
+	#resolveAmbiguousProbe(col: number | null): void {
+		this.#clearAmbiguousProbeState();
+		this.#ambiguousWidthResolved = true;
+		if (col === null) return;
+		const mode = col - 1 >= 6 ? "wide" : "narrow";
+		if (mode === getAmbiguousWidthMode()) return;
+		setAmbiguousWidthMode(mode);
+		// Every cached prepared line and rendered layout was measured with the
+		// old table — rebuild from scratch.
+		this.#clearPreparedLineCaches();
+		this.invalidate();
+		this.requestRender(true);
+	}
+
+	#clearAmbiguousProbeState(): void {
+		if (this.#ambiguousProbeTimeout) {
+			clearTimeout(this.#ambiguousProbeTimeout);
+			this.#ambiguousProbeTimeout = undefined;
+		}
+		if (this.#ambiguousProbeUnsubscribe) {
+			this.#ambiguousProbeUnsubscribe();
+			this.#ambiguousProbeUnsubscribe = undefined;
+		}
+		this.#ambiguousProbePending = false;
+		this.#ambiguousProbeBuffer = "";
+	}
+
 	stop(): void {
 		this.#clearSixelProbeState();
+		this.#clearAmbiguousProbeState();
+		this.#ambiguousWidthResolved = true;
 		this.#resyncRequested = false;
 		this.#stopped = true;
 		if (this.#renderTimer) {
@@ -1554,6 +1678,10 @@ export class TUI extends Container {
 	commitLines(lines: string[]): boolean {
 		if (this.#historyLane !== "standard" || this.#stopped || !this.terminalAvailable) return false;
 		if (this.overlayStack.length > 0) return false;
+		// 260703 WP2.5: while the ambiguous-width CPR probe is outstanding the
+		// width tables may still change — committed pixels are immutable, so
+		// defer to the virtual lane until the mode is resolved (~150ms max).
+		if (!this.#ambiguousWidthResolved) return false;
 		// 260703 v3: while a realign-parked block sits at rows 1..bottom, new
 		// commits must insert DIRECTLY below it — inserting at the (taller) raw
 		// fill bottom would fragment the committed region around the
@@ -1965,14 +2093,20 @@ export class TUI extends Container {
 			this.#fullRedrawCount += 1;
 			if (renderMetrics.enabled) renderMetrics.recordFullRedraw(reason);
 			const nextViewportTop = Math.max(0, newLines.length - height);
-			const startRow = Math.max(0, Math.min(height - 1, this.#lastFillRows));
-			let buffer = `\x1b[?2026h\x1b[${startRow + 1};1H`;
-			for (let screenRow = startRow; screenRow < height; screenRow++) {
-				if (screenRow > startRow) buffer += "\r\n";
-				buffer += "\x1b[2K";
-				const lineIndex = nextViewportTop + screenRow;
-				if (lineIndex >= newLines.length) continue;
-				buffer += this.#truncatePreparedLineToWidth(newLines[lineIndex], width);
+			const startRow = Math.max(0, this.#lastFillRows);
+			let buffer = "\x1b[?2026h";
+			if (startRow < height) {
+				// A fill region spanning the whole screen has no live-zone rows —
+				// clearing anything would erase parked pixels; bookkeeping still
+				// updates below (GPT Pro round-4 guard).
+				buffer += `\x1b[${startRow + 1};1H`;
+				for (let screenRow = startRow; screenRow < height; screenRow++) {
+					if (screenRow > startRow) buffer += "\r\n";
+					buffer += "\x1b[2K";
+					const lineIndex = nextViewportTop + screenRow;
+					if (lineIndex >= newLines.length) continue;
+					buffer += this.#truncatePreparedLineToWidth(newLines[lineIndex], width);
+				}
 			}
 			const finalPhysicalRow = nextViewportTop + Math.max(0, height - 1);
 			let cursorSeq = "\x1b[?25l";
@@ -2162,7 +2296,13 @@ export class TUI extends Container {
 		// the scrollback first and take the full repaint.
 		if (scrolledOutThisPass) {
 			if (this.#committedScreenRows > 0 && this.overlayStack.length > 0 && this.#lastFillRows > 1) {
-				this.#scrollOutCommittedRows(this.#committedScreenRows, this.#lastFillRows);
+				// Committed rows sit at the BOTTOM of the 1..flushBottom region —
+				// the bottom row needs flushBottom scrolls to cross row 1 into the
+				// scrollback (same rule as fullRender's flush; scrolling by only
+				// #committedScreenRows would leave the tail rows on screen for the
+				// full repaint to erase — GPT Pro round-4 finding).
+				const flushBottom = this.#committedBottomRow > 0 ? this.#committedBottomRow : this.#lastFillRows;
+				this.#scrollOutCommittedRows(flushBottom, flushBottom);
 				this.#committedScreenRows = 0;
 				this.#committedBottomRow = 0;
 			}

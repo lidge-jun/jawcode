@@ -9,6 +9,7 @@
 //! - truncateToWidth returns the original `JsString` when possible
 
 use std::cell::RefCell;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use napi::{JsString, bindgen_prelude::*};
 use napi_derive::napi;
@@ -378,9 +379,27 @@ const fn ascii_cell_width_u16(u: u16, tab_width: usize) -> usize {
 	}
 }
 
+/// East Asian Ambiguous width policy (260703 WP2.5). Terminals resolve
+/// EAW-A characters (…, §, · …) by context: 1 cell in non-CJK setups, 2 in
+/// CJK-leaning ones. The TUI probes the real terminal at startup (CPR
+/// round-trip) and mirrors the answer here so every native width/slice/wrap
+/// agrees with the JS-side `Bun.stringWidth(..., { ambiguousIsNarrow })`.
+static AMBIGUOUS_WIDE: AtomicBool = AtomicBool::new(false);
+
+/// Select the East Asian Ambiguous width policy for all text measurement.
+/// `wide=true` renders EAW-A characters as 2 cells (CJK context).
+#[napi]
+pub fn set_ambiguous_width_wide(wide: bool) {
+	AMBIGUOUS_WIDE.store(wide, Ordering::Relaxed);
+}
+
 #[inline]
 fn char_width_corrected(c: char) -> Option<usize> {
-	UnicodeWidthChar::width(c)
+	if AMBIGUOUS_WIDE.load(Ordering::Relaxed) {
+		UnicodeWidthChar::width_cjk(c)
+	} else {
+		UnicodeWidthChar::width(c)
+	}
 }
 
 #[inline]

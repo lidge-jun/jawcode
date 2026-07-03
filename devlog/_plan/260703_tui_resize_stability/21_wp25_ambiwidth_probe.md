@@ -112,6 +112,50 @@ the "Thinking … +3 lines" labels from the user's screenshot.
   checkmark corruption persists post-WP2.5, options are U+FE0E text-presentation or a
   small override table (future WP).
 
+## Revised diff plan (v2 — post-audit, NAPI threading)
+
+Verified before B: `cargo` 1.97 available; `packages/natives` build =
+`bun scripts/build-native.ts` (napi build + gen-enums rewrite of native/index.js
+exports); prebuilt `pi_natives.darwin-arm64.node` is checked in (rebuilt binary ships
+with the commit). No JS fallback exists for text ops (loader stubs THROW when the
+native is missing), so Rust + Bun.stringWidth are the only two width sources. Width
+funnel confirmed single: all non-ASCII paths reach `char_width_corrected`
+(text.rs:382); `ascii_cell_width_u16` (:372) only sees ASCII; no other crate uses
+unicode_width.
+
+### MODIFY crates/pi-natives/src/text.rs
+
+- `static AMBIGUOUS_WIDE: AtomicBool = AtomicBool::new(false);`
+- `#[napi] pub fn set_ambiguous_width_wide(wide: bool)` → store Relaxed.
+- `char_width_corrected`: select `UnicodeWidthChar::width_cjk` when the flag is set
+  (Relaxed load per char — negligible).
+
+### MODIFY packages/natives (generated)
+
+- `bun --cwd=packages/natives run build` regenerates index.js/index.d.ts with
+  `setAmbiguousWidthWide` + rebuilds the darwin-arm64 binary (committed).
+
+### MODIFY packages/tui/src/utils.ts
+
+- `setAmbiguousWidthMode(mode)`: sets the local `ambiguousIsNarrow` (consumed by
+  `visibleWidthRaw`'s `Bun.stringWidth(s, {ambiguousIsNarrow})`) AND calls
+  `setAmbiguousWidthWide(mode === "wide")` (try/catch: stub Proxy throws when the
+  native is unavailable — width then stays narrow everywhere, still consistent).
+
+### MODIFY packages/tui/src/tui.ts — probe (as v1, plus audit fixes)
+
+- Byte order `\r\x1b[2K§…·\x1b[6n`, then `\r\x1b[2K` on resolve/timeout + forced
+  repaint on CHANGE only.
+- Own partial buffering for plain-CSI CPR (`^\x1b\[[0-9;]*$`).
+- Gate: `$env["JWC_AMBIGUOUS_WIDTH"]` override (1|narrow / 2|wide) → skip probe;
+  skip when `!process.stdout.isTTY` or columns < 8 (resolve to current default).
+- `#ambiguousWidthResolved` starts false ONLY when a probe is actually launched;
+  `commitLines()` returns false while unresolved (virtual-lane fallback) so
+  mismeasured pixels never enter canonical history.
+- Tests inject the gate by stubbing `process.stdout.isTTY` (audit fix #3).
+
+### NEW packages/tui/test/ambiguous-width.test.ts (as v1, gate-stubbed)
+
 ## Risks
 
 - CPR reply pattern can theoretically be produced by shifted-F3 in exotic xterm
