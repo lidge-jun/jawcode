@@ -35,26 +35,27 @@ Previous D-stage pessimist to carry forward: Phase 20 proved broad chase cards m
 
 MODIFY `packages/coding-agent/src/session/agent-session.ts` only if inspection shows a gap:
 
-- Add or reuse a bounded drain point before top-level session lifecycle teardown (`dispose()` / close-like paths) so pending async job deliveries owned by the session are attempted before session cleanup completes.
-- Preserve current owner isolation: a subagent/session teardown must not cancel or drain unrelated parent/global jobs.
+- Define the teardown contract explicitly: normal top-level teardown must make a bounded attempt to deliver already-terminal queued async job results owned by the session; still-running jobs are not waited to completion in Phase 30 and must remain retained/addressable by `AsyncJobManager` rather than being cancelled or treated as delivered.
+- Preserve current owner isolation: a subagent/session teardown must not cancel, drain, or mark delivered any unrelated parent/global job.
 - Use existing `AsyncJobManager` delivery state APIs where possible. Do not invent a second job registry.
 - Keep the drain bounded; timeout should return a boolean/receipt rather than hang shutdown indefinitely.
 
 MODIFY/NEW tests:
 
 - Prefer existing `packages/coding-agent/test/async-job-manager.test.ts` and `packages/coding-agent/test/agent-session-bash-detach.test.ts` only if the behavior belongs there; otherwise add `packages/coding-agent/test/agent-session-async-delivery.test.ts`.
-- Cover: pending delivery is attempted before top-level session disposal completes; pending delivery timeout does not hang disposal; owner-scoped teardown does not drain/cancel another owner’s job.
+- Cover: pending terminal delivery is attempted before top-level session disposal completes; pending delivery timeout does not hang disposal; owner-scoped teardown does not drain/cancel another owner’s job; a still-running owned job remains retained/addressable instead of being cancelled or marked delivered.
 
 Acceptance:
 
-- Retained async/background output is not silently dropped by normal session teardown when local delivery is available.
+- Retained terminal async/background output is not silently dropped by normal session teardown when local delivery is available.
 - The test proves owner scoping and bounded shutdown behavior.
+- Still-running async jobs are explicitly not waited to completion in this phase; the test must prove they remain retained/addressable or record a noop receipt if current behavior already satisfies that contract.
 
 ### Cluster B — session persistence fence / atomic rewrite receipts
 
 MODIFY `packages/coding-agent/src/session/session-manager.ts` only if a missing fence is found:
 
-- Inspect `#rewriteFile`, `#persist`, flush/close ordering, and writer reopen behavior around `NdjsonFileWriter.isOpen()`.
+- Inspect `#rewriteFile`, `#ensurePersistWriter`, `_persist(entry: SessionEntry)`, flush/close ordering, and writer reopen behavior around `NdjsonFileWriter.isOpen()`.
 - If the existing cold rewrite / hot append / close path is already safe, add receipt tests rather than changing code.
 - Any code change must keep the append-only tree semantics and existing session file format.
 
@@ -79,11 +80,11 @@ MODIFY `packages/coding-agent/src/modes/interactive-mode.ts` only if test eviden
 MODIFY tests:
 
 - Extend `packages/coding-agent/test/interactive-mode-plan-review.test.ts`.
-- Cover: refine/cancel/no-selection never dispatches synthetic plan-approved prompt; approve-and-compact cancellation/failure does not dispatch; deferred plan model switch is cleared when leaving plan mode and cannot later re-enter plan execution.
+- Cover: refine/cancel/no-selection never dispatches synthetic plan-approved prompt; approve-and-compact cancellation does not dispatch; approve-and-compact failure continues to dispatch best-effort after approval (current contract at `interactive-mode.ts:1667-1668`); deferred plan model switch is cleared when leaving plan mode and cannot later re-enter plan execution.
 
 Acceptance:
 
-- Plan execution only occurs through explicit approve options and never through refine/cancel/failure paths.
+- Plan execution only occurs through explicit approve options; refine/cancel/no-selection/cancelled-compaction paths cannot execute a plan, while failed compaction preserves the existing dispatch-after-approval contract.
 - Deferred model-switch recovery cannot resurrect plan-mode execution after exit.
 
 ### Cluster D — goal recovery/model switching stays within JWC goal semantics
@@ -108,7 +109,7 @@ Acceptance:
 
 This phase explicitly defers:
 
-- broad task/agent discovery ordering and disabled plugin ordering (`285d384ca`, `cff8f22d6`, `b3cda0d92` cluster) unless a direct session-integrity bug is found in A/B;
+- broad task/agent discovery ordering and disabled plugin ordering (`285d384ca`, `cff8f22d6`, `b3cda0d92` cluster), unconditionally for Phase 30;
 - provider dynamic model resolution policy (`d82b9bdc5`) beyond plan/goal recovery guard tests;
 - any live external-daemon async job shutdown test requiring SSH/DAP/real provider services.
 
@@ -136,8 +137,8 @@ C-stage will run affected focused tests plus `bun run check`.
 
 ## Acceptance criteria
 
-- Async job/session teardown handling either drains pending local deliveries safely or records a noop receipt proving current behavior, with owner scoping and bounded timeout tests.
+- Async job/session teardown handling either drains pending terminal local deliveries safely or records a noop receipt proving current behavior, with owner scoping, bounded timeout, and still-running job retention/addressability tests.
 - Session persistence race coverage proves newest data survives close/rewrite windows without poisoning future writes.
-- Plan-mode execution remains gated by explicit approval; refine/cancel/compact-failure/deferred-switch paths cannot execute a plan.
+- Plan-mode execution remains gated by explicit approval; refine/cancel/no-selection/cancelled-compaction/deferred-switch paths cannot execute a plan, and failed compaction retains the current best-effort dispatch-after-approval contract.
 - Goal recovery/model-switch behavior preserves Phase 80 goal replacement semantics and does not unblock `/plan` or weaken PABCD/goal gates.
 - Deferred task/agent discovery ordering, provider dynamic model policy, and live external-daemon lifecycle hardening are explicitly recorded as not closed by this phase.
