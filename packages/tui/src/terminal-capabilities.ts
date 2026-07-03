@@ -58,15 +58,21 @@ export class TerminalInfo {
  * TERMINAL_ID; unknown → false (fail closed: the literal-padding fallback is
  * today's behavior, so a false negative costs nothing).
  */
-const BCE_TERM_PREFIX =
-	/^(xterm|tmux|screen|linux|rxvt|st-|st$|alacritty|kitty|wezterm|ghostty|foot|vte|konsole|iterm)/i;
+const BCE_TERM_PREFIX = /^(xterm|linux|rxvt|st-|st$|alacritty|kitty|wezterm|ghostty|foot|vte|konsole|iterm)/i;
 
 export function terminalSupportsBce(env: Record<string, string | undefined> = process.env): boolean {
 	const override = env.JWC_TUI_BCE;
 	if (override === "0" || override === "false") return false;
 	if (override === "1" || override === "true") return true;
+	// 260704 tmux smoke (P0): tmux/screen declare bce=NO in terminfo and the
+	// empirical probe confirms EL-erased cells stay DEFAULT-bg inside tmux —
+	// bg rows there must keep the literal-padding fallback (visually correct;
+	// the outer-terminal reflow hazard doesn't apply since the mux owns pane
+	// wrapping). TMUX env catches sessions where TERM was overridden.
+	if (env.TMUX) return false;
 	const term = env.TERM?.trim() ?? "";
 	if (!term || term === "dumb") return false;
+	if (/^(tmux|screen)/i.test(term)) return false;
 	if (BCE_TERM_PREFIX.test(term)) return true;
 	return TERMINAL_ID !== "base";
 }

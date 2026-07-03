@@ -146,3 +146,37 @@ fable adversarial review after the fix.
 
 Verification bar for "production-grade": full tui + affected coding-agent suites green,
 fable adversarial review on each slice, GPT Pro diff verification round, pushed to main.
+
+
+## CLOSEOUT — 260704 (GPT Pro round 8: "functionally closed after the smoke matrix")
+
+All queue items shipped to main (…→ 8bf93d7 → 5031c07 → 4cae482 → 1b3e3e6 → b81faea →
+c0d42ea → this commit):
+
+1. DUP-FIX — heal-and-retry boundary (fable-reviewed; blanket adoption rejected as lossy).
+2. WP6b-v2 → superseded mid-flight by the FINAL FORM: top-flow layout (fill below the
+   transcript) + S5-2 live-zone flush (canonical rewrite + region [1..H-composerRows]
+   scroll; fits-only; realign keeps the overflow regime). Two adversarial reviews:
+   one CONFIRMED find (cluster measure counted the relocated sentinel → last-row loss)
+   fixed; empty-mirror + preamble-order hardenings added.
+3. RESIZE TRANSCRIPT REBUILD (user design): width-settle → 2J/H/3J full replace with
+   the transcript re-rendered at the new width; width-drift re-arm guard. The one
+   history-touching op the immutability policy permits (full replace cannot duplicate).
+4. WP5.3 — bg rows carry EL-at-line-start (the marker IS CSI K; zero-width for Bun and
+   pi-natives) under terminalSupportsBce(); literal-padding fallback otherwise. A2
+   (padToWidth bg branch) de-padded too — last structural reflow amplifier gone.
+
+P0 smoke (tmux, empirical, this machine):
+- Partial-region scroll (top=1) → pushed rows PRESERVED in pane history, no dup/loss ✓
+- 2J/H/3J → pane history fully cleared (history_size 0) → rebuild is dup-free in tmux ✓
+- EL+bg fill: tmux does NOT honor BCE (terminfo bce=NO, probe confirms) → tmux/screen
+  removed from the BCE allowlist + TMUX env fails closed (padding fallback there).
+
+REMAINING (user-side / optional):
+- GUI-terminal smoke matrix: Ghostty, iTerm2, VTE/GNOME, Windows Terminal, Terminal.app
+  (assert: no blank gaps, no dup committed rows, scrollback order, resize rebuild clears
+  old history, bg rows reach EOL). JWC_TUI_BCE=0 / JWC_COMMIT_ON_COMPLETION=0 /
+  JWC_COMMIT_LANE=0 are the per-axis kill switches if a terminal misbehaves.
+- Optional per GPT-8: P2 bottom observer (only if off-bottom scroll-fighting recurs),
+  P3 Option B coalesce (only if top-band flicker is visible), P4 checkmark override
+  (only if drift screenshots recur).

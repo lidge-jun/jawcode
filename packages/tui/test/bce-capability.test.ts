@@ -21,8 +21,6 @@ describe("terminalSupportsBce (260703 WP5.2)", () => {
 	it("known BCE terminal families are allowlisted by TERM prefix", () => {
 		for (const term of [
 			"xterm-256color",
-			"tmux-256color",
-			"screen-256color",
 			"linux",
 			"alacritty",
 			"xterm-kitty",
@@ -33,6 +31,15 @@ describe("terminalSupportsBce (260703 WP5.2)", () => {
 		]) {
 			expect(`${term}:${terminalSupportsBce({ TERM: term })}`).toBe(`${term}:true`);
 		}
+	});
+
+	it("tmux/screen are NOT BCE — terminfo bce=NO, confirmed by the 260704 empirical probe", () => {
+		expect(terminalSupportsBce({ TERM: "tmux-256color" })).toBe(false);
+		expect(terminalSupportsBce({ TERM: "screen-256color" })).toBe(false);
+		// TERM overridden inside a mux still fails closed via the TMUX env.
+		expect(terminalSupportsBce({ TERM: "xterm-256color", TMUX: "/tmp/tmux-501/default,1,0" })).toBe(false);
+		// The explicit override still wins for power users.
+		expect(terminalSupportsBce({ TERM: "tmux-256color", JWC_TUI_BCE: "1" })).toBe(true);
 	});
 
 	it("unknown TERM without a recognized terminal identity fails closed", () => {
