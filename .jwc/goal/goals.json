@@ -10,11 +10,11 @@
       "objective": "Run the chase hardening and /goal state-replacement work through clean PABCD loops, committing verified documentation/planning changes first and then proceeding phase-by-phase with explicit checks while preserving unrelated worktree changes.",
       "status": "active",
       "createdAt": "2026-07-03T10:53:20.027Z",
-      "updatedAt": "2026-07-03T11:07:49.575Z",
+      "updatedAt": "2026-07-03T11:11:57.804Z",
       "startedAt": "2026-07-03T10:53:20.034Z",
-      "evidence": "Completed P-stage plan for Phase 80 goal state replacement; PABCD P-stage run 2026-07-02-1325-8f6b; Critic R1 ITERATE at .jwc/plans/planphase/2026-07-02-1325-8f6b/stage-80-critic.md, synthesis devlog/_plan/260703_chase_hardening_goal_passthrough/80.1_p_critic_synthesis_round1.md, Critic R2 OKAY recorded via jwc orchestrate verdict, final planphase wrote pending approval .jwc/plans/planphase/2026-07-02-1325-8f6b/pending-approval.md; committed 2a2115f docs: plan goal state replacement hardening."
+      "evidence": "Committed all remaining unrelated worktree changes; git status --short produced no output after commits 0045e58 fix(tui): add viewport resync repaint, f027000 chore: tighten audit and biome config, 0757b2d chore: persist goal ledger state, 1269886 chore: persist local runtime artifacts. Verification before commits: bun test packages/tui/test/resync-viewport.test.ts passed (4 pass); bun run check:tools passed; bun run check:ts passed."
     }
   ],
   "createdAt": "2026-07-03T10:53:20.027Z",
-  "updatedAt": "2026-07-03T11:07:49.575Z"
+  "updatedAt": "2026-07-03T11:11:57.804Z"
 }
