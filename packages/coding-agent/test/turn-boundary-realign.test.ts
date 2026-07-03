@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
-import { resetSettingsForTest, Settings, settings } from "../src/config/settings";
 import { ViewportFill } from "@jawcode-dev/tui";
+import { resetSettingsForTest, Settings, settings } from "../src/config/settings";
 import type { InteractiveModeContext } from "../src/modes/types";
 import {
 	canMarkEntireBacklog,
