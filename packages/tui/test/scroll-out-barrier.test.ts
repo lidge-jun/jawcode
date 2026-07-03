@@ -183,3 +183,31 @@ describe("scroll-out repaint barrier (260703 WP3a)", () => {
 		tui.stop();
 	});
 });
+
+describe("committed-block glue on live-zone shrink (260703 WP6b follow-up)", () => {
+	it("no blank gap opens between successive commits when the live zone shrinks between them", async () => {
+		const { term, content, tui } = setup(14, lines("live", 8));
+		await flushRender(term);
+		// Tool A completes: its collapsed block commits at the current fill bottom.
+		expect(tui.commitLines(["tool-A"])).toBe(true);
+		await term.flush();
+
+		// The live preview collapses: live zone shrinks 8 → 2, fill grows by 6.
+		content.setLines(lines("live", 2));
+		tui.requestRender();
+		await flushRender(term);
+
+		// Tool B commits: it must land DIRECTLY below tool-A, not 6 rows lower.
+		expect(tui.commitLines(["tool-B"])).toBe(true);
+		await term.flush();
+		tui.requestRender();
+		await flushRender(term);
+
+		const buffer = term.getScrollBuffer();
+		const iA = buffer.indexOf("tool-A");
+		const iB = buffer.indexOf("tool-B");
+		expect(iA).toBeGreaterThanOrEqual(0);
+		expect(iB).toBe(iA + 1);
+		tui.stop();
+	});
+});

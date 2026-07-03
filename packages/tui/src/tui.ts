@@ -2062,6 +2062,30 @@ export class TUI extends Container {
 			this.#committedBottomRow =
 				this.#committedBottomRow > 0 && this.#committedScreenRows > 0 ? this.#lastFillRows : 0;
 			scrolledOutThisPass = true;
+		} else if (this.#committedScreenRows > 0 && historyBottom > 0 && this.#lastFillRows > historyBottom) {
+			// 260703 WP6b follow-up (tool-gap regression): the live zone SHRANK
+			// (a capped tool preview collapsed on completion) so the fill grew —
+			// but the committed block physically stays at the OLD fill bottom,
+			// opening a blank gap between it and the live zone that the NEXT
+			// mid-turn commit then makes permanent (blocks separated by
+			// fill-growth-sized voids). Glue the block back to the new fill
+			// bottom: RI-scroll region 1..lastFillRows DOWN by the growth. The
+			// rows shifted out at the region bottom are the gap blanks; the rows
+			// entering at the top are blank; the scrollback above is untouched;
+			// mirrors stay consistent (the whole region is mirror-blank).
+			const delta = this.#lastFillRows - historyBottom;
+			let glue = "\x1b[?2026h";
+			glue += `\x1b[1;${this.#lastFillRows}r`;
+			glue += "\x1b[1;1H";
+			glue += "\x1bM".repeat(delta);
+			glue += "\x1b[r";
+			const glueCursorRow = Math.max(0, Math.min(height - 1, this.#hardwareCursorRow - this.#viewportTopRow));
+			glue += `\x1b[${glueCursorRow + 1};1H`;
+			glue += "\x1b[?2026l";
+			if (this.#writeTerminal(glue)) {
+				if (this.#committedBottomRow > 0) this.#committedBottomRow = this.#lastFillRows;
+				scrolledOutThisPass = true;
+			}
 		}
 
 		// Width/height changes need full re-render handling below.
