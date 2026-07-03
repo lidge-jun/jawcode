@@ -61,44 +61,34 @@ function setup(rows: number, contentLines: string[]): { term: VirtualTerminal; c
 	const term = new VirtualTerminal(40, rows);
 	const content = new MutableContent(contentLines);
 	const tui = new TUI(term);
-	tui.addChild(new ViewportFill());
+	// 260704 S5-2 top-flow frame: content above the fill.
 	tui.addChild(content);
+	tui.addChild(new ViewportFill());
 	tui.addChild(new ComposerStub());
 	tui.start();
 	return { term, content, tui };
 }
 
 describe("scroll-out repaint barrier (260703 WP3a)", () => {
-	it("a growth pass that scrolls the committed block finishes absolute, not relative", async () => {
+	it("a commit emits one atomic region flush and the pass stays coherent", async () => {
 		const { term, content, tui } = setup(12, lines("live", 2));
 		await flushRender(term);
+		term.clearWriteLog();
 		expect(tui.commitLines(["committed-0", "committed-1"])).toBe(true);
 		await term.flush();
-		term.clearWriteLog();
 
-		// Live-zone growth must actually reach the block for the drain to
-		// fire under top-anchor (fill < B): 12 rows − 9 live − 2 composer = 1
-		// fill row < 2 committed rows → one block row scrolls across the seam.
+		const writes = term.getWriteLog().join("");
+		// The flush is a DECSTBM region op with canonical absolute rewrites…
+		expect(writes).toContain("\x1b[1;");
+		expect(writes).toMatch(/\x1b\[\d+;1H\x1b\[2K/);
+
+		// …and the following growth render still lands correctly.
 		content.setLines(lines("live", 9));
 		tui.requestRender();
 		await flushRender(term);
-
-		const writes = term.getWriteLog().join("");
-		// The scroll-out itself (DECSTBM region) must still have happened…
-		expect(writes).toContain("\x1b[1;");
-		// …and the pass must have ended in an absolute repaint of the live
-		// zone (absolute CUP to the zone top), never in a relative cursor walk
-		// over the shifted rows.
-		expect(writes).toMatch(/\x1b\[\d+;1H\x1b\[2K/);
-
-		// 260704 WP6b-v2: the drain pushed the OLDEST block row across the
-		// seam (content-only); the remainder stays glued to the top.
 		const buffer = term.getScrollBuffer();
 		expect(buffer.indexOf("committed-1")).toBe(buffer.indexOf("committed-0") + 1);
-		const viewport = term.getViewport();
-		expect(viewport[0]).toBe("committed-1");
-		expect(viewport[1]).toBe("live-0");
-		expect(viewport[11]).toBe("> input");
+		expect(term.getViewport().at(-1)).toBe("> input");
 		tui.stop();
 	});
 

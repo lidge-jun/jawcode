@@ -44,52 +44,50 @@ function setup(rows: number, contentLines: string[]): { term: VirtualTerminal; c
 	const term = new VirtualTerminal(40, rows);
 	const content = new MutableContent(contentLines);
 	const tui = new TUI(term);
-	tui.addChild(new ViewportFill());
+	// 260704 S5-2 top-flow frame: content above, fill between content and the
+	// pinned composer. commitLines flushes the topmost content rows straight
+	// into REAL scrollback (live-zone flush geometry).
 	tui.addChild(content);
+	tui.addChild(new ViewportFill());
 	tui.addChild(new ComposerStub());
 	tui.start();
 	return { term, content, tui };
 }
 
 describe("TUI commit lane (083.9 P2-a)", () => {
-	it("commitLines writes into the fill region and reports success", async () => {
+	it("commitLines flushes the committed rows straight into real scrollback", async () => {
 		const { term, tui } = setup(12, lines("live", 2));
 		await flushRender(term);
 
 		expect(tui.commitLines(["committed-0", "committed-1"])).toBe(true);
 		await term.flush();
+		tui.requestRender();
+		await flushRender(term);
 
+		// 260704 S5-2: no on-screen parked block — the rows crossed the seam.
+		const buffer = term.getScrollBuffer();
+		const scrollbackOnly = buffer.slice(0, Math.max(0, buffer.length - 12));
+		expect(scrollbackOnly).toContain("committed-0");
+		expect(scrollbackOnly).toContain("committed-1");
 		const viewport = term.getViewport();
-		// 260704 WP6b-v2: the committed block is TOP-ANCHORED at the scrollback
-		// seam (rows 0..1); the blank gap below it self-consumes as the live
-		// zone grows. Bottom-anchoring was what stamped blank fill into the
-		// scrollback on every unsaturated commit.
-		expect(viewport[0]).toBe("committed-0");
-		expect(viewport[1]).toBe("committed-1");
-		expect(viewport[8]).toBe("live-0");
-		expect(viewport[11]).toBe("> input");
-		tui.stop();
+		expect(viewport.at(-1)).toBe("> input");
 	});
 
-	it("committed pixels survive live-zone growth (pre-paint scroll-out)", async () => {
+	it("committed rows in scrollback are untouched by later live-zone growth", async () => {
 		const { term, content, tui } = setup(12, lines("live", 2));
 		await flushRender(term);
 		expect(tui.commitLines(["committed-0", "committed-1"])).toBe(true);
 		await term.flush();
 
-		// Live zone grows by 4 rows → fill shrinks 8 → 4. The top-anchored
-		// block (rows 0..1) still fits above the new fill bottom, so nothing
-		// drains yet and the pixels survive in place.
 		content.setLines(lines("live", 6));
 		tui.requestRender();
 		await flushRender(term);
 
+		const buffer = term.getScrollBuffer();
+		expect(buffer.indexOf("committed-1")).toBe(buffer.indexOf("committed-0") + 1);
+		expect(buffer.filter(l => l === "committed-0").length).toBe(1);
 		const viewport = term.getViewport();
-		expect(viewport[0]).toBe("committed-0");
-		expect(viewport[1]).toBe("committed-1");
-		expect(viewport[4]).toBe("live-0");
-		expect(viewport[11]).toBe("> input");
-		tui.stop();
+		expect(viewport.at(-1)).toBe("> input");
 	});
 
 	it("growth past the committed block pushes it into the scrollback in order", async () => {

@@ -39,9 +39,13 @@ describe("top-flow layout (260704 final form)", () => {
 		const blanks = viewport.map((l, i) => (l.trim() === "" ? i : -1)).filter(i => i >= 0);
 		expect(blanks).toEqual(Array.from({ length: 9 }, (_, i) => 5 + i));
 
-		// The mid-turn write lane is inert in this layout (sentinel not first).
+		// 260704 S5-2: the live-zone flush lane is ALIVE in this layout — a
+		// commit pushes the row straight into real scrollback.
 		expect(tui.viewportFillRows).toBe(0);
-		expect(tui.commitLines(["x"])).toBe(false);
+		expect(tui.commitLines(["x"])).toBe(true);
+		await term.flush();
+		const buffer = term.getScrollBuffer();
+		expect(buffer.slice(0, Math.max(0, buffer.length - 16))).toContain("x");
 		tui.stop();
 	});
 

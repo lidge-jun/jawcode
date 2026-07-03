@@ -212,9 +212,11 @@ describe("scroll seam duplication repro (260630)", () => {
 		const chat = new MutableContent(lines("chat", 5));
 		const tool = new MutableContent(["tool … +30 lines"]);
 		const tui = new TUI(term);
-		tui.addChild(new ViewportFill());
+		// 260704 S5-2 top-flow frame: content above the fill so the live-zone
+		// flush lane can arm #hasCommittedHistory while the frame fits.
 		tui.addChild(chat);
 		tui.addChild(tool);
+		tui.addChild(new ViewportFill());
 		tui.addChild(new ComposerStub());
 		tui.start();
 		await flushRender(term);
@@ -256,9 +258,10 @@ describe("scroll seam duplication repro (260630)", () => {
 		const chat = new MutableContent(lines("chat", 5));
 		const tool = new MutableContent([]);
 		const tui = new TUI(term);
-		tui.addChild(new ViewportFill());
+		// 260704 S5-2 top-flow frame (see above).
 		tui.addChild(chat);
 		tui.addChild(tool);
+		tui.addChild(new ViewportFill());
 		tui.addChild(new ComposerStub());
 		tui.start();
 		await flushRender(term);

@@ -1812,54 +1812,63 @@ export class TUI extends Container {
 		// creating NEW parked rows would guarantee scroll-fighting drains —
 		// defer to the virtual lane (the turn-boundary sweep retries).
 		if (!this.#canUseHistoryLaneNow()) return false;
-		// 260704 WP6b-v2 — TOP-ANCHORED committed block (devlog 80). The block
-		// lives glued to the scrollback seam at rows 1..B; commits either write
-		// DIRECTLY into the blank fill row below the block (no scroll — blanks
-		// never move, so no blank can ever cross the seam) or, once the block
-		// saturates the fill, scroll region 1..B up by one so the OLDEST
-		// committed row (content, never blank) enters the scrollback and the
-		// new line lands on the freed bottom row. This retires the
-		// bottom-anchored insert-history geometry whose region-top blank rows
-		// were what previous builds stamped into history (fable C1 + the
-		// 260704 turn-start gap regressions).
-		const fill = this.#lastFillRows;
-		// <= 1 (not 0): DECSTBM ignores a 1-row region, so the saturated-scroll
-		// lane could not function; the widened-region drain path covers B===1
-		// blocks elsewhere. Fall back to the virtual lane.
-		if (fill <= 1 || lines.length === 0) return false;
-		const width = this.terminal.columns;
+		// 260704 S5-2 — LIVE-ZONE FLUSH geometry (devlog 90). Under the
+		// top-flow layout the committed component IS the topmost content on
+		// screen (all earlier components already committed and left the frame),
+		// so committing means: canonically rewrite its rows 1..P, then scroll
+		// region [1..height-#composerRows] up by P — the rows cross the seam
+		// into REAL scrollback, the remaining live content shifts up, and P
+		// blank rows open above the untouched, pinned composer. No persistent
+		// on-screen block, no blank ever crosses the seam.
+		// FITS-ONLY: under overflow the physical top rows are the middle of
+		// the transcript, not the component — the turn-boundary realign lane
+		// (as-streamed adoption) owns that regime.
+		if (this.#maxLinesRendered > this.terminal.rows) return false;
+		if (!this.#fillSentinelPresent) return false;
+		// Legacy fill-FIRST frames (sentinel at frame line 0) and realign-
+		// parked states put the blank pad / parked block at the TOP — scrolling
+		// [1..liveBottom] there would push blanks or parked pixels; those
+		// layouts stay on the virtual/realign lanes.
+		if (this.#lastFillRows > 0) return false;
 		const height = this.terminal.rows;
+		const liveBottom = height - this.#composerRows;
+		if (liveBottom <= 1 || lines.length === 0 || lines.length > liveBottom) return false;
+		const width = this.terminal.columns;
 		const { lines: prepared, stats } = this.#prepareLinesForTerminal([...lines], width);
 		this.#recordPreparedLineStats(stats, "commit");
 		const screenCursorRow = Math.max(0, Math.min(height - 1, this.#hardwareCursorRow - this.#viewportTopRow));
-		let b = Math.min(this.#committedScreenRows, fill);
 		let buffer = "\x1b[?2026h";
-		for (const line of prepared) {
-			if (b < fill) {
-				// Blank fill row below the block: write in place, no scroll.
-				// Race-free by the mirror-blank contract: the mirrors still
-				// declare this row blank, so no diff pass ever repaints it.
-				buffer += `\x1b[${b + 1};1H\x1b[2K`;
-				buffer += line;
-				b++;
-			} else {
-				// Saturated: rows 1..B are all content — scroll the oldest row
-				// across the seam and write on the freed bottom row.
-				buffer += `\x1b[1;${b}r`;
-				buffer += `\x1b[${b};1H`;
-				buffer += "\r\n\x1b[2K";
-				buffer += line;
-				buffer += "\x1b[r";
-			}
+		// Canonical rewrite: scrollback receives the committed form even when
+		// it differs from the as-streamed pixels currently on those rows.
+		for (let i = 0; i < prepared.length; i++) {
+			buffer += `\x1b[${i + 1};1H\x1b[2K`;
+			buffer += prepared[i];
 		}
-		// Restore the live-zone cursor explicitly — the direct-write lane has
-		// no DECSTBM reset to home it, and the following relative diff computes
-		// moves from this position.
+		buffer += `\x1b[1;${liveBottom}r`;
+		buffer += `\x1b[${liveBottom};1H`;
+		for (let i = 0; i < prepared.length; i++) {
+			buffer += "\r\n\x1b[2K";
+		}
+		buffer += "\x1b[r";
 		buffer += `\x1b[${screenCursorRow + 1};1H`;
 		buffer += "\x1b[?2026l";
 		if (!this.#writeTerminal(buffer)) return false;
-		this.#committedScreenRows = b;
-		if (this.#committedBottomRow > 0) this.#committedBottomRow = b;
+		// Rotate the mirrors to match the physical shift: the top P rows left
+		// the screen, everything in [P..liveBottom) moved up, and P blanks
+		// opened at the region bottom. The next frame drops the committed
+		// component, so the rotated mirror lines up with it row-for-row and
+		// the diff stays cheap.
+		const preparedBlank = this.#prepareLinesForTerminal([""], width).lines[0];
+		const p = prepared.length;
+		if (this.#previousLines.length >= liveBottom) {
+			this.#previousLines.splice(0, p);
+			this.#previousLines.splice(liveBottom - p, 0, ...new Array<string>(p).fill(preparedBlank));
+		}
+		if (this.#previousRawLines.length >= liveBottom) {
+			this.#previousRawLines.splice(0, p);
+			this.#previousRawLines.splice(liveBottom - p, 0, ...new Array<string>(p).fill(""));
+		}
+		this.#hardwareCursorRow = screenCursorRow;
 		this.#hasCommittedHistory = true;
 		return true;
 	}

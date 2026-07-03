@@ -82,6 +82,9 @@ function withViewportBottom(term: VirtualTerminal, bottom: boolean | undefined):
 async function setup(bottom: boolean | undefined): Promise<{ term: VirtualTerminal; tui: TUI }> {
 	const term = new VirtualTerminal(40, 12);
 	const tui = new TUI(withViewportBottom(term, bottom));
+	// 260704 S5-2 top-flow frame: content above the fill (the live-zone flush
+	// lane needs the sentinel below the transcript).
+	tui.addChild({ invalidate() {}, render: () => ["seed"] });
 	tui.addChild(new ViewportFill());
 	tui.addChild(new ComposerStub());
 	tui.start();
@@ -126,17 +129,12 @@ describe("history-lane gating (260703 WP3b-min)", () => {
 		conservative.tui.stop();
 	});
 
-	it("flushHistoryLane pushes ordinary committed rows into scrollback blank-free (260704 top-anchor)", async () => {
-		// 260704 WP6b-v2: ALL committed rows are top-anchored content at rows
-		// 1..B, so the flush region is content-only — the old "ordinary rows
-		// cannot be flushed blank-free" C1 geometry evaporated. No
-		// blank-filtering here: blanks in scrollback ARE the regression.
+	it("commits go straight to real scrollback blank-free; flushHistoryLane has nothing left to do", async () => {
+		// 260704 S5-2: the live-zone flush leaves no on-screen parked rows —
+		// flushHistoryLane only serves realign-parked states now.
 		const { term, tui } = await setup(true);
 		expect(tui.commitLines(["c-0", "c-1"])).toBe(true);
 		await term.flush();
-
-		tui.flushHistoryLane();
-		await flushRender(term);
 
 		const buffer = term.getScrollBuffer();
 		const scrollbackOnly = buffer.slice(0, Math.max(0, buffer.length - 12));
@@ -146,7 +144,7 @@ describe("history-lane gating (260703 WP3b-min)", () => {
 		expect(buffer.indexOf("c-1")).toBe(i0 + 1);
 
 		const writesBefore = term.getWriteLog().length;
-		tui.flushHistoryLane(); // nothing committed anymore → no-op
+		tui.flushHistoryLane(); // nothing parked → no-op
 		expect(term.getWriteLog().length).toBe(writesBefore);
 		tui.stop();
 	});

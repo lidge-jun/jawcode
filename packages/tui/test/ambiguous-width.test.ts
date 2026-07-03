@@ -54,6 +54,8 @@ async function flushRender(term: VirtualTerminal): Promise<void> {
 function setup(): { term: VirtualTerminal; tui: TUI } {
 	const term = new VirtualTerminal(40, 10);
 	const tui = new TUI(term);
+	// 260704 S5-2 top-flow frame: content above the fill.
+	tui.addChild({ invalidate() {}, render: () => ["seed"] });
 	tui.addChild(new ViewportFill());
 	tui.addChild(new ComposerStub());
 	tui.start();

@@ -160,8 +160,9 @@ describe("prepared-line cache", () => {
 		const expectedVisible = await renderVisibleLines(committedLines, 40);
 		const term = new VirtualTerminal(40, 12);
 		const tui = new TUI(term);
-		tui.addChild(new ViewportFill());
+		// 260704 S5-2 top-flow frame: content above the fill.
 		tui.addChild(new StaticLines(["live-0", "live-1"]));
+		tui.addChild(new ViewportFill());
 		tui.addChild(new ComposerStub());
 		tui.start();
 		try {
@@ -170,8 +171,10 @@ describe("prepared-line cache", () => {
 			expect(tui.commitLines(committedLines)).toBe(true);
 			await term.flush();
 
-			const viewport = term.getViewport();
-			expect(viewport.slice(0, 3)).toEqual(expectedVisible); // 260704 top-anchor: block at the seam
+			// 260704 S5-2: committed rows crossed the seam into real scrollback.
+			const buffer = term.getScrollBuffer();
+			const scrollbackOnly = buffer.slice(0, Math.max(0, buffer.length - 12));
+			expect(scrollbackOnly.slice(-3)).toEqual(expectedVisible);
 			const commitRows = renderMetrics
 				.events()
 				.filter(row => row.source === "tui.preparedLine" && row.labels?.owner === "commit");
