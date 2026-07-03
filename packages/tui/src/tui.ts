@@ -2092,10 +2092,22 @@ export class TUI extends Container {
 			// at #committedBottomRow, not the raw fill bottom — flushing
 			// prevFillRows would stamp the trailing-blank gap into history.
 			if (clear && this.#committedScreenRows > 0) {
-				const flushBottom = this.#committedBottomRow > 0 ? this.#committedBottomRow : prevFillRows;
-				this.#scrollOutCommittedRows(flushBottom, flushBottom);
-				this.#committedScreenRows = 0;
-				this.#committedBottomRow = 0;
+				if (this.#committedBottomRow > 0) {
+					// Parked block: content-only region, blank-free flush.
+					this.#scrollOutCommittedRows(this.#committedBottomRow, this.#committedBottomRow);
+					this.#committedScreenRows = 0;
+					this.#committedBottomRow = 0;
+				} else {
+					// Ordinary bottom-aligned committed rows cannot be flushed
+					// blank-free (C1 geometry: the bottom row needs prevFillRows
+					// scrolls to cross row 1, dumping the blank prefix into
+					// scrollback — GPT Pro round-6 finding). And a clearing 2J
+					// would erase the pixels outright. Preserve them on screen
+					// with the live-zone repaint; the progressive S2 drain feeds
+					// them into scrollback as the live zone grows.
+					liveZoneRepaint(`${reason} (ordinary committed rows parked)`);
+					return;
+				}
 			}
 			this.#fullRedrawCount += 1;
 			if (renderMetrics.enabled) renderMetrics.recordFullRedraw(reason);
