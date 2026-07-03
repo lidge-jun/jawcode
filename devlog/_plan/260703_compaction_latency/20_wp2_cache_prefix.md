@@ -90,15 +90,22 @@ cachePrefix?: {
    - Defensive gates — return `undefined` (serialized fallback) unless ALL hold:
      `head.length > 0`, `tail > 0`, and the live boundary message matches the entry-derived
      boundary. Boundary = `preparation.turnPrefixMessages[0] ?? preparation.recentMessages[0]`
-     (turn prefix precedes recent in entry order when splitting). Match =
-     `live[head.length] === boundary` (reference equality — holds for ordinary `message`
-     entries whose objects are shared by both builds) **OR**
-     `live[head.length].role === boundary.role && live[head.length].timestamp ===
-     boundary.timestamp` (audit fix: `custom_message`/`branch_summary` boundaries are
-     synthesized fresh by each build — session-manager.ts:650/:661 vs compaction.ts:166/:176
-     — but both derive `timestamp` from the same entry via `new Date(entry.timestamp)
-     .getTime()`, so role+timestamp is a stable identity for them). Any mismatch means
-     runtime-injected messages shifted the array → serialized fallback, never wrong output.
+     (turn prefix precedes recent in entry order when splitting). Match rule
+     (delta-audit round-2 fix — role+timestamp alone can collide for same-millisecond
+     custom messages):
+     - ordinary LLM roles (`user`/`assistant`/`toolResult`/`bashExecution`): **reference
+       equality required** (`live[head.length] === boundary`) — both builds share the
+       persisted `entry.message` object (compaction.ts:162, session-manager.ts:647);
+       anything else means the array shifted.
+     - synthesized roles (fresh objects per build): role + timestamp equality PLUS
+       role-specific content identity — `custom`/`hookMessage`: `customType` equal and
+       stringified `content` equal; `branchSummary`: `fromId` and `summary` equal;
+       `compactionSummary`: `summary` equal.
+     Rationale: the gate guarantees the slice point sits exactly at the summarize/keep
+     boundary. With content identity included, a false positive requires an
+     identical-content twin at the same index — worst case one message's content is both
+     summarized and kept (benign duplication), never context loss. Any mismatch →
+     serialized fallback, never wrong output.
    - Returns `{ modelKey: summaryModelKey(this.model), systemPrompt:
      this.agent.state.systemPrompt, tools: this.agent.state.tools, messages: head }`.
 5. Manual path (`#compactWithFallbackModel`, :7659-7679) and auto path (candidate loop,
