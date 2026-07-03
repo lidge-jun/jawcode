@@ -58,17 +58,34 @@ sentences duplicated 2–4× at different wrap offsets. Points at the commit-lan
 scroll-region machinery (R5) + per-frame absolute repaints fighting user scroll —
 raises WP3 (scroll-out lane hardening) priority.
 
-## Work-phase slice map (small → certain first)
+## Work-phase slice map (small → certain first; order per GPT Pro round 2 re-rank)
 
 | WP | Slice | Class | Status |
 |----|-------|-------|--------|
-| WP1 | `TUI.resyncViewport()` one-shot absolute repaint primitive + resize-settle trigger | C2 | this cycle |
-| WP2 | DECAWM off for the TUI session (`CSI ?7l` on start, `?7h` on stop/suspend/emergency restore) | C2 | next |
-| WP3 | coding-agent resync triggers: agent_end, streaming watchdog, Ctrl+L | C2 | after WP2 |
-| WP4 | full-width padding → BCE/EL(0) (kill reflow damage at the source) | C3 | needs Codex/GPT input on BCE terminal coverage |
-| WP5 | render-time PTY size via ioctl(TIOCGWINSZ) (kill the stale-width race) | C3 | stretch |
+| WP1 | `TUI.resyncViewport()` one-shot absolute repaint primitive + resize flip-back trigger | C2 | DONE (0045e58, pushed) |
+| WP2 | DECAWM off for the TUI session (`CSI ?7l` on start, `?7h` on stop/emergency) | C2 | this cycle |
+| WP2.5 | ambiguous/emoji width alignment: startup CPR probe (EAW-A chars, 100ms timeout, env override `JAWCODE_AMBIGUOUS_WIDTH`) → `Bun.stringWidth(s, {ambiguousIsNarrow})` + prepared-line cache invalidation | C2 | after WP2 (targets the no-resize screenshot directly) |
+| WP3a | scroll-out repaint barrier: no same-pass relative diff after `#scrollOutCommittedRows()`; coalesce scroll-region mutation + absolute repaint into ONE ?2026 block | C2 | after WP2.5 |
+| WP3b | history-lane gating: no DECSTBM commits/growth-drains while streaming and off-bottom/unknown-bottom; batch drains, flush once at agent_end + resync (fixes top-pinned-block scroll interference) | C3 | after WP3a |
+| WP5 | remove full-width literal padding; SGR-bg + EL/ECH with BCE detection, no-bg fallback (kills reflow scars + ambiguous overflows at the source) | C3 | after WP3 |
+| WP4 | render-time PTY size via ioctl(TIOCGWINSZ) + mustAbsoluteNextFrame on resize epoch (kills the stale-width race) | C3 | after WP5 unless trivial |
+| WP6 | tool/thinking blocks render-on-completion (collapsed default / verbose expanded, per-mode flag), commit at completion, historical expand routed to full-transcript overlay (user UX design, 260703) | C3 | design agreed; after safety WPs |
 
 One full PABCD cycle per WP; D of each cycle records evidence and re-enters P.
+
+GPT Pro round 2 (full text: scratchpad `gpt-pro-answer-2.md`) — key deltas beyond the
+re-rank: (a) WP1's flip-back does NOT fully replace a settle repaint — residual misses:
+resize event sampled while process.stdout.columns is stale, coalesced/lost final event,
+same-grid physical changes (font zoom, mux reattach), and the resync guard DROPPING the
+one-shot flag when it refuses (keep it pending instead — fold into WP3a). Deterministic
+alternative: resizeDirtyEpoch + mustAbsoluteNextFrame + fresh size read (→ WP4).
+(b) DECAWM: EL/ECH semantics unaffected; treat tmux as pane-local; image lines are a
+separate row-stability class (isImageLine bypasses width prep — needs its own barrier
+eventually). (c) `✔` is not reliably EAW-A — class the mismatch as
+"ambiguous/emoji/symbol width", probe with §/…/·. Vim prior art: t_u7 CPR ambiwidth
+detection. (d) Commit-lane safety contract (WP3b): skip DECSTBM insertion while
+isViewportAtBottom() === false, queue in virtual history, flush at bottom/agent_end/
+submit/Ctrl+L; be conservative in mux when the hook is undefined.
 
 ## WP1 detail
 

@@ -152,6 +152,8 @@ function isIgnoredPath(relativePath: string): boolean {
 		relativePath.startsWith("devlog/_reference/") ||
 		relativePath.startsWith("devlog/_upstream_gjc/") ||
 		relativePath.startsWith("devlog/_upstream_omp/") ||
+		relativePath.startsWith("devlog/_gjc_chase/") ||
+		relativePath.startsWith("devlog/_omp_chase/") ||
 		relativePath.startsWith("node_modules/") ||
 		relativePath.includes("/node_modules/") ||
 		relativePath.startsWith("target/") ||
