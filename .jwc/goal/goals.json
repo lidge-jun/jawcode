@@ -10,11 +10,11 @@
       "objective": "Run the chase hardening and /goal state-replacement work through clean PABCD loops, committing verified documentation/planning changes first and then proceeding phase-by-phase with explicit checks while preserving unrelated worktree changes.",
       "status": "active",
       "createdAt": "2026-07-03T10:53:20.027Z",
-      "updatedAt": "2026-07-03T11:35:18.359Z",
+      "updatedAt": "2026-07-03T11:36:42.319Z",
       "startedAt": "2026-07-03T10:53:20.034Z",
-      "evidence": "pabcd d→complete (audit=pass, verification=done); /Users/jun/Developer/new/700_projects/jawcode/.jwc/state/pabcd-state.json"
+      "evidence": "Committed pending TUI DECAWM slice before next PABCD loop; Commits fdb6e46 fix(tui): disable session autowrap and 3cc2689 test(tui): cover autowrap session guard; verification: bun test packages/tui/test/decawm.test.ts passed (3 pass), bun run check:tools passed, git diff --check passed."
     }
   ],
   "createdAt": "2026-07-03T10:53:20.027Z",
-  "updatedAt": "2026-07-03T11:35:18.359Z"
+  "updatedAt": "2026-07-03T11:36:42.319Z"
 }
