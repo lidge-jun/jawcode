@@ -277,3 +277,51 @@ describe("commitFinalizedBacklogMidTurn (260703 WP6b)", () => {
 		expect(calls).toEqual([]);
 	});
 });
+
+describe("boundary adoption when realign refuses (260704 duplication fix)", () => {
+	function makeAdoptCtx(opts: { realigns: boolean; overflowed: boolean }) {
+		const calls: string[][] = [];
+		const children = [
+			{ render: () => ["err-a"], committed: false, invalidate() {} },
+			{ render: () => ["err-b"], committed: false, invalidate() {} },
+		];
+		const ctx = {
+			ui: {
+				terminal: { columns: 80 },
+				realignOverflowedFrame: () => opts.realigns,
+				hasOverflowedIntoScrollback: () => opts.overflowed,
+				commitLines(lines: string[]): boolean {
+					calls.push(lines);
+					return true;
+				},
+			},
+			chatContainer: { children },
+			pendingTools: new Map(),
+			streamingComponent: undefined,
+		} as unknown as InteractiveModeContext;
+		return { ctx, calls, children };
+	}
+
+	it("adopts already-scrolled pixels (markOnly) when realign refuses on an overflowed frame", () => {
+		const { ctx, calls, children } = makeAdoptCtx({ realigns: false, overflowed: true });
+		const markable = true;
+		const realigned = markable && (ctx.ui.realignOverflowedFrame?.(0) ?? false);
+		const adopt = realigned || (markable && ctx.ui.hasOverflowedIntoScrollback?.() === true);
+		commitFinalizedBacklog(ctx, { markOnly: adopt });
+		// Marked committed WITHOUT a second insert-history write — the pixels
+		// are already in the physical scrollback (copy #1); a write here (or a
+		// no-op leaving them uncommitted) is what produced copy #2.
+		expect(calls).toEqual([]);
+		expect(children.every(c => c.committed)).toBe(true);
+	});
+
+	it("non-overflowed frames keep the normal write path", () => {
+		const { ctx, calls, children } = makeAdoptCtx({ realigns: false, overflowed: false });
+		const markable = true;
+		const realigned = markable && (ctx.ui.realignOverflowedFrame?.(0) ?? false);
+		const adopt = realigned || (markable && ctx.ui.hasOverflowedIntoScrollback?.() === true);
+		commitFinalizedBacklog(ctx, { markOnly: adopt });
+		expect(calls).toEqual([["err-a"], ["err-b"]]);
+		expect(children.every(c => c.committed)).toBe(true);
+	});
+});

@@ -6,7 +6,7 @@ import * as path from "node:path";
 import { performance } from "node:perf_hooks";
 import { $env, $flag, getDebugLogPath, logger } from "@jawcode-dev/utils";
 import { VIEWPORT_FILL_SENTINEL } from "./components/viewport-fill";
-import { buildInsertHistorySequence, detectHistoryLaneMode, type HistoryLaneMode } from "./insert-history";
+import { detectHistoryLaneMode, type HistoryLaneMode } from "./insert-history";
 import { isKeyRelease, matchesKey } from "./keys";
 import { flushPerfEventsSync, isPerfJsonlFlushEnabled, renderMetrics } from "./metrics";
 import type { Terminal } from "./terminal";
@@ -1592,6 +1592,19 @@ export class TUI extends Container {
 	 * Returns false (pure no-op) unless every precondition holds. The caller
 	 * additionally gates on commitLaneEnabled() and a fully-markable backlog.
 	 */
+	/**
+	 * 260704 — true when the CURRENT frame has content physically in the
+	 * scrollback (the realign engage-condition), regardless of whether the
+	 * realign itself ran. Boundary controllers use it to ADOPT already-
+	 * scrolled pixels (markOnly sweep) when realign refuses: a markOnly=false
+	 * write is impossible on an overflowed frame (commitLines refuses), and
+	 * leaving the backlog uncommitted makes the next turn scroll a SECOND
+	 * copy into history (duplication-after-error-turns, devlog 00 OPEN).
+	 */
+	hasOverflowedIntoScrollback(): boolean {
+		return Math.max(this.#overflowFloor, this.#maxLinesRendered) > this.terminal.rows;
+	}
+
 	realignOverflowedFrame(liveClusterRows: number): boolean {
 		if (this.#stopped || !this.terminalAvailable) return false;
 		if (!this.#fillSentinelPresent) return false;
@@ -1765,9 +1778,10 @@ export class TUI extends Container {
 		if (this.#historyLane !== "standard") return;
 		if (this.overlayStack.length > 0) return;
 		if (this.#committedScreenRows <= 0) return;
-		if (this.#committedBottomRow <= 0) return;
-		const flushBottom = this.#committedBottomRow;
-		this.#scrollOutCommittedRows(flushBottom, flushBottom);
+		// 260704 WP6b-v2: ALL committed rows are top-anchored content at rows
+		// 1..B, so the flush is unconditionally blank-free (the parked-only
+		// restriction and its C1 rationale evaporated with the geometry).
+		this.#scrollOutCommittedRows(this.#committedScreenRows, this.#committedScreenRows);
 		this.#committedScreenRows = 0;
 		this.#committedBottomRow = 0;
 		this.resyncViewport("history lane flush");
@@ -1784,29 +1798,54 @@ export class TUI extends Container {
 		// creating NEW parked rows would guarantee scroll-fighting drains —
 		// defer to the virtual lane (the turn-boundary sweep retries).
 		if (!this.#canUseHistoryLaneNow()) return false;
-		// 260703 v3: while a realign-parked block sits at rows 1..bottom, new
-		// commits must insert DIRECTLY below it — inserting at the (taller) raw
-		// fill bottom would fragment the committed region around the
-		// trailing-blank gap and later scroll blanks into the scrollback.
-		const liveZoneTop = this.#committedBottomRow > 0 ? this.#committedBottomRow : this.#lastFillRows;
-		// <= 1 (not 0): DECSTBM ignores a 1-row region, so the insert sequence
-		// would paint the "committed" line INTO the live zone at row 2 instead
-		// of scrolling row 1 out. Fall back to the virtual lane.
-		if (liveZoneTop <= 1 || lines.length === 0) return false;
+		// 260704 WP6b-v2 — TOP-ANCHORED committed block (devlog 80). The block
+		// lives glued to the scrollback seam at rows 1..B; commits either write
+		// DIRECTLY into the blank fill row below the block (no scroll — blanks
+		// never move, so no blank can ever cross the seam) or, once the block
+		// saturates the fill, scroll region 1..B up by one so the OLDEST
+		// committed row (content, never blank) enters the scrollback and the
+		// new line lands on the freed bottom row. This retires the
+		// bottom-anchored insert-history geometry whose region-top blank rows
+		// were what previous builds stamped into history (fable C1 + the
+		// 260704 turn-start gap regressions).
+		const fill = this.#lastFillRows;
+		// <= 1 (not 0): DECSTBM ignores a 1-row region, so the saturated-scroll
+		// lane could not function; the widened-region drain path covers B===1
+		// blocks elsewhere. Fall back to the virtual lane.
+		if (fill <= 1 || lines.length === 0) return false;
 		const width = this.terminal.columns;
 		const height = this.terminal.rows;
 		const { lines: prepared, stats } = this.#prepareLinesForTerminal([...lines], width);
 		this.#recordPreparedLineStats(stats, "commit");
 		const screenCursorRow = Math.max(0, Math.min(height - 1, this.#hardwareCursorRow - this.#viewportTopRow));
-		const seq = buildInsertHistorySequence(prepared, {
-			liveZoneTop,
-			liveZoneBottom: height,
-			screenRows: height,
-			cursor: { row: screenCursorRow, col: 0 },
-		});
-		if (!seq) return false;
-		if (!this.#writeTerminal(`\x1b[?2026h${seq}\x1b[?2026l`)) return false;
-		this.#committedScreenRows = Math.min(this.#committedScreenRows + prepared.length, liveZoneTop);
+		let b = Math.min(this.#committedScreenRows, fill);
+		let buffer = "\x1b[?2026h";
+		for (const line of prepared) {
+			if (b < fill) {
+				// Blank fill row below the block: write in place, no scroll.
+				// Race-free by the mirror-blank contract: the mirrors still
+				// declare this row blank, so no diff pass ever repaints it.
+				buffer += `\x1b[${b + 1};1H\x1b[2K`;
+				buffer += line;
+				b++;
+			} else {
+				// Saturated: rows 1..B are all content — scroll the oldest row
+				// across the seam and write on the freed bottom row.
+				buffer += `\x1b[1;${b}r`;
+				buffer += `\x1b[${b};1H`;
+				buffer += "\r\n\x1b[2K";
+				buffer += line;
+				buffer += "\x1b[r";
+			}
+		}
+		// Restore the live-zone cursor explicitly — the direct-write lane has
+		// no DECSTBM reset to home it, and the following relative diff computes
+		// moves from this position.
+		buffer += `\x1b[${screenCursorRow + 1};1H`;
+		buffer += "\x1b[?2026l";
+		if (!this.#writeTerminal(buffer)) return false;
+		this.#committedScreenRows = b;
+		if (this.#committedBottomRow > 0) this.#committedBottomRow = b;
 		this.#hasCommittedHistory = true;
 		return true;
 	}
@@ -1997,9 +2036,9 @@ export class TUI extends Container {
 		// devlog 30_wp3a). Track it and finish such passes with an absolute
 		// repaint instead of the relative diff.
 		let scrolledOutThisPass = false;
-		if (this.overlayStack.length > 0 && this.#committedBottomRow > 0) {
-			const flushBottom = this.#committedBottomRow;
-			this.#scrollOutCommittedRows(flushBottom, flushBottom);
+		if (this.overlayStack.length > 0 && this.#committedScreenRows > 0) {
+			// 260704 WP6b-v2: top-anchored block — content-only flush.
+			this.#scrollOutCommittedRows(this.#committedScreenRows, this.#committedScreenRows);
 			this.#committedScreenRows = 0;
 			this.#committedBottomRow = 0;
 			scrolledOutThisPass = true;
@@ -2047,7 +2086,10 @@ export class TUI extends Container {
 		// by painting the trailing-blank gap bottom-up, and only region
 		// `1..#committedBottomRow` (content-only) ever scrolls — the gap blanks
 		// below the block can never enter the scrollback.
-		const historyBottom = this.#committedBottomRow > 0 ? this.#committedBottomRow : prevFillRows;
+		// 260704 WP6b-v2: the committed block is TOP-ANCHORED at rows 1..B —
+		// the drain region is always the block itself (content-only; the old
+		// prevFillRows fallback was the bottom-anchored lane).
+		const historyBottom = this.#committedScreenRows;
 		if (this.#committedScreenRows > 0 && this.#lastFillRows < historyBottom) {
 			// 260703 WP3b-min: this drain is MANDATORY even while the history
 			// lane is gated — the live zone is about to paint over the parked
@@ -2060,32 +2102,8 @@ export class TUI extends Container {
 			this.#scrollOutCommittedRows(historyBottom - this.#lastFillRows, historyBottom);
 			this.#committedScreenRows = Math.min(this.#committedScreenRows, this.#lastFillRows);
 			this.#committedBottomRow =
-				this.#committedBottomRow > 0 && this.#committedScreenRows > 0 ? this.#lastFillRows : 0;
+				this.#committedBottomRow > 0 && this.#committedScreenRows > 0 ? this.#committedScreenRows : 0;
 			scrolledOutThisPass = true;
-		} else if (this.#committedScreenRows > 0 && historyBottom > 0 && this.#lastFillRows > historyBottom) {
-			// 260703 WP6b follow-up (tool-gap regression): the live zone SHRANK
-			// (a capped tool preview collapsed on completion) so the fill grew —
-			// but the committed block physically stays at the OLD fill bottom,
-			// opening a blank gap between it and the live zone that the NEXT
-			// mid-turn commit then makes permanent (blocks separated by
-			// fill-growth-sized voids). Glue the block back to the new fill
-			// bottom: RI-scroll region 1..lastFillRows DOWN by the growth. The
-			// rows shifted out at the region bottom are the gap blanks; the rows
-			// entering at the top are blank; the scrollback above is untouched;
-			// mirrors stay consistent (the whole region is mirror-blank).
-			const delta = this.#lastFillRows - historyBottom;
-			let glue = "\x1b[?2026h";
-			glue += `\x1b[1;${this.#lastFillRows}r`;
-			glue += "\x1b[1;1H";
-			glue += "\x1bM".repeat(delta);
-			glue += "\x1b[r";
-			const glueCursorRow = Math.max(0, Math.min(height - 1, this.#hardwareCursorRow - this.#viewportTopRow));
-			glue += `\x1b[${glueCursorRow + 1};1H`;
-			glue += "\x1b[?2026l";
-			if (this.#writeTerminal(glue)) {
-				if (this.#committedBottomRow > 0) this.#committedBottomRow = this.#lastFillRows;
-				scrolledOutThisPass = true;
-			}
 		}
 
 		// Width/height changes need full re-render handling below.
@@ -2116,22 +2134,11 @@ export class TUI extends Container {
 			// at #committedBottomRow, not the raw fill bottom — flushing
 			// prevFillRows would stamp the trailing-blank gap into history.
 			if (clear && this.#committedScreenRows > 0) {
-				if (this.#committedBottomRow > 0) {
-					// Parked block: content-only region, blank-free flush.
-					this.#scrollOutCommittedRows(this.#committedBottomRow, this.#committedBottomRow);
-					this.#committedScreenRows = 0;
-					this.#committedBottomRow = 0;
-				} else {
-					// Ordinary bottom-aligned committed rows cannot be flushed
-					// blank-free (C1 geometry: the bottom row needs prevFillRows
-					// scrolls to cross row 1, dumping the blank prefix into
-					// scrollback — GPT Pro round-6 finding). And a clearing 2J
-					// would erase the pixels outright. Preserve them on screen
-					// with the live-zone repaint; the progressive S2 drain feeds
-					// them into scrollback as the live zone grows.
-					liveZoneRepaint(`${reason} (ordinary committed rows parked)`);
-					return;
-				}
+				// 260704 WP6b-v2: the block is top-anchored content at rows 1..B —
+				// scrolling region 1..B by B pushes ONLY content across the seam.
+				this.#scrollOutCommittedRows(this.#committedScreenRows, this.#committedScreenRows);
+				this.#committedScreenRows = 0;
+				this.#committedBottomRow = 0;
 			}
 			this.#fullRedrawCount += 1;
 			if (renderMetrics.enabled) renderMetrics.recordFullRedraw(reason);
@@ -2181,9 +2188,9 @@ export class TUI extends Container {
 			// region `1..flushBottom` is content-only while parked. Parked blocks
 			// only (#committedBottomRow > 0): the ordinary commit-lane state keeps
 			// its pre-v3 bytes (B-verify byte-compat finding).
-			if (this.#committedBottomRow > 0) {
-				const flushBottom = this.#committedBottomRow;
-				this.#scrollOutCommittedRows(flushBottom, flushBottom);
+			if (this.#committedScreenRows > 0) {
+				// 260704 WP6b-v2: top-anchored block — content-only flush.
+				this.#scrollOutCommittedRows(this.#committedScreenRows, this.#committedScreenRows);
 				this.#committedScreenRows = 0;
 				this.#committedBottomRow = 0;
 			}
@@ -2441,14 +2448,12 @@ export class TUI extends Container {
 		// carry composited overlay content, so flush the committed rows into
 		// the scrollback first and take the full repaint.
 		if (scrolledOutThisPass) {
-			if (this.#committedScreenRows > 0 && this.overlayStack.length > 0 && this.#lastFillRows > 1) {
-				// Committed rows sit at the BOTTOM of the 1..flushBottom region —
-				// the bottom row needs flushBottom scrolls to cross row 1 into the
-				// scrollback (same rule as fullRender's flush; scrolling by only
-				// #committedScreenRows would leave the tail rows on screen for the
-				// full repaint to erase — GPT Pro round-4 finding).
-				const flushBottom = this.#committedBottomRow > 0 ? this.#committedBottomRow : this.#lastFillRows;
-				this.#scrollOutCommittedRows(flushBottom, flushBottom);
+			if (this.#committedScreenRows > 0 && this.overlayStack.length > 0) {
+				// 260704 WP6b-v2: top-anchored block at rows 1..B — scrolling
+				// region 1..B by B moves ALL content across the seam, blank-free
+				// (the round-4 bottom-alignment reasoning inverted with the
+				// geometry).
+				this.#scrollOutCommittedRows(this.#committedScreenRows, this.#committedScreenRows);
 				this.#committedScreenRows = 0;
 				this.#committedBottomRow = 0;
 			}

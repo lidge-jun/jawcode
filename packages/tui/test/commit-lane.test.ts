@@ -60,10 +60,12 @@ describe("TUI commit lane (083.9 P2-a)", () => {
 		await term.flush();
 
 		const viewport = term.getViewport();
-		// Fill region = rows 0..7 (12 - 2 content - 2 composer). The committed
-		// block sits at the fill bottom, directly above the live content.
-		expect(viewport[6]).toBe("committed-0");
-		expect(viewport[7]).toBe("committed-1");
+		// 260704 WP6b-v2: the committed block is TOP-ANCHORED at the scrollback
+		// seam (rows 0..1); the blank gap below it self-consumes as the live
+		// zone grows. Bottom-anchoring was what stamped blank fill into the
+		// scrollback on every unsaturated commit.
+		expect(viewport[0]).toBe("committed-0");
+		expect(viewport[1]).toBe("committed-1");
 		expect(viewport[8]).toBe("live-0");
 		expect(viewport[11]).toBe("> input");
 		tui.stop();
@@ -75,15 +77,16 @@ describe("TUI commit lane (083.9 P2-a)", () => {
 		expect(tui.commitLines(["committed-0", "committed-1"])).toBe(true);
 		await term.flush();
 
-		// Live zone grows by 4 rows → fill shrinks 8 → 4. Without the scroll-out
-		// rule the diff would paint live content over the committed pixels.
+		// Live zone grows by 4 rows → fill shrinks 8 → 4. The top-anchored
+		// block (rows 0..1) still fits above the new fill bottom, so nothing
+		// drains yet and the pixels survive in place.
 		content.setLines(lines("live", 6));
 		tui.requestRender();
 		await flushRender(term);
 
 		const viewport = term.getViewport();
-		expect(viewport[2]).toBe("committed-0"); // landed at the new fill bottom
-		expect(viewport[3]).toBe("committed-1");
+		expect(viewport[0]).toBe("committed-0");
+		expect(viewport[1]).toBe("committed-1");
 		expect(viewport[4]).toBe("live-0");
 		expect(viewport[11]).toBe("> input");
 		tui.stop();

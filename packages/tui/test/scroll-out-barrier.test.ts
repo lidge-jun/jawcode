@@ -76,8 +76,10 @@ describe("scroll-out repaint barrier (260703 WP3a)", () => {
 		await term.flush();
 		term.clearWriteLog();
 
-		// Live-zone growth shrinks the fill → the pre-paint scroll-out fires.
-		content.setLines(lines("live", 6));
+		// Live-zone growth must actually reach the block for the drain to
+		// fire under top-anchor (fill < B): 12 rows − 9 live − 2 composer = 1
+		// fill row < 2 committed rows → one block row scrolls across the seam.
+		content.setLines(lines("live", 9));
 		tui.requestRender();
 		await flushRender(term);
 
@@ -89,12 +91,13 @@ describe("scroll-out repaint barrier (260703 WP3a)", () => {
 		// over the shifted rows.
 		expect(writes).toMatch(/\x1b\[\d+;1H\x1b\[2K/);
 
-		// Physical outcome unchanged from the pre-barrier contract: committed
-		// pixels land at the new fill bottom, live content below.
+		// 260704 WP6b-v2: the drain pushed the OLDEST block row across the
+		// seam (content-only); the remainder stays glued to the top.
+		const buffer = term.getScrollBuffer();
+		expect(buffer.indexOf("committed-1")).toBe(buffer.indexOf("committed-0") + 1);
 		const viewport = term.getViewport();
-		expect(viewport[2]).toBe("committed-0");
-		expect(viewport[3]).toBe("committed-1");
-		expect(viewport[4]).toBe("live-0");
+		expect(viewport[0]).toBe("committed-1");
+		expect(viewport[1]).toBe("live-0");
 		expect(viewport[11]).toBe("> input");
 		tui.stop();
 	});

@@ -171,7 +171,7 @@ describe("prepared-line cache", () => {
 			await term.flush();
 
 			const viewport = term.getViewport();
-			expect(viewport.slice(5, 8)).toEqual(expectedVisible);
+			expect(viewport.slice(0, 3)).toEqual(expectedVisible); // 260704 top-anchor: block at the seam
 			const commitRows = renderMetrics
 				.events()
 				.filter(row => row.source === "tui.preparedLine" && row.labels?.owner === "commit");

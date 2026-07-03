@@ -126,24 +126,28 @@ describe("history-lane gating (260703 WP3b-min)", () => {
 		conservative.tui.stop();
 	});
 
-	it("ordinary committed rows are NOT flushed — no fill-height blank dump into scrollback", async () => {
-		// fable adversarial review C1: flushing the ordinary lane must push the
-		// whole fill region (bottom-aligned rows need regionBottom scrolls to
-		// cross row 1), stamping a blank gap into scrollback every turn. The
-		// flush is therefore parked-only; ordinary rows keep the progressive
-		// S2 drain. NOTE: no blank-filtering here — blanks ARE the regression.
+	it("flushHistoryLane pushes ordinary committed rows into scrollback blank-free (260704 top-anchor)", async () => {
+		// 260704 WP6b-v2: ALL committed rows are top-anchored content at rows
+		// 1..B, so the flush region is content-only — the old "ordinary rows
+		// cannot be flushed blank-free" C1 geometry evaporated. No
+		// blank-filtering here: blanks in scrollback ARE the regression.
 		const { term, tui } = await setup(true);
 		expect(tui.commitLines(["c-0", "c-1"])).toBe(true);
 		await term.flush();
-		const blanksBefore = term.getScrollBuffer().filter(l => l.trim() === "").length;
-		const writesBefore = term.getWriteLog().length;
 
-		tui.flushHistoryLane(); // ordinary lane → no-op by design
+		tui.flushHistoryLane();
+		await flushRender(term);
+
+		const buffer = term.getScrollBuffer();
+		const scrollbackOnly = buffer.slice(0, Math.max(0, buffer.length - 12));
+		expect(scrollbackOnly.filter(l => l.trim() === "").length).toBe(0);
+		const i0 = buffer.indexOf("c-0");
+		expect(i0).toBeGreaterThanOrEqual(0);
+		expect(buffer.indexOf("c-1")).toBe(i0 + 1);
+
+		const writesBefore = term.getWriteLog().length;
+		tui.flushHistoryLane(); // nothing committed anymore → no-op
 		expect(term.getWriteLog().length).toBe(writesBefore);
-		const blanksAfter = term.getScrollBuffer().filter(l => l.trim() === "").length;
-		expect(blanksAfter).toBe(blanksBefore);
-		// Committed pixels stay parked on screen, above the live zone.
-		expect(term.getViewport().join("\n")).toContain("c-0");
 		tui.stop();
 	});
 
