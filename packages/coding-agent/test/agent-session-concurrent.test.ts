@@ -740,6 +740,115 @@ describe("AgentSession concurrent prompt guard", () => {
 			}
 		}
 	});
+
+	it("newSession suppresses old owner terminal delivery retries and cancels old running jobs", async () => {
+		const model = getBundledModel("anthropic", "claude-sonnet-4-5")!;
+		const authStorage = await AuthStorage.create(path.join(tempDir, "testauth-newsession-async.db"));
+		authStorages.push(authStorage);
+		const modelRegistry = new ModelRegistry(authStorage, path.join(tempDir, "models-newsession-async.yml"));
+		authStorage.setRuntimeApiKey("anthropic", "test-key");
+		const settings = Settings.isolated();
+		const ownerId = "replace-owner";
+		let ownerAttempts = 0;
+		const delivered: string[] = [];
+		const otherDeliveryGate = Promise.withResolvers<void>();
+		const asyncJobManager = new AsyncJobManager({
+			maxRunningJobs: 4,
+			retentionMs: 1_000,
+			onJobComplete: async jobId => {
+				if (jobId === "replace-completed") {
+					ownerAttempts += 1;
+					throw new Error("old transcript delivery should remain suppressed");
+				}
+				if (jobId === "other-completed") {
+					await otherDeliveryGate.promise;
+				}
+				delivered.push(jobId);
+			},
+		});
+		AsyncJobManager.setInstance(asyncJobManager);
+
+		const replaceAgent = new Agent({
+			getApiKey: () => "test-key",
+			initialState: { model, systemPrompt: ["Test"], tools: [] },
+			streamFn: createMockModel({ handler: () => ({ content: ["Done"] }) }).stream,
+		});
+		session = new AgentSession({
+			agent: replaceAgent,
+			sessionManager: SessionManager.inMemory(),
+			settings,
+			modelRegistry,
+			agentId: ownerId,
+			ownedAsyncJobManager: asyncJobManager,
+		});
+
+		asyncJobManager.register("task", "old completed", async () => "old output", {
+			id: "replace-completed",
+			ownerId,
+		});
+		const runningJobId = asyncJobManager.register(
+			"bash",
+			"old running",
+			async ({ signal }) => {
+				await new Promise<void>(resolve => {
+					signal.addEventListener("abort", () => resolve(), { once: true });
+				});
+				return "cancelled";
+			},
+			{ id: "replace-running", ownerId },
+		);
+		const otherRunningId = asyncJobManager.register(
+			"bash",
+			"other running",
+			async ({ signal }) => {
+				await new Promise<void>(resolve => {
+					signal.addEventListener("abort", () => resolve(), { once: true });
+				});
+				return "other cancelled";
+			},
+			{ id: "other-running", ownerId: "other-owner" },
+		);
+		asyncJobManager.register("task", "other completed", async () => "other output", {
+			id: "other-completed",
+			ownerId: "other-owner",
+		});
+
+		try {
+			const ownerAttemptDeadline = Date.now() + 2_000;
+			while (ownerAttempts === 0) {
+				if (Date.now() >= ownerAttemptDeadline) throw new Error("Timed out waiting for old delivery attempt");
+				await Bun.sleep(5);
+			}
+			const otherDeliveryDeadline = Date.now() + 2_000;
+			while (!asyncJobManager.hasPendingDeliveries({ ownerId: "other-owner" })) {
+				if (Date.now() >= otherDeliveryDeadline) throw new Error("Timed out waiting for unrelated delivery");
+				await Bun.sleep(5);
+			}
+
+			expect(await session.newSession()).toBe(true);
+
+			expect(asyncJobManager.getJob(runningJobId)?.status).toBe("cancelled");
+			expect(asyncJobManager.getJob(otherRunningId)?.status).toBe("running");
+			expect(asyncJobManager.hasPendingDeliveries({ ownerId })).toBe(false);
+			expect(asyncJobManager.hasPendingDeliveries({ ownerId: "other-owner" })).toBe(true);
+
+			await Bun.sleep(700);
+			expect(ownerAttempts).toBe(1);
+
+			otherDeliveryGate.resolve();
+			expect(await asyncJobManager.drainDeliveries({ timeoutMs: 1_000, filter: { ownerId: "other-owner" } })).toBe(
+				true,
+			);
+			expect(delivered).toEqual(["other-completed"]);
+		} finally {
+			otherDeliveryGate.resolve();
+			asyncJobManager.cancel(otherRunningId, { ownerId: "other-owner" });
+			await asyncJobManager.dispose({ timeoutMs: 1_000 });
+			if (AsyncJobManager.instance() === asyncJobManager) {
+				AsyncJobManager.setInstance(undefined);
+			}
+		}
+	});
 });
 
 describe("AgentSession TTSR resume gate", () => {

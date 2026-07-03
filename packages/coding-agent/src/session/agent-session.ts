@@ -42,6 +42,7 @@ import {
 	calculatePromptTokens,
 	collectEntriesForBranchSummary,
 	compact,
+	compactionBoundaryMatches,
 	countMessageTokensNative,
 	estimateMessageTokensHeuristic,
 	estimateTokens,
@@ -50,6 +51,7 @@ import {
 	prepareCompaction,
 	type SummaryOptions,
 	shouldCompact,
+	summaryModelKey,
 } from "@jawcode-dev/agent-core/compaction";
 import { DEFAULT_PRUNE_CONFIG, pruneToolOutputs } from "@jawcode-dev/agent-core/compaction/pruning";
 import type {
@@ -1704,8 +1706,7 @@ export class AgentSession {
 		if (!this.#agentId) return;
 		const manager = AsyncJobManager.instance();
 		if (!manager) return;
-		manager.runOwnerCleanups({ ownerId: this.#agentId });
-		manager.cancelAll({ ownerId: this.#agentId });
+		manager.cancelOwnerForReplacement({ ownerId: this.#agentId });
 	}
 
 	// =========================================================================
@@ -7678,6 +7679,7 @@ export class AgentSession {
 	): Promise<CompactionResult> {
 		const candidates = this.#getCompactionModelCandidates(this.#modelRegistry.getAvailable());
 		const telemetry = resolveTelemetry(this.agent.telemetry, this.sessionId);
+		const cachePrefix = this.#buildCompactionCachePrefix(preparation);
 
 		for (const candidate of candidates) {
 			const apiKey = await this.#modelRegistry.getApiKey(candidate, this.sessionId);
@@ -7690,6 +7692,7 @@ export class AgentSession {
 					convertToLlm,
 					telemetry,
 					authCredentialType: this.#modelRegistry.getSessionCredentialType(candidate.provider, this.sessionId),
+					cachePrefix: cachePrefix?.modelKey === summaryModelKey(candidate) ? cachePrefix : undefined,
 				});
 			} catch (error) {
 				if (!this.#isCompactionAuthFailure(error)) {
@@ -7699,6 +7702,34 @@ export class AgentSession {
 		}
 
 		throw this.#buildCompactionAuthError();
+	}
+
+	/**
+	 * Live-session prefix for cache-friendly summarization (SummaryOptions.cachePrefix).
+	 *
+	 * Slices `agent.state.messages` at the summarize/keep boundary so generateSummary
+	 * can replay the exact prefix the provider already has cached. Returns undefined
+	 * (serialized-transcript fallback) whenever the live array does not line up with
+	 * the entry-derived boundary — e.g. runtime-injected messages shifted it.
+	 */
+	#buildCompactionCachePrefix(preparation: CompactionPreparation): SummaryOptions["cachePrefix"] {
+		const sessionModel = this.model;
+		if (!sessionModel) return undefined;
+		const live = this.agent.state.messages;
+		const tail = preparation.recentMessages.length + preparation.turnPrefixMessages.length;
+		if (tail <= 0 || live.length <= tail) return undefined;
+		const head = live.slice(0, live.length - tail);
+		const boundary = preparation.turnPrefixMessages[0] ?? preparation.recentMessages[0];
+		const liveBoundary = live[head.length];
+		if (!boundary || !liveBoundary || !compactionBoundaryMatches(liveBoundary, boundary)) {
+			return undefined;
+		}
+		return {
+			modelKey: summaryModelKey(sessionModel),
+			systemPrompt: this.agent.state.systemPrompt,
+			tools: this.agent.state.tools,
+			messages: head,
+		};
 	}
 
 	async #prepareCompactionFromHooks(
@@ -8021,6 +8052,7 @@ export class AgentSession {
 				const candidates = this.#getCompactionModelCandidates(availableModels);
 				const retrySettings = this.settings.getGroup("retry");
 				const telemetry = resolveTelemetry(this.agent.telemetry, this.sessionId);
+				const cachePrefix = this.#buildCompactionCachePrefix(preparation);
 				let compactResult: CompactionResult | undefined;
 				let lastError: unknown;
 
@@ -8044,6 +8076,7 @@ export class AgentSession {
 									this.sessionId,
 								),
 								onProgress: progress,
+								cachePrefix: cachePrefix?.modelKey === summaryModelKey(candidate) ? cachePrefix : undefined,
 							});
 							break;
 						} catch (error) {

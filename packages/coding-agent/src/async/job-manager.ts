@@ -1017,6 +1017,33 @@ export class AsyncJobManager {
 		return before - this.#deliveries.length;
 	}
 
+	acknowledgeDeliveriesForOwner(filter: { ownerId: string }): number {
+		const ownerId = filter.ownerId;
+		const jobIds = new Set<string>();
+		for (const delivery of this.#deliveries) {
+			if (delivery.ownerId === ownerId) jobIds.add(delivery.jobId);
+		}
+		for (const delivery of this.#inFlightDeliveries) {
+			if (delivery.ownerId === ownerId) jobIds.add(delivery.jobId);
+		}
+		return this.acknowledgeDeliveries(Array.from(jobIds));
+	}
+
+	/**
+	 * Destructively abandon all async work owned by a session that is replacing
+	 * its transcript (new session, handoff, branch switch).
+	 *
+	 * Unlike normal AgentSession.dispose(), replacement teardown must not let an
+	 * already-terminal async result from the abandoned transcript retry into the
+	 * replacement transcript. Suppress owner deliveries first, then cancel still-
+	 * running jobs; unrelated owners remain untouched.
+	 */
+	cancelOwnerForReplacement(filter: { ownerId: string }): void {
+		this.runOwnerCleanups(filter);
+		this.acknowledgeDeliveriesForOwner(filter);
+		this.cancelAll(filter);
+	}
+
 	/**
 	 * Cancel running jobs. With `filter.ownerId` set, cancels only jobs the
 	 * matching agent registered; with no filter, cancels every running job
