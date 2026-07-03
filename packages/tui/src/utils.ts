@@ -400,7 +400,13 @@ export function moveWordRight(text: string, cursor: number): number {
  * overflows. Kept out of component strings' cell model so overlay
  * compositing and width math are untouched (ANSI passthrough).
  */
-export const ROW_BG_MARKER = "\x1b_pi:rowbg\x07";
+// The marker IS the erase op: placed right after the background SGR
+// activates (line start, cursor at column 1), EL paints the entire row in
+// the active background before content draws over it. CSI K is zero-width
+// for Bun.stringWidth AND the pi-natives helpers (ANSI passthrough), so
+// width math and overlay compositing are untouched — the two objections to
+// end-of-line EL embedding do not apply at the START of the line.
+export const ROW_BG_MARKER = "\x1b[K";
 
 export function applyBackgroundToLine(line: string, width: number, bgFn: (text: string) => string): string {
 	if (terminalSupportsBce()) {

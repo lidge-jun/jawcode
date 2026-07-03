@@ -15,7 +15,6 @@ import {
 	Ellipsis,
 	extractSegments,
 	getAmbiguousWidthMode,
-	ROW_BG_MARKER,
 	normalizeTerminalOutput,
 	setAmbiguousWidthMode,
 	sliceByColumn,
@@ -1461,16 +1460,7 @@ export class TUI extends Container {
 			stats.normalizeHit++;
 		} else {
 			stats.normalizeMiss++;
-			let normalized = normalizeTerminalOutput(line);
-			// 260704 WP5.3: the row-bg marker sits right after the background
-			// SGR activation — replacing it with EL paints the ENTIRE row in
-			// the active background (BCE) before the content draws over it, so
-			// full-row backgrounds need zero literal padding cells (the class
-			// terminal reflow shreds on width changes). Zero-width either way;
-			// width math and overlay compositing are untouched.
-			if (normalized.includes(ROW_BG_MARKER)) {
-				normalized = normalized.replaceAll(ROW_BG_MARKER, "\x1b[K");
-			}
+			const normalized = normalizeTerminalOutput(line);
 			prepared = this.#rememberPreparedLine(
 				this.#preparedNormalizeCache,
 				line,
