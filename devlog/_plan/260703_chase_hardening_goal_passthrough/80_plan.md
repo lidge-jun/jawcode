@@ -156,7 +156,7 @@ Add paused-state coverage to the existing replacement block or a new nearby test
 - Assert no paused diagnostic in `output`.
 - Assert state is enabled/active with objective `replacement after pause` and a new id.
 - Assert `readGoalPlan(cwd)?.brief === "replacement after pause"`.
-- Repeat for `/goal set replacement after pause`, `/goalplan paused planning hint`, and `/goal plan paused planning hint`; assert objective contains the expected replacement objective or `GOAL_PLAN_PENDING_BRIEF` + hint, and the planning routes return a prompt containing `AI-driven goal planning`.
+- Repeat for `/goal set replacement after pause`, `/goalplan paused planning hint`, `/goal-plan paused planning hint`, and `/goal plan paused planning hint`; assert objective contains the expected replacement objective or `GOAL_PLAN_PENDING_BRIEF` + hint, and the planning routes return a prompt containing `AI-driven goal planning`. `/goalplan` and `/goal-plan` share the same command handler, but both spellings must appear in paused-state coverage so the alias contract is independently checkable.
 
 Fake runtime note: current fake `replaceGoal()` throws unless `enabled && active`; paused path should therefore prove the implementation uses drop/create rather than replace-on-paused.
 
@@ -184,7 +184,7 @@ it("replaces a paused goal via direct /goal text", async () => {
 
 Add adjacent coverage for:
 
-- `handleGoalModeCommand("set Replace the objective")` while paused.
+- `handleGoalModeCommand("set Replace the objective")` while paused; assert active state, new objective, no paused warning, durable plan brief, and submitted objective text are all preserved.
 - `handleGoalModeCommand("plan choose next target")` while paused; assert prompt text contains `AI-driven goal planning is active.` and `Hint: choose next target`, state objective contains `GOAL_PLAN_PENDING_BRIEF`, and durable plan brief contains the hint.
 - Bare `handleGoalModeCommand()` while paused still opens the paused menu and can resume; existing resume-menu test should remain unchanged.
 
@@ -218,7 +218,7 @@ Run `bun run check:ts` only if TypeScript signature/import changes are non-trivi
 - Text/ACP `/goal set <objective>` replaces a paused current goal with a fresh active goal state.
 - Text/ACP `/goalplan <hint>` and `/goal plan <hint>` replace a paused current goal with a fresh AI-driven goal-planning state and return the planning prompt.
 - TUI/Interactive `handleGoalModeCommand("<objective>")` replaces a paused current goal, writes the durable goal plan brief, and submits the objective as the pending input.
-- TUI/Interactive `handleGoalModeCommand("set <objective>")` replaces a paused current goal and writes the durable goal plan brief.
+- TUI/Interactive `handleGoalModeCommand("set <objective>")` replaces a paused current goal, writes the durable goal plan brief, and submits the objective as the pending input.
 - TUI/Interactive `handleGoalModeCommand("plan <hint>")` replaces a paused current goal with the planning brief, writes that brief durably, and submits only the generated planning prompt.
 - No-arg `/goal` while paused still opens the paused management menu.
 - `/goal show|status|pause|resume|drop` behavior is unchanged.
