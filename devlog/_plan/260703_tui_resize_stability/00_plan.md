@@ -62,14 +62,16 @@ raises WP3 (scroll-out lane hardening) priority.
 
 | WP | Slice | Class | Status |
 |----|-------|-------|--------|
-| WP1 | `TUI.resyncViewport()` one-shot absolute repaint primitive + resize flip-back trigger | C2 | DONE (0045e58, pushed) |
-| WP2 | DECAWM off for the TUI session (`CSI ?7l` on start, `?7h` on stop/emergency) | C2 | this cycle |
-| WP2.5 | ambiguous/emoji width alignment: startup CPR probe (EAW-A chars, 100ms timeout, env override `JAWCODE_AMBIGUOUS_WIDTH`) → `Bun.stringWidth(s, {ambiguousIsNarrow})` + prepared-line cache invalidation | C2 | after WP2 (targets the no-resize screenshot directly) |
-| WP3a | scroll-out repaint barrier: no same-pass relative diff after `#scrollOutCommittedRows()`; coalesce scroll-region mutation + absolute repaint into ONE ?2026 block | C2 | after WP2.5 |
-| WP3b | history-lane gating: no DECSTBM commits/growth-drains while streaming and off-bottom/unknown-bottom; batch drains, flush once at agent_end + resync (fixes top-pinned-block scroll interference) | C3 | after WP3a |
-| WP5 | remove full-width literal padding; SGR-bg + EL/ECH with BCE detection, no-bg fallback (kills reflow scars + ambiguous overflows at the source) | C3 | after WP3 |
-| WP4 | render-time PTY size via ioctl(TIOCGWINSZ) + mustAbsoluteNextFrame on resize epoch (kills the stale-width race) | C3 | after WP5 unless trivial |
-| WP6 | tool/thinking blocks render-on-completion (collapsed default / verbose expanded, per-mode flag), commit at completion, historical expand routed to full-transcript overlay (user UX design, 260703) | C3 | design agreed; after safety WPs |
+| WP1 | `TUI.resyncViewport()` one-shot absolute repaint primitive + resize flip-back trigger | C2 | DONE (0045e58) |
+| WP2 | DECAWM off + emergency-restore hardening | C2 | DONE (fdb6e46, 3cc2689, ef481ba) |
+| WP3a | scroll-out repaint barrier + liveZoneRepaint + round-4 fixes (overlay flush count, startRow guard) | C2 | DONE (f1078fe + follow-ups in 63a5493) |
+| WP2.5 | ambiguous width through BOTH tables (pi-natives AtomicBool + Bun.stringWidth `ambiguousIsNarrow`) + CPR probe (`JWC_AMBIGUOUS_WIDTH` override) + commit gate + round-5 hardening (grace swallower, stdin gate, fail-closed setter) | C3 | DONE (63a5493, 036d1ab) |
+| WP6a-A | fixed-height streaming preview for tool/thinking blocks | C2 | DONE (036d1ab) |
+| WP3b-min | history-lane gating: canUseHistoryLaneNow + commitLines gate + flushHistoryLane at stream boundaries + mandatory-drain metric | C3 | this cycle (fable adversarial review pending) |
+| WP6a-B | verbose always-expanded parity (gjc port) | C2 | next |
+| WP6b | commit-on-completion (mid-turn commits behind the gate) | C3 | after 6a-B |
+| WP5 | remove full-width literal padding; SGR-bg + EL/ECH with BCE detection, no-bg fallback | C3 | after WP6b |
+| WP4 | render-time PTY size via ioctl(TIOCGWINSZ) + mustAbsoluteNextFrame | C3 | last |
 
 One full PABCD cycle per WP; D of each cycle records evidence and re-enters P.
 

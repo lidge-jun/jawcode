@@ -871,6 +871,10 @@ export class TUI extends Container {
 		this.#clearAmbiguousProbeState();
 		this.#ambiguousWidthResolved = true;
 		this.#resyncRequested = false;
+		// A stopped TUI can be restarted (Ctrl+Z resume, background mode,
+		// external editor) on paths where the embedding app's stream-end event
+		// never fired — a stale flag would gate the commit lane forever.
+		this.#streamingActive = false;
 		this.#stopped = true;
 		if (this.#renderTimer) {
 			clearTimeout(this.#renderTimer);
