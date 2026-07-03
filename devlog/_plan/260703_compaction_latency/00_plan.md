@@ -20,7 +20,7 @@
 4. **OpenAI remote compaction is additive, not a replacement** — on success the result is only
    stashed into `preserveData` (compaction.ts:1146-1154); local summary + short summary still run.
 
-## Consumer-tracing facts (self-verified; codex cross-check pending)
+## Consumer-tracing facts (self-verified + codex cross-check 2026-07-03)
 
 - `shortSummary` is optional everywhere: TUI collapsed view shows it only if present
   (`packages/coding-agent/src/modes/components/compaction-summary-message.ts:66-68`),
@@ -44,6 +44,14 @@
   use `clampThinkingLevelForModel(model, effort)` (model-thinking.ts:247-277, exported from
   `@jawcode-dev/ai` via packages/ai/src/index.ts:9).
 - Anthropic path: `reasoning` omitted → thinking fully disabled (stream.ts:602-613).
+- Codex cross-check additions: OpenAI Responses/Codex serializers replay `providerPayload`
+  native items INSTEAD of the summary text when provider matches
+  (openai-responses.ts:587-598, openai-codex-responses.ts:2604-2616) — confirms the text
+  summary is cross-provider fallback only. Fork context seeds strip `providerPayload`
+  (agent-session.ts:1480-1512) and therefore DO rely on the textual summary — the early-return
+  path must always install a real summary text (remote plaintext qualifies). Existing test
+  `packages/coding-agent/test/compaction.test.ts:511-524` asserts remote success still returns
+  the LOCAL "History summary" — must be updated/extended for the plaintext early-return case.
 
 ## Work-phase map (one PABCD cycle each)
 
