@@ -182,4 +182,19 @@ describe("InputController double-press exit (99.20.06)", () => {
 		expect(calls.shutdown).toBe(1);
 		footer.dispose();
 	});
+
+	it("right-aligned lines end AT content — no trailing fill (260703 WP5.1)", () => {
+		// Trailing cells are what terminal reflow wraps into floating fragments
+		// on width shrink; the right margin comes from sizing the gap short.
+		const footer = new ComposerFooter();
+		footer.setBackgroundText("2 background tasks");
+		for (const line of renderText(footer)) {
+			expect(line).toBe(line.trimEnd());
+		}
+		footer.setHint("hint text");
+		for (const line of renderText(footer)) {
+			expect(line).toBe(line.trimEnd());
+		}
+		footer.dispose();
+	});
 });
