@@ -19,6 +19,15 @@ let terminalEverStarted = false;
 
 const STD_INPUT_HANDLE = -10;
 const ENABLE_VIRTUAL_TERMINAL_INPUT = 0x0200;
+const BLIND_RESTORE_SEQUENCE =
+	"\x1b[?2004l" + // Disable bracketed paste
+	"\x1b[?1000l" + // Disable normal mouse reporting
+	"\x1b[?1006l" + // Disable SGR extended mouse reporting
+	"\x1b[?2031l" + // Disable Mode 2031 appearance notifications
+	"\x1b[<u" + // Pop kitty keyboard protocol
+	"\x1b[>4;0m" + // Disable modifyOtherKeys fallback
+	"\x1b[?7h" + // Restore autowrap (session runs with DECAWM off, 260703 WP2)
+	"\x1b[?25h"; // Show cursor
 /**
  * Emergency terminal restore - call this from signal/crash handlers
  * Resets terminal state without requiring access to the ProcessTerminal instance
@@ -29,19 +38,15 @@ export function emergencyTerminalRestore(): void {
 		if (terminal) {
 			terminal.stop();
 			terminal.showCursor();
-		} else if (terminalEverStarted) {
-			// Blind restore only if we know a terminal was started but lost track of it
-			// This avoids writing escape sequences for non-TUI commands (grep, commit, etc.)
-			process.stdout.write(
-				"\x1b[?2004l" + // Disable bracketed paste
-					"\x1b[?1000l" + // Disable normal mouse reporting
-					"\x1b[?1006l" + // Disable SGR extended mouse reporting
-					"\x1b[?2031l" + // Disable Mode 2031 appearance notifications
-					"\x1b[<u" + // Pop kitty keyboard protocol
-					"\x1b[>4;0m" + // Disable modifyOtherKeys fallback
-					"\x1b[?7h" + // Restore autowrap (session runs with DECAWM off, 260703 WP2)
-					"\x1b[?25h", // Show cursor
-			);
+		}
+		// Blind restore whenever a terminal was ever started. Also runs after the
+		// tracked stop() above: a ProcessTerminal that already marked itself dead
+		// no-ops every #safeWrite, so its stop() may restore NOTHING while the fd
+		// is still writable enough for a raw write — the crash path must not
+		// depend on the instance's liveness bookkeeping. Double-restoring modes
+		// is harmless. Never fires for non-TUI commands (terminalEverStarted).
+		if (terminalEverStarted && process.stdout.isTTY) {
+			process.stdout.write(BLIND_RESTORE_SEQUENCE);
 			if (process.stdin.setRawMode) {
 				process.stdin.setRawMode(false);
 			}

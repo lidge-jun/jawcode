@@ -58,6 +58,47 @@ describe("DECAWM session guard (260703 WP2)", () => {
 		terminal.stop();
 	});
 
+	it("start() disables autowrap before any printable byte reaches the terminal", () => {
+		const terminal = new ProcessTerminal();
+		terminal.start(
+			() => {},
+			() => {},
+		);
+		// Every row write after start() relies on DECAWM being off; a printable
+		// character emitted before ?7l could still wrap and desync row 0.
+		const joined = writes.join("");
+		const disableAt = joined.indexOf("\x1b[?7l");
+		expect(disableAt).toBeGreaterThanOrEqual(0);
+		const printable = joined.slice(0, disableAt).match(/[\x20-\x7e]/g) ?? [];
+		// Escape-sequence payload bytes (e.g. "[?2004h") are printable ASCII but
+		// part of control sequences; strip full sequences first, then assert no
+		// bare printable text remains before the autowrap disable.
+		const beforeDisable = joined
+			.slice(0, disableAt)
+			.replace(/\x1b\[[0-9;?<>=]*[a-zA-Z]|\x1b\][^\x07]*\x07|\x1b[78=>]|\x1b\[\?u/g, "");
+		expect(beforeDisable).toBe("");
+		expect(printable.length).toBeGreaterThan(0); // sanity: sequences existed
+		terminal.stop();
+	});
+
+	it("emergency restore emits the blind sequence even when the tracked terminal is dead", () => {
+		const terminal = new ProcessTerminal();
+		terminal.start(
+			() => {},
+			() => {},
+		);
+		// Simulate a dead stdout marking the instance unavailable: every
+		// #safeWrite no-ops from here on, so the tracked stop() restores
+		// nothing — the crash path must still emit the raw blind restore.
+		(process.stdout.write as ReturnType<typeof vi.fn>).mockImplementationOnce(() => {
+			throw new Error("EIO");
+		});
+		terminal.write("boom"); // trips #markUnavailable via the throwing write
+		writes.length = 0;
+		emergencyTerminalRestore();
+		expect(writes.join("")).toContain("\x1b[?7h");
+	});
+
 	it("stop() restores autowrap", () => {
 		const terminal = new ProcessTerminal();
 		terminal.start(

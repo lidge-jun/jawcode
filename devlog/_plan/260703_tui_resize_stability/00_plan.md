@@ -73,6 +73,21 @@ raises WP3 (scroll-out lane hardening) priority.
 
 One full PABCD cycle per WP; D of each cycle records evidence and re-enters P.
 
+**Converged order (GPT Pro round 3, 260703 — agreed):** WP2.5 → WP3a → WP6a
+(default/verbose render policy WITHOUT mid-turn commits: fixed-height preview +
+collapsed/expanded-on-completion, commit still at turn boundary) → WP3b-min (history-
+lane gating: no commit/drain while overlay open or off-bottom; queue/batch in mux or
+unknown-bottom during streaming) → WP6b (enable commit-on-completion) → WP5 → WP4.
+WP6 verdict: additive policy layer over the commit lane, materially shrinks the
+corruption surface; semantic caveat — "committed" means "left the diff-rendered frame,
+canonical pixels" but rows may stay PARKED on screen until drained, so WP3b is reduced
+in scope but NOT obsoleted. WP2 verification: both commits correct; two hardening
+follow-ups adopted (blind-restore in the active-terminal emergency branch too — a dead
+ProcessTerminal no-ops #safeWrite and would skip ?7h; test asserting ?7l precedes any
+printable write). Verbose-mode large one-shot commits get batched into one synchronized
+write + resync barrier (WP6b detail). Image lines never go through the insert-history
+lane. Full text: scratchpad `gpt-pro-answer-3.md`.
+
 GPT Pro round 2 (full text: scratchpad `gpt-pro-answer-2.md`) — key deltas beyond the
 re-rank: (a) WP1's flip-back does NOT fully replace a settle repaint — residual misses:
 resize event sampled while process.stdout.columns is stale, coalesced/lost final event,
