@@ -69,8 +69,10 @@ cachePrefix?: {
      `summarization-system.md`, inlined since the live system prompt replaces
      `SUMMARIZATION_SYSTEM_PROMPT`) + `\n\n` + the same basePrompt selection as today
      (update vs initial prompt, `customInstructions`, `formatAdditionalContext(extraContext)`).
-     No `<conversation>` wrapper, no `<previous-summary>` block when the previous summary
-     message is already part of the replayed head.
+     No `<conversation>` wrapper. The `<previous-summary>` block IS kept when
+     `previousSummary` exists (B-phase adjustment: `compaction-update-summary.md` references
+     the tag explicitly, so dropping it would break the update prompt's semantics; the few-KB
+     duplication with the replayed head is negligible next to the cache win).
    - `instrumentedCompleteSimple(model, { systemPrompt: cachePrefix.systemPrompt,
      messages: [...llmMessages, trailing], tools: cachePrefix.tools },
      { maxTokens, signal, apiKey, reasoning: clampThinkingLevelForModel(model, Effort.Low),
