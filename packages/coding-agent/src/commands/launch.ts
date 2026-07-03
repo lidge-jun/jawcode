@@ -186,6 +186,9 @@ export default class Index extends Command {
 		"no-title": Flags.boolean({
 			description: "Disable title auto-generation",
 		}),
+		verbose: Flags.boolean({
+			description: "Render every tool/thinking block permanently expanded (verbose render mode, this session only)",
+		}),
 	};
 
 	static examples = [

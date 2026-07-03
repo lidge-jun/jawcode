@@ -919,6 +919,10 @@ export async function runRootCommand(
 	sessionOptions.modelRegistry = modelRegistry;
 	sessionOptions.hasUI = isInteractive || mode === "rpc-ui";
 	sessionOptions.settings = settingsInstance;
+	if (parsedArgs.verbose) {
+		// --verbose: session-scoped render-mode override (not persisted).
+		settingsInstance.override("tool.renderMode", "verbose");
+	}
 
 	// Handle CLI --api-key as runtime override (not persisted). Validate before
 	// MCP discovery so a fatal CLI-argument error cannot leave CLI-owned MCP
