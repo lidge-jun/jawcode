@@ -3,7 +3,7 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as natives from "@jawcode-dev/natives";
-import { getWorktreeDir, hashPath, logger, Snowflake } from "@jawcode-dev/utils";
+import { getWorktreeDir, getWorktreesDir, hashPath, logger, Snowflake } from "@jawcode-dev/utils";
 import * as git from "../utils/git";
 
 const { IsoBackendKind } = natives;
@@ -306,13 +306,36 @@ function errorMessage(err: unknown): string {
 	return err instanceof Error ? err.message : String(err);
 }
 
+const SAFE_ISOLATION_ID = /^[A-Za-z0-9_.-]+$/;
+
+function validateIsolationId(id: string): string {
+	const trimmed = id.trim();
+	if (trimmed.length === 0 || trimmed.includes("\0") || trimmed.includes("/") || trimmed.includes("\\")) {
+		throw new Error(`Invalid isolation id: ${id}`);
+	}
+	if (trimmed === "." || trimmed === ".." || !SAFE_ISOLATION_ID.test(trimmed)) {
+		throw new Error(`Invalid isolation id: ${id}`);
+	}
+	return trimmed;
+}
+
+function isPathInside(parent: string, child: string): boolean {
+	const relative = path.relative(path.resolve(parent), path.resolve(child));
+	return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
 export async function ensureIsolation(
 	baseCwd: string,
 	id: string,
 	preferred?: IsoBackendKind,
 ): Promise<IsolationHandle> {
 	const repoRoot = await getRepoRoot(baseCwd);
-	const baseDir = getWorktreeDir(`${id}-${hashPath(repoRoot)}`);
+	const safeId = validateIsolationId(id);
+	const baseDir = getWorktreeDir(`${safeId}-${hashPath(repoRoot)}`);
+	const worktreesRoot = getWorktreesDir();
+	if (!isPathInside(worktreesRoot, baseDir)) {
+		throw new Error(`Isolation path escaped worktree root: ${baseDir}`);
+	}
 	const mergedDir = path.join(baseDir, "merged");
 
 	const resolution = natives.isoResolve(preferred ?? null);
@@ -357,7 +380,16 @@ export async function cleanupIsolation(handle: IsolationHandle): Promise<void> {
 	} finally {
 		// baseDir is the parent of the merged directory
 		const baseDir = path.dirname(handle.mergedDir);
-		await fs.rm(baseDir, { recursive: true, force: true });
+		const worktreesRoot = getWorktreesDir();
+		if (isPathInside(worktreesRoot, baseDir)) {
+			await fs.rm(baseDir, { recursive: true, force: true });
+		} else {
+			logger.warn("skipping isolation cleanup outside worktree root", {
+				baseDir,
+				mergedDir: handle.mergedDir,
+				worktreesRoot,
+			});
+		}
 	}
 }
 

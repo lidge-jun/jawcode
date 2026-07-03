@@ -676,6 +676,44 @@ describe("ExtensionRunner", () => {
 
 			warnSpy.mockRestore();
 		});
+
+		it("reports timed-out late rejections without emitting unhandled rejections", async () => {
+			const lateRejectPath = path.join(tempDir.path(), "late-reject-session-start.ts");
+			fs.writeFileSync(
+				lateRejectPath,
+				`
+					export default function(pi) {
+						pi.on("session_start", async () => {
+							await Bun.sleep(30);
+							throw new Error("late reject after timeout");
+						});
+					}
+				`,
+			);
+
+			const result = await loadTestExtensions([lateRejectPath]);
+			const runner = new ExtensionRunner(
+				result.extensions,
+				result.runtime,
+				tempDir.path(),
+				sessionManager,
+				modelRegistry,
+			);
+			const unhandled: unknown[] = [];
+			const onUnhandled = (reason: unknown) => {
+				unhandled.push(reason);
+			};
+			process.on("unhandledRejection", onUnhandled);
+			testSetExtensionHandlerTimeoutMs(5);
+			try {
+				await runner.emit({ type: "session_start" });
+				await Bun.sleep(60);
+			} finally {
+				process.off("unhandledRejection", onUnhandled);
+			}
+
+			expect(unhandled).toEqual([]);
+		});
 	});
 
 	describe("session name API", () => {
@@ -735,6 +773,62 @@ describe("ExtensionRunner", () => {
 
 			expect(sessionManager.getSessionName()).toBe("Named by extension");
 			expect(sessionManager.getHeader()?.title).toBe("Named by extension");
+		});
+
+		it("forwards every explicit shutdown request from extension context", async () => {
+			const extCode = `
+				export default function(pi) {
+					pi.on("session_start", async (_event, ctx) => {
+						ctx.shutdown();
+						ctx.shutdown();
+					});
+				}
+			`;
+			const explicitExtensionPath = path.join(tempDir.path(), "double-shutdown.ts");
+			fs.writeFileSync(explicitExtensionPath, extCode);
+
+			const result = await loadTestExtensions([explicitExtensionPath]);
+			const runner = new ExtensionRunner(
+				result.extensions,
+				result.runtime,
+				tempDir.path(),
+				sessionManager,
+				modelRegistry,
+			);
+			let shutdownCount = 0;
+			runner.initialize(
+				{
+					sendMessage: () => {},
+					sendUserMessage: () => {},
+					appendEntry: () => {},
+					setLabel: () => {},
+					getActiveTools: () => [],
+					getAllTools: () => [],
+					setActiveTools: async () => {},
+					getCommands: () => [],
+					setModel: async () => false,
+					getThinkingLevel: () => undefined,
+					setThinkingLevel: () => {},
+					getSessionName: () => undefined,
+					setSessionName: async () => {},
+				},
+				{
+					getModel: () => undefined,
+					isIdle: () => true,
+					abort: () => {},
+					hasPendingMessages: () => false,
+					shutdown: () => {
+						shutdownCount++;
+					},
+					getContextUsage: () => undefined,
+					compact: async () => {},
+					getSystemPrompt: () => [],
+				},
+			);
+
+			await runner.emit({ type: "session_start" });
+
+			expect(shutdownCount).toBe(2);
 		});
 
 		it("keeps session naming unavailable during extension load", async () => {

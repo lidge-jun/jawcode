@@ -3,9 +3,11 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as natives from "@jawcode-dev/natives";
+import { getWorktreesDir, logger } from "@jawcode-dev/utils";
 import {
 	captureBaseline,
 	captureDeltaPatch,
+	cleanupIsolation,
 	ensureIsolation,
 	getGitNoIndexNullPath,
 	mergeTaskBranches,
@@ -100,6 +102,56 @@ describe("worktree isolation helpers", () => {
 		expect(handle.backend).toBe(natives.IsoBackendKind.Rcopy);
 		expect(handle.fellBack).toBe(true);
 		expect(handle.fallbackReason).toBe(unavailable.message);
+	});
+
+	it("creates ordinary isolation paths under the managed worktree root", async () => {
+		const { repo } = await createGitRepo();
+		vi.spyOn(natives, "isoResolve").mockReturnValue({
+			kind: natives.IsoBackendKind.Rcopy,
+			candidates: [natives.IsoBackendKind.Rcopy],
+			fellBack: false,
+			reason: undefined,
+		});
+		const isoStart = vi.spyOn(natives, "isoStart").mockResolvedValue(undefined);
+
+		const handle = await ensureIsolation(repo, "task-1");
+
+		const relative = path.relative(getWorktreesDir(), handle.mergedDir);
+		expect(relative.startsWith("..")).toBe(false);
+		expect(path.isAbsolute(relative)).toBe(false);
+		expect(path.basename(path.dirname(handle.mergedDir))).toStartWith("task-1-");
+		expect(isoStart).toHaveBeenCalledWith(natives.IsoBackendKind.Rcopy, repo, handle.mergedDir);
+	});
+
+	it("rejects traversal-like isolation ids before deriving a worktree path", async () => {
+		const { repo } = await createGitRepo();
+		const isoStart = vi.spyOn(natives, "isoStart").mockResolvedValue(undefined);
+
+		await expect(ensureIsolation(repo, "../escape")).rejects.toThrow("Invalid isolation id");
+		await expect(ensureIsolation(repo, "nested/escape")).rejects.toThrow("Invalid isolation id");
+		await expect(ensureIsolation(repo, "nested\\escape")).rejects.toThrow("Invalid isolation id");
+
+		expect(isoStart).not.toHaveBeenCalled();
+	});
+
+	it("skips cleanup when a handle points outside the managed worktree root", async () => {
+		const outsideBase = await fs.mkdtemp(path.join(os.tmpdir(), "jwc-outside-isolation-"));
+		tempDirs.push(outsideBase);
+		const mergedDir = path.join(outsideBase, "merged");
+		await fs.mkdir(mergedDir);
+		await fs.writeFile(path.join(outsideBase, "keep.txt"), "keep\n");
+		vi.spyOn(natives, "isoStop").mockResolvedValue(undefined);
+		const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => {});
+
+		await cleanupIsolation({
+			mergedDir,
+			backend: natives.IsoBackendKind.Rcopy,
+			fellBack: false,
+			fallbackReason: null,
+		});
+
+		expect(await fs.readFile(path.join(outsideBase, "keep.txt"), "utf8")).toBe("keep\n");
+		expect(warnSpy).toHaveBeenCalledWith("skipping isolation cleanup outside worktree root", expect.any(Object));
 	});
 
 	it("does not pop an unrelated pre-existing stash when the working tree is clean", async () => {
