@@ -107,3 +107,24 @@ submit/Ctrl+L; be conservative in mux when the hook is undefined.
 ## WP1 detail
 
 See `10_wp1_resync_viewport.md`.
+
+## OPEN — 260704 duplication after error turns (user repro, post-08fd688 build)
+
+Symptom: after a turn that ends in provider errors (Codex usage-limit → retry
+failure → model fallback line "Default model: anthropic/claude-sonnet-5"), the
+whole block (user msg + error lines) appears TWICE in the buffer; the second
+copy continues with the next successful turn. Commit-on-completion was already
+default-OFF, so the suspects are the BOUNDARY paths on error turns:
+1. realign refusal on error turns (canMarkEntireBacklog false via error-stranded
+   pendingTools?) → commitFinalizedBacklog(markOnly=false) WRITES the backlog
+   while its as-streamed pixels may already be in scrollback (if the frame had
+   overflowed) → classic double-materialization.
+2. retry_fallback / session-reload path calling rebuildChatFromMessages →
+   rebuilt transcript repainted into the frame while the as-streamed copy sits
+   in scrollback (same class as the 083.9 banner-copy bug, but for chat).
+3. agent_end firing twice on error+retry-failure (two agent_end events → double
+   flush/sweep?).
+Next cycle: trace #handleAgentEnd/error paths + retry_fallback_applied +
+rebuildChatFromMessages callers; check pendingTools cleanup on error stop
+reasons; reproduce with a forced provider error in a VirtualTerminal harness.
+fable adversarial review after the fix.
