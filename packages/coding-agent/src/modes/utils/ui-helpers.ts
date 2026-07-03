@@ -71,18 +71,16 @@ export function toolRenderModeIsCommit(): boolean {
 /**
  * 260703 WP6b — commit-on-completion: finalized blocks reach the terminal
  * scrollback as they complete instead of waiting for the next prompt submit
- * (codex-rs model). DEFAULT OFF (260704 rollback): the insert primitive
- * scrolls region 1..fillBottom, so its TOP rows enter the scrollback — blank
- * fill whenever the block does not saturate the region, which is exactly the
- * turn-start state; live sessions showed fill-sized blank gaps stamped
- * between turns and mid-transcript (user repro). Re-enable via
- * JWC_COMMIT_ON_COMPLETION=1 once the committed block is re-anchored at the
- * scrollback seam (top-anchor redesign) so commits push content, not blanks.
+ * (codex-rs model). Safe since the 260704 top-anchor redesign (devlog 80):
+ * commits either write directly into blank fill rows (no scroll) or push
+ * ONLY content across the scrollback seam, so the blank-gap class that
+ * forced the earlier rollback is geometrically impossible.
+ * JWC_COMMIT_ON_COMPLETION=0 opts out.
  */
 export function commitOnCompletionEnabled(): boolean {
 	const env = process.env.JWC_COMMIT_ON_COMPLETION;
 	if (env !== undefined) return env !== "0" && env !== "false";
-	return false;
+	return true;
 }
 
 /**

@@ -2020,7 +2020,6 @@ export class TUI extends Container {
 		// against the final frame) and before cursor extraction (absolute rows
 		// must be final). No sentinel present → input returned untouched, so the
 		// legacy path stays byte-identical.
-		const prevFillRows = this.#lastFillRows;
 		newLines = this.#expandViewportFill(newLines, height);
 
 		// 260703 v3 overlay guard: overlays composite into arbitrary top rows and
