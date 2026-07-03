@@ -1,2 +1,2 @@
 (AI-driven goal planning pending refinement)
-hint: loop 계획해서 ㄱㄱㄱㄱㄱ 아주 완벽하게
+hint: 커밋하면서 전부 pabcd 반복하면서 진행 클린하게 유지하면서

@@ -1,20 +1,20 @@
 {
   "version": 1,
-  "brief": "(AI-driven goal planning pending refinement)\nhint: loop 계획해서 ㄱㄱㄱㄱㄱ 아주 완벽하게",
+  "brief": "(AI-driven goal planning pending refinement)\nhint: 커밋하면서 전부 pabcd 반복하면서 진행 클린하게 유지하면서",
   "jwcGoalMode": "aggregate",
-  "jwcObjective": "@gajae-code → @jawcode 전체 scope rename. 5,200+ refs, ~300 files, 10 packages. Loop plan으로 PABCD 다중 사이클 실행. Phase 1: manifests, Phase 2: source imports (병렬), Phase 3: tests (병렬), Phase 4: gates/CI/docs, Phase 5: verify. devlog at devlog/_plan/260616_jawcode_scope_rename/00_moc.md",
+  "jwcObjective": "Run the chase hardening and /goal state-replacement work through clean PABCD loops, committing verified documentation/planning changes first and then proceeding phase-by-phase with explicit checks while preserving unrelated worktree changes.",
   "goals": [
     {
       "id": "G001",
       "title": "(AI-driven goal planning pending refinement)",
-      "objective": "@gajae-code → @jawcode 전체 scope rename. 5,200+ refs, ~300 files, 10 packages. Loop plan으로 PABCD 다중 사이클 실행. Phase 1: manifests, Phase 2: source imports (병렬), Phase 3: tests (병렬), Phase 4: gates/CI/docs, Phase 5: verify. devlog at devlog/_plan/260616_jawcode_scope_rename/00_moc.md",
+      "objective": "Run the chase hardening and /goal state-replacement work through clean PABCD loops, committing verified documentation/planning changes first and then proceeding phase-by-phase with explicit checks while preserving unrelated worktree changes.",
       "status": "active",
-      "createdAt": "2026-06-16T10:54:27.157Z",
-      "updatedAt": "2026-06-16T11:09:50.689Z",
-      "startedAt": "2026-06-16T10:54:27.175Z",
-      "evidence": "@gajae-code → @jawcode-dev scope rename complete. 1441 files changed, all check:ts gates pass, smoke test ok. 4 commits: Phase 1 manifests, Phase 2-4 bulk rename, gate fixes, G002 updates.; bun run check:ts PASS, bun run ci:test:smoke PASS (jwc/1.0.1), rebrand-inventory --strict PASS, verify-g002-gates rebrand+version PASS"
+      "createdAt": "2026-07-03T10:53:20.027Z",
+      "updatedAt": "2026-07-03T11:07:49.575Z",
+      "startedAt": "2026-07-03T10:53:20.034Z",
+      "evidence": "Completed P-stage plan for Phase 80 goal state replacement; PABCD P-stage run 2026-07-02-1325-8f6b; Critic R1 ITERATE at .jwc/plans/planphase/2026-07-02-1325-8f6b/stage-80-critic.md, synthesis devlog/_plan/260703_chase_hardening_goal_passthrough/80.1_p_critic_synthesis_round1.md, Critic R2 OKAY recorded via jwc orchestrate verdict, final planphase wrote pending approval .jwc/plans/planphase/2026-07-02-1325-8f6b/pending-approval.md; committed 2a2115f docs: plan goal state replacement hardening."
     }
   ],
-  "createdAt": "2026-06-16T10:54:27.157Z",
-  "updatedAt": "2026-06-16T11:09:50.689Z"
+  "createdAt": "2026-07-03T10:53:20.027Z",
+  "updatedAt": "2026-07-03T11:07:49.575Z"
 }
