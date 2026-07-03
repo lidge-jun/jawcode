@@ -113,7 +113,7 @@ describe("InteractiveMode.showStatus", () => {
 			chatContainer: new Container(),
 			pendingTools: new Map(),
 			ui: { requestRender: vi.fn() },
-			optimisticUserMessageSignature: "hello\u00001",
+			optimisticUserSignatures: ["hello\u00001"],
 		} as unknown as InteractiveModeContext;
 		const helpers = new UiHelpers(ctx);
 
@@ -122,6 +122,6 @@ describe("InteractiveMode.showStatus", () => {
 		// renderSessionContext must not clear the signature — the message_start
 		// handler owns this lifecycle and uses it to guard against clearing the
 		// user's in-progress editor draft during an optimistic send (#783).
-		expect(ctx.optimisticUserMessageSignature).toBe("hello\u00001");
+		expect(ctx.optimisticUserSignatures).toEqual(["hello\u00001"]);
 	});
 });

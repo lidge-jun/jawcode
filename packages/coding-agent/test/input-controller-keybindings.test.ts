@@ -149,17 +149,19 @@ async function createContext() {
 				return "/";
 			},
 		} as unknown as InteractiveModeContext["sessionManager"],
-		locallySubmittedUserSignatures: new Set<string>(),
+		locallySubmittedUserSignatures: new Map<string, number>(),
 		isKnownSlashCommand: () => false,
 		recordLocalSubmission(this: InteractiveModeContext, text: string, imageCount = 0) {
 			if (this.isKnownSlashCommand(text)) return () => {};
 			const sig = `${text}\u0000${imageCount}`;
-			this.locallySubmittedUserSignatures.add(sig);
+			this.locallySubmittedUserSignatures.set(sig, (this.locallySubmittedUserSignatures.get(sig) ?? 0) + 1);
 			let disposed = false;
 			return () => {
 				if (disposed) return;
 				disposed = true;
-				this.locallySubmittedUserSignatures.delete(sig);
+				const n = this.locallySubmittedUserSignatures.get(sig) ?? 0;
+				if (n <= 1) this.locallySubmittedUserSignatures.delete(sig);
+				else this.locallySubmittedUserSignatures.set(sig, n - 1);
 			};
 		},
 		async withLocalSubmission<T>(

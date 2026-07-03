@@ -62,12 +62,12 @@ describe("issue #927 optimistic pending spinner", () => {
 	it("clears the optimistic loading animation when prompt returns without a model turn", async () => {
 		const input = mode.startPendingSubmission({ text: "/extension-no-turn" });
 		expect(mode.loadingAnimation).toBeDefined();
-		expect(mode.optimisticUserMessageSignature).toBe("/extension-no-turn\u00000");
+		expect(mode.optimisticUserSignatures).toEqual(["/extension-no-turn\u00000"]);
 
 		await submitInteractiveInput(mode, session, input);
 
 		expect(mode.loadingAnimation).toBeUndefined();
-		expect(mode.optimisticUserMessageSignature).toBeUndefined();
+		expect(mode.optimisticUserSignatures).toEqual([]);
 		expect(mode.locallySubmittedUserSignatures.has("/extension-no-turn\u00000")).toBe(false);
 		expect(mode.statusContainer.children.length).toBe(0);
 	});

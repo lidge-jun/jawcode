@@ -18,7 +18,12 @@ import { TtsrNotificationComponent } from "../../modes/components/ttsr-notificat
 import { getSymbolTheme, theme } from "../../modes/theme/theme";
 import type { InteractiveModeContext, TodoPhase } from "../../modes/types";
 import { CompactionProgressPresenter } from "../../modes/utils/compaction-progress";
-import { commitLaneEnabled, markLiveToggleEligible } from "../../modes/utils/ui-helpers";
+import {
+	commitLaneEnabled,
+	consumeSignatureCredit,
+	markLiveToggleEligible,
+	takeFirstSignature,
+} from "../../modes/utils/ui-helpers";
 import type { PlanApprovalDetails } from "../../plan-mode/approved-plan";
 import type { AgentSessionEvent } from "../../session/agent-session";
 import { isSilentAbort, readPendingDisplayTag } from "../../session/messages";
@@ -315,13 +320,17 @@ export class EventController {
 			const signature = `${textContent}\u0000${imageCount}`;
 
 			this.#resetReadGroup();
-			const wasOptimistic = this.ctx.optimisticUserMessageSignature === signature;
-			const wasLocallySubmitted = this.ctx.locallySubmittedUserSignatures.delete(signature) || wasOptimistic;
+			// 260703 WP2: consume at most ONE credit of each kind per delivery.
+			// The FIFO holds one entry per optimistically rendered submission
+			// (identical texts keep independent entries) and the refcount holds
+			// one credit per local submission — a queued identical message's
+			// credit survives the optimistic delivery, so its own delivery still
+			// counts as local and leaves the editor draft alone (#783).
+			const wasOptimistic = takeFirstSignature(this.ctx.optimisticUserSignatures, signature);
+			const wasLocallySubmitted =
+				consumeSignatureCredit(this.ctx.locallySubmittedUserSignatures, signature) || wasOptimistic;
 			if (!wasOptimistic) {
 				this.ctx.addMessageToChat(event.message);
-			}
-			if (wasOptimistic) {
-				this.ctx.optimisticUserMessageSignature = undefined;
 			}
 
 			// Clear the editor only when the submission did not originate from a

@@ -135,7 +135,7 @@ import {
 } from "./theme/theme";
 import type { CompactionQueuedMessage, InteractiveModeContext, SubmittedUserInput, TodoItem, TodoPhase } from "./types";
 import type { CompactionProgressPresenter } from "./utils/compaction-progress";
-import { UiHelpers } from "./utils/ui-helpers";
+import { addSignatureCredit, consumeSignatureCredit, takeFirstSignature, UiHelpers } from "./utils/ui-helpers";
 
 const INTERACTIVE_ABORT_CLEANUP_TIMEOUT_MS = 5_000;
 
@@ -325,8 +325,8 @@ export class InteractiveMode implements InteractiveModeContext {
 	retryCountdownTimer?: ReturnType<typeof setInterval>;
 	unsubscribe?: () => void;
 	onInputCallback?: (input: SubmittedUserInput) => void;
-	optimisticUserMessageSignature: string | undefined = undefined;
-	locallySubmittedUserSignatures: Set<string> = new Set();
+	optimisticUserSignatures: string[] = [];
+	locallySubmittedUserSignatures: Map<string, number> = new Map();
 	#pendingSubmittedInput: SubmittedUserInput | undefined;
 	#pendingSubmissionDispose: (() => void) | undefined;
 	lastSigintTime = 0;
@@ -808,13 +808,24 @@ export class InteractiveMode implements InteractiveModeContext {
 			return () => {};
 		}
 		const signature = `${text}\u0000${imageCount}`;
-		this.locallySubmittedUserSignatures.add(signature);
+		addSignatureCredit(this.locallySubmittedUserSignatures, signature);
 		let disposed = false;
 		return () => {
 			if (disposed) return;
 			disposed = true;
-			this.locallySubmittedUserSignatures.delete(signature);
+			consumeSignatureCredit(this.locallySubmittedUserSignatures, signature);
 		};
+	}
+
+	/**
+	 * Remove the FIFO credit an optimistic submission registered (cancel/error/
+	 * never-started paths — the matching `message_start` will never consume it).
+	 * customType submissions never pushed one.
+	 */
+	#takePendingOptimisticSignature(submission: SubmittedUserInput): void {
+		if (submission.customType) return;
+		const signature = `${submission.text}\u0000${submission.images?.length ?? 0}`;
+		takeFirstSignature(this.optimisticUserSignatures, signature);
 	}
 
 	prepareRealUserAgentPromptSubmission(): void {
@@ -852,7 +863,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		if (!submission.customType) {
 			this.#resetGoalContinuationSuppression();
 			const imageCount = submission.images?.length ?? 0;
-			this.optimisticUserMessageSignature = `${submission.text}\u0000${imageCount}`;
+			this.optimisticUserSignatures.push(`${submission.text}\u0000${imageCount}`);
 			this.#pendingSubmissionDispose = this.recordLocalSubmission(submission.text, imageCount);
 			this.addMessageToChat({
 				role: "user",
@@ -862,7 +873,7 @@ export class InteractiveMode implements InteractiveModeContext {
 			});
 			this.currentTurnStartIndex = this.chatContainer.children.length;
 		} else {
-			this.optimisticUserMessageSignature = undefined;
+			// customType submissions render nothing optimistically — no FIFO entry.
 			this.#pendingSubmissionDispose = undefined;
 		}
 		this.editor.setText("");
@@ -879,7 +890,7 @@ export class InteractiveMode implements InteractiveModeContext {
 
 		submission.cancelled = true;
 		this.#pendingSubmittedInput = undefined;
-		this.optimisticUserMessageSignature = undefined;
+		this.#takePendingOptimisticSignature(submission);
 		this.#pendingSubmissionDispose?.();
 		this.#pendingSubmissionDispose = undefined;
 		this.#pendingWorkingMessage = undefined;
@@ -921,7 +932,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		}
 
 		if (wasPendingSubmission && !this.session.isStreaming && !this.streamingComponent) {
-			this.optimisticUserMessageSignature = undefined;
+			this.#takePendingOptimisticSignature(input);
 			pendingSubmissionDispose?.();
 			this.#pendingWorkingMessage = undefined;
 			if (this.loadingAnimation) {
@@ -2172,8 +2183,8 @@ export class InteractiveMode implements InteractiveModeContext {
 	}
 
 	showError(message: string): void {
+		if (this.#pendingSubmittedInput) this.#takePendingOptimisticSignature(this.#pendingSubmittedInput);
 		this.#pendingSubmittedInput = undefined;
-		this.optimisticUserMessageSignature = undefined;
 		this.#pendingSubmissionDispose?.();
 		this.#pendingSubmissionDispose = undefined;
 		this.#pendingWorkingMessage = undefined;

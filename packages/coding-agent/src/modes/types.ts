@@ -127,8 +127,15 @@ export interface InteractiveModeContext {
 	retryCountdownTimer?: ReturnType<typeof setInterval>;
 	unsubscribe?: () => void;
 	onInputCallback?: (input: SubmittedUserInput) => void;
-	optimisticUserMessageSignature: string | undefined;
-	locallySubmittedUserSignatures: Set<string>;
+	/**
+	 * FIFO of signatures for user messages already rendered optimistically at
+	 * submit time (260703 WP2 — duplicates allowed; one entry is consumed per
+	 * matching user `message_start`, so identical rapid submissions no longer
+	 * collapse into a single credit and re-add duplicate chat components).
+	 */
+	optimisticUserSignatures: string[];
+	/** Refcounted signatures of locally submitted texts (multiset — see above). */
+	locallySubmittedUserSignatures: Map<string, number>;
 	lastSigintTime: number;
 	lastEscapeTime: number;
 	shutdownRequested: boolean;

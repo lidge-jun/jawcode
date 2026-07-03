@@ -115,7 +115,7 @@ function createStubInputControllerContext(opts: {
 		pendingImages: [],
 		isBackgrounded: false,
 		compactionQueuedMessages: [],
-		locallySubmittedUserSignatures: new Set<string>(),
+		locallySubmittedUserSignatures: new Map<string, number>(),
 		withLocalSubmission: async (_text: string, fn: () => unknown) => fn(),
 	} as unknown as InteractiveModeContext;
 
@@ -512,7 +512,7 @@ function createStubInteractiveModeContextForUiHelpers(session: AgentSession) {
 			getDisplayString: (_action: string) => "Alt+Up",
 		},
 		updatePendingMessagesDisplay,
-		locallySubmittedUserSignatures: new Set<string>(),
+		locallySubmittedUserSignatures: new Map<string, number>(),
 	} as unknown as InteractiveModeContext;
 
 	return { ctx, editor, pendingMessagesContainer };

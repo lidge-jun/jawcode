@@ -61,6 +61,33 @@ export function markLiveToggleEligible(component: unknown, eligible: boolean): v
 	}
 }
 
+/**
+ * 260703 WP2 — multiset helpers for the local-submission signature protocol.
+ * Signatures are `text\u0000imageCount`; identical texts must keep independent
+ * credits or a second delivery re-adds a duplicate chat component / wipes the
+ * editor draft (see devlog 30_dup_input_signatures.md).
+ */
+export function addSignatureCredit(counts: Map<string, number>, signature: string): void {
+	counts.set(signature, (counts.get(signature) ?? 0) + 1);
+}
+
+/** Consume one credit; false when none remain. */
+export function consumeSignatureCredit(counts: Map<string, number>, signature: string): boolean {
+	const n = counts.get(signature) ?? 0;
+	if (n <= 0) return false;
+	if (n === 1) counts.delete(signature);
+	else counts.set(signature, n - 1);
+	return true;
+}
+
+/** Remove the first occurrence; false when absent. */
+export function takeFirstSignature(list: string[], signature: string): boolean {
+	const index = list.indexOf(signature);
+	if (index === -1) return false;
+	list.splice(index, 1);
+	return true;
+}
+
 export function isLiveToggleEligible(component: unknown): boolean {
 	return (
 		typeof component === "object" &&
