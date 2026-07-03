@@ -19,7 +19,16 @@ import { logger, prompt } from "@jawcode-dev/utils";
 import { type AgentTelemetry, instrumentedCompleteSimple } from "../telemetry";
 import type { AgentMessage, AgentTool } from "../types";
 import type { CompactionEntry, SessionEntry } from "./entries";
-import { type ConvertToLlm, convertToLlm, createBranchSummaryMessage, createCustomMessage } from "./messages";
+import {
+	type BranchSummaryMessage,
+	type CompactionSummaryMessage,
+	type ConvertToLlm,
+	type CustomMessage,
+	convertToLlm,
+	createBranchSummaryMessage,
+	createCustomMessage,
+	type HookMessage,
+} from "./messages";
 import {
 	buildOpenAiNativeHistory,
 	getPreservedOpenAiRemoteCompactionData,
@@ -706,6 +715,71 @@ export interface SummaryOptions {
 	telemetry?: AgentTelemetry;
 	authCredentialType?: "api_key" | "oauth";
 	onProgress?: CompactionProgressBoundaryCallback;
+	/**
+	 * Live-session prefix for cache-friendly summarization. When set and the
+	 * candidate model matches `modelKey`, generateSummary replays this exact
+	 * prefix (system prompt, tools, message head) with the summarization
+	 * instruction appended as a trailing user message, so providers hit the
+	 * prompt cache instead of prefilling a serialized transcript. The serialized
+	 * `<conversation>` path remains the fallback.
+	 */
+	cachePrefix?: {
+		/** Endpoint-inclusive key of the live session model (`summaryModelKey`). */
+		modelKey: string;
+		/** Live agent system prompt, verbatim (agent.state.systemPrompt). */
+		systemPrompt: string[];
+		/** Live agent tools, verbatim; the request forces `toolChoice: "none"`. */
+		tools?: AgentTool<any>[];
+		/** Exact live-context head: everything before turnPrefix/recent messages. */
+		messages: AgentMessage[];
+	};
+}
+
+/**
+ * Endpoint-inclusive model identity for cache-prefix gating. `baseUrl` is part
+ * of the key: a same-id model behind a different endpoint is a different cache.
+ */
+export function summaryModelKey(model: Model): string {
+	return `${model.provider}|${model.api}|${model.id}|${model.baseUrl ?? ""}`;
+}
+
+/** Provider APIs with repo-visible prompt-cache support for prefix replay. */
+const CACHE_PREFIX_APIS = new Set<string>(["anthropic-messages", "openai-responses", "openai-codex-responses"]);
+
+/**
+ * Boundary identity check for the cache-prefix slice gate. Ordinary LLM roles
+ * must be reference-equal (both context builds share the persisted
+ * `entry.message` object); synthesized roles are rebuilt per consumer, so they
+ * match on role + timestamp + role-specific content identity. A false positive
+ * therefore requires an identical-content twin at the boundary index, whose
+ * worst case is one message's content being both summarized and kept.
+ */
+export function compactionBoundaryMatches(live: AgentMessage, boundary: AgentMessage): boolean {
+	if (live === boundary) return true;
+	if (live.role !== boundary.role) return false;
+	const liveTimestamp = (live as { timestamp?: number }).timestamp;
+	const boundaryTimestamp = (boundary as { timestamp?: number }).timestamp;
+	if (liveTimestamp !== boundaryTimestamp) return false;
+	switch (boundary.role) {
+		case "custom":
+		case "hookMessage": {
+			const a = live as CustomMessage | HookMessage;
+			const b = boundary as CustomMessage | HookMessage;
+			return a.customType === b.customType && JSON.stringify(a.content) === JSON.stringify(b.content);
+		}
+		case "branchSummary": {
+			const a = live as BranchSummaryMessage;
+			const b = boundary as BranchSummaryMessage;
+			return a.fromId === b.fromId && a.summary === b.summary;
+		}
+		case "compactionSummary": {
+			const a = live as CompactionSummaryMessage;
+			const b = boundary as CompactionSummaryMessage;
+			return a.summary === b.summary;
+		}
+		default:
+			return false;
+	}
 }
 
 export async function generateSummary(
@@ -734,13 +808,17 @@ export async function generateSummary(
 	const llmMessages = (options?.convertToLlm ?? convertToLlm)(currentMessages);
 	const conversationText = serializeConversation(llmMessages);
 
-	// Build the prompt with conversation wrapped in tags
-	let promptText = `<conversation>\n${conversationText}\n</conversation>\n\n`;
+	// Instruction shared by both request shapes: previous-summary block (the
+	// update prompt references the tag explicitly), extra context, base prompt.
+	let trailingPromptText = "";
 	if (previousSummary) {
-		promptText += `<previous-summary>\n${previousSummary}\n</previous-summary>\n\n`;
+		trailingPromptText += `<previous-summary>\n${previousSummary}\n</previous-summary>\n\n`;
 	}
-	promptText += formatAdditionalContext(options?.extraContext);
-	promptText += basePrompt;
+	trailingPromptText += formatAdditionalContext(options?.extraContext);
+	trailingPromptText += basePrompt;
+
+	// Build the prompt with conversation wrapped in tags
+	const promptText = `<conversation>\n${conversationText}\n</conversation>\n\n${trailingPromptText}`;
 
 	const summarizationMessages = [
 		{
@@ -778,9 +856,38 @@ export async function generateSummary(
 		indeterminate: true,
 		backend: "local_llm",
 	});
+
+	// Cache-friendly path: replay the live session prefix verbatim (system
+	// prompt, tools, exact message head) and append the summarization
+	// instruction as a trailing user message, so the provider serves the
+	// history from its prompt cache instead of prefilling a serialized
+	// transcript. Gated to the exact live model — a fallback model would miss
+	// the cache and change provider-specific replay (thinking signatures).
+	const cachePrefix = options?.cachePrefix;
+	const useCachePrefix =
+		cachePrefix !== undefined && cachePrefix.modelKey === summaryModelKey(model) && CACHE_PREFIX_APIS.has(model.api);
+	const request = useCachePrefix
+		? {
+				systemPrompt: cachePrefix.systemPrompt,
+				messages: [
+					...(options?.convertToLlm ?? convertToLlm)(cachePrefix.messages),
+					{
+						role: "user" as const,
+						// The live system prompt replaces SUMMARIZATION_SYSTEM_PROMPT, so its
+						// do-not-continue guard moves into the trailing instruction. The
+						// serialized promptText's <conversation> wrapper is dropped — the
+						// history itself is the conversation.
+						content: [{ type: "text" as const, text: `${SUMMARIZATION_SYSTEM_PROMPT}\n\n${trailingPromptText}` }],
+						attribution: "agent" as const,
+						timestamp: Date.now(),
+					},
+				],
+				tools: cachePrefix.tools,
+			}
+		: { systemPrompt: [SUMMARIZATION_SYSTEM_PROMPT], messages: summarizationMessages };
 	const response = await instrumentedCompleteSimple(
 		model,
-		{ systemPrompt: [SUMMARIZATION_SYSTEM_PROMPT], messages: summarizationMessages },
+		request,
 		{
 			maxTokens,
 			signal,
@@ -790,6 +897,7 @@ export async function generateSummary(
 			// Clamp per model: fixed literals below High throw on models with
 			// narrow effort support (requireSupportedEffort).
 			reasoning: clampThinkingLevelForModel(model, Effort.Low),
+			toolChoice: useCachePrefix ? "none" : undefined,
 			initiatorOverride: options?.initiatorOverride,
 			metadata: options?.metadata,
 		},
