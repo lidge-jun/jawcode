@@ -1782,13 +1782,18 @@ export class InteractiveMode implements InteractiveModeContext {
 			const pausedState = this.#getPausedGoalState();
 			if (pausedState) {
 				if (subRest) {
-					this.showWarning("Resume the current goal first, or drop it before setting a new objective.");
+					await this.#writeGoalPlanFromBrief(subRest);
+					await this.#createOrReplaceGoalFromObjective(subRest);
+					if (this.onInputCallback) {
+						this.onInputCallback(this.startPendingSubmission({ text: subRest }));
+					}
 					return;
 				}
 				await this.#openGoalMenu("paused");
 				return;
 			}
 			if (subRest) {
+				await this.#writeGoalPlanFromBrief(subRest);
 				await this.#startGoalFromObjective(subRest);
 				return;
 			}
@@ -1916,6 +1921,19 @@ export class InteractiveMode implements InteractiveModeContext {
 			await this.session.sendGoalModeContext({ deliverAs: "steer" });
 		}
 	}
+	async #createOrReplaceGoalFromObjective(objective: string): Promise<void> {
+		if (this.goalModeEnabled) {
+			await this.#applyReplacedGoalState(objective);
+			return;
+		}
+		if (this.#getPausedGoalState()) {
+			await this.session.goalRuntime.dropGoal();
+			this.session.setGoalModeState(undefined);
+			this.goalModePaused = false;
+		}
+		await this.#enterGoalMode({ objective, silent: true });
+		this.#resetGoalContinuationSuppression();
+	}
 
 	async #startGoalFromObjective(objective: string): Promise<void> {
 		await this.#enterGoalMode({ objective, silent: true });
@@ -1930,19 +1948,9 @@ export class InteractiveMode implements InteractiveModeContext {
 	}
 
 	async #startGoalPlanningFromHint(hint: string): Promise<void> {
-		if (this.#getPausedGoalState()) {
-			this.showWarning("Resume the current goal first, or drop it before starting goal planning.");
-			return;
-		}
 		const { brief, prompt } = buildGoalPlanningStart(hint);
-		if (this.goalModeEnabled) {
-			await this.#writeGoalPlanFromBrief(brief);
-			await this.#applyReplacedGoalState(brief);
-		} else {
-			await this.#writeGoalPlanFromBrief(brief);
-			await this.#enterGoalMode({ objective: brief, silent: true });
-			this.#resetGoalContinuationSuppression();
-		}
+		await this.#writeGoalPlanFromBrief(brief);
+		await this.#createOrReplaceGoalFromObjective(brief);
 		if (this.onInputCallback) {
 			this.onInputCallback(this.startPendingSubmission({ text: prompt }));
 		}
@@ -1957,19 +1965,15 @@ export class InteractiveMode implements InteractiveModeContext {
 	}
 
 	async #handleGoalSetSubcommand(rest: string): Promise<void> {
-		if (!this.goalModeEnabled && this.#getPausedGoalState()) {
-			this.showWarning("Resume the current goal first, or drop it before setting a new objective.");
-			return;
-		}
 		const objective = rest.trim()
 			? rest.trim()
 			: (await this.showHookEditor("Goal objective", undefined, undefined, { promptStyle: true }))?.trim();
 		if (!objective) return;
-		if (this.goalModeEnabled) {
-			await this.#replaceGoalFromObjective(objective);
-			return;
+		await this.#writeGoalPlanFromBrief(objective);
+		await this.#createOrReplaceGoalFromObjective(objective);
+		if (this.onInputCallback) {
+			this.onInputCallback(this.startPendingSubmission({ text: objective }));
 		}
-		await this.#startGoalFromObjective(objective);
 	}
 
 	async handlePlanApproval(details: PlanApprovalDetails): Promise<void> {

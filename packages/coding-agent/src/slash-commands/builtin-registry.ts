@@ -17,6 +17,7 @@ import {
 import { resolveOAuthProviderId } from "../config/oauth-provider-aliases";
 import { clearPluginRootsAndCaches, isJawBrand, resolveActiveProjectRegistryPath } from "../discovery/helpers.js";
 import { buildGoalPlanningStart } from "../goals/goal-planning-start";
+import type { GoalModeState } from "../goals/state";
 import { runNativeGoalCommand } from "../jwc-runtime/goal-cli";
 import { createGoalPlan, startNextGoal } from "../jwc-runtime/goal-engine";
 import { runNativeOrchestrateCommand } from "../jwc-runtime/orchestrate-runtime";
@@ -462,8 +463,6 @@ function refreshStatusLine(ctx: InteractiveModeContext): void {
 	ctx.ui.requestRender();
 }
 
-const GOAL_PAUSED_DIAGNOSTIC = "Resume the current goal first, or drop it before setting a new objective.";
-
 function goalCommandVerb(args: string): { verb: string; rest: string } {
 	const trimmed = args.trim();
 	if (!trimmed) return { verb: "", rest: "" };
@@ -481,6 +480,18 @@ async function removeGoalTool(runtime: SlashCommandRuntime): Promise<void> {
 	await runtime.session.setActiveToolsByName(runtime.session.getActiveToolNames().filter(name => name !== "goal"));
 }
 
+async function createOrReplaceGoalState(runtime: SlashCommandRuntime, objective: string): Promise<GoalModeState> {
+	const current = runtime.session.getGoalModeState();
+	if (current?.enabled && current.goal.status === "active") {
+		return await runtime.session.goalRuntime.replaceGoal({ objective });
+	}
+	if (current?.goal.status === "paused") {
+		await runtime.session.goalRuntime.dropGoal();
+		runtime.session.setGoalModeState(undefined);
+	}
+	return await runtime.session.goalRuntime.createGoal({ objective });
+}
+
 async function showNativeGoalStatus(runtime: SlashCommandRuntime): Promise<SlashCommandResult> {
 	const result = await runNativeGoalCommand(["status"], runtime.cwd);
 	if (result.stderr) await runtime.output(result.stderr.trimEnd());
@@ -489,19 +500,10 @@ async function showNativeGoalStatus(runtime: SlashCommandRuntime): Promise<Slash
 }
 
 async function startTextGoalPlan(runtime: SlashCommandRuntime, hint: string): Promise<SlashCommandResult> {
-	const current = runtime.session.getGoalModeState();
-	if (current?.goal.status === "paused") {
-		await runtime.output("Resume the current goal first, or drop it before starting goal planning.");
-		return commandConsumed();
-	}
-
 	const { brief, prompt } = buildGoalPlanningStart(hint);
 	await createGoalPlan({ cwd: runtime.cwd, brief });
 	await startNextGoal({ cwd: runtime.cwd });
-	const replacingActive = current?.enabled && current.goal.status === "active";
-	const state = replacingActive
-		? await runtime.session.goalRuntime.replaceGoal({ objective: brief })
-		: await runtime.session.goalRuntime.createGoal({ objective: brief });
+	const state = await createOrReplaceGoalState(runtime, brief);
 	await addGoalTool(runtime);
 	runtime.session.setGoalModeState(state);
 	return { prompt };
@@ -514,18 +516,9 @@ async function startTextGoal(runtime: SlashCommandRuntime, objective: string): P
 		return commandConsumed();
 	}
 
-	const current = runtime.session.getGoalModeState();
-	if (current?.goal.status === "paused") {
-		await runtime.output(GOAL_PAUSED_DIAGNOSTIC);
-		return commandConsumed();
-	}
-
 	await createGoalPlan({ cwd: runtime.cwd, brief: trimmedObjective });
 	await startNextGoal({ cwd: runtime.cwd });
-	const replacingActive = current?.enabled && current.goal.status === "active";
-	const state = replacingActive
-		? await runtime.session.goalRuntime.replaceGoal({ objective: trimmedObjective })
-		: await runtime.session.goalRuntime.createGoal({ objective: trimmedObjective });
+	const state = await createOrReplaceGoalState(runtime, trimmedObjective);
 	await addGoalTool(runtime);
 	runtime.session.setGoalModeState(state);
 	return { prompt: trimmedObjective };
