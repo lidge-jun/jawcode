@@ -1608,6 +1608,7 @@ export class TUI extends Container {
 	replayTranscript(lines: string[]): void {
 		if (this.#stopped || !this.terminalAvailable) return;
 		const width = this.terminal.columns;
+		const widthUsed = width;
 		const { lines: prepared, stats } = this.#prepareLinesForTerminal([...lines], width);
 		this.#recordPreparedLineStats(stats, "commit");
 		let buffer = "\x1b[?2026h";
@@ -1637,6 +1638,12 @@ export class TUI extends Container {
 		this.#committedBottomRow = 0;
 		this.#hasCommittedHistory = true;
 		this.requestRender(false, "resize transcript rebuild");
+		// GPT Pro round-8 belt-and-suspenders: a resize DURING the replay
+		// leaves a stale-width transcript (no duplication — full replace);
+		// re-arm the settle so the next replay heals it.
+		if (this.terminal.columns !== widthUsed) {
+			this.onResizeSettled?.();
+		}
 	}
 
 	/**
