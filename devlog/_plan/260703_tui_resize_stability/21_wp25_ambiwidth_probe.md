@@ -1,5 +1,27 @@
 # 21 — WP2.5: ambiguous-width probe → width-measurement alignment
 
+> **STATUS 260703: A-phase audit FAILED (Opus, blocking) — plan being revised; cycle
+> order swapped with WP3a (reason: audit inflated WP2.5 scope to C3 while WP3a Option A
+> is fully mapped and tiny).** Audit findings to fold into the revision:
+> 1. (Blocking) The claim "all width helpers route through visibleWidth" is FALSE:
+>    `truncateToWidth`/`wrapTextWithAnsi`/`sliceWithWidth`/`sliceByColumn`/
+>    `extractSegments` dispatch to Rust NAPI (`crates/pi-natives/src/text.rs:382-384`,
+>    `UnicodeWidthChar::width` — fixed narrow table, no runtime mode). A utils.ts-only
+>    switch flips ONLY padding (`padToWidth`, `applyBackgroundToLine`) → NEW pad-vs-
+>    truncate inconsistency. Chosen fix: thread the flag through NAPI — AtomicBool in
+>    text.rs + exported setter, `char_width_corrected` selects `width` vs `width_cjk`,
+>    rebuild via packages/natives `bun run build`, and flip Bun.stringWidth option in
+>    the same setter so JS and Rust agree.
+> 2. (Blocking) Direct Bun.stringWidth consumers that miss the mode (vim/render,
+>    sqlite-reader, json-tree, tools/vim, tmux-title, stats-cli — non-frame-critical;
+>    document or route through visibleWidth) + compat.ts:28 Node shim ignores options.
+> 3. The planned "probe on VirtualTerminal" test is a no-op under the
+>    `process.stdout.isTTY` gate — stub isTTY or inject the gate in tests.
+> 4. Env read via `$env["JWC_AMBIGUOUS_WIDTH"]` (string enum), not `$flag`.
+> Listener composition / first-render cursor assumptions were verified sound (keys.ts
+> has no R-terminated pattern; StdinBuffer emits CPR as one event; fullRender(false)
+> writes at the current cursor position).
+
 ## Loop continuity
 
 WP2 (20_wp2) shipped DECAWM-off (fdb6e46 + 3cc2689, 548/548, pushed). Its D note: with
