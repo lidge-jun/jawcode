@@ -47,6 +47,29 @@ export class TerminalInfo {
 	}
 }
 
+/**
+ * 260703 WP5.2 — BCE (back color erase): whether erase ops (EL/ED/2K) paint
+ * the CURRENT background color instead of the default. Consumed by WP5.3's
+ * renderer-level "SGR bg + erase" row painting, which replaces full-width
+ * literal space padding (the reflow-amplifier class). Detection is
+ * env-based, no terminfo/infocmp subprocess (absent on minimal systems):
+ * `JWC_TUI_BCE=0|1` overrides; TERM dumb/empty → false; every terminal
+ * family we can name honors BCE → allowlist by TERM prefix or a recognized
+ * TERMINAL_ID; unknown → false (fail closed: the literal-padding fallback is
+ * today's behavior, so a false negative costs nothing).
+ */
+const BCE_TERM_PREFIX = /^(xterm|tmux|screen|linux|rxvt|st-|st$|alacritty|kitty|wezterm|ghostty|foot|vte|konsole|iterm)/i;
+
+export function terminalSupportsBce(env: Record<string, string | undefined> = process.env): boolean {
+	const override = env.JWC_TUI_BCE;
+	if (override === "0" || override === "false") return false;
+	if (override === "1" || override === "true") return true;
+	const term = env.TERM?.trim() ?? "";
+	if (!term || term === "dumb") return false;
+	if (BCE_TERM_PREFIX.test(term)) return true;
+	return TERMINAL_ID !== "base";
+}
+
 export function isNotificationSuppressed(): boolean {
 	const value = $env.PI_NOTIFICATIONS;
 	if (!value) return false;
