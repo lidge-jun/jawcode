@@ -1242,6 +1242,7 @@ export async function compact(
 		convertToLlm: options?.convertToLlm,
 		telemetry: options?.telemetry,
 		onProgress: options?.onProgress,
+		cachePrefix: options?.cachePrefix,
 	};
 
 	let preserveData = withOpenAiRemoteCompactionPreserveData(previousPreserveData, undefined);

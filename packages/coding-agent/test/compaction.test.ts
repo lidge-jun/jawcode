@@ -11,6 +11,7 @@ import {
 	prepareCompaction,
 	resolveThresholdTokens,
 	shouldCompact,
+	summaryModelKey,
 } from "@jawcode-dev/agent-core/compaction/compaction";
 import * as ai from "@jawcode-dev/ai";
 import { getBundledModel } from "@jawcode-dev/ai/models";
@@ -848,6 +849,49 @@ describe("remote compaction setting", () => {
 		expect(result.summary).toContain("History summary");
 		expect(result.summary).toContain("Turn prefix summary");
 		expect(result.shortSummary).toBeUndefined();
+	});
+
+	it("threads the cache prefix through compact() to the history summary request", async () => {
+		const model = getBundledModel("anthropic", "claude-sonnet-4-5");
+		if (!model) throw new Error("Expected anthropic/claude-sonnet-4-5 model to exist");
+
+		const entries: SessionEntry[] = [
+			createMessageEntry(createUserMessage("Turn 1")),
+			createMessageEntry(createAssistantMessage("Answer 1", createMockUsage(0, 100, 2000, 0))),
+			createMessageEntry(createUserMessage("Turn 2")),
+			createMessageEntry(createAssistantMessage("Answer 2", createMockUsage(0, 100, 9000, 0))),
+		];
+		const preparation = prepareCompaction(entries, {
+			...DEFAULT_COMPACTION_SETTINGS,
+			keepRecentTokens: 1,
+		});
+		if (!preparation) throw new Error("Expected compaction preparation");
+
+		const completeSimpleSpy = vi
+			.spyOn(ai, "completeSimple")
+			.mockResolvedValueOnce(createAssistantMessage("History summary"))
+			.mockResolvedValueOnce(createAssistantMessage("Turn prefix summary"))
+			.mockResolvedValueOnce(createAssistantMessage("Short summary"));
+
+		const liveSystemPrompt = ["Live system prompt"];
+		const headMessages = [createUserMessage("Turn 1")];
+		const result = await compact(preparation, model, "test-api-key", undefined, undefined, {
+			cachePrefix: {
+				modelKey: summaryModelKey(model),
+				systemPrompt: liveSystemPrompt,
+				tools: [],
+				messages: headMessages,
+			},
+		});
+
+		expect(result.summary).toContain("History summary");
+		// The history-summary request must replay the live prefix, not the
+		// serialized <conversation> transcript.
+		const historyCall = completeSimpleSpy.mock.calls[0];
+		if (!historyCall) throw new Error("Expected history summary call");
+		const [, historyContext, historyOptions] = historyCall;
+		expect(historyContext.systemPrompt).toBe(liveSystemPrompt);
+		expect(historyOptions?.toolChoice).toBe("none");
 	});
 
 	it("clears stale OpenAI remote preserve data when local compaction runs", async () => {
