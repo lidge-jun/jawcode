@@ -10,11 +10,11 @@
       "objective": "Run the chase hardening and /goal state-replacement work through clean PABCD loops, committing verified documentation/planning changes first and then proceeding phase-by-phase with explicit checks while preserving unrelated worktree changes.",
       "status": "active",
       "createdAt": "2026-07-03T10:53:20.027Z",
-      "updatedAt": "2026-07-03T11:35:06.608Z",
+      "updatedAt": "2026-07-03T11:35:18.359Z",
       "startedAt": "2026-07-03T10:53:20.034Z",
-      "evidence": "Phase 80 PABCD cycle completed; D summary devlog/_plan/260703_chase_hardening_goal_passthrough/80.7_d_done_summary.md; Phase 80 marked done in 00_moc.md; implementation commit 238e04e, B verification commit 0c05c75, C check/tooling commit 1fbb4c7; C gates passed including focused tests and bun run check."
+      "evidence": "pabcd d→complete (audit=pass, verification=done); /Users/jun/Developer/new/700_projects/jawcode/.jwc/state/pabcd-state.json"
     }
   ],
   "createdAt": "2026-07-03T10:53:20.027Z",
-  "updatedAt": "2026-07-03T11:35:06.608Z"
+  "updatedAt": "2026-07-03T11:35:18.359Z"
 }

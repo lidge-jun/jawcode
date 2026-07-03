@@ -39,6 +39,7 @@ export function emergencyTerminalRestore(): void {
 					"\x1b[?2031l" + // Disable Mode 2031 appearance notifications
 					"\x1b[<u" + // Pop kitty keyboard protocol
 					"\x1b[>4;0m" + // Disable modifyOtherKeys fallback
+					"\x1b[?7h" + // Restore autowrap (session runs with DECAWM off, 260703 WP2)
 					"\x1b[?25h", // Show cursor
 			);
 			if (process.stdin.setRawMode) {
@@ -178,6 +179,16 @@ export class ProcessTerminal implements Terminal {
 
 		// Enable bracketed paste mode - terminal will wrap pastes in \x1b[200~ ... \x1b[201~
 		this.#safeWrite("\x1b[?2004h");
+
+		// 260703 WP2: disable autowrap (DECRST 7) for the TUI session. The
+		// renderer pre-wraps every line and separates rows with explicit \r\n,
+		// so it never needs terminal autowrap — but with DECAWM on, any
+		// physically overwide write (stale width during a resize race, or
+		// ambiguous/emoji width the measurer undercounts) silently inserts a
+		// wrapped row and permanently desyncs the diff renderer's relative
+		// cursor model. With DECAWM off the same mistake clips at the right
+		// edge instead: visually imperfect, row-model-safe.
+		this.#safeWrite("\x1b[?7l");
 
 		// Set up resize handler immediately
 		process.stdout.on("resize", this.#resizeHandler);
@@ -584,6 +595,8 @@ export class ProcessTerminal implements Terminal {
 		this.#safeWrite("\x1b[?2004l");
 		this.#safeWrite("\x1b[?1000l");
 		this.#safeWrite("\x1b[?1006l");
+		// Restore autowrap (260703 WP2 — session runs with DECAWM off)
+		this.#safeWrite("\x1b[?7h");
 
 		// Disable Mode 2031 appearance change notifications
 		this.#safeWrite("\x1b[?2031l");
