@@ -128,3 +128,21 @@ Next cycle: trace #handleAgentEnd/error paths + retry_fallback_applied +
 rebuildChatFromMessages callers; check pendingTools cleanup on error stop
 reasons; reproduce with a forced provider error in a VirtualTerminal harness.
 fable adversarial review after the fix.
+
+## PRODUCTION-GRADE COMPLETION QUEUE (user directive 260704 — no interims left)
+
+1. **DUP-FIX**: duplication-after-error-turns (OPEN section above) — Opus trace in
+   flight; fix + regression test + fable adversarial review.
+2. **WP6b-v2 top-anchor**: re-anchor the committed block at the scrollback seam
+   (design investigation in flight — commitLines direct-write-then-scroll, S2 drain on
+   B-basis, delete the 260704 shrink-glue, unify flush sites to content-only regions),
+   then flip commit-on-completion default back ON. fable review mandatory.
+3. **WP5.3**: renderer-level bg+erase per GPT Pro round-7 scope (commit path first:
+   bg-active 2K in buildInsertHistorySequence; then liveZoneRepaint/viewportRepaint;
+   never component-embedded EL). Depends on WP6b-v2 landing first (commit path is then
+   the hot path). Goldens: reviewed deltas + TERM=dumb literal-fallback fixture.
+4. Optional hardening (GPT round-7 closeout list): Option B coalesced
+   scroll-out+repaint, bottom observer for the WP3b gate, ✔/emoji width override table.
+
+Verification bar for "production-grade": full tui + affected coding-agent suites green,
+fable adversarial review on each slice, GPT Pro diff verification round, pushed to main.
