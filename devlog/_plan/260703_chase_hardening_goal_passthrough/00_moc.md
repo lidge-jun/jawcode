@@ -40,7 +40,7 @@ Phase 80 has been implemented and verified; remaining chase hardening phases are
 | Phase | Description | Status | Cycle ref |
 |---|---|---|---|
 | 80 | `/goal` and `/goalplan` force new goal state | done | `80_plan.md`, `80.6_c_check.md`, commits `238e04e`, `1fbb4c7` |
-| 10 | `10.071` search/utils/edit safety | pending | — |
+| 10 | `10.071` search/utils/edit safety | active | `10_plan.md` |
 | 20 | `20.038` hashline/tool/plugin/task safety | pending | — |
 | 30 | `20.037` session async/plan integrity | pending | — |
 | 40 | `10.073` RPC/session/notifications lifecycle | pending | — |
