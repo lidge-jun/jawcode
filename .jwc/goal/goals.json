@@ -10,11 +10,11 @@
       "objective": "Run the chase hardening and /goal state-replacement work through clean PABCD loops, committing verified documentation/planning changes first and then proceeding phase-by-phase with explicit checks while preserving unrelated worktree changes.",
       "status": "active",
       "createdAt": "2026-07-03T10:53:20.027Z",
-      "updatedAt": "2026-07-03T11:34:06.426Z",
+      "updatedAt": "2026-07-03T11:35:06.608Z",
       "startedAt": "2026-07-03T10:53:20.034Z",
-      "evidence": "Phase 80 C-stage checks passed; C report devlog/_plan/260703_chase_hardening_goal_passthrough/80.6_c_check.md; focused tests passed 75/75; bun run check initially failed due check-rust-scope scanning gitignored chase clones, fixed scripts/check-rust-scope.ts ignore paths, rerun bun run check passed with check:ts and check:rs green."
+      "evidence": "Phase 80 PABCD cycle completed; D summary devlog/_plan/260703_chase_hardening_goal_passthrough/80.7_d_done_summary.md; Phase 80 marked done in 00_moc.md; implementation commit 238e04e, B verification commit 0c05c75, C check/tooling commit 1fbb4c7; C gates passed including focused tests and bun run check."
     }
   ],
   "createdAt": "2026-07-03T10:53:20.027Z",
-  "updatedAt": "2026-07-03T11:34:06.426Z"
+  "updatedAt": "2026-07-03T11:35:06.608Z"
 }

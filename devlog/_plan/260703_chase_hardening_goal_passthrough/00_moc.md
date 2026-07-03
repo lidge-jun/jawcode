@@ -1,6 +1,6 @@
 # 260703 chase hardening + goal slash state replacement — MOC
 
-Status: planned
+Status: active loop
 Owner: Boss
 Created: 2026-07-03
 Work class: C3 hardening plan
@@ -9,7 +9,7 @@ Work class: C3 hardening plan
 
 Plan the seven chase items that can be closed as hardening without product-direction decisions, plus one user-requested JWC patch: `/goalplan` or `/goal <user input>` must force entry into a new goal state regardless of the current goal state, instead of being swallowed, menu-routed, or blocked by existing goal-mode state.
 
-This plan is documentation only. It does not implement product code yet.
+Phase 80 has been implemented and verified; remaining chase hardening phases are pending PABCD cycles.
 
 ## Evidence read
 
@@ -39,7 +39,7 @@ This plan is documentation only. It does not implement product code yet.
 
 | Phase | Description | Status | Cycle ref |
 |---|---|---|---|
-| 80 | `/goal` and `/goalplan` force new goal state | active | `80_plan.md` |
+| 80 | `/goal` and `/goalplan` force new goal state | done | `80_plan.md`, `80.6_c_check.md`, commits `238e04e`, `1fbb4c7` |
 | 10 | `10.071` search/utils/edit safety | pending | — |
 | 20 | `20.038` hashline/tool/plugin/task safety | pending | — |
 | 30 | `20.037` session async/plan integrity | pending | — |
