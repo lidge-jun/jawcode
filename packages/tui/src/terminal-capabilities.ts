@@ -58,7 +58,8 @@ export class TerminalInfo {
  * TERMINAL_ID; unknown → false (fail closed: the literal-padding fallback is
  * today's behavior, so a false negative costs nothing).
  */
-const BCE_TERM_PREFIX = /^(xterm|tmux|screen|linux|rxvt|st-|st$|alacritty|kitty|wezterm|ghostty|foot|vte|konsole|iterm)/i;
+const BCE_TERM_PREFIX =
+	/^(xterm|tmux|screen|linux|rxvt|st-|st$|alacritty|kitty|wezterm|ghostty|foot|vte|konsole|iterm)/i;
 
 export function terminalSupportsBce(env: Record<string, string | undefined> = process.env): boolean {
 	const override = env.JWC_TUI_BCE;

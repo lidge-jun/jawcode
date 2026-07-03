@@ -374,7 +374,9 @@ export class EventController {
 			this.ctx.streamingComponent = new AssistantMessageComponent(undefined, this.ctx.hideThinkingBlock, () =>
 				this.ctx.ui.requestRender(),
 			);
-			this.ctx.streamingComponent.setThinkingExpanded(this.#commitFoldingEnabled() ? this.ctx.thinkingExpanded : true);
+			this.ctx.streamingComponent.setThinkingExpanded(
+				this.#commitFoldingEnabled() ? this.ctx.thinkingExpanded : true,
+			);
 			this.ctx.streamingComponent.setStreaming(true);
 			markLiveToggleEligible(this.ctx.streamingComponent, true);
 			this.ctx.streamingMessage = event.message;

@@ -105,8 +105,7 @@ export class ComposerFooter implements Component {
 		// label (the 1-col right margin comes from sizing the leading/mid gap
 		// one short instead). Trailing cells are exactly what terminal reflow
 		// wraps into floating fragments on width shrink.
-		if (!left)
-			return [truncateToWidth(`${" ".repeat(Math.max(0, width - visibleWidth(right) - 1))}${right}`, width)];
+		if (!left) return [truncateToWidth(`${" ".repeat(Math.max(0, width - visibleWidth(right) - 1))}${right}`, width)];
 		const leftStr = ` ${left}`;
 		const leftW = visibleWidth(leftStr);
 		const rightW = visibleWidth(right);
