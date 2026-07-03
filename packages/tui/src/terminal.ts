@@ -1,5 +1,6 @@
 import { dlopen, FFIType, ptr } from "bun:ffi";
 import * as fs from "node:fs";
+import { getTtyWinsize } from "@jawcode-dev/natives";
 import { $env } from "@jawcode-dev/utils";
 import { setKittyProtocolActive } from "./keys";
 import { StdinBuffer } from "./stdin-buffer";
@@ -737,12 +738,29 @@ export class ProcessTerminal implements Terminal {
 		return !this.#dead;
 	}
 
+	/**
+	 * 260703 WP4 — kernel-truth size. process.stdout.columns only updates
+	 * after the runtime processes SIGWINCH; a render firing inside that gap
+	 * sizes lines for the OLD width (the resize-race corruption class).
+	 * Reading ioctl(TIOCGWINSZ) at call time closes the race: #doRender sees
+	 * the true PTY size, so widthChanged trips on the very first post-resize
+	 * render. Falls back to the runtime/env values when the native addon is
+	 * unavailable or fd 1 is not a TTY.
+	 */
+	#kernelSize(): { rows: number; cols: number } | null {
+		try {
+			return getTtyWinsize(1);
+		} catch {
+			return null; // native addon unavailable (loader stub throws)
+		}
+	}
+
 	get columns(): number {
-		return process.stdout.columns || Number(process.env.COLUMNS) || 80;
+		return this.#kernelSize()?.cols || process.stdout.columns || Number(process.env.COLUMNS) || 80;
 	}
 
 	get rows(): number {
-		return process.stdout.rows || Number(process.env.LINES) || 24;
+		return this.#kernelSize()?.rows || process.stdout.rows || Number(process.env.LINES) || 24;
 	}
 
 	moveBy(lines: number): void {

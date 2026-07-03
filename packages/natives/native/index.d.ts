@@ -526,6 +526,13 @@ export interface FuzzyFindResult {
 export declare function getSupportedLanguages(): Array<string>
 
 /**
+ * Read the CURRENT terminal size for `fd` directly from the kernel.
+ * Returns `null` when `fd` is not a TTY, the ioctl fails, the reported
+ * size is degenerate (0 rows/cols), or the platform has no `TIOCGWINSZ`.
+ */
+export declare function getTtyWinsize(fd: number): TtyWinsize | null
+
+/**
  * Get work profile data from the last N seconds.
  *
  * Always-on profiling - no need to start/stop. Just call this to get
@@ -1409,6 +1416,14 @@ export declare function supportsLanguage(lang: string): boolean
  * Pads with spaces when requested.
  */
 export declare function truncateToWidth(text: string, maxWidth: number, ellipsisKind: Ellipsis | undefined | null, pad: boolean | undefined | null, tabWidth: number): string
+
+/** Terminal size as reported by the kernel (`TIOCGWINSZ`). */
+export interface TtyWinsize {
+  /** Rows in character cells. */
+  rows: number
+  /** Columns in character cells. */
+  cols: number
+}
 
 /**
  * Calculate visible width of text, excluding ANSI escape sequences.

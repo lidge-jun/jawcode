@@ -50,6 +50,7 @@ pub mod summary;
 pub mod task;
 pub mod text;
 pub mod tokens;
+pub mod tty;
 pub(crate) mod utils;
 pub mod workspace;
 

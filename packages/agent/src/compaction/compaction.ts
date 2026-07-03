@@ -219,6 +219,13 @@ export const DEFAULT_COMPACTION_SETTINGS: CompactionSettings = {
 	remoteEnabled: true,
 };
 
+/**
+ * Minimum trimmed length for a remote `compaction_summary` plaintext to replace
+ * local summarization. Guards against degenerate/empty server summaries; anything
+ * below the floor falls through to the local summary path unchanged.
+ */
+export const MIN_REMOTE_SUMMARY_CHARS = 80;
+
 // ============================================================================
 // Token calculation
 // ============================================================================
@@ -934,7 +941,8 @@ async function generateShortSummary(
 			maxTokens,
 			signal,
 			apiKey,
-			reasoning: Effort.High,
+			// Display-only PR-style blurb (≤512 tokens) — minimal thinking suffices.
+			reasoning: clampThinkingLevelForModel(model, Effort.Minimal),
 			initiatorOverride: options?.initiatorOverride,
 			metadata: options?.metadata,
 		},
@@ -1126,6 +1134,7 @@ export async function compact(
 	};
 
 	let preserveData = withOpenAiRemoteCompactionPreserveData(previousPreserveData, undefined);
+	let remoteSummaryText: string | undefined;
 	if (settings.remoteEnabled !== false && shouldUseOpenAiRemoteCompaction(model)) {
 		const previousRemoteCompaction = getPreservedOpenAiRemoteCompactionData(previousPreserveData);
 		const remoteMessages = [...messagesToSummarize, ...turnPrefixMessages, ...recentMessages];
@@ -1157,6 +1166,18 @@ export async function compact(
 					{ authCredentialType: options?.authCredentialType },
 				);
 				preserveData = withOpenAiRemoteCompactionPreserveData(previousPreserveData, remote);
+				// A plaintext server summary can stand in for the local history
+				// summary (same rebuild slot via renderCompactionSummaryContext);
+				// same-provider replay uses the native replacementHistory items and
+				// never reads this text. Below the length floor the server output is
+				// treated as degenerate and local summarization runs as before.
+				if (
+					remote.compactionItem.type === "compaction_summary" &&
+					typeof remote.compactionItem.summary === "string" &&
+					remote.compactionItem.summary.trim().length >= MIN_REMOTE_SUMMARY_CHARS
+				) {
+					remoteSummaryText = remote.compactionItem.summary;
+				}
 			} catch (err) {
 				logger.warn("OpenAI remote compaction failed, falling back to local summarization", {
 					error: err instanceof Error ? err.message : String(err),
@@ -1167,10 +1188,49 @@ export async function compact(
 		}
 	}
 
-	// Generate summaries (can be parallel if both needed) and merge into one
-	let summary: string;
+	// Short summary is display-only and independent of the fresh history summary
+	// (it reads recentMessages plus the PREVIOUS summary), so it runs in parallel
+	// with the main summarization instead of after it. onProgress is intentionally
+	// omitted: its internal short_summary(82%) emit would interleave with the
+	// local_summary segment (hold 81) and regress the progress presenter.
+	// The catch is attached at creation so a main-summary rejection cannot leave
+	// this promise unhandled, and a short-summary failure never fails compaction.
+	// Callers create the main-summary promise FIRST so the synchronous
+	// completeSimple call order (history → turn prefix → short) is stable.
+	const startShortSummary = (): Promise<string | undefined> =>
+		generateShortSummary(recentMessages, previousSummary, model, settings.reserveTokens, apiKey, signal, {
+			extraContext: options?.extraContext,
+			remoteEndpoint: summaryOptions.remoteEndpoint,
+			initiatorOverride: summaryOptions.initiatorOverride,
+			metadata: summaryOptions.metadata,
+			telemetry: summaryOptions.telemetry,
+		}).catch((err: unknown) => {
+			logger.warn("Short summary generation failed", {
+				error: err instanceof Error ? err.message : String(err),
+				model: model.id,
+				provider: model.provider,
+			});
+			return undefined;
+		});
 
-	if (isSplitTurn && turnPrefixMessages.length > 0) {
+	// Generate summaries (parallel where possible) and merge into one
+	let summary: string;
+	let shortSummaryPromise: Promise<string | undefined>;
+
+	if (remoteSummaryText !== undefined) {
+		// Remote compaction already produced the summary — only the short summary
+		// is still in flight, so the short_summary segment runs alone here.
+		emitCompactionProgress(summaryOptions, {
+			phase: "summarizing_short",
+			percent: 82,
+			segment: "short_summary",
+			message: "Generating short summary…",
+			indeterminate: true,
+			backend: "openai_remote",
+		});
+		shortSummaryPromise = startShortSummary();
+		summary = remoteSummaryText;
+	} else if (isSplitTurn && turnPrefixMessages.length > 0) {
 		emitCompactionProgress(summaryOptions, {
 			phase: "summarizing_turn_prefix",
 			percent: 30,
@@ -1179,8 +1239,8 @@ export async function compact(
 			indeterminate: true,
 			backend: "local_llm",
 		});
-		// Generate both summaries in parallel
-		const [historyResult, turnPrefixResult] = await Promise.all([
+		// Generate all three summaries in parallel
+		const historyPromise =
 			messagesToSummarize.length > 0
 				? generateSummary(
 						messagesToSummarize,
@@ -1192,14 +1252,22 @@ export async function compact(
 						previousSummary,
 						summaryOptions,
 					)
-				: Promise.resolve("No prior history."),
-			generateTurnPrefixSummary(turnPrefixMessages, model, settings.reserveTokens, apiKey, signal, summaryOptions),
-		]);
+				: Promise.resolve("No prior history.");
+		const turnPrefixPromise = generateTurnPrefixSummary(
+			turnPrefixMessages,
+			model,
+			settings.reserveTokens,
+			apiKey,
+			signal,
+			summaryOptions,
+		);
+		shortSummaryPromise = startShortSummary();
+		const [historyResult, turnPrefixResult] = await Promise.all([historyPromise, turnPrefixPromise]);
 		// Merge into single summary
 		summary = `${historyResult}\n\n---\n\n**Turn Context (split turn):**\n\n${turnPrefixResult}`;
 	} else if (messagesToSummarize.length > 0) {
 		// Generate history summary from messages to summarize
-		summary = await generateSummary(
+		const summaryPromise = generateSummary(
 			messagesToSummarize,
 			model,
 			settings.reserveTokens,
@@ -1209,30 +1277,19 @@ export async function compact(
 			previousSummary,
 			summaryOptions,
 		);
+		shortSummaryPromise = startShortSummary();
+		summary = await summaryPromise;
 	} else if (previousSummary) {
 		// No new messages to summarize, preserve previous summary
+		shortSummaryPromise = startShortSummary();
 		summary = previousSummary;
 	} else {
 		// No messages and no previous summary
+		shortSummaryPromise = startShortSummary();
 		summary = "No prior history.";
 	}
 
-	const shortSummary = await generateShortSummary(
-		recentMessages,
-		summary,
-		model,
-		settings.reserveTokens,
-		apiKey,
-		signal,
-		{
-			extraContext: options?.extraContext,
-			remoteEndpoint: summaryOptions.remoteEndpoint,
-			initiatorOverride: summaryOptions.initiatorOverride,
-			metadata: summaryOptions.metadata,
-			telemetry: summaryOptions.telemetry,
-			onProgress: summaryOptions.onProgress,
-		},
-	);
+	const shortSummary = await shortSummaryPromise;
 
 	// Compute file lists and append to summary
 	const { readFiles, modifiedFiles } = computeFileLists(fileOps);
@@ -1283,7 +1340,8 @@ async function generateTurnPrefixSummary(
 			maxTokens,
 			signal,
 			apiKey,
-			reasoning: Effort.High,
+			// Same rationale as the history summary: extraction task, clamp per model.
+			reasoning: clampThinkingLevelForModel(model, Effort.Low),
 			initiatorOverride: options?.initiatorOverride,
 			metadata: options?.metadata,
 		},

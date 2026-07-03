@@ -734,6 +734,122 @@ describe("remote compaction setting", () => {
 		});
 	});
 
+	it("skips local summarization when remote compaction returns a plaintext summary", async () => {
+		const model = getBundledModel("openai", "gpt-5.1");
+		if (!model) throw new Error("Expected openai/gpt-5.1 model to exist");
+
+		const entries: SessionEntry[] = [
+			createMessageEntry(createUserMessage("Turn 1")),
+			createMessageEntry(createOpenAiAssistantMessage("Answer 1", model, createMockUsage(0, 100, 9000, 0))),
+		];
+		const preparation = prepareCompaction(entries, {
+			...DEFAULT_COMPACTION_SETTINGS,
+			keepRecentTokens: 1,
+			remoteEnabled: true,
+		});
+		if (!preparation) throw new Error("Expected compaction preparation");
+
+		const remoteSummary =
+			"The user asked about turn one and the assistant answered with a detailed explanation covering the requested topic end to end.";
+		const remoteOutput = [
+			{ type: "message", role: "user", content: [{ type: "input_text", text: "Compacted retained user" }] },
+			{ type: "compaction_summary", summary: remoteSummary },
+		];
+		const fetchSpy = vi.fn(
+			(_input, _init, _next) =>
+				new Response(JSON.stringify({ output: remoteOutput }), {
+					status: 200,
+					headers: { "Content-Type": "application/json" },
+				}),
+		);
+		using _hook = hookFetch(fetchSpy);
+		const completeSimpleSpy = vi
+			.spyOn(ai, "completeSimple")
+			.mockResolvedValueOnce(createAssistantMessage("Short summary"));
+
+		const result = await compact(preparation, model, "test-api-key");
+
+		// Only the short summary hits the local model; the history summary comes from the server.
+		expect(completeSimpleSpy).toHaveBeenCalledTimes(1);
+		expect(result.summary).toContain(remoteSummary);
+		expect(result.shortSummary).toBe("Short summary");
+		expect(result.preserveData).toEqual({
+			openaiRemoteCompaction: {
+				provider: "openai",
+				replacementHistory: remoteOutput,
+				compactionItem: { type: "compaction_summary", summary: remoteSummary },
+			},
+		});
+	});
+
+	it("keeps local summarization when the remote plaintext summary is below the length floor", async () => {
+		const model = getBundledModel("openai", "gpt-5.1");
+		if (!model) throw new Error("Expected openai/gpt-5.1 model to exist");
+
+		const entries: SessionEntry[] = [
+			createMessageEntry(createUserMessage("Turn 1")),
+			createMessageEntry(createOpenAiAssistantMessage("Answer 1", model, createMockUsage(0, 100, 9000, 0))),
+		];
+		const preparation = prepareCompaction(entries, {
+			...DEFAULT_COMPACTION_SETTINGS,
+			keepRecentTokens: 1,
+			remoteEnabled: true,
+		});
+		if (!preparation) throw new Error("Expected compaction preparation");
+
+		const remoteOutput = [{ type: "compaction_summary", summary: "too short" }];
+		const fetchSpy = vi.fn(
+			(_input, _init, _next) =>
+				new Response(JSON.stringify({ output: remoteOutput }), {
+					status: 200,
+					headers: { "Content-Type": "application/json" },
+				}),
+		);
+		using _hook = hookFetch(fetchSpy);
+		const completeSimpleSpy = vi
+			.spyOn(ai, "completeSimple")
+			.mockResolvedValueOnce(createAssistantMessage("History summary"))
+			.mockResolvedValueOnce(createAssistantMessage("Short summary"));
+
+		const result = await compact(preparation, model, "test-api-key");
+
+		expect(completeSimpleSpy).toHaveBeenCalledTimes(2);
+		expect(result.summary).toContain("History summary");
+		expect(result.shortSummary).toBe("Short summary");
+	});
+
+	it("does not fail compaction when short summary generation fails", async () => {
+		const model = getBundledModel("anthropic", "claude-sonnet-4-5");
+		if (!model) throw new Error("Expected anthropic/claude-sonnet-4-5 model to exist");
+
+		const entries: SessionEntry[] = [
+			createMessageEntry(createUserMessage("Turn 1")),
+			createMessageEntry(createAssistantMessage("Answer 1", createMockUsage(0, 100, 2000, 0))),
+			createMessageEntry(createUserMessage("Turn 2")),
+			createMessageEntry(createAssistantMessage("Answer 2", createMockUsage(0, 100, 9000, 0))),
+		];
+		const preparation = prepareCompaction(entries, {
+			...DEFAULT_COMPACTION_SETTINGS,
+			keepRecentTokens: 1,
+		});
+		if (!preparation) throw new Error("Expected compaction preparation");
+
+		// keepRecentTokens: 1 cuts at the last assistant message (split turn), so the
+		// call order is history → turn prefix → short.
+		const completeSimpleSpy = vi
+			.spyOn(ai, "completeSimple")
+			.mockResolvedValueOnce(createAssistantMessage("History summary"))
+			.mockResolvedValueOnce(createAssistantMessage("Turn prefix summary"))
+			.mockRejectedValueOnce(new Error("short summary transport error"));
+
+		const result = await compact(preparation, model, "test-api-key");
+
+		expect(completeSimpleSpy).toHaveBeenCalledTimes(3);
+		expect(result.summary).toContain("History summary");
+		expect(result.summary).toContain("Turn prefix summary");
+		expect(result.shortSummary).toBeUndefined();
+	});
+
 	it("clears stale OpenAI remote preserve data when local compaction runs", async () => {
 		const model = getBundledModel("anthropic", "claude-sonnet-4-5");
 		if (!model) throw new Error("Expected anthropic/claude-sonnet-4-5 model to exist");

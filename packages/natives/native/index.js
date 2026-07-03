@@ -49,6 +49,7 @@ export const executeShell = nativeBindings.executeShell;
 export const extractSegments = nativeBindings.extractSegments;
 export const fuzzyFind = nativeBindings.fuzzyFind;
 export const getSupportedLanguages = nativeBindings.getSupportedLanguages;
+export const getTtyWinsize = nativeBindings.getTtyWinsize;
 export const getWorkProfile = nativeBindings.getWorkProfile;
 export const glob = nativeBindings.glob;
 export const grep = nativeBindings.grep;
