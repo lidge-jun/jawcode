@@ -56,8 +56,9 @@ cachePrefix?: {
 };
 ```
 
-2. Add `summaryModelKey(model: Model): string` helper (provider/api/id join) — exported for
-   the agent-session call sites.
+2. Add `summaryModelKey(model: Model): string` helper — joins `provider|api|id|baseUrl ?? ""`
+   (audit fix: `Model.baseUrl` is part of endpoint identity, types.ts:891; credential lookup
+   keys on it, model-registry.ts:2456) — exported for the agent-session call sites.
 
 3. In `generateSummary`: when `options.cachePrefix` is set, `cachePrefix.modelKey ===
    summaryModelKey(model)`, `options.remoteEndpoint` is unset, and `model.api` is one of
@@ -87,10 +88,17 @@ cachePrefix?: {
    - `const tail = preparation.recentMessages.length + preparation.turnPrefixMessages.length`
    - `const head = live.slice(0, live.length - tail)`
    - Defensive gates — return `undefined` (serialized fallback) unless ALL hold:
-     `head.length > 0`, `tail > 0`, and `live[head.length] === preparation.recentMessages[0]
-     || live[head.length] === preparation.turnPrefixMessages[0]` (entry-derived message
-     objects are reused by both context builds, so reference equality is the cheap
-     byte-match proxy; a mismatch means runtime-injected messages shifted the array).
+     `head.length > 0`, `tail > 0`, and the live boundary message matches the entry-derived
+     boundary. Boundary = `preparation.turnPrefixMessages[0] ?? preparation.recentMessages[0]`
+     (turn prefix precedes recent in entry order when splitting). Match =
+     `live[head.length] === boundary` (reference equality — holds for ordinary `message`
+     entries whose objects are shared by both builds) **OR**
+     `live[head.length].role === boundary.role && live[head.length].timestamp ===
+     boundary.timestamp` (audit fix: `custom_message`/`branch_summary` boundaries are
+     synthesized fresh by each build — session-manager.ts:650/:661 vs compaction.ts:166/:176
+     — but both derive `timestamp` from the same entry via `new Date(entry.timestamp)
+     .getTime()`, so role+timestamp is a stable identity for them). Any mismatch means
+     runtime-injected messages shifted the array → serialized fallback, never wrong output.
    - Returns `{ modelKey: summaryModelKey(this.model), systemPrompt:
      this.agent.state.systemPrompt, tools: this.agent.state.tools, messages: head }`.
 5. Manual path (`#compactWithFallbackModel`, :7659-7679) and auto path (candidate loop,
@@ -112,7 +120,8 @@ cachePrefix?: {
 
 ### Verification gate
 
-- `npx tsc --noEmit` in packages/agent + packages/coding-agent.
+- `bun run check:ts` (repo contract, AGENTS.md:169 — not `npx tsc`) in packages/agent +
+  packages/coding-agent (or repo-root `bun check`).
 - `bun test` over compaction, compaction-telemetry, remote-compaction, handoff,
   compaction-prefer-current-model, issue-986-compaction-auth-fallback, build-context suites.
 
