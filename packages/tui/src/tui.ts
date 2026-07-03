@@ -323,6 +323,12 @@ export class TUI extends Container {
 	#renderTimer: NodeJS.Timeout | undefined;
 	#lastRenderAt = 0;
 	static readonly #MIN_RENDER_INTERVAL_MS = 16;
+	/**
+	 * 260703 WP1 — one-shot request for an absolute viewport repaint, consumed
+	 * by the next #doRender pass. Set via resyncViewport(); any absolute render
+	 * branch (first render, width/height change, quarantine) satisfies it too.
+	 */
+	#resyncRequested = false;
 	// Input-priority scheduling: an input keystroke must never be starved behind a
 	// pending normal (frame-budget) render timer. When set, an input-priority render
 	// is queued for the next tick and supersedes any pending normal timer.
@@ -502,7 +508,7 @@ export class TUI extends Container {
 		this.#historyLane = detectHistoryLaneMode();
 		this.terminal.start(
 			data => this.#handleInput(data),
-			() => this.requestRender(),
+			() => this.#handleResize(),
 		);
 		this.#hideCursor();
 		this.#querySixelSupport();
@@ -704,6 +710,7 @@ export class TUI extends Container {
 
 	stop(): void {
 		this.#clearSixelProbeState();
+		this.#resyncRequested = false;
 		this.#stopped = true;
 		if (this.#renderTimer) {
 			clearTimeout(this.#renderTimer);
@@ -1352,6 +1359,47 @@ export class TUI extends Container {
 	}
 
 	/**
+	 * 260703 WP1 — request a one-shot absolute repaint of the visible viewport
+	 * on the next render. Unlike requestRender(true) this neither clears the
+	 * scrollback nor rebuilds the mirrors from scratch: it replays the current
+	 * frame's visible rows at absolute coordinates (the viewportRepaint lane),
+	 * re-synchronizing the physical screen with the renderer's row bookkeeping
+	 * after drift the diff path cannot detect (stale-width writes during a
+	 * resize race, terminal reflow moving the cursor, autowrap-inserted rows).
+	 * Cannot destroy history: scrollback pixels are never touched.
+	 */
+	resyncViewport(reason = "resync viewport"): void {
+		if (this.#stopped || !this.terminalAvailable) return;
+		this.#resyncRequested = true;
+		this.requestRender(false, reason);
+	}
+
+	/**
+	 * 260703 WP1 — resize events whose dimensions DIFFER from the last render
+	 * are healed by the width/height-change branches (absolute repaints), so
+	 * they only need a normal render request. The dangerous residue is a
+	 * flip-back (A→B→A inside one render window, e.g. a drag-resize that
+	 * returns to the original size): widthChanged never trips, yet the
+	 * terminal reflowed the screen and may have moved the cursor — the diff
+	 * path would then paint relative to a fiction. Detect it at event time
+	 * (deterministically — no wall-clock timer, which would inject repaints
+	 * at nondeterministic points of a streaming byte sequence) and request the
+	 * one-shot absolute resync.
+	 */
+	#handleResize(): void {
+		if (
+			this.#previousWidth > 0 &&
+			this.#previousHeight > 0 &&
+			this.terminal.columns === this.#previousWidth &&
+			this.terminal.rows === this.#previousHeight
+		) {
+			this.resyncViewport("resize flip-back");
+			return;
+		}
+		this.requestRender();
+	}
+
+	/**
 	 * 260702 F3 (v2 — user e2e follow-up 3) — turn-boundary realign as PURE
 	 * BOOKKEEPING. While the frame overflows, the visible transcript tail
 	 * exists only on screen. Instead of scrolling it out and rebuilding (which
@@ -1674,6 +1722,11 @@ export class TUI extends Container {
 
 	#doRender(): void {
 		if (this.#stopped || !this.terminalAvailable) return;
+		// 260703 WP1: consume the one-shot resync request up front — whichever
+		// branch renders this pass satisfies it (every non-diff branch is
+		// already an absolute repaint).
+		const resyncRequested = this.#resyncRequested;
+		this.#resyncRequested = false;
 		const width = this.terminal.columns;
 		const height = this.terminal.rows;
 		const widthChanged = this.#previousWidth !== 0 && this.#previousWidth !== width;
@@ -2001,6 +2054,18 @@ export class TUI extends Container {
 			viewportRepaint(
 				`misaligned viewport quarantine (max=${this.#maxLinesRendered} > floor=${this.#overflowFloor})`,
 			);
+			return;
+		}
+
+		// 260703 WP1 — explicit resync (resize settle, external callers): replay
+		// the visible viewport at absolute coordinates. Guard: a legacy
+		// no-sentinel frame shorter than the viewport may not be anchored at
+		// screen row 1 (the first render prints at the shell cursor without
+		// clearing), so an ESC[H repaint would stamp frame rows over shell
+		// history — downgrade that case to the normal diff. Pin-model frames
+		// are always ≥ height after fill expansion.
+		if (resyncRequested && (this.#fillSentinelPresent || newLines.length >= height)) {
+			viewportRepaint("explicit resync");
 			return;
 		}
 
