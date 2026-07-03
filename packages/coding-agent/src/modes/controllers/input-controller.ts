@@ -515,21 +515,27 @@ export class InputController {
 				// backlog sweep below gets gated in multiplexers.
 				this.ctx.ui.setStreamingActive?.(false);
 				const markable = commitLaneEnabled() && canMarkEntireBacklog(this.ctx);
-				const realigned =
+				let realigned =
 					markable && (this.ctx.ui.realignOverflowedFrame?.(measureComposerClusterRows(this.ctx)) ?? false);
+				// 260704 (fable review): a standard-lane realign refusal is a
+				// TRANSIENT mirror desync (stale composited/pending frame) — one
+				// absolute repaint heals it because both mirrors are rewritten
+				// wholesale each pass. Heal and retry ONCE. Never blanket-adopt
+				// on refusal: the visible tail exists only on screen, so a
+				// markOnly sweep without a successful realign silently DROPS up
+				// to a screenful (loss is unrecoverable; the duplication the
+				// old no-op risks is not).
+				if (!realigned && markable && this.ctx.ui.hasOverflowedIntoScrollback?.() === true) {
+					this.ctx.ui.requestRender(false, "realign heal");
+					await new Promise(resolve => setTimeout(resolve, 25));
+					realigned =
+						this.ctx.ui.realignOverflowedFrame?.(measureComposerClusterRows(this.ctx)) ?? false;
+				}
 				// The preamble (welcome banner etc.) sits above chatContainer, so
 				// the mark-only sweep can't reach it — without this the rebuild
 				// repaints it and history grows a banner copy per turn boundary.
 				if (realigned) markPreambleCommitted(this.ctx);
-				// 260704: when realign REFUSES (mirror desync after an error
-				// turn's loader teardown) but the frame still has content in the
-				// scrollback, a markOnly=false write is impossible (commitLines
-				// refuses on an overflowed frame) and would leave the backlog
-				// uncommitted — the next turn then scrolls a SECOND copy into
-				// history (duplication-after-error-turns). Adopt the already-
-				// scrolled pixels whenever the whole backlog is markable.
-				const adopt = realigned || (markable && this.ctx.ui.hasOverflowedIntoScrollback?.() === true);
-				commitFinalizedBacklog(this.ctx, { markOnly: adopt });
+				commitFinalizedBacklog(this.ctx, { markOnly: realigned });
 				// 260630: a still-expanded current turn ends here — unfreeze the
 				// overflow floor so the next turn's growth scrolls into the
 				// scrollback normally (leaving it frozen would pause history).

@@ -278,9 +278,10 @@ describe("commitFinalizedBacklogMidTurn (260703 WP6b)", () => {
 	});
 });
 
-describe("boundary adoption when realign refuses (260704 duplication fix)", () => {
-	function makeAdoptCtx(opts: { realigns: boolean; overflowed: boolean }) {
+describe("boundary heal-and-retry when realign refuses (260704, fable-reviewed)", () => {
+	function makeCtx(realignResults: boolean[], overflowed: boolean) {
 		const calls: string[][] = [];
+		let realignCalls = 0;
 		const children = [
 			{ render: () => ["err-a"], committed: false, invalidate() {} },
 			{ render: () => ["err-b"], committed: false, invalidate() {} },
@@ -288,41 +289,49 @@ describe("boundary adoption when realign refuses (260704 duplication fix)", () =
 		const ctx = {
 			ui: {
 				terminal: { columns: 80 },
-				realignOverflowedFrame: () => opts.realigns,
-				hasOverflowedIntoScrollback: () => opts.overflowed,
+				requestRender() {},
+				realignOverflowedFrame: () => realignResults[Math.min(realignCalls++, realignResults.length - 1)],
+				hasOverflowedIntoScrollback: () => overflowed,
 				commitLines(lines: string[]): boolean {
 					calls.push(lines);
-					return true;
+					return false; // overflowed frame: the write lane refuses
 				},
 			},
 			chatContainer: { children },
 			pendingTools: new Map(),
 			streamingComponent: undefined,
 		} as unknown as InteractiveModeContext;
-		return { ctx, calls, children };
+		return { ctx, calls, children, realignCallCount: () => realignCalls };
 	}
 
-	it("adopts already-scrolled pixels (markOnly) when realign refuses on an overflowed frame", () => {
-		const { ctx, calls, children } = makeAdoptCtx({ realigns: false, overflowed: true });
+	async function runBoundary(ctx: InteractiveModeContext) {
+		// Mirrors the input-controller submit-boundary logic (heal + retry once).
 		const markable = true;
-		const realigned = markable && (ctx.ui.realignOverflowedFrame?.(0) ?? false);
-		const adopt = realigned || (markable && ctx.ui.hasOverflowedIntoScrollback?.() === true);
-		commitFinalizedBacklog(ctx, { markOnly: adopt });
-		// Marked committed WITHOUT a second insert-history write — the pixels
-		// are already in the physical scrollback (copy #1); a write here (or a
-		// no-op leaving them uncommitted) is what produced copy #2.
-		expect(calls).toEqual([]);
+		let realigned = markable && (ctx.ui.realignOverflowedFrame?.(0) ?? false);
+		if (!realigned && markable && ctx.ui.hasOverflowedIntoScrollback?.() === true) {
+			ctx.ui.requestRender(false, "realign heal");
+			await new Promise(resolve => setTimeout(resolve, 1));
+			realigned = ctx.ui.realignOverflowedFrame?.(0) ?? false;
+		}
+		commitFinalizedBacklog(ctx, { markOnly: realigned });
+		return realigned;
+	}
+
+	it("heals and retries once; a successful retry adopts (markOnly, no write)", async () => {
+		const { ctx, calls, children, realignCallCount } = makeCtx([false, true], true);
+		expect(await runBoundary(ctx)).toBe(true);
+		expect(realignCallCount()).toBe(2);
+		expect(calls).toEqual([]); // as-streamed pixels adopted, no second write
 		expect(children.every(c => c.committed)).toBe(true);
 	});
 
-	it("non-overflowed frames keep the normal write path", () => {
-		const { ctx, calls, children } = makeAdoptCtx({ realigns: false, overflowed: false });
-		const markable = true;
-		const realigned = markable && (ctx.ui.realignOverflowedFrame?.(0) ?? false);
-		const adopt = realigned || (markable && ctx.ui.hasOverflowedIntoScrollback?.() === true);
-		commitFinalizedBacklog(ctx, { markOnly: adopt });
-		expect(calls).toEqual([["err-a"], ["err-b"]]);
-		expect(children.every(c => c.committed)).toBe(true);
+	it("a persistent refusal NEVER blanket-adopts — loss is unrecoverable, duplication is", async () => {
+		const { ctx, calls, children } = makeCtx([false, false], true);
+		expect(await runBoundary(ctx)).toBe(false);
+		// Write path attempted and refused by the overflowed frame → children
+		// stay UNcommitted (retried next boundary) instead of being dropped.
+		expect(calls.length).toBe(1);
+		expect(children.every(c => !c.committed)).toBe(true);
 	});
 });
 

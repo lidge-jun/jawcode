@@ -1602,7 +1602,15 @@ export class TUI extends Container {
 	 * copy into history (duplication-after-error-turns, devlog 00 OPEN).
 	 */
 	hasOverflowedIntoScrollback(): boolean {
-		return Math.max(this.#overflowFloor, this.#maxLinesRendered) > this.terminal.rows;
+		// fable adversarial review 260704: mirror realign's environmental gates
+		// or adoption fires where pixels were never (zellij virtual lane) or
+		// only partially (quarantine repaint-only growth) materialized — and
+		// use the FLOOR, not #maxLinesRendered: only physically materialized
+		// rows are actually in the scrollback.
+		if (this.#historyLane !== "standard") return false;
+		if (!this.#fillSentinelPresent) return false;
+		if (this.overlayStack.length > 0) return false;
+		return this.#overflowFloor > this.terminal.rows;
 	}
 
 	realignOverflowedFrame(liveClusterRows: number): boolean {
