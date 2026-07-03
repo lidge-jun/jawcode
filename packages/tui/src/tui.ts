@@ -337,6 +337,16 @@ export class TUI extends Container {
 	 * branch (first render, width/height change, quarantine) satisfies it too.
 	 */
 	#resyncRequested = false;
+	/**
+	 * 260704 RESIZE REBUILD — fired once ~250ms after the LAST width-changing
+	 * resize event. The embedder re-emits the full transcript at the new
+	 * width via replayTranscript(): a FULL replace of the scrollback cannot
+	 * duplicate anything (unlike partial repairs, which the immutability
+	 * policy exists to forbid), so resize-mangled history heals completely.
+	 * Unwired in tests/replays — no determinism impact.
+	 */
+	onResizeSettled?: () => void;
+	#resizeRebuildTimer: NodeJS.Timeout | undefined;
 	// Input-priority scheduling: an input keystroke must never be starved behind a
 	// pending normal (frame-budget) render timer. When set, an input-priority render
 	// is queued for the next tick and supersedes any pending normal timer.
@@ -560,6 +570,10 @@ export class TUI extends Container {
 			clearTimeout(this.#renderTimer);
 			this.#renderTimer = undefined;
 			if (renderMetrics.enabled) renderMetrics.setTimerGauge("tui.renderTimer", 0);
+		}
+		if (this.#resizeRebuildTimer) {
+			clearTimeout(this.#resizeRebuildTimer);
+			this.#resizeRebuildTimer = undefined;
 		}
 		this.#clearSixelProbeState();
 		this.#clearAmbiguousProbeState();
@@ -873,6 +887,10 @@ export class TUI extends Container {
 	}
 
 	stop(): void {
+		if (this.#resizeRebuildTimer) {
+			clearTimeout(this.#resizeRebuildTimer);
+			this.#resizeRebuildTimer = undefined;
+		}
 		this.#clearSixelProbeState();
 		this.#clearAmbiguousProbeState();
 		this.#ambiguousWidthResolved = true;
@@ -1566,7 +1584,59 @@ export class TUI extends Container {
 			this.resyncViewport("resize flip-back");
 			return;
 		}
+		// 260704 RESIZE REBUILD: width changes re-wrap history — schedule the
+		// full-transcript replay once the drag storm settles.
+		if (this.onResizeSettled && this.#previousWidth > 0 && this.terminal.columns !== this.#previousWidth) {
+			if (this.#resizeRebuildTimer) clearTimeout(this.#resizeRebuildTimer);
+			this.#resizeRebuildTimer = setTimeout(() => {
+				this.#resizeRebuildTimer = undefined;
+				if (this.#stopped) return;
+				this.onResizeSettled?.();
+			}, 250);
+		}
 		this.requestRender();
+	}
+
+	/**
+	 * 260704 RESIZE REBUILD — replace the ENTIRE terminal contents (screen +
+	 * scrollback) with the given transcript lines re-rendered at the current
+	 * width, then let the next render append the live frame directly below.
+	 * A full replace cannot duplicate content — this is the one operation the
+	 * scrollback-immutability policy permits to touch history, and it is what
+	 * heals hard-wrapped rows after a width change.
+	 */
+	replayTranscript(lines: string[]): void {
+		if (this.#stopped || !this.terminalAvailable) return;
+		const width = this.terminal.columns;
+		const { lines: prepared, stats } = this.#prepareLinesForTerminal([...lines], width);
+		this.#recordPreparedLineStats(stats, "commit");
+		let buffer = "\x1b[?2026h";
+		buffer += "\x1b[2J\x1b[H\x1b[3J";
+		for (const line of prepared) {
+			buffer += line;
+			buffer += "\r\n";
+		}
+		buffer += "\x1b[?2026l";
+		if (!this.#writeTerminal(buffer)) return;
+		// Seed the renderer to APPEND the live frame at the cursor (right
+		// below the replayed tail) instead of clearing again: empty mirrors +
+		// CURRENT dimensions route the next pass through the first-render
+		// branch (fullRender without clear).
+		this.#previousLines = [];
+		this.#previousRawLines = [];
+		this.#previousWidth = this.terminal.columns;
+		this.#previousHeight = this.terminal.rows;
+		this.#clearPreparedLineCaches();
+		this.#cursorRow = 0;
+		this.#hardwareCursorRow = 0;
+		this.#viewportTopRow = 0;
+		this.#maxLinesRendered = 0;
+		this.#overflowFloor = 0;
+		this.#lastTombstoneRows = 0;
+		this.#committedScreenRows = 0;
+		this.#committedBottomRow = 0;
+		this.#hasCommittedHistory = true;
+		this.requestRender(false, "resize transcript rebuild");
 	}
 
 	/**
@@ -1825,6 +1895,10 @@ export class TUI extends Container {
 		// (as-streamed adoption) owns that regime.
 		if (this.#maxLinesRendered > this.terminal.rows) return false;
 		if (!this.#fillSentinelPresent) return false;
+		// T1 hardening (adversarial review): inside a forced-render window the
+		// fits gate reads zeroed bookkeeping while the physical frame may be
+		// overflowed — empty mirrors mean "state unknown", refuse.
+		if (this.#previousLines.length === 0) return false;
 		// Legacy fill-FIRST frames (sentinel at frame line 0) and realign-
 		// parked states put the blank pad / parked block at the TOP — scrolling
 		// [1..liveBottom] there would push blanks or parked pixels; those

@@ -135,7 +135,13 @@ import {
 } from "./theme/theme";
 import type { CompactionQueuedMessage, InteractiveModeContext, SubmittedUserInput, TodoItem, TodoPhase } from "./types";
 import type { CompactionProgressPresenter } from "./utils/compaction-progress";
-import { addSignatureCredit, consumeSignatureCredit, takeFirstSignature, UiHelpers } from "./utils/ui-helpers";
+import {
+	addSignatureCredit,
+	consumeSignatureCredit,
+	rebuildTranscriptForResize,
+	takeFirstSignature,
+	UiHelpers,
+} from "./utils/ui-helpers";
 
 const INTERACTIVE_ABORT_CLEANUP_TIMEOUT_MS = 5_000;
 
@@ -627,6 +633,11 @@ export class InteractiveMode implements InteractiveModeContext {
 		await this.#loadTodoList();
 
 		// Start the UI
+		// 260704 RESIZE REBUILD: once a width change settles, replace the whole
+		// terminal contents with the transcript re-rendered at the new width —
+		// the full replace is the one history-touching operation that cannot
+		// duplicate, and it heals hard-wrapped committed rows completely.
+		this.ui.onResizeSettled = () => rebuildTranscriptForResize(this);
 		this.ui.start();
 		pushTerminalTitle();
 		setSessionTerminalTitle(this.sessionManager.getSessionName(), this.sessionManager.getCwd());

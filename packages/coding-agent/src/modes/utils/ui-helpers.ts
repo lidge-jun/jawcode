@@ -185,6 +185,17 @@ export function commitFinalizedBacklog(ctx: InteractiveModeContext, options?: { 
 	// The typeof guard doubles as a harness escape hatch: partial UI fixtures
 	// (and any non-TUI surface) simply stay on the virtual lane.
 	if (!commitLaneEnabled() || typeof ctx.ui.commitLines !== "function") return;
+	// 260704 (adversarial review T3): WRITE commits must never land below an
+	// in-frame preamble (reading-order inversion in history). Retry the
+	// preamble first; if it still refuses, stay on the virtual lane.
+	if (options?.markOnly !== true && Array.isArray(ctx.ui.children)) {
+		commitPreamble(ctx);
+		for (const child of ctx.ui.children) {
+			if (child === (ctx.chatContainer as unknown as Component)) break;
+			if (child instanceof ViewportFill) continue;
+			if (!child.committed) return;
+		}
+	}
 	// 260702 F3: after a successful scroll-out realign the finalized cells'
 	// pixels are already in the physical scrollback (as-streamed) — mark them
 	// committed WITHOUT a second insert-history write, or the content would
@@ -259,6 +270,42 @@ export function commitPreamble(ctx: InteractiveModeContext): void {
 	}
 }
 
+/**
+ * 260704 RESIZE REBUILD — after a width change settles, re-emit the ENTIRE
+ * finalized transcript at the new width (TUI.replayTranscript does the full
+ * screen+scrollback replace; a full replace cannot duplicate). The gathered
+ * prefix uses the committed render forms and stops at the same contiguous-
+ * prefix boundary as the commit sweep, so streaming/live content stays in
+ * the frame and re-renders below the replayed tail.
+ */
+export function rebuildTranscriptForResize(ctx: InteractiveModeContext): void {
+	const ui = ctx.ui as unknown as {
+		terminal?: { columns?: number };
+		replayTranscript?: (lines: string[]) => void;
+		children?: Component[];
+	};
+	if (typeof ui.replayTranscript !== "function" || !Array.isArray(ui.children)) return;
+	const width = Math.max(1, ui.terminal?.columns ?? 80);
+	const lines: string[] = [];
+	const pending = new Set<unknown>(ctx.pendingTools.values());
+	const renderOf = (child: Component): string[] =>
+		hasCommittedRenderer(child) ? child.renderCommitted(width) : child.render(width);
+	// Preamble (everything above chatContainer except the fill sentinel).
+	for (const child of ui.children) {
+		if (child === (ctx.chatContainer as unknown as Component)) break;
+		if (child instanceof ViewportFill) continue;
+		lines.push(...renderOf(child));
+		child.committed = true;
+	}
+	// Finalized chat prefix (same stopper boundary as the commit sweep).
+	for (const child of ctx.chatContainer.children) {
+		if (stopsBacklogSweep(ctx, pending, child)) break;
+		lines.push(...renderOf(child));
+		child.committed = true;
+	}
+	ui.replayTranscript(lines);
+}
+
 export function markPreambleCommitted(ctx: InteractiveModeContext): void {
 	const children = ctx.ui.children;
 	if (!Array.isArray(children)) return;
@@ -292,6 +339,12 @@ export function measureComposerClusterRows(ctx: InteractiveModeContext): number 
 	const width = Math.max(1, ctx.ui.terminal?.columns ?? 80);
 	let rows = 0;
 	for (let i = start + 1; i < children.length; i++) {
+		// 260704 (adversarial review C1): the fill sentinel now sits below the
+		// chat (top-flow layout) and renders one SENTINEL line that expands to
+		// ZERO physical rows under overflow — counting it inflated the cluster
+		// by one and the realign excluded the turn's LAST content row from the
+		// committed block (permanently lost at every overflowed boundary).
+		if (children[i] instanceof ViewportFill) continue;
 		rows += children[i].render(width).length;
 	}
 	return rows;
