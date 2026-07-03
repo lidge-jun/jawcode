@@ -1762,11 +1762,17 @@ export class TUI extends Container {
 		// still declare the block rows logically blank (no rewrite needed).
 		// Parked blocks only (#committedBottomRow > 0): the ordinary commit-lane
 		// state keeps its pre-v3 bytes (B-verify byte-compat finding).
+		// 260703 WP3a: a scroll-region mutation mid-pass invalidates the relative
+		// lanes' cursor/mirror assumptions (clamp mismatch + unrotated mirrors —
+		// devlog 30_wp3a). Track it and finish such passes with an absolute
+		// repaint instead of the relative diff.
+		let scrolledOutThisPass = false;
 		if (this.overlayStack.length > 0 && this.#committedBottomRow > 0) {
 			const flushBottom = this.#committedBottomRow;
 			this.#scrollOutCommittedRows(flushBottom, flushBottom);
 			this.#committedScreenRows = 0;
 			this.#committedBottomRow = 0;
+			scrolledOutThisPass = true;
 		}
 
 		// 260630 seam fix: while overflowed, absorb net shrinks with in-place
@@ -1817,6 +1823,7 @@ export class TUI extends Container {
 			this.#committedScreenRows = Math.min(this.#committedScreenRows, this.#lastFillRows);
 			this.#committedBottomRow =
 				this.#committedBottomRow > 0 && this.#committedScreenRows > 0 ? this.#lastFillRows : 0;
+			scrolledOutThisPass = true;
 		}
 
 		// Width/height changes need full re-render handling below.
@@ -1939,6 +1946,46 @@ export class TUI extends Container {
 			// Deliberately prioritizes the live viewport over historical scrollback
 			// repair. After offscreen changes, #previousLines tracks the desired
 			// logical transcript, not every byte emitted into the scrollback.
+			this.#cursorRow = Math.max(0, newLines.length - 1);
+			this.#maxLinesRendered = newLines.length;
+			this.#viewportTopRow = nextViewportTop;
+			this.#previousLines = newLines;
+			this.#previousWidth = width;
+			this.#previousHeight = height;
+		};
+
+		// 260703 WP3a: absolute repaint of the LIVE ZONE ONLY (screen rows below
+		// the fill region). Used by the scroll-out barrier while committed
+		// pixels are still parked in the fill region: those rows are
+		// mirror-blank by contract (never repainted by diffs), so a full
+		// viewportRepaint's per-row 2K would erase them. Bookkeeping updates
+		// mirror viewportRepaint's wholesale rewrite — fill rows in newLines
+		// are prepared blanks, matching the untouched physical rows above.
+		const liveZoneRepaint = (reason: string): void => {
+			this.#fullRedrawCount += 1;
+			if (renderMetrics.enabled) renderMetrics.recordFullRedraw(reason);
+			const nextViewportTop = Math.max(0, newLines.length - height);
+			const startRow = Math.max(0, Math.min(height - 1, this.#lastFillRows));
+			let buffer = `\x1b[?2026h\x1b[${startRow + 1};1H`;
+			for (let screenRow = startRow; screenRow < height; screenRow++) {
+				if (screenRow > startRow) buffer += "\r\n";
+				buffer += "\x1b[2K";
+				const lineIndex = nextViewportTop + screenRow;
+				if (lineIndex >= newLines.length) continue;
+				buffer += this.#truncatePreparedLineToWidth(newLines[lineIndex], width);
+			}
+			const finalPhysicalRow = nextViewportTop + Math.max(0, height - 1);
+			let cursorSeq = "\x1b[?25l";
+			let cursorToRow = finalPhysicalRow;
+			if (cursorPos && cursorPos.row >= nextViewportTop + startRow && cursorPos.row < nextViewportTop + height) {
+				const cursor = this.#cursorControlSequence(cursorPos, newLines.length, finalPhysicalRow);
+				cursorSeq = cursor.seq;
+				cursorToRow = cursor.toRow;
+			}
+			this.#hardwareCursorRow = cursorToRow;
+			buffer += cursorSeq;
+			buffer += "\x1b[?2026l";
+			if (!this.#writeTerminal(buffer)) return;
 			this.#cursorRow = Math.max(0, newLines.length - 1);
 			this.#maxLinesRendered = newLines.length;
 			this.#viewportTopRow = nextViewportTop;
@@ -2101,6 +2148,31 @@ export class TUI extends Container {
 			lastChanged = newLines.length - 1;
 		}
 		const appendStart = appendedLines && firstChanged === this.#previousLines.length && firstChanged > 0;
+
+		// 260703 WP3a scroll-out repaint barrier: the DECSTBM mutation above
+		// shifted physical rows and restored the cursor to a CLAMPED screen row,
+		// while the relative lanes below still compute moves from the UNCLAMPED
+		// captured locals against unrotated mirrors. Those lanes survived on the
+		// blank-region coincidence only (devlog 30_wp3a) — finish the pass with
+		// an ABSOLUTE repaint instead. While committed pixels still sit in the
+		// fill region (mirror-blank rows the frame must never erase), repaint
+		// only the live zone below them; a full viewportRepaint would 2K those
+		// rows away (B-phase finding). With an overlay open the fill rows can
+		// carry composited overlay content, so flush the committed rows into
+		// the scrollback first and take the full repaint.
+		if (scrolledOutThisPass) {
+			if (this.#committedScreenRows > 0 && this.overlayStack.length > 0 && this.#lastFillRows > 1) {
+				this.#scrollOutCommittedRows(this.#committedScreenRows, this.#lastFillRows);
+				this.#committedScreenRows = 0;
+				this.#committedBottomRow = 0;
+			}
+			if (this.#committedScreenRows > 0) {
+				liveZoneRepaint("scroll-out repaint barrier");
+			} else {
+				viewportRepaint("scroll-out repaint barrier");
+			}
+			return;
+		}
 
 		// No changes - but still need to update hardware cursor position if it moved
 		if (firstChanged === -1) {
