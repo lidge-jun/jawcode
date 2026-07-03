@@ -1746,20 +1746,27 @@ export class TUI extends Container {
 	}
 
 	/**
-	 * 260703 WP3b-min — push any committed rows still parked on screen into
-	 * the terminal scrollback in one discrete write, then resync. Called at
-	 * streaming boundaries so per-growth-frame drains (which mutate the top
-	 * region while the user may be reading history) become rare. Safe by the
-	 * mirror-blank contract: the flushed region is logically blank in the
-	 * mirrors, and the resync repaints the frame absolutely.
+	 * 260703 WP3b-min — push a PARKED committed block (realign product,
+	 * `#committedBottomRow > 0`) into the terminal scrollback in one discrete
+	 * write, then resync. Called at streaming boundaries so per-growth-frame
+	 * drains (which mutate the top region while the user may be reading
+	 * history) become rare. PARKED ONLY by design: the parked region
+	 * `1..bottom` is content-only, so the flush is blank-free — flushing the
+	 * ORDINARY lane would have to push the whole fill region (bottom-aligned
+	 * rows need regionBottom scrolls to cross row 1), stamping a fill-height
+	 * blank gap into scrollback EVERY turn (fable adversarial review C1,
+	 * empirically reproduced). Ordinary committed rows keep the pre-existing
+	 * progressive S2 drain instead. Safe by the mirror-blank contract: the
+	 * flushed region is logically blank in the mirrors, and the resync
+	 * repaints the frame absolutely.
 	 */
 	flushHistoryLane(): void {
 		if (this.#stopped || !this.terminalAvailable) return;
 		if (this.#historyLane !== "standard") return;
 		if (this.overlayStack.length > 0) return;
 		if (this.#committedScreenRows <= 0) return;
-		const flushBottom = this.#committedBottomRow > 0 ? this.#committedBottomRow : this.#lastFillRows;
-		if (flushBottom <= 0) return;
+		if (this.#committedBottomRow <= 0) return;
+		const flushBottom = this.#committedBottomRow;
 		this.#scrollOutCommittedRows(flushBottom, flushBottom);
 		this.#committedScreenRows = 0;
 		this.#committedBottomRow = 0;

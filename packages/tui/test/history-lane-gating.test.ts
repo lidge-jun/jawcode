@@ -126,26 +126,71 @@ describe("history-lane gating (260703 WP3b-min)", () => {
 		conservative.tui.stop();
 	});
 
-	it("flushHistoryLane pushes parked rows into scrollback in order and is idempotent", async () => {
+	it("ordinary committed rows are NOT flushed — no fill-height blank dump into scrollback", async () => {
+		// fable adversarial review C1: flushing the ordinary lane must push the
+		// whole fill region (bottom-aligned rows need regionBottom scrolls to
+		// cross row 1), stamping a blank gap into scrollback every turn. The
+		// flush is therefore parked-only; ordinary rows keep the progressive
+		// S2 drain. NOTE: no blank-filtering here — blanks ARE the regression.
 		const { term, tui } = await setup(true);
 		expect(tui.commitLines(["c-0", "c-1"])).toBe(true);
 		await term.flush();
+		const blanksBefore = term.getScrollBuffer().filter(l => l.trim() === "").length;
+		const writesBefore = term.getWriteLog().length;
+
+		tui.flushHistoryLane(); // ordinary lane → no-op by design
+		expect(term.getWriteLog().length).toBe(writesBefore);
+		const blanksAfter = term.getScrollBuffer().filter(l => l.trim() === "").length;
+		expect(blanksAfter).toBe(blanksBefore);
+		// Committed pixels stay parked on screen, above the live zone.
+		expect(term.getViewport().join("\n")).toContain("c-0");
+		tui.stop();
+	});
+
+	it("flushHistoryLane pushes a PARKED block into scrollback blank-free and in order", async () => {
+		// Build a parked block the production way: overflow the frame, then
+		// realign at the turn boundary (parks the visible tail at rows 1..K).
+		const term = new VirtualTerminal(40, 10);
+		const tui = new TUI(withViewportBottom(term, true));
+		const content: Component & { committed?: boolean; lines: string[] } = {
+			lines: Array.from({ length: 20 }, (_, i) => `row-${i}`),
+			invalidate() {},
+			render() {
+				return [...this.lines];
+			},
+		};
+		tui.addChild(new ViewportFill());
+		tui.addChild(content);
+		tui.addChild(new ComposerStub());
+		tui.start();
+		await flushRender(term);
+
+		expect(tui.realignOverflowedFrame(2)).toBe(true);
+		// Production pairs realign with the markOnly backlog sweep: components
+		// become committed (skipped by frame assembly) so the next frame is
+		// short and the parked pixels are the canonical copy.
+		content.committed = true;
+		await flushRender(term);
 
 		tui.flushHistoryLane();
 		await flushRender(term);
 
-		const all = term.getScrollBuffer().filter(l => l.trim() !== "");
-		const i0 = all.indexOf("c-0");
-		expect(i0).toBeGreaterThanOrEqual(0);
-		expect(all.indexOf("c-1")).toBe(i0 + 1);
-		// Exactly once each (flush + resync must not duplicate).
-		expect(all.filter(l => l === "c-0").length).toBe(1);
-		expect(all.filter(l => l === "c-1").length).toBe(1);
-		// Live zone intact.
-		expect(term.getViewport().at(-1)).toBe("> input");
+		// Blank-free SCROLLBACK: the parked region is content-only, so the
+		// rows that crossed into scrollback must contain no blanks (fable C1
+		// regression domain). The viewport itself now shows blank fill where
+		// the block used to sit — that is the designed post-flush screen, so
+		// the assertion excludes the visible rows.
+		const buffer = term.getScrollBuffer();
+		const scrollbackOnly = buffer.slice(0, Math.max(0, buffer.length - 10));
+		expect(scrollbackOnly.filter(l => l.trim() === "").length).toBe(0);
+		// Tail rows kept their order and appear exactly once.
+		const i18 = buffer.indexOf("row-18");
+		expect(i18).toBeGreaterThanOrEqual(0);
+		expect(buffer.indexOf("row-19")).toBe(i18 + 1);
+		expect(buffer.filter(l => l === "row-19").length).toBe(1);
 
 		const writesBefore = term.getWriteLog().length;
-		tui.flushHistoryLane(); // nothing parked → no-op
+		tui.flushHistoryLane(); // nothing parked anymore → no-op
 		expect(term.getWriteLog().length).toBe(writesBefore);
 		tui.stop();
 	});

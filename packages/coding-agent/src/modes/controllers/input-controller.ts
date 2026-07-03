@@ -508,6 +508,11 @@ export class InputController {
 				// still pending across the turn boundary) must not either — its
 				// scrolled-out rows would be redrawn by the rebuild and
 				// duplicate (gpt-5.5 final-review blocker).
+				// 260703 WP3b-min (fable review C3): compact/new/switch mid-stream
+				// can swallow agent_end, leaving the streaming flag latched — a
+				// submit is a hard turn boundary, so clear it defensively or the
+				// backlog sweep below gets gated in multiplexers.
+				this.ctx.ui.setStreamingActive?.(false);
 				const realigned =
 					commitLaneEnabled() &&
 					canMarkEntireBacklog(this.ctx) &&

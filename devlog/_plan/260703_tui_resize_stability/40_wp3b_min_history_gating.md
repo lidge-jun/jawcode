@@ -57,6 +57,32 @@ runs the adversarial review of the built diff (user directive 260703).
   flush no-ops.
 - existing commit-lane tests unaffected (default streamingActive=false → allowed).
 
+## fable adversarial review (B verification) — findings and dispositions
+
+- **C1 (BLOCKER, fixed):** the ordinary-lane flush scrolled the WHOLE fill region
+  (bottom-aligned rows need regionBottom scrolls to cross row 1), empirically dumping a
+  fill-height blank gap into scrollback EVERY turn. Geometric, not a bug in the count —
+  a blank-free ordinary flush is impossible with a top-anchored region. Fix:
+  `flushHistoryLane` is PARKED-ONLY (`#committedBottomRow > 0`, content-only region);
+  ordinary rows keep the pre-existing progressive S2 drain. Tests rewritten without the
+  blank-filter that had hidden the regression; scrollback-domain blank assertions added
+  (note: post-flush blanks INSIDE the viewport are the designed fill region — the
+  assertion domain is the scrollback slice only).
+- **C2 (accepted v1):** `isViewportAtBottom` has no production implementation — direct
+  terminals: gate inert; multiplexers: blanket-block during streaming. Known plan
+  tradeoff; the gate's real customer is WP6b's mid-turn commits. A future bottom
+  observer upgrades precision.
+- **C3 (fixed defensively):** compact()/newSession()/switchSession() mid-stream
+  disconnect before abort and swallow agent_end → flag latched one turn. Fix: submit
+  path clears `setStreamingActive(false)` before the backlog sweep (hard turn
+  boundary). Session-layer wiring cleanup left for a follow-up.
+- **C4 (mitigated by C1 fix):** the boundary flush is itself an ungated top-region
+  mutation — now fires only when a parked block exists (post-realign overflowed
+  sessions), the exact case where one discrete write beats per-frame churn.
+- Theoretical (documented, no fix): widened flushBottom===1 one-frame glitch (resync
+  covers), RPC child-death emits no agent_end (same class as C3, defensive reset
+  covers the interactive path).
+
 ## Verification
 
 fable adversarial review of the diff (invariants: mirror-blank contract during flush,
