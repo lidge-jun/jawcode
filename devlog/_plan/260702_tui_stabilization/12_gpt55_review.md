@@ -81,6 +81,47 @@ markPreambleCommitted(ctx)`. Unit case in `turn-boundary-realign.test.ts`
 (preamble marked, fill live, chatContainer/composer untouched). Suites 51/51, tsgo
 clean.
 
+## Post-PASS user e2e follow-up 2 — blank band stamped between turns
+
+User e2e: sending a message left a large blank band (plus the turn's tail) in history
+between the finished turn and the next user message. Cause: the realign scroll-out
+preserved the ENTIRE visible transcript region (`height - liveClusterRows` rows) — 
+including the run of tombstone/spacing blanks sitting between the transcript end and the
+composer cluster at turn end — stamping a permanent blank band into the scrollback at
+every turn boundary.
+
+**Fix:** `realignOverflowedFrame` now trims the scroll-out to the LAST content row: it
+scans `#previousRawLines` downward from the cluster top and skips the trailing blank
+run (`scrollRows = min(maxScrollRows, lastContent - visibleTop + 1)`, clamped ≥ 0; a
+zero-row scroll still resets the floor and rebuilds). Regression: "does not stamp
+trailing blank rows into the scrollback at the turn boundary" in
+`scroll-misalignment.test.ts` (≤1 blank between the last content row and the fresh
+frame, no duplicates, no loss). Suites 49/49, tsgo clean.
+
+## Post-PASS user e2e follow-up 3 — full-screen fill wall at every turn boundary
+
+User e2e (fresh session): after each submit the new user message sat at the BOTTOM of a
+mostly-blank viewport — the realign's forced rebuild reset the frame to fitting, and the
+composer-pin layout (fill above chat) parked the fresh turn at the screen bottom with a
+full-height fill wall above it, visually severing it from the previous turn.
+
+**Fix — realign v2, pure bookkeeping (no terminal writes).** Instead of scrolling the
+visible tail out and 2J-rebuilding, `realignOverflowedFrame` now re-declares the visible
+transcript tail as the commit lane's on-screen committed block (§6-2):
+`#committedScreenRows = K` (visible content rows, trailing blanks trimmed),
+`#lastFillRows = K`, floor 0, and `#previousLines`/`#previousRawLines` rewritten to the
+short-frame mirror — prepared-blank rows over the block (logically blank rows are never
+repainted, so the physical pixels survive; the mirror must use the PREPARED blank
+representation or the diff 2K-erases the block) plus the real cluster lines at their
+bottom-anchored rows. The existing `#scrollOutCommittedRows` lane then feeds the block
+into the real scrollback exactly as fast as the next turn grows — content only, never
+blanks; the old trailing-blank gap is painted over in place and never reaches history.
+
+Measured boundary behavior (xterm): one region-scroll of exactly N rows + a diff that
+paints ONLY the new message row, which lands DIRECTLY below the previous turn's last
+visible line. New regression case "keeps the previous tail visible with the new content
+directly below it (no full-screen fill wall)". Suites 65/65 targeted, tsgo clean.
+
 ## D summary
 
 - **P**: RCA with live xterm repro (viewportRepaint inflation → plain-diff shrink drift)

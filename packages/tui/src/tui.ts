@@ -295,6 +295,17 @@ export class TUI extends Container {
 	#historyLane: HistoryLaneMode = "unsupported";
 	/** Committed pixel rows sitting directly above the live zone, not yet scrolled into scrollback. */
 	#committedScreenRows = 0;
+	/**
+	 * 260703 v3 — 1-based screen row where the on-screen committed block ENDS.
+	 * 0 = no parked block: callers fall back to the fill-region bottom
+	 * (#lastFillRows / prevFillRows), which is byte-identical to the pre-v3
+	 * behavior. Set by realignOverflowedFrame, which parks the previous turn's
+	 * visible tail at rows 1..blockRows while the NEXT frame's fill can be
+	 * taller — the block bottom, not the raw fill, is the history-region
+	 * boundary, or growth scroll-outs stamp the trailing-blank gap into the
+	 * scrollback (gap repro, 20_realign_v3_committed_bottom.md).
+	 */
+	#committedBottomRow = 0;
 	/** True once any line was committed — the scrollback is then canonical and 3J is forbidden. */
 	#hasCommittedHistory = false;
 	/** Fill rows at the top of the frame as last painted (= history region height). */
@@ -1331,60 +1342,102 @@ export class TUI extends Container {
 	}
 
 	/**
-	 * 260702 F3 — turn-boundary scroll-out realign. While the frame overflows,
-	 * the visible transcript tail exists only on screen; preserving it as
-	 * history means physically scrolling it into the scrollback ONCE via a
-	 * bottom-anchored newline scroll (default full-screen scroll region keeps
-	 * top = row 1, so pushed rows enter real scrollback — a top > 1 region
-	 * would DISCARD them, see insert-history.ts). The composer cluster
-	 * (`liveClusterRows` at the frame end) is NOT scrolled out — no composer
-	 * pixels pollute history. Afterwards the floor is reset and a forced
-	 * rebuild is scheduled: the caller's mark-only sweep shrinks the frame to
-	 * fit, so the rebuild repaints a clean pinned screen (2J-only — the
-	 * scroll-out makes the scrollback canonical, 3J stays forbidden).
+	 * 260702 F3 (v2 — user e2e follow-up 3) — turn-boundary realign as PURE
+	 * BOOKKEEPING. While the frame overflows, the visible transcript tail
+	 * exists only on screen. Instead of scrolling it out and rebuilding (which
+	 * blanked the viewport into a full-screen fill wall every turn), the tail
+	 * is re-declared as the commit lane's on-screen committed block (§6-2):
 	 *
-	 * Returns false (pure no-op) unless every physical precondition holds.
-	 * The caller additionally gates on commitLaneEnabled() so opted-out
-	 * sessions stay byte-identical.
+	 * - No terminal write happens here. The physical screen stays exactly
+	 *   as-is: [content K][trailing blanks][cluster at the bottom].
+	 * - The K visible content rows become `#committedScreenRows`, and
+	 *   `#committedBottomRow = K` anchors the history region at the block's
+	 *   bottom row. The NEXT frame's `#expandViewportFill` may declare a
+	 *   taller blank prefix (`#lastFillRows = F > K`); the block bottom, not
+	 *   the raw fill, stays the scroll-out boundary (v3) — otherwise growth
+	 *   scroll-outs march the trailing-blank gap into the scrollback.
+	 * - `#previousLines` is rewritten to the equivalent short-frame mirror:
+	 *   blanks over the block and the gap (logically-blank rows are never
+	 *   repainted, so the physical pixels survive), plus the old cluster lines
+	 *   at their real bottom-anchored rows (so the next frame diffs/erases the
+	 *   cluster normally).
+	 * - As the next turn's content grows past the trailing-blank gap, the
+	 *   `#scrollOutCommittedRows` lane feeds the block into the real
+	 *   scrollback exactly as fast as the fill drops below the block bottom —
+	 *   region `1..#committedBottomRow` is content-only, so never blanks; the
+	 *   gap itself is painted over in place and never reaches the scrollback.
+	 *
+	 * Returns false (pure no-op) unless every precondition holds. The caller
+	 * additionally gates on commitLaneEnabled() and a fully-markable backlog.
 	 */
 	realignOverflowedFrame(liveClusterRows: number): boolean {
 		if (this.#stopped || !this.terminalAvailable) return false;
 		if (!this.#fillSentinelPresent) return false;
+		// The block hand-off relies on scroll-region ops downstream
+		// (#scrollOutCommittedRows / commitLines) — refuse on lanes where
+		// regions misbehave (zellij) exactly like the commit lane does.
 		if (this.#historyLane !== "standard") return false;
 		if (this.overlayStack.length > 0) return false;
 		const height = this.terminal.rows;
+		const width = this.terminal.columns;
 		// Overflowing means EITHER a materialized floor beyond the viewport OR
-		// a quarantined logical frame (floor reset by a previous realign whose
-		// forced rebuild immediately re-overflowed and was downgraded to a
-		// viewport repaint — #hasCommittedHistory forbids the 2J replay). The
+		// a quarantined logical frame (floor reset by a previous realign that
+		// immediately re-overflowed via downgraded viewport repaints). The
 		// quarantined case must stay realignable or the commit lane would be
-		// permanently dead again (B-verify finding 1): the scroll-out preserves
-		// the visible tail; rows that never materialized during the quarantine
-		// window are the documented history-gap tradeoff.
+		// permanently dead again (B-verify finding 1); rows that never
+		// materialized during a quarantine window are the documented
+		// history-gap tradeoff.
 		if (Math.max(this.#overflowFloor, this.#maxLinesRendered) <= height) return false;
 		// A negative/NaN cluster measurement means the caller could not locate
-		// the composer cluster — scrolling blind would push composer pixels
-		// into history, so refuse.
+		// the composer cluster — a wrong block boundary would hand composer
+		// pixels to the history lane, so refuse.
 		if (!Number.isFinite(liveClusterRows) || liveClusterRows < 0) return false;
-		const scrollRows = height - liveClusterRows;
-		if (scrollRows <= 0) return false;
-		let buffer = "\x1b[?2026h";
-		buffer += `\x1b[${height};1H`;
-		buffer += "\r\n".repeat(scrollRows);
-		buffer += "\x1b[?2026l";
-		if (!this.#writeTerminal(buffer)) return false;
-		// The scrolled-out rows are canonical history now — 3J must never wipe
-		// them, even in sessions that had no insert-history commits yet.
+		const clusterRows = Math.floor(liveClusterRows);
+		if (height - clusterRows <= 0) return false;
+		const raw = this.#previousRawLines;
+		const painted = this.#previousLines;
+		// Both mirrors must describe the painted frame for the row surgery to
+		// be sound; bail to a no-op otherwise (next submit retries).
+		if (painted.length < height || raw.length !== painted.length) return false;
+		// Last visible content row above the cluster — the trailing run of
+		// tombstone/spacing blanks is left as the in-viewport growth gap and
+		// is later painted over by new content (never scrolled to history).
+		const visibleTop = Math.max(0, raw.length - height);
+		let lastContent = raw.length - clusterRows - 1;
+		while (lastContent >= visibleTop && raw[lastContent].trim() === "") lastContent--;
+		const blockRows = Math.max(0, lastContent - visibleTop + 1);
+		// Rewrite the mirrors as the short-frame equivalent of the CURRENT
+		// physical screen: logically blank over block + gap, real cluster
+		// lines at the bottom. The painted mirror must use the PREPARED blank
+		// representation (prepare appends an SGR terminator to every line) or
+		// the next diff sees blank≠blank and 2K-erases the block pixels.
+		const preparedBlank = this.#prepareLinesForTerminal([""], width).lines[0];
+		const mirror = new Array<string>(height).fill(preparedBlank);
+		const rawMirror = new Array<string>(height).fill("");
+		for (let i = 0; i < clusterRows; i++) {
+			const src = painted.length - clusterRows + i;
+			if (src >= 0) {
+				mirror[height - clusterRows + i] = painted[src];
+				rawMirror[height - clusterRows + i] = raw[src];
+			}
+		}
+		this.#previousLines = mirror;
+		this.#previousRawLines = rawMirror;
+		this.#previousWidth = width;
+		this.#previousHeight = height;
+		// The on-screen block (and everything already scrolled above it) is
+		// canonical history now — 3J must never wipe it.
 		this.#hasCommittedHistory = true;
-		this.#committedScreenRows = 0;
+		this.#committedScreenRows = blockRows;
+		this.#committedBottomRow = blockRows;
+		this.#lastFillRows = blockRows;
 		this.#overflowFloor = 0;
-		this.#previousRawLines = [];
 		this.#lastTombstoneRows = 0;
-		this.#maxLinesRendered = 0;
+		this.#maxLinesRendered = height;
 		this.#viewportTopRow = 0;
-		this.#hardwareCursorRow = 0;
-		this.#cursorRow = 0;
-		this.requestRender(true, "realign overflowed frame");
+		this.#hardwareCursorRow = Math.max(0, Math.min(height - 1, this.#hardwareCursorRow - visibleTop));
+		this.#cursorRow = height - 1;
+		this.requestRender(false, "realign overflowed frame");
 		return true;
 	}
 
@@ -1397,15 +1450,40 @@ export class TUI extends Container {
 	#scrollOutCommittedRows(count: number, regionBottom: number): void {
 		if (count <= 0 || regionBottom < 1) return;
 		const height = this.terminal.rows;
+		// DECSTBM requires bottom > top — terminals silently IGNORE a 1-row
+		// region (`CSI 1;1r`), so the \r\n would just move the cursor and the
+		// last committed row would never reach the scrollback (v3 repro: the
+		// final parked-block row was overwritten by the next diff). Widen to
+		// [1..2]: row 1 exits into scrollback, live row 2 shifts up, and the
+		// mirrors are rotated the same way so the following diff still maps
+		// every physical row correctly.
+		const widened = regionBottom === 1;
+		if (widened) count = 1;
+		const bottom = widened ? 2 : regionBottom;
 		let buffer = "\x1b[?2026h";
-		buffer += `\x1b[1;${regionBottom}r`;
-		buffer += `\x1b[${regionBottom};1H`;
+		buffer += `\x1b[1;${bottom}r`;
+		buffer += `\x1b[${bottom};1H`;
 		buffer += "\r\n".repeat(count);
 		buffer += "\x1b[r";
 		const screenCursorRow = Math.max(0, Math.min(height - 1, this.#hardwareCursorRow - this.#viewportTopRow));
 		buffer += `\x1b[${screenCursorRow + 1};1H`;
 		buffer += "\x1b[?2026l";
-		this.#writeTerminal(buffer);
+		if (!this.#writeTerminal(buffer)) return;
+		if (widened) {
+			// Mirror the physical shift of the widened region in the PAINTED
+			// mirror (the one the same-pass diff maps rows against): screen row 2
+			// moved up to row 1, row 2 opened blank. #previousRawLines is left
+			// alone — at the growth call site it already holds the CURRENT
+			// frame's raw lines (overwritten before the scroll-out runs), and the
+			// flush call sites replace both mirrors wholesale right after.
+			// Skipped when no mirror exists (a forced render repaints every row).
+			const vt = Math.max(0, this.#previousLines.length - height);
+			if (this.#previousLines.length > vt + 1) {
+				const width = this.terminal.columns;
+				this.#previousLines[vt] = this.#previousLines[vt + 1];
+				this.#previousLines[vt + 1] = this.#prepareLinesForTerminal([""], width).lines[0];
+			}
+		}
 	}
 
 	/**
@@ -1418,8 +1496,15 @@ export class TUI extends Container {
 	commitLines(lines: string[]): boolean {
 		if (this.#historyLane !== "standard" || this.#stopped || !this.terminalAvailable) return false;
 		if (this.overlayStack.length > 0) return false;
-		const liveZoneTop = this.#lastFillRows;
-		if (liveZoneTop <= 0 || lines.length === 0) return false;
+		// 260703 v3: while a realign-parked block sits at rows 1..bottom, new
+		// commits must insert DIRECTLY below it — inserting at the (taller) raw
+		// fill bottom would fragment the committed region around the
+		// trailing-blank gap and later scroll blanks into the scrollback.
+		const liveZoneTop = this.#committedBottomRow > 0 ? this.#committedBottomRow : this.#lastFillRows;
+		// <= 1 (not 0): DECSTBM ignores a 1-row region, so the insert sequence
+		// would paint the "committed" line INTO the live zone at row 2 instead
+		// of scrolling row 1 out. Fall back to the virtual lane.
+		if (liveZoneTop <= 1 || lines.length === 0) return false;
 		const width = this.terminal.columns;
 		const height = this.terminal.rows;
 		const { lines: prepared, stats } = this.#prepareLinesForTerminal([...lines], width);
@@ -1605,6 +1690,21 @@ export class TUI extends Container {
 		const prevFillRows = this.#lastFillRows;
 		newLines = this.#expandViewportFill(newLines, height);
 
+		// 260703 v3 overlay guard: overlays composite into arbitrary top rows and
+		// the diff then repaints them, destroying parked committed pixels that
+		// never reached the scrollback. Flush the block first — region
+		// `1..flushBottom` is content-only while parked. Must run HERE, before
+		// #restoreOverflowFloor overwrites #previousRawLines, while both mirrors
+		// still declare the block rows logically blank (no rewrite needed).
+		// Parked blocks only (#committedBottomRow > 0): the ordinary commit-lane
+		// state keeps its pre-v3 bytes (B-verify byte-compat finding).
+		if (this.overlayStack.length > 0 && this.#committedBottomRow > 0) {
+			const flushBottom = this.#committedBottomRow;
+			this.#scrollOutCommittedRows(flushBottom, flushBottom);
+			this.#committedScreenRows = 0;
+			this.#committedBottomRow = 0;
+		}
+
 		// 260630 seam fix: while overflowed, absorb net shrinks with in-place
 		// tombstones so no row shifts over pixels already in the scrollback.
 		// Must run before overlay compositing (overlays anchor on the final
@@ -1639,12 +1739,20 @@ export class TUI extends Container {
 		}
 
 		// 083.9 §3b-3: live-zone growth shrinks the fill region. The committed
-		// pixel block sits at the BOTTOM of the old fill — scroll the history
-		// region up by the full shrinkage so the block lands exactly at the new
-		// fill bottom, BEFORE the diff paints content over its old rows.
-		if (this.#committedScreenRows > 0 && this.#lastFillRows < prevFillRows) {
-			this.#scrollOutCommittedRows(prevFillRows - this.#lastFillRows, prevFillRows);
+		// pixel block ends at the history-region bottom (parked: its own bottom
+		// row; otherwise the old fill bottom) — scroll the region up so the
+		// block lands exactly at the new fill bottom, BEFORE the diff paints
+		// content over its old rows. Parked blocks (260703 v3) do NOT move
+		// while the fill is still taller than the block: the growth is absorbed
+		// by painting the trailing-blank gap bottom-up, and only region
+		// `1..#committedBottomRow` (content-only) ever scrolls — the gap blanks
+		// below the block can never enter the scrollback.
+		const historyBottom = this.#committedBottomRow > 0 ? this.#committedBottomRow : prevFillRows;
+		if (this.#committedScreenRows > 0 && this.#lastFillRows < historyBottom) {
+			this.#scrollOutCommittedRows(historyBottom - this.#lastFillRows, historyBottom);
 			this.#committedScreenRows = Math.min(this.#committedScreenRows, this.#lastFillRows);
+			this.#committedBottomRow =
+				this.#committedBottomRow > 0 && this.#committedScreenRows > 0 ? this.#lastFillRows : 0;
 		}
 
 		// Width/height changes need full re-render handling below.
@@ -1665,12 +1773,16 @@ export class TUI extends Container {
 				return;
 			}
 			// 083.9 P2: a clearing render would erase committed pixels that have
-			// not scrolled into the scrollback yet — push the whole history
-			// region out first (the bottom committed row needs regionBottom
-			// scrolls to cross row 1 into the scrollback).
+			// not scrolled into the scrollback yet — push the history region out
+			// first (the bottom committed row needs regionBottom scrolls to
+			// cross row 1 into the scrollback). 260703 v3: a parked block ends
+			// at #committedBottomRow, not the raw fill bottom — flushing
+			// prevFillRows would stamp the trailing-blank gap into history.
 			if (clear && this.#committedScreenRows > 0) {
-				this.#scrollOutCommittedRows(prevFillRows, prevFillRows);
+				const flushBottom = this.#committedBottomRow > 0 ? this.#committedBottomRow : prevFillRows;
+				this.#scrollOutCommittedRows(flushBottom, flushBottom);
 				this.#committedScreenRows = 0;
+				this.#committedBottomRow = 0;
 			}
 			this.#fullRedrawCount += 1;
 			if (renderMetrics.enabled) renderMetrics.recordFullRedraw(reason);
@@ -1711,6 +1823,20 @@ export class TUI extends Container {
 		// leaves scrollback pixels untouched. Originally multiplexer-only; now the
 		// default for every above-viewport change (devlog 083.8 S3).
 		const viewportRepaint = (reason: string): void => {
+			// 260703 v3: the absolute repaint 2K-erases every screen row — parked
+			// committed pixels (logically blank in the frame) would be silently
+			// destroyed while the bookkeeping still claims them, and later
+			// scroll-outs would push the now-blank rows into the scrollback as if
+			// they were content. Flush the block into the real scrollback first;
+			// region `1..flushBottom` is content-only while parked. Parked blocks
+			// only (#committedBottomRow > 0): the ordinary commit-lane state keeps
+			// its pre-v3 bytes (B-verify byte-compat finding).
+			if (this.#committedBottomRow > 0) {
+				const flushBottom = this.#committedBottomRow;
+				this.#scrollOutCommittedRows(flushBottom, flushBottom);
+				this.#committedScreenRows = 0;
+				this.#committedBottomRow = 0;
+			}
 			this.#fullRedrawCount += 1;
 			if (renderMetrics.enabled) renderMetrics.recordFullRedraw(reason);
 			const nextViewportTop = Math.max(0, newLines.length - height);

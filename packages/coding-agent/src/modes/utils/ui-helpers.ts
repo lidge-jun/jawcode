@@ -173,16 +173,23 @@ export function markPreambleCommitted(ctx: InteractiveModeContext): void {
 
 /**
  * 260702 F3 — measure the composer cluster: every component mounted BELOW the
- * live tool container (status/todo/btw containers, breathing-room spacer,
- * status line, hook widgets, editor, composer footer, background panel).
- * Walking the actual TUI child list keeps anonymous members (the Spacer) and
- * future additions counted. Returns -1 when the cluster cannot be located —
- * the realign refuses rather than scrolling composer pixels into history.
+ * chat container (pending-message chips, live tool zone, status/todo/btw
+ * containers, breathing-room spacer, status line, hook widgets, editor,
+ * composer footer, background panel). Walking the actual TUI child list keeps
+ * anonymous members (the Spacer) and future additions counted. Returns -1
+ * when the cluster cannot be located — the realign refuses rather than
+ * scrolling composer pixels into history.
  */
 export function measureComposerClusterRows(ctx: InteractiveModeContext): number {
 	const children = ctx.ui.children;
 	if (!Array.isArray(children)) return -1;
-	const start = children.indexOf(ctx.liveToolContainer as never);
+	// 260703 v3: anchor on the chat container, not the live tool container —
+	// pendingMessagesContainer (queued Steer/Follow-up chips) is mounted
+	// BETWEEN them, and measuring below liveToolContainer classified the chip
+	// pixels as transcript content, so the realign parked stale gray chip text
+	// into the committed block and stamped it into the scrollback. Everything
+	// below the transcript is composer cluster.
+	const start = children.indexOf(ctx.chatContainer as never);
 	if (start === -1) return -1;
 	const width = Math.max(1, ctx.ui.terminal?.columns ?? 80);
 	let rows = 0;

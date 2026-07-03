@@ -11,8 +11,10 @@ import {
 /**
  * 260702 F3 — turn-boundary realign wiring (coding-agent side).
  *
- * measureComposerClusterRows walks the REAL TUI child list below the live
- * tool container so anonymous members (the breathing-room Spacer) stay
+ * measureComposerClusterRows walks the REAL TUI child list below the chat
+ * container (260703 v3: pendingMessagesContainer sits between chat and live
+ * tools and MUST count as cluster, or queued-chip pixels get parked into the
+ * committed block) so anonymous members (the breathing-room Spacer) stay
  * counted; commitFinalizedBacklog's markOnly mode flags cells committed
  * without a second insert-history write (the scroll-out realign already put
  * their as-streamed pixels into the scrollback).
@@ -25,23 +27,46 @@ function fakeComponent(rows: number) {
 	};
 }
 
-describe("measureComposerClusterRows (260702 F3)", () => {
-	it("sums the rendered rows of every component below the live tool container", () => {
-		const liveToolContainer = fakeComponent(0);
+describe("measureComposerClusterRows (260702 F3 / 260703 v3)", () => {
+	it("sums the rendered rows of every component below the chat container", () => {
+		const chatContainer = fakeComponent(40);
 		const ctx = {
 			ui: {
 				terminal: { columns: 80 },
-				children: [fakeComponent(3), fakeComponent(40), liveToolContainer, fakeComponent(1), fakeComponent(2)],
+				children: [fakeComponent(3), chatContainer, fakeComponent(0), fakeComponent(1), fakeComponent(2)],
 			},
-			liveToolContainer,
+			chatContainer,
 		} as unknown as InteractiveModeContext;
 		expect(measureComposerClusterRows(ctx)).toBe(3);
 	});
 
-	it("returns -1 when the live tool container is not mounted on the UI", () => {
+	it("counts queued-message chips between chat and live tools as cluster (260703 v3)", () => {
+		const chatContainer = fakeComponent(40);
+		const pendingChips = fakeComponent(3);
+		const liveToolContainer = fakeComponent(0);
+		const ctx = {
+			ui: {
+				terminal: { columns: 80 },
+				children: [
+					fakeComponent(3),
+					chatContainer,
+					pendingChips,
+					liveToolContainer,
+					fakeComponent(1),
+					fakeComponent(2),
+				],
+			},
+			chatContainer,
+			liveToolContainer,
+		} as unknown as InteractiveModeContext;
+		// Chip rows are cluster, never transcript: 3 (chips) + 1 + 2.
+		expect(measureComposerClusterRows(ctx)).toBe(6);
+	});
+
+	it("returns -1 when the chat container is not mounted on the UI", () => {
 		const ctx = {
 			ui: { terminal: { columns: 80 }, children: [fakeComponent(2)] },
-			liveToolContainer: fakeComponent(0),
+			chatContainer: fakeComponent(0),
 		} as unknown as InteractiveModeContext;
 		expect(measureComposerClusterRows(ctx)).toBe(-1);
 	});
