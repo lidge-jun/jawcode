@@ -32,9 +32,21 @@ This plan is documentation only. It does not implement product code yet.
 - Do not change public workflow count.
 - Do not simplify curated TUI visuals, welcome banner, viewport fill, or tool folding while doing TUI hardening.
 - Do not change provider/model catalog policy from hardening-only work.
-- Do not alter `.jwc/goal` ledger semantics except for the explicit slash input pass-through patch.
+- Do not alter `.jwc/goal` ledger semantics except for the explicit slash input state-replacement patch.
 
 ## Phase map
+## Loop status
+
+| Phase | Description | Status | Cycle ref |
+|---|---|---|---|
+| 80 | `/goal` and `/goalplan` force new goal state | active | `80_plan.md` |
+| 10 | `10.071` search/utils/edit safety | pending | — |
+| 20 | `20.038` hashline/tool/plugin/task safety | pending | — |
+| 30 | `20.037` session async/plan integrity | pending | — |
+| 40 | `10.073` RPC/session/notifications lifecycle | pending | — |
+| 50 | `20.039` TUI terminal/render resilience | pending | — |
+| 60 | `10.072` tmux/cmux hardening subset | pending | — |
+| 70 | `20.040` sandbox/process hardening subset | pending | — |
 
 ### Phase 10 — `10.071` search/utils/edit safety
 
