@@ -803,11 +803,6 @@ export async function generateSummary(
 		basePrompt = `${basePrompt}\n\nAdditional focus: ${customInstructions}`;
 	}
 
-	// Serialize conversation to text so model doesn't try to continue it
-	// Convert to LLM messages first (handles custom app messages when caller provides a transformer).
-	const llmMessages = (options?.convertToLlm ?? convertToLlm)(currentMessages);
-	const conversationText = serializeConversation(llmMessages);
-
 	// Instruction shared by both request shapes: previous-summary block (the
 	// update prompt references the tag explicitly), extra context, base prompt.
 	let trailingPromptText = "";
@@ -817,16 +812,15 @@ export async function generateSummary(
 	trailingPromptText += formatAdditionalContext(options?.extraContext);
 	trailingPromptText += basePrompt;
 
-	// Build the prompt with conversation wrapped in tags
-	const promptText = `<conversation>\n${conversationText}\n</conversation>\n\n${trailingPromptText}`;
-
-	const summarizationMessages = [
-		{
-			role: "user" as const,
-			content: [{ type: "text" as const, text: promptText }],
-			timestamp: Date.now(),
-		},
-	];
+	// Serialize conversation to text so model doesn't try to continue it, and
+	// wrap it in tags. Convert to LLM messages first (handles custom app
+	// messages when caller provides a transformer). Built lazily — the
+	// cache-prefix path replays raw history and never needs this string.
+	const buildSerializedPromptText = () => {
+		const llmMessages = (options?.convertToLlm ?? convertToLlm)(currentMessages);
+		const conversationText = serializeConversation(llmMessages);
+		return `<conversation>\n${conversationText}\n</conversation>\n\n${trailingPromptText}`;
+	};
 
 	if (options?.remoteEndpoint) {
 		emitCompactionProgress(options, {
@@ -841,7 +835,7 @@ export async function generateSummary(
 			options.remoteEndpoint,
 			{
 				systemPrompt: SUMMARIZATION_SYSTEM_PROMPT,
-				prompt: promptText,
+				prompt: buildSerializedPromptText(),
 			},
 			signal,
 		);
@@ -884,7 +878,16 @@ export async function generateSummary(
 				],
 				tools: cachePrefix.tools,
 			}
-		: { systemPrompt: [SUMMARIZATION_SYSTEM_PROMPT], messages: summarizationMessages };
+		: {
+				systemPrompt: [SUMMARIZATION_SYSTEM_PROMPT],
+				messages: [
+					{
+						role: "user" as const,
+						content: [{ type: "text" as const, text: buildSerializedPromptText() }],
+						timestamp: Date.now(),
+					},
+				],
+			};
 	const response = await instrumentedCompleteSimple(
 		model,
 		request,
