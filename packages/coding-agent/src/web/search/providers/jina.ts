@@ -41,7 +41,7 @@ async function callJinaSearch(apiKey: string, query: string, signal?: AbortSigna
 			Accept: "application/json",
 			Authorization: `Bearer ${apiKey}`,
 		},
-		signal: withHardTimeout(signal),
+		signal: withHardTimeout(signal, "api"),
 	});
 
 	if (!response.ok) {

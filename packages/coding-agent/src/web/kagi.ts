@@ -147,7 +147,7 @@ export async function searchWithKagi(
 
 	const response = await fetch(requestUrl, {
 		headers: getAuthHeaders(apiKey),
-		signal: withHardTimeout(options.signal),
+		signal: withHardTimeout(options.signal, "api"),
 	});
 	if (!response.ok) {
 		throw parseKagiErrorResponse(response.status, await response.text());

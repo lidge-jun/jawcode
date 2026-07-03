@@ -214,7 +214,7 @@ async function fetchAndParse(
 			Referer: endpoint === "html" ? HTML_ENDPOINT : LITE_ENDPOINT,
 		},
 		body,
-		signal: withHardTimeout(signal),
+		signal: withHardTimeout(signal, "api"),
 	});
 
 	// DuckDuckGo signals soft blocks with 202 (which is still response.ok).

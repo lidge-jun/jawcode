@@ -144,6 +144,7 @@ export async function globPaths(patterns: string | string[], options: GlobPathsO
 		const gitignorePatterns = await loadGitignorePatterns(cwd ?? getProjectDir());
 		effectiveExclude = [...effectiveExclude, ...gitignorePatterns];
 	}
+	const excludeGlobs = effectiveExclude.map(pattern => new Glob(pattern));
 
 	const base = cwd ?? getProjectDir();
 	const allResults: string[] = [];
@@ -169,19 +170,9 @@ export async function globPaths(patterns: string | string[], options: GlobPathsO
 				throw new DOMException("Aborted", "AbortError");
 			}
 
-			// Check exclusion patterns
 			const normalized = entry.replace(/\\/g, "/");
-			let excluded = false;
-			for (const excludePattern of effectiveExclude) {
-				const excludeGlob = new Glob(excludePattern);
-				if (excludeGlob.match(normalized)) {
-					excluded = true;
-					break;
-				}
-			}
-			if (!excluded) {
-				allResults.push(normalized);
-			}
+			if (excludeGlobs.some(excludeGlob => excludeGlob.match(normalized))) continue;
+			allResults.push(normalized);
 		}
 	}
 

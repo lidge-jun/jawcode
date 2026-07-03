@@ -214,7 +214,7 @@ async function callSearXNGSearch(
 
 	const response = await fetch(url, {
 		headers,
-		signal: withHardTimeout(params.signal),
+		signal: withHardTimeout(params.signal, "api"),
 	});
 
 	if (!response.ok) {

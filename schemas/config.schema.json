@@ -1770,7 +1770,7 @@
 				},
 				"depth": {
 					"type": "string",
-					"description": "fast = 60s sync, deep = 180s async with heavier models",
+					"description": "fast = provider-class sync timeouts, deep = 180s async with heavier models",
 					"default": "fast"
 				},
 				"reasoningEffort": {
@@ -1785,7 +1785,7 @@
 				},
 				"timeout": {
 					"type": "number",
-					"description": "Hard timeout (seconds) for a single web-search round-trip. Clamped 5-600s.",
+					"description": "Optional explicit hard timeout (seconds) overriding provider-class web-search defaults. Clamped 5-600s.",
 					"default": 300
 				}
 			},

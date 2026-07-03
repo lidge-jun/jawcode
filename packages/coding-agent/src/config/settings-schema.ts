@@ -2305,7 +2305,7 @@ export const SETTINGS_SCHEMA = {
 		ui: {
 			tab: "tools",
 			label: "Search Depth",
-			description: "fast = 60s sync, deep = 180s async with heavier models",
+			description: "fast = provider-class sync timeouts, deep = 180s async with heavier models",
 		},
 	},
 	"web_search.reasoningEffort": {
@@ -2335,12 +2335,13 @@ export const SETTINGS_SCHEMA = {
 		ui: {
 			tab: "tools",
 			label: "Search Timeout",
-			description: "Hard timeout (seconds) for a single web-search round-trip. Clamped 5-600s.",
+			description:
+				"Optional explicit hard timeout (seconds) overriding provider-class web-search defaults. Clamped 5-600s.",
 			options: [
 				{ value: "30", label: "30s", description: "Aggressive — fast APIs only" },
 				{ value: "60", label: "60s", description: "Legacy default" },
 				{ value: "120", label: "120s", description: "Tolerant of slower LLM-mediated search" },
-				{ value: "300", label: "300s", description: "Default; slow Responses-API endpoints" },
+				{ value: "300", label: "300s", description: "Slow Responses-API endpoints" },
 				{ value: "600", label: "600s", description: "Maximum" },
 			],
 		},

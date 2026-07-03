@@ -87,7 +87,7 @@ async function callKimiSearch(
 			enable_page_crawling: params.includeContent,
 			timeout_seconds: DEFAULT_TIMEOUT_SECONDS,
 		}),
-		signal: withHardTimeout(params.signal),
+		signal: withHardTimeout(params.signal, 60_000),
 	});
 
 	if (!response.ok) {
