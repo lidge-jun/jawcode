@@ -568,9 +568,9 @@ export class EventController {
 						this.ctx.sessionManager.getCwd(),
 						content.id,
 					);
-					component.setExpanded(this.ctx.toolOutputExpanded);
 					markLiveToggleEligible(component, true);
 					if (this.#commitFoldingEnabled()) {
+						component.setExpanded(this.ctx.toolOutputExpanded);
 						// Provider-streamed tool calls can arrive through message_update before a
 						// tool_execution_start event. Keep them in the same live zone used by
 						// tool_execution_start so active previews do not mutate chat history
@@ -578,9 +578,10 @@ export class EventController {
 						this.#liveToolComponents.add(component);
 						this.ctx.liveToolContainer.addChild(component);
 					} else {
+						// 260703 WP6a-B (gjc parity): verbose renders everything fully
+						// expanded, permanently — no minimize on the next tool.
+						component.setExpanded(true);
 						this.ctx.chatContainer.addChild(new Text("", 0, 0));
-						// 083.1: a new tool starting collapses the previous one to a one-line summary
-						this.ctx.lastToolComponent?.setMinimized?.(true);
 						this.ctx.chatContainer.addChild(component);
 					}
 					this.ctx.lastToolComponent = component;
@@ -710,18 +711,18 @@ export class EventController {
 				this.ctx.sessionManager.getCwd(),
 				event.toolCallId,
 			);
-			component.setExpanded(this.ctx.toolOutputExpanded);
 			markLiveToggleEligible(component, true);
 			if (this.#commitFoldingEnabled()) {
+				component.setExpanded(this.ctx.toolOutputExpanded);
 				// 99.20.04 commit-time folding: the active preview lives in the
 				// live zone only — history stays untouched until completion, so
 				// it grows monotonically (no retroactive shrink).
 				this.#liveToolComponents.add(component);
 				this.ctx.liveToolContainer.addChild(component);
 			} else {
-				// 083.1 (verbose mode): a new tool starting collapses the previous
-				// one to a one-line summary.
-				this.ctx.lastToolComponent?.setMinimized?.(true);
+				// 260703 WP6a-B (gjc parity): verbose renders everything fully
+				// expanded, permanently — no minimize on the next tool.
+				component.setExpanded(true);
 				this.ctx.chatContainer.addChild(component);
 			}
 			this.ctx.lastToolComponent = component;
@@ -1043,7 +1044,7 @@ export class EventController {
 
 	async #handleTtsrTriggered(event: Extract<AgentSessionEvent, { type: "ttsr_triggered" }>): Promise<void> {
 		const component = new TtsrNotificationComponent(event.rules);
-		component.setExpanded(this.ctx.toolOutputExpanded);
+		component.setExpanded(this.#commitFoldingEnabled() ? this.ctx.toolOutputExpanded : true);
 		markLiveToggleEligible(component, true);
 		this.ctx.chatContainer.addChild(component);
 		this.ctx.ui.requestRender();

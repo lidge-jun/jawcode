@@ -18,6 +18,7 @@ import {
 	isLiveToggleEligible,
 	markPreambleCommitted,
 	measureComposerClusterRows,
+	toolRenderModeIsCommit,
 } from "../../modes/utils/ui-helpers";
 import type { AgentSessionEvent } from "../../session/agent-session";
 import { SKILL_PROMPT_MESSAGE_TYPE, type SkillPromptDetails } from "../../session/messages";
@@ -1302,6 +1303,12 @@ export class InputController {
 	}
 
 	toggleToolOutputExpansion(): void {
+		// 260703 WP6a-B: verbose mode renders everything expanded permanently —
+		// the fold toggle belongs to the default (commit) mode only.
+		if (!toolRenderModeIsCommit()) {
+			this.ctx.showStatus("verbose render mode: output is always expanded");
+			return;
+		}
 		// ctrl+o toggles the current live turn only. Historical/rebuilt transcript
 		// components are intentionally ineligible because committed scrollback pixels
 		// cannot be made globally reversible.
@@ -1370,6 +1377,11 @@ export class InputController {
 			return;
 		}
 
+		// 260703 WP6a-B: same gate as ctrl+o — verbose is permanently expanded.
+		if (!toolRenderModeIsCommit()) {
+			this.ctx.showStatus("verbose render mode: thinking is always expanded");
+			return;
+		}
 		// Custom-binding compatibility only: the default ctrl+t mapping opens the
 		// full transcript overlay. Use the same live eligibility boundary as ctrl+o.
 		const expanded = !this.ctx.thinkingExpanded;
