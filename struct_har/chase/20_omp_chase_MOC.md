@@ -1,6 +1,6 @@
 # 20 — omp_chase_MOC (omp 따라잡기)
 
-> 상태: 🟡 운영 중 (2026-07-02 · worktree `5c375b1`)
+> 상태: 🟡 운영 중 (2026-07-03 · worktree `89371141`)
 > **정본 디렉터리**: `struct_har/chase/20_*` · `20.NNN_*`
 > **의미**: `devlog/_omp_chase/oh-my-pi` 대비 jwc **약함(G2)** — 참조·설계 (`20.NNN`). **1:1 이식 ❌**
 
@@ -24,7 +24,7 @@
 
 | omp | jwc |
 |---|---|
-| `0ea6ea630` (`origin/main`, v16.2.9-433-g0ea6ea630) | `5c375b1` (worktree, 2026-07-02) |
+| `d0c1890a6` (`origin/main`, v16.3.4) | `89371141` (worktree, 2026-07-03) |
 
 > GJC head is intentionally not repeated here; see [10_gjc_chase_MOC.md](./10_gjc_chase_MOC.md).
 
@@ -44,6 +44,7 @@
 | OMP 15.12→15.13 | session split, auto-learn, STT/TTS, compaction UI | [20.008](./_fin/20/20.008_omp_chase_pull_15_13_delta.md) |
 | OMP v16.2.5→16.2.9 (175 commits, `ca9f2847e..b6c9747d4`) | 8 reference 클러스터: AI providers/catalog/service-tier, MCP oauth/reauth, compaction/snapcompact/session-scope, TUI loader/MCP-enable, prompts/subagent/discovery, web-search/provider, stats sync/perf, misc(dictation·binary·CJK font·yield·irc·windows) | [20.023](./20.023_omp_chase_ai_providers_catalog_service_tier.md)–[20.030](./20.030_omp_chase_misc_dictation_binary_font_yield_irc_win.md) reference-only (1:1 port ❌) — 미래 설계 입력 |
 | OMP v16.2.9→16.3.1 (433 commits, `b6c9747d4..0ea6ea630`) | 5 reference 클러스터: native/search pipeline, AI thinking/catalog/speech, session/patch/rewind integrity, TUI/collab/browser resilience, tool schema/task/TTS/stats | [20.031](./20.031_omp_chase_native_search_pipeline.md)–[20.034](./20.034_omp_chase_tui_collab_browser_resilience.md) active reference; [20.035](./_fin/20/20.035_omp_chase_tool_schema_task_tts_stats.md) ✅ _fin reference-triage |
+| OMP v16.3.1→16.3.4 (216 commits, `0ea6ea630..d0c1890a6`) | 5 reference clusters: AI catalog/auth/usage, session/async/plan integrity, hashline/tool/plugin/task safety, TUI/terminal/render resilience, robomp/ISO/sandbox/release references | [20.036](./20.036_omp_chase_ai_catalog_auth_usage.md)–[20.040](./20.040_omp_chase_robomp_iso_sandbox_release.md) active reference |
 
 ## 활성 (`20.NNN`)
 
@@ -84,6 +85,11 @@
 | 033 | [20.033_omp_chase_session_patch_rewind_integrity.md](./20.033_omp_chase_session_patch_rewind_integrity.md) | session/patch/rewind integrity | reference | ⬜ |
 | 034 | [20.034_omp_chase_tui_collab_browser_resilience.md](./20.034_omp_chase_tui_collab_browser_resilience.md) | TUI/collab/browser resilience | reference | ⬜ |
 | 035 | [20.035_omp_chase_tool_schema_task_tts_stats.md](./_fin/20/20.035_omp_chase_tool_schema_task_tts_stats.md) | tool schema/task/TTS/stats | reference | ✅ _fin 260702 (public schema reject; task/stats/voice split) |
+| 036 | [20.036_omp_chase_ai_catalog_auth_usage.md](./20.036_omp_chase_ai_catalog_auth_usage.md) | AI catalog/auth/usage | reference | ⬜ |
+| 037 | [20.037_omp_chase_session_async_plan_integrity.md](./20.037_omp_chase_session_async_plan_integrity.md) | session/async/plan integrity | reference | ⬜ |
+| 038 | [20.038_omp_chase_hashline_tool_plugin_task_safety.md](./20.038_omp_chase_hashline_tool_plugin_task_safety.md) | hashline/tool/plugin/task safety | reference | ⬜ |
+| 039 | [20.039_omp_chase_tui_terminal_render_resilience.md](./20.039_omp_chase_tui_terminal_render_resilience.md) | TUI/terminal/render resilience | reference | ⬜ |
+| 040 | [20.040_omp_chase_robomp_iso_sandbox_release.md](./20.040_omp_chase_robomp_iso_sandbox_release.md) | robomp/ISO/sandbox/release references | reference | ⬜ |
 
 ## 완료
 

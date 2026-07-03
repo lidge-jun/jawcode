@@ -1,6 +1,6 @@
 # struct_har INDEX (lexicographic)
 
-> 생성: 2026-03-13 · **chase 갱신: 2026-07-02** · fork `5c375b102a334f29345cf0c9f586098b0d96006a` · gjc `79b42377db34a3b1de847119e99e2b77c797ff8c` · omp `0ea6ea630bf8ff67ffa191d92c1ee04052b30288`
+> 생성: 2026-03-13 · **chase 갱신: 2026-07-03** · fork `89371141df169d667da2c98ab698bfc1186513d7` · gjc `db7938e1f81477cda8823269f0ca392be91f538b` · omp `d0c1890a6c0809507d534840f0e31a6b31a76619`
 
 ## upstream 기준선
 
@@ -8,13 +8,13 @@
 |---|---|
 | 클론 경로 | [`devlog/_gjc_chase/gajae-code/`](../devlog/_gjc_chase/gajae-code/) |
 | 절대경로 | `/Users/jun/Developer/new/700_projects/jawcode/devlog/_gjc_chase/gajae-code/` |
-| HEAD (gjc) | `79b42377db34a3b1de847119e99e2b77c797ff8c` |
+| HEAD (gjc) | `db7938e1f81477cda8823269f0ca392be91f538b` |
 | remote | `upstream` → `https://github.com/Yeachan-Heo/gajae-code` (`dev`) |
 | gjc_origin | 위 클론 = code facts 정본 |
 | jwc_patched | jawcode worktree root |
-| HEAD (jwc) | `5c375b102a334f29345cf0c9f586098b0d96006a` |
+| HEAD (jwc) | `89371141df169d667da2c98ab698bfc1186513d7` |
 | omp 클론 | [`devlog/_omp_chase/oh-my-pi/`](../devlog/_omp_chase/oh-my-pi/) — oh-my-pi |
-| HEAD (omp) | `0ea6ea630bf8ff67ffa191d92c1ee04052b30288` |
+| HEAD (omp) | `d0c1890a6c0809507d534840f0e31a6b31a76619` |
 
 ## gjc_origin
 
@@ -64,7 +64,7 @@
 
 > [chase/README](./chase/README.md) · [10_gjc_chase_MOC](./chase/10_gjc_chase_MOC.md) · [20_omp_chase_MOC](./chase/20_omp_chase_MOC.md) · [_legacy](./chase/_legacy/INDEX.md)
 
-- `10.001`…`10.011` · `10.018`–`10.069` · `20.001`…`20.035` — chase/ 루트 · **MLB**: [002_gap_inventory](./chase/002_gap_inventory.md)
+- `10.001`…`10.011` · `10.018`–`10.073` · `20.001`…`20.040` — chase/ 루트 · **MLB**: [002_gap_inventory](./chase/002_gap_inventory.md)
 - [001_overview](./chase/001_overview.md) · [002](./chase/002_gap_inventory.md) · [007_follow_index](./chase/007_follow_index.md) · [008 명명](./chase/008_gjc_jwc_naming_contract.md) · [003](./chase/003_reference_from_gjc.md) · [004](./chase/004_reference_from_omp.md) · [005](./chase/005_devlog_numbering.md) · [006](./chase/006_jwc_own_backlog.md)
 - bands: [chase/bands/README](./chase/bands/README.md)
 

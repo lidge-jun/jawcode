@@ -4,7 +4,7 @@
 > **pull 델타**: [devlog 01_pull_delta](../../devlog/_fin/260614_chase_upstream_pull_priority_report/01_pull_delta_gjc_omp.md)
 > **명명 (필수)**: [008_gjc_jwc_naming_contract.md](./008_gjc_jwc_naming_contract.md) — `jwc` · **`python/jwc-rpc`** · `.jwc`
 > **RPC 묶음 실현성**: [03_rpc_bundle_feasibility_jwc_rpc](../../devlog/_fin/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md)
-> 업데이트: **2026-07-02** (chase clone pull refresh: GJC `79b42377`, OMP `0ea6ea630`)
+> 업데이트: **2026-07-03** (chase clone pull refresh: GJC `db7938e1`, OMP `d0c1890a6`)
 > **PABCD devlog**: [260614_chase_rpc_harness_bundle](../../devlog/_plan/260614_chase_rpc_harness_bundle/000_moc.md)
 
 ## 2026-06-27 세션 상태 (방향-결정 인터뷰 + 닫기 루프)
@@ -103,6 +103,18 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 | X3 | 066 | [10.066 composer command/model selector UX](./10.066_gjc_chase_composer_command_model_selector_ux.md) | P2 | ⬜ |
 | X4 | 069 | [10.069 provider/search/docs/model support](./_fin/10/10.069_gjc_chase_provider_search_docs_model_support.md) | P2 | ✅ _fin 260702 · already-covered Tavily/Claude retry docs + rejected reverted Aside |
 
+### 10.070-073 v0.7.11 델타 (2026-07-03, `79b42377..db7938e1` 34 commits)
+
+34커밋 = 4 active 카드. 권장 검토순: workflow/state(070) → RPC/session lifecycle(073) → search/utils/edit safety(071) → TUI/tmux UX(072). JWC 코드 무변경 chase-map 갱신만 수행.
+
+| 순 | NNN | 문서 | P | 상태 |
+|---|-----|------|---|------|
+| Y1 | 070 | [10.070 workflow intent/state/artifacts](./10.070_gjc_chase_workflow_intent_state_artifacts.md) | P1 | ⬜ |
+| Y2 | 073 | [10.073 RPC/session/notifications lifecycle](./10.073_gjc_chase_rpc_session_notifications_lifecycle.md) | P1 | ⬜ |
+| Y3 | 071 | [10.071 search/utils/edit safety](./10.071_gjc_chase_search_utils_edit_safety.md) | P2 | ⬜ |
+| Y4 | 072 | [10.072 model selector/tmux/cmux UX](./10.072_gjc_chase_model_selector_tmux_cmux_ux.md) | P2 | ⬜ |
+
+### Legacy RPC / early-priority carried rows
 | 순 | NNN | 문서 | P | 상태 |
 |---|-----|------|---|------|
 | 9 | 011 | [10.011 receipt spool](./_fin/10/10.011_gjc_chase_receipt_spool.md) | P1 | ✅ _fin · receipt spool |
@@ -179,6 +191,18 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 | Z3 | 031 | [20.031 native/search pipeline](./20.031_omp_chase_native_search_pipeline.md) | ref | ⬜ |
 | Z4 | 032 | [20.032 AI thinking/catalog/speech](./20.032_omp_chase_ai_thinking_catalog_speech.md) | ref | ⬜ |
 | Z5 | 034 | [20.034 TUI/collab/browser resilience](./20.034_omp_chase_tui_collab_browser_resilience.md) | ref | ⬜ |
+
+### 20.036-040 v16.3.4 델타 (2026-07-03, `0ea6ea630..d0c1890a6` 216 commits, reference-only)
+
+216커밋 = 5 reference 카드 + version/changelog/style/test/no-card buckets. OMP는 G2 약함 축이라 전부 설계 참조 — JWC 코드 무변경. 권장 검토순: AI/auth risk(036) → session/data safety(037) → tool/hashline/plugin/task safety(038) → TUI/runtime(039) → robomp/release references(040).
+
+| 순 | NNN | 문서 | P | 상태 |
+|---|-----|------|---|------|
+| Q1 | 036 | [20.036 AI catalog/auth/usage](./20.036_omp_chase_ai_catalog_auth_usage.md) | ref | ⬜ |
+| Q2 | 037 | [20.037 session/async/plan integrity](./20.037_omp_chase_session_async_plan_integrity.md) | ref | ⬜ |
+| Q3 | 038 | [20.038 hashline/tool/plugin/task safety](./20.038_omp_chase_hashline_tool_plugin_task_safety.md) | ref | ⬜ |
+| Q4 | 039 | [20.039 TUI/terminal/render resilience](./20.039_omp_chase_tui_terminal_render_resilience.md) | ref | ⬜ |
+| Q5 | 040 | [20.040 robomp/ISO/sandbox/release](./20.040_omp_chase_robomp_iso_sandbox_release.md) | ref | ⬜ |
 
 
 ## 완료 (_fin)

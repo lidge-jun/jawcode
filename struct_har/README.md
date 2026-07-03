@@ -1,6 +1,6 @@
 # struct_har/ — gjc_origin ↔ jwc_patched 계층 대조
 
-> **스냅샷 (2026-07-02)**: chase clone fast-forward refresh. GJC `79b42377`, OMP `0ea6ea630`, JWC worktree `5c375b1` (dirty local edits respected). **99.03** discovery·stage-context ✅ ([structure/50_status.md](../structure/50_status.md)).
+> **스냅샷 (2026-07-03)**: chase clone fast-forward refresh. GJC `db7938e1`, OMP `d0c1890a6`, JWC worktree `89371141` (dirty local edits respected). **99.03** discovery·stage-context ✅ ([structure/50_status.md](../structure/50_status.md)).
 
 > **목적**: 업스트림 gajae-code(`gjc_origin`)과 jawcode 포크(`jwc_patched`)의 **현재 형태**를 devlog MOC 밴드별로 병렬 기록한다.
 > `structure/`가 patched 단일 SoT라면, `struct_har/`는 **양쪽 스냅샷 대조용**이다.
@@ -9,9 +9,9 @@
 
 | 쪽 | 코드 소스 | HEAD (reviewed through) |
 |---|---|---|
-| **gjc_origin** | [`devlog/_gjc_chase/gajae-code/`](../devlog/_gjc_chase/gajae-code/) — Yeachan-Heo/gajae-code upstream `dev` tracking clone (gitignored) | `79b42377db34a3b1de847119e99e2b77c797ff8c` (재생성 시 `git -C devlog/_gjc_chase/gajae-code rev-parse HEAD`) |
-| **jwc_patched** | jawcode worktree (포크 패치 반영; dirty local edits respected) | `5c375b102a334f29345cf0c9f586098b0d96006a` (재생성 시 `git rev-parse HEAD`) |
-| **omp_origin** | [`devlog/_omp_chase/oh-my-pi/`](../devlog/_omp_chase/oh-my-pi/) | `0ea6ea630bf8ff67ffa191d92c1ee04052b30288` (재생성 시 클론 HEAD) |
+| **gjc_origin** | [`devlog/_gjc_chase/gajae-code/`](../devlog/_gjc_chase/gajae-code/) — Yeachan-Heo/gajae-code upstream `dev` tracking clone (gitignored) | `db7938e1f81477cda8823269f0ca392be91f538b` (재생성 시 `git -C devlog/_gjc_chase/gajae-code rev-parse HEAD`) |
+| **jwc_patched** | jawcode worktree (포크 패치 반영; dirty local edits respected) | `89371141df169d667da2c98ab698bfc1186513d7` (재생성 시 `git rev-parse HEAD`) |
+| **omp_origin** | [`devlog/_omp_chase/oh-my-pi/`](../devlog/_omp_chase/oh-my-pi/) | `d0c1890a6c0809507d534840f0e31a6b31a76619` (재생성 시 클론 HEAD) |
 - 업스트림 remote: `https://github.com/Yeachan-Heo/gajae-code`
 - chase reviewed-through 정본: GJC MOC는 GJC+JWC, OMP MOC는 OMP+JWC를 기록하고, 횡단 인벤토리/INDEX/README는 세 축을 모두 기록한다.
 - **gjc_origin 문서의 code facts는 `devlog/_gjc_chase/gajae-code/` 아래 파일을 정본으로 cite** (절대경로 `/Users/jun/Developer/new/700_projects/jawcode/devlog/_gjc_chase/gajae-code/…`).
