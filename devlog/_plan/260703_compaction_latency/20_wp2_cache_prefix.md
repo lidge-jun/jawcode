@@ -114,8 +114,9 @@ cachePrefix?: {
   base prompt, (c) does NOT serialize `<conversation>`, (d) falls back to the serialized path
   on modelKey mismatch, unsupported api, or `remoteEndpoint` set.
 - `packages/coding-agent/test/compaction.test.ts`: `#buildCompactionCachePrefix` gating —
-  reference-equality mismatch → undefined; fallback-model candidate never receives
-  cachePrefix (extend compaction-prefer-current-model.test.ts pattern if cleaner there).
+  boundary mismatch (shifted live array) → undefined; synthesized `custom_message` boundary
+  still matches via role+timestamp; fallback-model candidate never receives cachePrefix
+  (extend compaction-prefer-current-model.test.ts pattern if cleaner there).
 - Existing suites must stay green (telemetry counts unchanged — same oneshot kinds).
 
 ### Verification gate
