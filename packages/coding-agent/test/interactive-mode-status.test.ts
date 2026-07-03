@@ -41,6 +41,7 @@ function createInitialRenderHarness(): { ctx: InteractiveModeContext; helpers: U
 		session: {
 			retryAttempt: 0,
 			getToolByName: () => undefined,
+			buildDisplaySessionContext: () => buildSessionContext([]),
 		},
 		toolOutputExpanded: false,
 		hideThinkingBlock: false,

@@ -95,6 +95,7 @@ function makeCtx(initialQueue: CompactionQueuedMessage[]) {
 		fileSlashCommands: new Set<string>(),
 		locallySubmittedUserSignatures,
 		isKnownSlashCommand,
+		prepareRealUserAgentPromptSubmission: () => {},
 		recordLocalSubmission(text: string, imageCount = 0) {
 			if (isKnownSlashCommand(text)) return () => {};
 			const sig = `${text}\u0000${imageCount}`;
