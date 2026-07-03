@@ -17,12 +17,15 @@ pub struct TtyWinsize {
 }
 
 /// Read the CURRENT terminal size for `fd` directly from the kernel.
+///
 /// Returns `null` when `fd` is not a TTY, the ioctl fails, the reported
 /// size is degenerate (0 rows/cols), or the platform has no `TIOCGWINSZ`.
 #[napi]
 pub fn get_tty_winsize(fd: i32) -> Option<TtyWinsize> {
 	#[cfg(unix)]
 	{
+		// SAFETY: `libc::winsize` is a plain C POD struct; the zero value is a
+		// valid initialized placeholder before `ioctl` fills it.
 		let mut ws: libc::winsize = unsafe { std::mem::zeroed() };
 		// SAFETY: TIOCGWINSZ writes a `winsize` struct through the pointer and
 		// touches nothing else; a failed call leaves the zeroed struct intact.
