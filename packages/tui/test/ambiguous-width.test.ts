@@ -12,6 +12,7 @@ import { VirtualTerminal } from "./virtual-terminal";
  */
 
 const stdoutIsTtyDescriptor = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
+const stdinIsTtyDescriptor = Object.getOwnPropertyDescriptor(process.stdin, "isTTY");
 let previousTerm: string | undefined;
 
 beforeEach(() => {
@@ -21,6 +22,7 @@ beforeEach(() => {
 
 function stubTty(value: boolean): void {
 	Object.defineProperty(process.stdout, "isTTY", { value, configurable: true });
+	Object.defineProperty(process.stdin, "isTTY", { value, configurable: true });
 }
 
 function restoreTty(): void {
@@ -28,6 +30,11 @@ function restoreTty(): void {
 		Object.defineProperty(process.stdout, "isTTY", stdoutIsTtyDescriptor);
 	} else {
 		delete (process.stdout as unknown as Record<string, unknown>).isTTY;
+	}
+	if (stdinIsTtyDescriptor) {
+		Object.defineProperty(process.stdin, "isTTY", stdinIsTtyDescriptor);
+	} else {
+		delete (process.stdin as unknown as Record<string, unknown>).isTTY;
 	}
 }
 

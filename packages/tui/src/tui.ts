@@ -351,6 +351,8 @@ export class TUI extends Container {
 	#ambiguousProbeBuffer = "";
 	#ambiguousProbeTimeout?: NodeJS.Timeout;
 	#ambiguousProbeUnsubscribe?: () => void;
+	/** Post-timeout grace: swallow one late CPR reply, never apply it. */
+	#ambiguousProbeGrace = false;
 	/**
 	 * False only while a CPR probe is outstanding. commitLines() refuses
 	 * while unresolved: a mismeasured PAINT is row-safe (DECAWM off) and
@@ -748,7 +750,9 @@ export class TUI extends Container {
 			setAmbiguousWidthMode("narrow");
 			return;
 		}
-		if (!process.stdout.isTTY) return;
+		// stdin too: without a readable TTY the reply can never arrive — the
+		// probe would only stall the commit gate for the timeout window.
+		if (!process.stdout.isTTY || !process.stdin.isTTY) return;
 		// A terminal too narrow for the probe chars would clip them (DECAWM
 		// off) and report a meaningless column.
 		if (this.terminal.columns < 8) return;
@@ -766,8 +770,25 @@ export class TUI extends Container {
 			return;
 		}
 		this.#ambiguousProbeTimeout = setTimeout(() => {
-			this.#resolveAmbiguousProbe(null);
+			this.#enterAmbiguousProbeGrace();
 		}, 150);
+	}
+
+	/**
+	 * Timeout path: unblock the commit gate immediately (safe-default narrow)
+	 * but keep a short-lived swallower listening — a terminal that answers
+	 * CPR late would otherwise leak `ESC[r;cR` into the editor as keystrokes.
+	 * The late reply is cleanup only: it never changes the width mode
+	 * (re-measuring after content may have rendered/committed is more
+	 * disruptive than a one-cell clip).
+	 */
+	#enterAmbiguousProbeGrace(): void {
+		this.#ambiguousWidthResolved = true;
+		this.#ambiguousProbeGrace = true;
+		if (this.#ambiguousProbeTimeout) clearTimeout(this.#ambiguousProbeTimeout);
+		this.#ambiguousProbeTimeout = setTimeout(() => {
+			this.#clearAmbiguousProbeState();
+		}, 800);
 	}
 
 	#handleAmbiguousProbeInput(data: string): InputListenerResult {
@@ -780,7 +801,12 @@ export class TUI extends Container {
 				this.#ambiguousProbeBuffer.slice(0, match.index) +
 				this.#ambiguousProbeBuffer.slice(match.index + match[0].length);
 			this.#ambiguousProbeBuffer = "";
-			this.#resolveAmbiguousProbe(Number.parseInt(match[2], 10));
+			if (this.#ambiguousProbeGrace) {
+				// Late reply after the timeout window: swallow it, keep narrow.
+				this.#clearAmbiguousProbeState();
+			} else {
+				this.#resolveAmbiguousProbe(Number.parseInt(match[2], 10));
+			}
 			if (passthrough.length === 0) return { consume: true };
 			return { data: passthrough };
 		}
@@ -827,6 +853,7 @@ export class TUI extends Container {
 			this.#ambiguousProbeUnsubscribe = undefined;
 		}
 		this.#ambiguousProbePending = false;
+		this.#ambiguousProbeGrace = false;
 		this.#ambiguousProbeBuffer = "";
 	}
 

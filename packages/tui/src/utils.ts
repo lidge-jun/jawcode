@@ -122,13 +122,15 @@ function normalizeForWidth(str: string): string {
 let ambiguousIsNarrow = true;
 
 export function setAmbiguousWidthMode(mode: "narrow" | "wide"): void {
-	ambiguousIsNarrow = mode === "narrow";
 	try {
+		// Native first, JS only on success — fail CLOSED. A partial version
+		// mismatch (setter missing while older slice/truncate still load)
+		// must never produce JS-wide/native-narrow layout: wide is only ever
+		// entered with both tables switched together.
 		nativeSetAmbiguousWidthWide(mode === "wide");
+		ambiguousIsNarrow = mode === "narrow";
 	} catch {
-		// Native addon unavailable (loader stub throws). Consistency holds:
-		// every native text op throws the same way, so no mixed-width layout
-		// can be produced from this state.
+		ambiguousIsNarrow = true;
 	}
 }
 
