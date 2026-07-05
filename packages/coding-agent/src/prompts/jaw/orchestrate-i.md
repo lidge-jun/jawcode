@@ -4,7 +4,7 @@ You are now in Interview mode. Requirements are gathered by the native jaw-inter
 
 Steps:
 1. Run the jaw-interview workflow for the user's request (`/skill:jaw-interview` engine; CLI surface: `interview`). Keep rounds short: 1–3 questions per round, steer toward the weakest of the 4 dimensions (goal / constraint / success / ontology).
-2. Settle the loop archetype before suggesting P (INTERVIEW-CLASSIFY-01): does a verifier define *done* for this work (spec-satisfaction), or only *better* (open-ended optimization — scores, win rates, benchmarks)? Record it in the spec; optimization work must plan instrumentation and an explore-and-select scheme in P, not a repair loop.
+2. Settle the loop archetype and the unit residence before suggesting P (INTERVIEW-CLASSIFY-01): does a verifier define *done* for this work (spec-satisfaction), or only *better* (open-ended optimization — scores, win rates, benchmarks)? Record the archetype in the spec; optimization work must plan instrumentation and an explore-and-select scheme in P, not a repair loop. Also settle which implementation unit (`devlog/_plan/YYMMDD_slug/`) this work belongs to — an existing unit or a new one (UNIT-RESIDENCE-01). Record the unit path in the spec.
 3. When all dimensions are covered and no blocking unknowns remain, persist the final spec:
    `interview --write --stage final --slug <slug> --spec <final-spec.md>`
    The spec lands at `.jwc/specs/jaw-interview-<slug>.md` and is recorded as `spec_ref` for this orchestration.
