@@ -35,6 +35,7 @@ import {
 	type PabcdAuditVerdict,
 	type PabcdCtx,
 	type PabcdEnvelope,
+	type PabcdRenderGroundingStatus,
 	type PabcdStage,
 	pabcdStatePath,
 	parseCriticVerdict,
@@ -84,11 +85,14 @@ interface ParsedArgs {
 	workerOutput?: string;
 	revisionId?: string;
 	reviewOverrideRef?: string;
+	renderObserved: boolean;
+	renderNotApplicable: boolean;
+	renderPending: boolean;
 	complete: boolean;
 }
 
 function parseArgs(argv: string[]): ParsedArgs | { error: string } {
-	const parsed: ParsedArgs = { positional: [], deliberate: false, json: false, userApproved: false, complete: false };
+	const parsed: ParsedArgs = { positional: [], deliberate: false, json: false, userApproved: false, renderObserved: false, renderNotApplicable: false, renderPending: false, complete: false };
 	for (let i = 0; i < argv.length; i++) {
 		const arg = argv[i];
 		switch (arg) {
@@ -103,6 +107,15 @@ function parseArgs(argv: string[]): ParsedArgs | { error: string } {
 				break;
 			case "--complete":
 				parsed.complete = true;
+				break;
+			case "--render-observed":
+				parsed.renderObserved = true;
+				break;
+			case "--render-not-applicable":
+				parsed.renderNotApplicable = true;
+				break;
+			case "--render-pending":
+				parsed.renderPending = true;
 				break;
 			case "--shared":
 				parsed.shared = true;
@@ -216,6 +229,7 @@ function statusText(envelope: PabcdEnvelope | null, json: boolean): string {
 		`Audit:        ${ctx.audit_status ?? "pending"}${ctx.a_audit_mode ? ` (${ctx.a_audit_mode}${ctx.a_round ? `, round ${ctx.a_round}` : ""}${ctx.a_revision_id ? `, ${ctx.a_revision_id}` : ""})` : ""}`,
 		`Plan review:  ${ctx.p_review_passed ? "okay" : ctx.p_review_override?.synthesis_ref ? "waived" : "pending"}`,
 		`Verification: ${ctx.verification_status ?? "pending"}`,
+		`Render:       ${ctx.render_grounding_status ?? "-"}`,
 		`Approved:     ${ctx.user_approved ? "yes" : "no"}`,
 		`Spec:         ${envelope.spec_ref ?? "-"}`,
 		`Plan:         ${envelope.plan_ref ?? "-"}`,
@@ -275,6 +289,31 @@ function nextCtxFor(target: PabcdStage, current: PabcdCtx, args: ParsedArgs): Pa
 }
 
 async function recordVerdict(cwd: string, args: ParsedArgs): Promise<OrchestrateCommandResult> {
+	// Render-grounding verdict: standalone flags that set render_grounding_status on ctx.
+	// --render-pending is the setter that arms the c→d soft warning: the agent marks
+	// grounding in-scope when starting the loop, then resolves it with --render-observed
+	// (or --render-not-applicable). Without a pending setter the warning is unreachable.
+	if (args.renderObserved || args.renderNotApplicable || args.renderPending) {
+		const picked = [args.renderObserved, args.renderNotApplicable, args.renderPending].filter(Boolean).length;
+		if (picked > 1) {
+			return { stderr: "--render-observed, --render-not-applicable, and --render-pending are mutually exclusive\n", status: 2 };
+		}
+		const current = await readCurrent(cwd, args.sessionId);
+		if ("error" in current) return { stderr: `${current.error}\n`, status: 2 };
+		if (!current.envelope) return { stderr: "no active pabcd state — nothing to record a verdict against\n", status: 1 };
+		if (current.envelope.current_phase !== "c") {
+			return { stderr: `render grounding verdicts apply only in stage c (current: ${current.envelope.current_phase})\n`, status: 1 };
+		}
+		const renderStatus: PabcdRenderGroundingStatus = args.renderObserved
+			? "observed"
+			: args.renderPending
+				? "pending"
+				: "not_applicable";
+		const ctx: PabcdCtx = { ...(current.envelope.ctx ?? {}), render_grounding_status: renderStatus };
+		const written = await persist(cwd, { ...current.envelope, ctx }, args, "verdict", "c", "c");
+		if ("error" in written) return { stderr: `${written.error}\n`, status: 2 };
+		return { stdout: `render_grounding_status=${renderStatus} recorded for stage c\n`, status: 0 };
+	}
 	if (!args.workerOutput) {
 		return { stderr: "orchestrate verdict requires --worker-output <path>\n", status: 2 };
 	}
@@ -473,6 +512,8 @@ export async function runNativeOrchestrateCommand(argv: string[], cwd: string): 
 
 	const transition = canTransitionPabcd(from, target, gateCtx);
 	if (!transition.ok) return { stderr: `${transition.reason}\n`, status: 1 };
+	// Soft warnings: transition ok but with advisory reason (e.g. render grounding pending).
+	const transitionWarning = transition.ok && transition.reason ? transition.reason : null;
 
 	const envelope: PabcdEnvelope = {
 		skill: "pabcd",
@@ -510,12 +551,15 @@ export async function runNativeOrchestrateCommand(argv: string[], cwd: string): 
 	}
 
 	if (parsed.json) {
-		return { stdout: `${JSON.stringify({ ok: true, from, to: target, state_path: written.path })}\n`, status: 0 };
+		const jsonPayload: Record<string, unknown> = { ok: true, from, to: target, state_path: written.path };
+		if (transitionWarning) jsonPayload.warning = transitionWarning;
+		return { stdout: `${JSON.stringify(jsonPayload)}\n`, status: 0 };
 	}
 	const stagePointer = target === "complete" ? null : buildStageSkillPointer(target);
 	const basePrompt = target === "complete" ? "pabcd: orchestration complete — state closed.\n" : STAGE_PROMPTS[target];
 	const prompt = stagePointer ? `${basePrompt}\n\n${stagePointer}` : basePrompt;
-	return { stdout: `✅ pabcd → ${target}\n\n${prompt}`, status: 0 };
+	const warningBanner = transitionWarning ? `⚠️  ${transitionWarning}\n\n` : "";
+	return { stdout: `${warningBanner}✅ pabcd → ${target}\n\n${prompt}`, status: 0 };
 }
 
 /** 99.08-B: append a goal-ledger checkpoint for a pabcd stage transition (no-op without an active goal). */

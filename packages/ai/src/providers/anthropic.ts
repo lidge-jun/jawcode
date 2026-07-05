@@ -1703,6 +1703,11 @@ type CacheControlBlock = {
 	cache_control?: AnthropicCacheControl | null;
 };
 
+type PromptCachingOptions = {
+	maxExplicitBreakpoints?: number;
+	skipLastUser?: boolean;
+};
+
 function applyCacheControlToLastBlock<T extends CacheControlBlock>(
 	blocks: T[],
 	cacheControl: AnthropicCacheControl,
@@ -1726,8 +1731,14 @@ function applyCacheControlToLastTextBlock(
 	applyCacheControlToLastBlock(blocks, cacheControl);
 }
 
-function applyPromptCaching(params: MessageCreateParamsStreaming, cacheControl?: AnthropicCacheControl): void {
+function applyPromptCaching(
+	params: MessageCreateParamsStreaming,
+	cacheControl?: AnthropicCacheControl,
+	options: PromptCachingOptions = {},
+): void {
 	if (!cacheControl) return;
+	const maxExplicitBreakpoints = options.maxExplicitBreakpoints ?? 4;
+	if (maxExplicitBreakpoints <= 0) return;
 
 	// Skip if cache_control breakpoints were already placed externally on messages.
 	for (const message of params.messages) {
@@ -1737,7 +1748,6 @@ function applyPromptCaching(params: MessageCreateParamsStreaming, cacheControl?:
 		}
 	}
 
-	const MAX_CACHE_BREAKPOINTS = 4;
 	let cacheBreakpointsUsed = 0;
 
 	if (params.tools && params.tools.length > 0) {
@@ -1745,14 +1755,14 @@ function applyPromptCaching(params: MessageCreateParamsStreaming, cacheControl?:
 		cacheBreakpointsUsed++;
 	}
 
-	if (cacheBreakpointsUsed >= MAX_CACHE_BREAKPOINTS) return;
+	if (cacheBreakpointsUsed >= maxExplicitBreakpoints) return;
 
 	if (params.system && Array.isArray(params.system) && params.system.length > 0) {
 		applyCacheControlToLastBlock(params.system, cacheControl);
 		cacheBreakpointsUsed++;
 	}
 
-	if (cacheBreakpointsUsed >= MAX_CACHE_BREAKPOINTS) return;
+	if (cacheBreakpointsUsed >= maxExplicitBreakpoints) return;
 
 	const userIndexes = params.messages
 		.map((message, index) => (message.role === "user" ? index : -1))
@@ -1780,7 +1790,7 @@ function applyPromptCaching(params: MessageCreateParamsStreaming, cacheControl?:
 		}
 	}
 
-	if (cacheBreakpointsUsed >= MAX_CACHE_BREAKPOINTS) return;
+	if (cacheBreakpointsUsed >= maxExplicitBreakpoints || options.skipLastUser) return;
 
 	if (userIndexes.length >= 1) {
 		const lastUserIndex = userIndexes[userIndexes.length - 1];
@@ -1930,6 +1940,11 @@ function enforceCacheControlLimit(params: MessageCreateParamsStreaming, maxBreak
 		stripAllCacheControl(toolBlocks, excessCounter);
 	}
 }
+
+type AnthropicParamsWithAutomaticCacheControl = MessageCreateParamsStreaming & {
+	cache_control?: AnthropicCacheControl;
+};
+
 function buildParams(
 	model: Model<"anthropic-messages">,
 	baseUrl: string,
@@ -2062,8 +2077,19 @@ function buildParams(
 	}
 	disableThinkingIfToolChoiceForced(params);
 	ensureMaxTokensForThinking(params, model);
-	applyPromptCaching(params, cacheControl);
-	enforceCacheControlLimit(params, 4);
+	const automaticPromptCaching = cacheControl && isAnthropicApiBaseUrl(baseUrl);
+	if (automaticPromptCaching) {
+		(params as AnthropicParamsWithAutomaticCacheControl).cache_control = cacheControl;
+	}
+	// Native Anthropic top-level cache_control uses one automatic moving breakpoint
+	// for the final block. Reserve one explicit slot so the wire never exceeds the
+	// 4-breakpoint cap while still caching stable tools/system/history prefixes.
+	const maxExplicitBreakpoints = automaticPromptCaching ? 3 : 4;
+	applyPromptCaching(params, cacheControl, {
+		maxExplicitBreakpoints,
+		skipLastUser: Boolean(automaticPromptCaching),
+	});
+	enforceCacheControlLimit(params, maxExplicitBreakpoints);
 	normalizeCacheControlTtlOrdering(params);
 
 	return params;
