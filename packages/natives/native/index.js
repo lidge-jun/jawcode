@@ -75,6 +75,7 @@ export const matchesLegacySequence = nativeBindings.matchesLegacySequence;
 export const parseKey = nativeBindings.parseKey;
 export const parseKittySequence = nativeBindings.parseKittySequence;
 export const readImageFromClipboard = nativeBindings.readImageFromClipboard;
+export const repoMap = nativeBindings.repoMap;
 export const search = nativeBindings.search;
 export const setAmbiguousWidthWide = nativeBindings.setAmbiguousWidthWide;
 export const sliceWithWidth = nativeBindings.sliceWithWidth;

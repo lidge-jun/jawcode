@@ -111,6 +111,20 @@
 | `packages/coding-agent/src/coordinator-mcp/server.ts` | NEW | Hermes/coordinator | N/A | MCP bridge; `7ccea93c` rename |
 | `packages/coding-agent/src/defaults/jwc-defaults.ts` | HARD-EDIT | computer-use | MANUAL-REVIEW | managed MCP에서 `cua-driver` 제거; `context7`만 기본 |
 | `packages/coding-agent/src/tools/index.ts` | HARD-EDIT | computer-use | AUTO | `computer_use` discoverable registry |
+
+### repo-map native port — NEW/HARD-EDIT
+
+| 경로 | 종류 | 밴드 | merge 지침 | 비고 |
+|---|---|---|---|---|
+| `crates/pi-ast/src/tags.rs` | NEW | 260707 repo-map | N/A | tree-sitter tags query extraction + PageRank repo map |
+| `crates/pi-ast/resources/tags/{typescript,javascript,rust,tsx}.scm` | NEW | 260707 repo-map | N/A | Aider-lineage `tags.scm`, Apache-2.0 lineage noted in NOTICE |
+| `packages/coding-agent/src/tools/map.ts` | NEW | 260707 repo-map | N/A | discoverable agent tool wrapping native `repoMap` |
+| `packages/coding-agent/src/commands/map.ts` | NEW | 260707 repo-map | N/A | `jwc map <path> [--budget N]` command |
+| `crates/pi-ast/src/lib.rs` | HARD-EDIT | 260707 repo-map | AUTO | exports `tags` module |
+| `crates/pi-natives/src/ast.rs` | HARD-EDIT | 260707 repo-map | AUTO | napi `repo_map` binding |
+| `packages/coding-agent/src/cli.ts` | HARD-EDIT | 260707 repo-map | MANUAL-REVIEW | jaw-only `map` subcommand |
+| `packages/coding-agent/src/prompts/system/system-prompt.md` | HARD-EDIT | 260707 repo-map | CONFLICT-EXPECTED | `<ast-tools>` map affordance line |
+| `packages/coding-agent/src/defaults/jwc/skills/search/SKILL.md` | HARD-EDIT | 260707 repo-map | CONFLICT-EXPECTED | quick-reference `map` row (skill-layer affordance, pabcd SOT clause 6) |
 ### 포크 전용 디렉터리 (전체 NEW — 엔트리 불요)
 
 `structure/`, `devlog/`, `struct_har/`, `packages/jwc/`, `prompts/jaw/`, `prompts/goals/`(HARD-EDIT 2종 제외).

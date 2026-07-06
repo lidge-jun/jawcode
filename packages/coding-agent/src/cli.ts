@@ -71,6 +71,7 @@ const jawOnlyCommands: CommandEntry[] = [
 	{ name: "planphase", load: () => import("./commands/planphase").then(m => m.default) },
 	{ name: "goal", load: () => import("./commands/goal").then(m => m.default) },
 	{ name: "memory", load: () => import("./commands/memory").then(m => m.default) },
+	{ name: "map", load: () => import("./commands/map").then(m => m.default) },
 	{ name: "chat", load: () => import("./commands/chat").then(m => m.default) },
 ];
 

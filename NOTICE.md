@@ -6,3 +6,8 @@ Jawcode is a fork of [`gajae-code`](https://github.com/Yeachan-Heo/gajae-code), 
 - [`oh-my-pi`](https://github.com/can1357/oh-my-pi) — upstream implementation DNA.
 - [`oh-my-codex`](https://github.com/Yeachan-Heo/oh-my-codex) — Codex-focused orchestration experiments.
 - [`oh-my-claudecode`](https://github.com/Yeachan-Heo/oh-my-claudecode) — Claude Code workflow exploration.
+
+Tree-sitter tags queries under `crates/pi-ast/resources/tags/` are Aider-lineage
+`tags.scm` files vendored from the codexclaw repo-map query set, derived from
+open-source tree-sitter language query sources and used under the Apache License,
+Version 2.0 where applicable.

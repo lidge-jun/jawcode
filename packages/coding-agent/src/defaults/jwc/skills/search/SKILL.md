@@ -13,6 +13,7 @@ Reference this skill when planning web or codebase searches. It covers tool sele
 | I need... | 1st tool | 2nd tool (required) |
 |---|---|---|
 | Exact symbol / function | `grep` / `find` | `search` (BM25) or `read` |
+| Unfamiliar codebase shape | `map` (ranked structure map; run before deep grep, works on subtrees) | `grep` → `read` on surfaced files |
 | External library docs | Context7 MCP | `web_search` |
 | Latest pricing / versions | `web_search` | cross-check with official docs |
 | Deep web interaction (JS/auth) | `browser` tool | `web_search` for corroboration |

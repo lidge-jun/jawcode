@@ -227,9 +227,10 @@ Never perform cross-file symbol renames manually when LSP rename can do it.
 </lsp>
 {{/has}}
 
-{{#ifAny (includes tools "ast_grep") (includes tools "ast_edit")}}
+{{#ifAny (includes tools "ast_grep") (includes tools "ast_edit") (includes tools "map")}}
 <ast-tools>
 Use syntax-aware tools before text hacks:
+{{#has tools "map"}}- `{{toolRefs.map}}` gives a ranked structure map; run it before deep grep in unfamiliar code, and scope it to subtrees when possible.{{/has}}
 {{#has tools "ast_grep"}}- `{{toolRefs.ast_grep}}` for syntax-shaped discovery: calls, imports, declarations, JSX/TS props, control-flow shapes, or repeated API usage.{{/has}}
 {{#has tools "ast_edit"}}- `{{toolRefs.ast_edit}}` for repeated structural rewrites/codemods after the shape is known.{{/has}}
 {{#has tools "lsp"}}- Use `{{toolRefs.lsp}}` for semantic symbol operations (definition/references/rename/code actions); use AST tools for syntax shape.{{/has}}

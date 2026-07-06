@@ -527,6 +527,7 @@ export declare function getSupportedLanguages(): Array<string>
 
 /**
  * Read the CURRENT terminal size for `fd` directly from the kernel.
+ *
  * Returns `null` when `fd` is not a TTY, the ioctl fails, the reported
  * size is degenerate (0 rows/cols), or the platform has no `TIOCGWINSZ`.
  */
@@ -1228,6 +1229,24 @@ export interface PtyStartOptions {
  * Returns an error if clipboard access fails or image encoding fails.
  */
 export declare function readImageFromClipboard(): Promise<ClipboardImage | undefined | null>
+
+/**
+ * Build a ranked tree-sitter tag map for a file or directory; returns a
+ * promise resolved on a worker thread.
+ */
+export declare function repoMap(options: RepoMapOptions): Promise<string>
+
+/** Options for `repoMap`: path scope and approximate token budget. */
+export interface RepoMapOptions {
+  /** Single file or directory to map. */
+  path: string
+  /** Approximate output token budget; defaults to 4096. */
+  budget?: number
+  /** Optional cancellation handle. */
+  signal?: unknown
+  /** Wall-clock timeout for the worker task in milliseconds. */
+  timeoutMs?: number
+}
 
 /**
  * Search content for a pattern (one-shot, compiles pattern each time).
