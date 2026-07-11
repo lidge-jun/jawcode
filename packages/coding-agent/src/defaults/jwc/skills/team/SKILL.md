@@ -118,6 +118,21 @@ Do not start the worker pane until this gate is satisfied; if forced to proceed 
 
 For simple read-only brownfield lookups during intake, follow active session guidance: when `USE_GJC_EXPLORE_CMD` is enabled, prefer `jwc explore` with narrow, concrete prompts; otherwise use the richer normal explore path and fall back normally if `jwc explore` is unavailable.
 
+## Delegation Economy (DISPATCH-ECONOMY-01)
+
+- **DEFAULT:** Decide worker dispatch on three axes:
+  - **Specifiability:** Can the task packet state its inputs, outputs, and decision boundary completely?
+  - **Verifiability:** Can the return be checked mechanically through anchors, figures, or reproduction commands?
+  - **Judgment ownership:** Collapse/crux VERDICTS stay with the team leader; re-derivation, standardized implementation, research, and audits are dispatchable to worker panes or researcher lanes.
+- A slice that fails any axis stays with the leader. Complexity or importance is NOT an axis: a hard derivation that passes all three axes is dispatchable, and a trivial slice whose packet cannot state its decision boundary is not.
+- On the output side, the leader must give every return an accept/reject/merge disposition with a one-line rationale BEFORE dispatching the next wave; wave-granular disposition is allowed.
+- Returns must carry verbatim anchors: file:line quotes, exact figures, and URLs. A paraphrase-only summary creates correlated blind spots between the leader and reviewer.
+- Prefer batch waves followed by a single synthesis over drip-feed worker dispatch.
+- Speculative dispatch of LATER-phase work is default-OFF. The one exception is phase-invariant EXTERNAL research that reads no repo state; quarantine its return as `candidate — unverified` and discard it by default when the plan is amended.
+- Pre-context Intake Gate step 5 is a CURRENT-task intake evidence dispatch and is therefore outside speculative-dispatch scope; the default-OFF clause applies only to dispatching LATER-phase work.
+
+Adopted 2026-07-11 from an adversarial fork-debate + Tier-2 arXiv claim ledger (10 papers, evidence grades recorded; codexclaw devlog 260711_dispatch_economy_docs_site). Adapted port — see pabcd_initiative skills/dev-pabcd §7.1 for the canonical wording.
+
 ## Follow-up Staffing Contract
 
 When `$team` is used as a follow-up mode from the planning stage, carry forward the approved plan's explicit **available-agent-types roster** and convert it into concrete staffing guidance before launch:
