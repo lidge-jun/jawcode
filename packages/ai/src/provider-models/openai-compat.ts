@@ -2250,7 +2250,13 @@ const MODELS_DEV_PROVIDER_DESCRIPTORS_CORE: readonly ModelsDevProviderDescriptor
 		defaultContextWindow: 131072,
 	}),
 	// --- xAI ---
-	openAiCompletionsDescriptor("xai", "xai", "https://api.x.ai/v1"),
+	openAiCompletionsDescriptor("xai", "xai", "https://api.x.ai/v1", {
+		compat: {
+			supportsImageDetailOriginal: false,
+			supportsReasoningSummary: false,
+			includeEncryptedReasoning: false,
+		},
+	}),
 	// --- DeepSeek ---
 	openAiCompletionsDescriptor("deepinfra", "deepinfra", "https://api.deepinfra.com/v1/openai"),
 	openAiCompletionsDescriptor("deepseek", "deepseek", "https://api.deepseek.com", {

@@ -1526,13 +1526,7 @@ export class AuthStorage {
 			case "xai": {
 				await this.remove(provider);
 				const { loginXai } = await import("./utils/oauth/xai");
-				credentials = await loginXai(
-					{
-						...ctrl,
-						onManualCodeInput: ctrl.onManualCodeInput ?? manualCodeInput,
-					},
-					{ importLocal },
-				);
+				credentials = await loginXai(ctrl, { importLocal });
 				break;
 			}
 			case "fireworks": {
