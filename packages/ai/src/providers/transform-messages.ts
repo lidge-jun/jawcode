@@ -17,6 +17,152 @@ const enum ToolCallStatus {
 	Aborted = 2,
 }
 
+const SENSITIVE_TOKEN_RE =
+	/(?<![a-zA-Z0-9_*-])(gh[opusr]_[a-zA-Z0-9_*]{36,}|github_pat_[a-zA-Z0-9_*]{36,}|glpat-[a-zA-Z0-9_*-]{20,}|sk-proj-[a-zA-Z0-9_*-]{36,}|sk-ant-[a-zA-Z0-9_*-]{36,}|sk-[a-zA-Z0-9_*-]{48,})(?![a-zA-Z0-9_*-])/gi;
+
+export interface SensitiveRedactionResult {
+	result: unknown;
+	changed: boolean;
+}
+
+function hasPlausibleCredentialEntropy(token: string): boolean {
+	const lower = token.toLowerCase();
+	const prefixLength = lower.startsWith("github_pat_")
+		? "github_pat_".length
+		: lower.startsWith("glpat-")
+			? "glpat-".length
+			: lower.startsWith("sk-proj-")
+				? "sk-proj-".length
+				: lower.startsWith("sk-ant-")
+					? "sk-ant-".length
+					: lower.startsWith("gh")
+						? 4
+						: 3;
+	const secret = token.slice(prefixLength);
+	if (/^\*+$/.test(secret)) return true;
+	return [/[a-z]/, /[A-Z]/, /\d/, /[_-]/].filter(pattern => pattern.test(secret)).length >= 2;
+}
+
+export function redactSensitiveCredentials(text: string): string {
+	return text.replace(SENSITIVE_TOKEN_RE, match => {
+		if (!hasPlausibleCredentialEntropy(match)) return match;
+		const lower = match.toLowerCase();
+		if (lower.startsWith("gh")) return "[github_token_redacted]";
+		if (lower.startsWith("gl")) return "[gitlab_token_redacted]";
+		if (lower.startsWith("sk-ant-")) return "[anthropic_token_redacted]";
+		if (lower.startsWith("sk")) return "[openai_token_redacted]";
+		return "[token_redacted]";
+	});
+}
+
+export function redactSensitiveInObject(value: unknown): SensitiveRedactionResult {
+	return redactSensitiveInObjectInner(value, new WeakMap<object, SensitiveRedactionResult>());
+}
+
+function redactSensitiveInObjectInner(
+	value: unknown,
+	seen: WeakMap<object, SensitiveRedactionResult>,
+): SensitiveRedactionResult {
+	if (typeof value === "string") {
+		const result = redactSensitiveCredentials(value);
+		return { result, changed: result !== value };
+	}
+	if (value === null || typeof value !== "object") return { result: value, changed: false };
+
+	const cached = seen.get(value);
+	if (cached) return cached;
+
+	if (Array.isArray(value)) {
+		const result: unknown[] = [];
+		const state: SensitiveRedactionResult = { result, changed: false };
+		seen.set(value, state);
+		for (const item of value) {
+			const redacted = redactSensitiveInObjectInner(item, seen);
+			result.push(redacted.result);
+			state.changed ||= redacted.changed;
+		}
+		return state;
+	}
+
+	const prototype = Object.getPrototypeOf(value);
+	if (prototype !== Object.prototype && prototype !== null) return { result: value, changed: false };
+
+	const result: Record<string, unknown> = {};
+	const state: SensitiveRedactionResult = { result, changed: false };
+	seen.set(value, state);
+	for (const [key, item] of Object.entries(value)) {
+		const redacted = redactSensitiveInObjectInner(item, seen);
+		result[key] = redacted.result;
+		state.changed ||= redacted.changed;
+	}
+	return state;
+}
+
+function redactSensitiveCredentialsInMessages(messages: Message[]): Message[] {
+	return messages.map((message): Message => {
+		if (message.role === "user" || message.role === "developer") {
+			const content = message.content;
+			if (typeof content === "string") {
+				const redacted = redactSensitiveCredentials(content);
+				return redacted === content ? message : { ...message, content: redacted };
+			}
+			let changed = false;
+			const redactedContent = content.map(block => {
+				if (block.type !== "text") return block;
+				const text = redactSensitiveCredentials(block.text);
+				if (text === block.text) return block;
+				changed = true;
+				return { ...block, text };
+			});
+			return changed ? { ...message, content: redactedContent } : message;
+		}
+
+		if (message.role === "toolResult") {
+			let changed = false;
+			const content = message.content.map(block => {
+				if (block.type !== "text") return block;
+				const text = redactSensitiveCredentials(block.text);
+				if (text === block.text) return block;
+				changed = true;
+				return { ...block, text };
+			});
+			return changed ? { ...message, content } : message;
+		}
+
+		if (message.role === "assistant") {
+			let changed = false;
+			const content = message.content.map(block => {
+				if (block.type === "text") {
+					const text = redactSensitiveCredentials(block.text);
+					if (text === block.text) return block;
+					changed = true;
+					return { ...block, text };
+				}
+				if (block.type === "thinking") {
+					const thinking = redactSensitiveCredentials(block.thinking);
+					if (thinking === block.thinking) return block;
+					changed = true;
+					return { ...block, thinking, thinkingSignature: undefined };
+				}
+				if (block.type === "toolCall") {
+					const redacted = redactSensitiveInObject(block.arguments);
+					if (!redacted.changed) return block;
+					changed = true;
+					return {
+						...block,
+						arguments: redacted.result as Record<string, unknown>,
+						thoughtSignature: undefined,
+					};
+				}
+				return block;
+			});
+			return changed ? { ...message, content } : message;
+		}
+
+		return message;
+	});
+}
+
 /**
  * Normalize tool call ID for cross-provider compatibility.
  * OpenAI Responses API generates IDs that are 450+ chars with special characters like `|`.
@@ -114,6 +260,10 @@ export function transformMessages<TApi extends Api>(
 	normalizeToolCallId?: (id: string, model: Model<TApi>, source: AssistantMessage) => string,
 	options?: { repairLatestAssistantThinking?: boolean },
 ): Message[] {
+	// Provider request builders share this boundary, so redact before any
+	// provider-specific replay normalization or serialization occurs.
+	messages = redactSensitiveCredentialsInMessages(messages);
+
 	// Drop malformed (empty-name) tool calls and their paired results before any
 	// other transform — replays of these 400 every provider on tool-name
 	// validation and wedge the session in an unrecoverable loop.
