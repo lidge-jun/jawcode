@@ -29,6 +29,7 @@ function ownerState(): TransportOwnerState {
 
 function baseLoop(overrides: Partial<RunDaemonLoopOptions> = {}): RunDaemonLoopOptions {
 	return {
+		ownerId: "owner-A",
 		tick: async () => tickResult(),
 		sleep: async () => {},
 		readControl: async () => null,
@@ -90,6 +91,29 @@ describe("runDaemonLoop", () => {
 			}),
 		);
 		expect(result).toEqual({ ticks: 0, reloads: 1, outcome: "reloaded" });
+	});
+
+	it("does not let a waiting replacement honor the current owner's reload", async () => {
+		let ticks = 0;
+		const result = await runDaemonLoop(
+			baseLoop({
+				ownerId: "owner-B",
+				maxTicks: 1,
+				readControl: async () => ({
+					version: 1,
+					kind: "reload",
+					targetOwnerId: "owner-A",
+					requestedAt: 2_000,
+				}),
+				readOwner: async () => ownerState(),
+				tick: async () => {
+					ticks += 1;
+					return tickResult({ owned: false });
+				},
+			}),
+		);
+		expect(result).toEqual({ ticks: 1, reloads: 0, outcome: "max-ticks" });
+		expect(ticks).toBe(1);
 	});
 
 	it("sleeps for the poll backoff when present", async () => {

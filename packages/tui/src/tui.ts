@@ -10,7 +10,14 @@ import { detectHistoryLaneMode, type HistoryLaneMode } from "./insert-history";
 import { isKeyRelease, matchesKey } from "./keys";
 import { flushPerfEventsSync, isPerfJsonlFlushEnabled, renderMetrics } from "./metrics";
 import type { Terminal } from "./terminal";
-import { ImageProtocol, setCellDimensions, setTerminalImageProtocol, TERMINAL } from "./terminal-capabilities";
+import {
+	ImageProtocol,
+	isImageProtocolForced,
+	isUnderTerminalMultiplexer,
+	setCellDimensions,
+	setTerminalImageProtocol,
+	TERMINAL,
+} from "./terminal-capabilities";
 import {
 	Ellipsis,
 	extractSegments,
@@ -154,8 +161,20 @@ function isTermuxSession(): boolean {
 }
 
 /** Detect terminal multiplexers where scrollback clearing and height-change redraws are hostile. */
-function isMultiplexerSession(): boolean {
-	return Boolean(process.env.TMUX || process.env.STY || process.env.ZELLIJ);
+function isMultiplexerSession(env: NodeJS.ProcessEnv = process.env): boolean {
+	return isUnderTerminalMultiplexer(env);
+}
+
+/** Decide whether runtime sixel probing is safe and authoritative. */
+export function shouldProbeSixelCapability(
+	env: NodeJS.ProcessEnv = process.env,
+	platform: NodeJS.Platform = process.platform,
+): boolean {
+	if (isImageProtocolForced(env)) return false;
+	// tmux/screen advertise compile-time sixel support, not attached-client
+	// support, so their DA1 response is not an end-to-end graphics proof.
+	if (isUnderTerminalMultiplexer(env)) return false;
+	return platform === "win32" && Boolean(env.WT_SESSION?.trim());
 }
 
 function useLegacyMultiplexerFullRender(): boolean {
@@ -627,8 +646,7 @@ export class TUI extends Container {
 
 	#querySixelSupport(): void {
 		if (TERMINAL.imageProtocol) return;
-		if (process.platform !== "win32") return;
-		if (!process.env.WT_SESSION) return;
+		if (!shouldProbeSixelCapability()) return;
 		if (!process.stdin.isTTY || !process.stdout.isTTY) return;
 
 		this.#clearSixelProbeState();
@@ -668,11 +686,13 @@ export class TUI extends Container {
 
 			if (useDa && this.#sixelProbePendingDa) {
 				this.#sixelProbePendingDa = false;
-				const attributes = (match[1] ?? "")
+				const params = (match[1] ?? "")
 					.split(";")
 					.map(value => Number.parseInt(value, 10))
 					.filter(value => Number.isFinite(value));
-				const hasSixelAttribute = attributes.includes(4);
+				// DA1's first parameter is the device class; only later parameters
+				// are extension attributes such as 4 (sixel graphics).
+				const hasSixelAttribute = params.slice(1).includes(4);
 				if (hasSixelAttribute) {
 					this.#sixelProbePendingGraphics = false;
 					probeOutcome = true;
@@ -682,7 +702,8 @@ export class TUI extends Container {
 			} else if (!useDa && this.#sixelProbePendingGraphics) {
 				this.#sixelProbePendingGraphics = false;
 				const status = Number.parseInt(match[1] ?? "", 10);
-				const supportsSixel = !Number.isNaN(status) && status !== 0;
+				// XTSMGRAPHICS Ps=0 is success; 1/2/3 are errors.
+				const supportsSixel = status === 0;
 				if (supportsSixel) {
 					this.#sixelProbePendingDa = false;
 					probeOutcome = true;

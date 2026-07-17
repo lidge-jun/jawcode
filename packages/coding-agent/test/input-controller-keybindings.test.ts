@@ -47,6 +47,7 @@ type FakeEditor = {
 	onSubmit?: (text: string) => void | Promise<void>;
 	setText(text: string): void;
 	getText(): string;
+	getComposerGeneration(): number;
 	insertText(text: string): void;
 	addToHistory(text: string): void;
 	setActionKeys(action: string, keys: string[]): void;
@@ -56,6 +57,7 @@ type FakeEditor = {
 
 async function createContext() {
 	let editorText = "";
+	let composerGeneration = 0;
 	const keyMap: Record<string, string[]> = {
 		"app.model.selectTemporary": ["ctrl+y"],
 		"app.model.select": ["ctrl+l"],
@@ -82,10 +84,14 @@ async function createContext() {
 	const editorContainerAddChild = vi.fn();
 	const editor: FakeEditor = {
 		setText(text: string) {
+			if (text !== editorText) composerGeneration += 1;
 			editorText = text;
 		},
 		getText() {
 			return editorText;
+		},
+		getComposerGeneration() {
+			return composerGeneration;
 		},
 		insertText(text: string) {
 			editorText += text;

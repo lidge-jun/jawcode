@@ -3,7 +3,7 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { notificationDiscoveryPath, readNotificationDiscoveryRecord } from "../src/notifications/discovery";
-import type { NotificationServerFrame } from "../src/notifications/protocol";
+import { ASK_CONTROLS_CAPABILITY, type NotificationServerFrame } from "../src/notifications/protocol";
 import { NotificationLoopbackServer } from "../src/notifications/server";
 
 async function startServer(sessionId: string): Promise<{ server: NotificationLoopbackServer; stateRoot: string }> {
@@ -18,8 +18,11 @@ class Client {
 	readonly #buffered: NotificationServerFrame[] = [];
 	readonly #waiters: ((frame: NotificationServerFrame) => void)[] = [];
 
-	constructor(url: string) {
+	constructor(url: string, capabilities: string[] = [ASK_CONTROLS_CAPABILITY]) {
 		this.ws = new WebSocket(url);
+		this.ws.addEventListener("open", () => {
+			this.send({ type: "hello", version: 1, capabilities });
+		});
 		this.ws.addEventListener("message", (event: MessageEvent) => {
 			const frame = JSON.parse(String(event.data)) as NotificationServerFrame;
 			const waiter = this.#waiters.shift();
@@ -106,6 +109,27 @@ describe("notification loopback server", () => {
 			});
 		} finally {
 			client.close();
+			await server.stop();
+			await fs.rm(stateRoot, { recursive: true, force: true });
+		}
+	});
+
+	it("sends interactive asks only to clients that declare ask controls", async () => {
+		const { server, stateRoot } = await startServer("session-capabilities");
+		const capable = new Client(`${server.url}?token=${server.connectToken}`);
+		const observeOnly = new Client(`${server.url}?token=${server.connectToken}`, []);
+		try {
+			expect(await capable.opened()).toBe(true);
+			expect(await observeOnly.opened()).toBe(true);
+			expect((await capable.next()).type).toBe("hello");
+			expect((await observeOnly.next()).type).toBe("hello");
+
+			server.enqueueAction({ actionId: "a-cap", prompt: "Ship?", options: ["yes"] });
+			expect(await capable.next()).toMatchObject({ type: "action_needed", actionId: "a-cap" });
+			expect(await Promise.race([observeOnly.next(), Bun.sleep(50).then(() => undefined)])).toBeUndefined();
+		} finally {
+			capable.close();
+			observeOnly.close();
 			await server.stop();
 			await fs.rm(stateRoot, { recursive: true, force: true });
 		}

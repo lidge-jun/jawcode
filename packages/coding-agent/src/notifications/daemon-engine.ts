@@ -1,6 +1,8 @@
+import { writeDaemonControl } from "./daemon-control";
 import { type InboundDispatchEffects, type ProcessInboundUpdatesResult, processInboundUpdates } from "./daemon-inbound";
 import { decideOwnerClaim, type OwnerClaimDecision } from "./daemon-owner";
 import { type NotificationEndpointRecord, readNotificationDiscoveryRecord } from "./discovery";
+import { NOTIFICATION_DAEMON_GENERATION } from "./protocol";
 import { getTelegramUpdates, nextBackoffMs } from "./telegram-api";
 import type { ThreadTopicRegistry } from "./threaded-surface";
 import { type ScanTransportSessionsResult, scanTransportSessions } from "./transport-shell";
@@ -59,6 +61,7 @@ export interface RunDaemonTickOptions {
 	// Injectable I/O for tests; default to the real transport/telegram implementations.
 	readOwner?: (agentDir: string) => Promise<TransportOwnerState | null>;
 	writeOwner?: (agentDir: string, owner: TransportOwnerState) => Promise<void>;
+	writeControl?: typeof writeDaemonControl;
 	scan?: (options: { agentDir: string }) => Promise<ScanTransportSessionsResult>;
 	getUpdates?: typeof getTelegramUpdates;
 	fetchImpl?: typeof fetch;
@@ -67,13 +70,14 @@ export interface RunDaemonTickOptions {
 
 /**
  * Run one deterministic iteration of the managed Telegram daemon: claim/keep/defer the single owner
- * slot, refresh the heartbeat, scan discovered sessions, and poll Telegram once (advancing the offset
- * or backing off on a transient error). No OS process spawn and no real timers — the long-lived loop
- * and reload/stop control are a later slice. All I/O is injectable for tests.
+ * slot, request a cooperative reload for an older live generation, refresh the heartbeat, scan
+ * discovered sessions, and poll Telegram once (advancing the offset or backing off on a transient
+ * error). No OS process spawn and no real timers. All I/O is injectable for tests.
  */
 export async function runDaemonTick(options: RunDaemonTickOptions): Promise<DaemonTickResult> {
 	const readOwner = options.readOwner ?? readTransportOwner;
 	const writeOwner = options.writeOwner ?? writeTransportOwner;
+	const writeControl = options.writeControl ?? writeDaemonControl;
 	const scan = options.scan ?? scanTransportSessions;
 	const getUpdates = options.getUpdates ?? getTelegramUpdates;
 	const pollState: DaemonPollState = options.pollState ?? { attempt: 0 };
@@ -93,10 +97,22 @@ export async function runDaemonTick(options: RunDaemonTickOptions): Promise<Daem
 	if (decision.action === "defer") {
 		return { decision, owned: false, scannedSessions: 0, nextPollState: pollState };
 	}
+	if (decision.action === "reload") {
+		if (current) {
+			await writeControl(options.agentDir, {
+				version: 1,
+				kind: "reload",
+				targetOwnerId: current.ownerId,
+				requestedAt: options.now(),
+			});
+		}
+		return { decision, owned: false, scannedSessions: 0, nextPollState: pollState };
+	}
 
 	const startedAt = decision.action === "keep" && current ? current.startedAt : options.now();
 	const owner: TransportOwnerState = {
 		version: 1,
+		generation: NOTIFICATION_DAEMON_GENERATION,
 		ownerId: options.ownerId,
 		pid: options.pid,
 		startedAt,

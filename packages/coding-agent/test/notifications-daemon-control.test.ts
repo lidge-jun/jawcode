@@ -67,6 +67,16 @@ describe("decideDaemonControl", () => {
 			reason: "owner-match",
 		});
 	});
+
+	it("ignores matching control when evaluated by a waiting replacement", () => {
+		expect(
+			decideDaemonControl({
+				current: owner(),
+				request: request({ kind: "reload" }),
+				executingOwnerId: "owner-B",
+			}),
+		).toEqual({ action: "ignore", reason: "owner-mismatch" });
+	});
 });
 
 describe("daemon control file I/O", () => {

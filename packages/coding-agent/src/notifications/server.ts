@@ -8,6 +8,8 @@ import {
 	writeNotificationDiscoveryRecord,
 } from "./discovery";
 import {
+	ASK_CONTROLS_CAPABILITY,
+	isSupportedNotificationProtocolVersion,
 	NOTIFICATION_PROTOCOL_VERSION,
 	type NotificationActionNeededFrame,
 	type NotificationClientFrame,
@@ -29,6 +31,8 @@ export interface NotificationLoopbackServerOptions {
 
 interface NotificationWsData {
 	token: string | undefined;
+	capabilities: string[];
+	negotiated: boolean;
 }
 
 interface DraftMeta {
@@ -213,7 +217,7 @@ export class NotificationLoopbackServer {
 		if (!isNotificationConnectTokenAccepted(this.#connectToken, presentedToken)) {
 			return new Response("unauthorized", { status: 401 });
 		}
-		const upgraded = server.upgrade(req, { data: { token: presentedToken } });
+		const upgraded = server.upgrade(req, { data: { token: presentedToken, capabilities: [], negotiated: false } });
 		if (upgraded) return undefined;
 		return new Response("upgrade required", { status: 400 });
 	}
@@ -243,8 +247,21 @@ export class NotificationLoopbackServer {
 				ws.send(JSON.stringify({ type: "pong", nonce: frame.nonce } satisfies NotificationServerFrame));
 				return;
 			case "hello":
-				return; // client hello: replay already sent on open
+				if (ws.data.negotiated || !isSupportedNotificationProtocolVersion(frame.version)) return;
+				ws.data.capabilities = normalizeClientCapabilities(frame.capabilities);
+				ws.data.negotiated = true;
+				for (const replay of this.#authorizedFrames(ws)) this.#sendTo(ws, replay);
+				return;
 			case "reply": {
+				if (!ws.data.capabilities.includes(ASK_CONTROLS_CAPABILITY)) {
+					this.#sendTo(ws, {
+						type: "reply_rejected",
+						actionId: frame.actionId,
+						reason: "client_capability_required",
+						source: frame.source,
+					});
+					return;
+				}
 				const result = this.#registry.resolveRemote(this.#toRemoteInput(frame, ws.data.token));
 				if (result.type === "action_resolved") {
 					this.#broadcast(result);
@@ -278,7 +295,16 @@ export class NotificationLoopbackServer {
 
 	#broadcast(frame: NotificationServerFrame): void {
 		const payload = JSON.stringify(frame);
-		for (const ws of this.#sockets) this.#sendSafe(ws, payload);
+		for (const ws of this.#sockets) {
+			if (frame.type === "action_needed" && !ws.data.capabilities.includes(ASK_CONTROLS_CAPABILITY)) continue;
+			this.#sendSafe(ws, payload);
+		}
+	}
+
+	#authorizedFrames(ws: ServerWebSocket<NotificationWsData>): NotificationServerFrame[] {
+		const decision = this.#registry.connect(ws.data.token, ws.data.capabilities);
+		if ("rejected" in decision) return [];
+		return decision.frames.filter(frame => frame.type !== "hello");
 	}
 
 	#sendTo(ws: ServerWebSocket<NotificationWsData>, frame: NotificationServerFrame): void {
@@ -292,4 +318,12 @@ export class NotificationLoopbackServer {
 			console.error("[notifications] frame send failed", (error as Error).message);
 		}
 	}
+}
+
+function normalizeClientCapabilities(value: unknown): string[] {
+	if (!Array.isArray(value)) return [];
+	return value
+		.filter((capability): capability is string => typeof capability === "string")
+		.slice(0, 32)
+		.map(capability => capability.slice(0, 64));
 }

@@ -5,6 +5,7 @@ import {
 	writeNotificationDiscoveryRecord,
 } from "./discovery";
 import {
+	ASK_CONTROLS_CAPABILITY,
 	NOTIFICATION_PROTOCOL_VERSION,
 	type NotificationActionNeededFrame,
 	type NotificationActionResolvedFrame,
@@ -79,19 +80,25 @@ export class NotificationSessionRegistry {
 		this.#connectToken = options.connectToken;
 	}
 
-	connect(presentedToken: string | undefined): NotificationConnectDecision {
+	connect(
+		presentedToken: string | undefined,
+		clientCapabilities: readonly string[] = [],
+	): NotificationConnectDecision {
 		if (!isNotificationConnectTokenAccepted(this.#connectToken, presentedToken)) {
 			return { rejected: true, reason: "unauthorized" };
 		}
+		const canHandleAsks = clientCapabilities.includes(ASK_CONTROLS_CAPABILITY);
 		const frames: NotificationServerFrame[] = [
 			{
 				type: "hello",
 				version: NOTIFICATION_PROTOCOL_VERSION,
 				sessionId: this.#sessionId,
 			},
-			...Array.from(this.#actions.values())
-				.filter(action => !action.answeredBy)
-				.map(action => toActionNeededFrame(action)),
+			...(canHandleAsks
+				? Array.from(this.#actions.values())
+						.filter(action => !action.answeredBy)
+						.map(action => toActionNeededFrame(action))
+				: []),
 		];
 		return { sessionId: this.#sessionId, frames };
 	}

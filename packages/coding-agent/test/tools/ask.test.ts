@@ -438,7 +438,7 @@ describe("AskTool custom input", () => {
 			select: async (_prompt, options, dialogOptions) => {
 				// 99.20.01: every single-select ask uses the v2 grammar — numbered
 				// options plus an inline composer slot, no appended Other row.
-				expect(options).toEqual(["1. yes", "2. no"]);
+				expect(options).toEqual(["1. yes", "2. no", "Chat about this"]);
 				expect(dialogOptions?.customInputListSlot).toBe(true);
 				dialogOptions?.listSlotCustomInput?.onSubmit("inline answer");
 				return undefined;
@@ -1134,7 +1134,7 @@ describe("AskTool jaw-interview structured questions (meta contract)", () => {
 		);
 
 		expect(select).toHaveBeenCalledTimes(1);
-		expect(select.mock.calls[0]?.[1]).toEqual(["1. Condition A", "2. Condition B"]);
+		expect(select.mock.calls[0]?.[1]).toEqual(["1. Condition A", "2. Condition B", "Chat about this"]);
 		const prompt = select.mock.calls[0]?.[0] ?? "";
 		expect(prompt).toContain("Jaw Interview · Round 3 · Ambiguity 38%");
 		expect(prompt).toContain("Component: Review UI");
@@ -1174,7 +1174,7 @@ describe("AskTool jaw-interview structured questions (meta contract)", () => {
 		expect(prompt).toContain("Jaw Interview · Round 3 · Ambiguity 38%");
 		expect(prompt).toContain("Target: 성공 기준");
 		expect(prompt).toContain(question);
-		expect(select.mock.calls[0]?.[1]).toEqual(["1. 조건 A", "2. 조건 B"]);
+		expect(select.mock.calls[0]?.[1]).toEqual(["1. 조건 A", "2. 조건 B", "Chat about this"]);
 	});
 
 	it("accepts docked free-text under numbered options (082.3)", async () => {
@@ -1208,7 +1208,7 @@ describe("AskTool jaw-interview structured questions (meta contract)", () => {
 			context,
 		);
 
-		expect(select.mock.calls[0]?.[1]).toEqual(["1. Performance", "2. Security"]);
+		expect(select.mock.calls[0]?.[1]).toEqual(["1. Performance", "2. Security", "Chat about this"]);
 		expect(result.details?.selectedOptions).toEqual([]);
 		expect(result.details?.customInput).toBe("Use my own boundary");
 	});
@@ -1276,11 +1276,11 @@ describe("AskTool jaw-interview structured questions (meta contract)", () => {
 		// No interview header without meta, but the input grammar is unified:
 		// numbered options + inline list slot instead of a legacy Other row.
 		expect(select.mock.calls[0]?.[0]).toBe("Which ordinary option should be selected?");
-		expect(select.mock.calls[0]?.[1]).toEqual(["1. A", "2. B"]);
+		expect(select.mock.calls[0]?.[1]).toEqual(["1. A", "2. B", "Chat about this"]);
 		const dialogOptions = select.mock.calls[0]?.[2];
 		expect(dialogOptions?.customInputListSlot).toBe(true);
-		expect(dialogOptions?.scrollTitleRows).toBeUndefined();
-		expect(dialogOptions?.helpText).not.toContain("scroll question");
+		expect(dialogOptions?.scrollTitleRows).toBe(48);
+		expect(dialogOptions?.helpText).toContain("PgUp/PgDn scroll question");
 	});
 
 	it("recognizes topology questions from meta kind", async () => {
@@ -1352,10 +1352,10 @@ describe("AskTool jaw-interview structured questions (meta contract)", () => {
 
 describe("AskTool remote notification bridge", () => {
 	function fakeNotificationServer() {
-		const enqueued: Array<{ actionId: string; prompt: string }> = [];
+		const enqueued: Array<{ actionId: string; prompt: string; options?: readonly string[] }> = [];
 		let callback: ((actionId: string, value: string) => void) | undefined;
 		const server = {
-			enqueueAction: (draft: { actionId: string; prompt: string }) => {
+			enqueueAction: (draft: { actionId: string; prompt: string; options?: readonly string[] }) => {
 				enqueued.push(draft);
 				return draft;
 			},
@@ -1382,6 +1382,7 @@ describe("AskTool remote notification bridge", () => {
 		);
 		await new Promise(resolve => setTimeout(resolve, 10)); // let enqueue + subscription settle
 		expect(enqueued[0]?.actionId).toBe("call-remote");
+		expect(enqueued[0]?.options).toEqual(["yes", "no", "Chat about this"]);
 		fire("call-remote", "yes");
 		const result = await pending;
 		const text = result.content.map(part => ("text" in part ? part.text : "")).join("");
@@ -1400,5 +1401,45 @@ describe("AskTool remote notification bridge", () => {
 		);
 		const text = result.content.map(part => ("text" in part ? part.text : "")).join("");
 		expect(text).toContain("alpha");
+	});
+
+	it("returns a distinct chat redirect when the remote surface chooses chat", async () => {
+		const { server, fire } = fakeNotificationServer();
+		const tool = new AskTool(
+			createSession({ getNotificationServer: (() => server) as unknown as ToolSession["getNotificationServer"] }),
+		);
+		const context = createContext({ select: () => new Promise<string>(() => {}) });
+		const pending = tool.execute(
+			"call-remote-chat",
+			{ questions: [{ id: "q", question: "Deploy?", options: [{ label: "yes" }, { label: "no" }] }] },
+			undefined,
+			undefined,
+			context,
+		);
+		await Bun.sleep(10);
+		fire("call-remote-chat", "Chat about this");
+
+		const result = await pending;
+		expect(result.details).toEqual({ chatRedirect: { kind: "chat" }, questions: ["Deploy?"] });
+		expect(result.content[0]).toMatchObject({ type: "text", text: expect.stringContaining("chat about this") });
+	});
+});
+
+describe("AskTool chat redirect", () => {
+	it("returns a distinct chat result instead of cancelling the local ask", async () => {
+		const abort = vi.fn();
+		const tool = new AskTool(createSession());
+		const context = createContext({ select: async () => "Chat about this", abort });
+
+		const result = await tool.execute(
+			"call-local-chat",
+			{ questions: [{ id: "q", question: "Review this?", options: [{ label: "yes" }] }] },
+			undefined,
+			undefined,
+			context,
+		);
+
+		expect(abort).not.toHaveBeenCalled();
+		expect(result.details).toEqual({ chatRedirect: { kind: "chat" }, questions: ["Review this?"] });
 	});
 });

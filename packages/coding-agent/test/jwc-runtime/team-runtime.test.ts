@@ -389,11 +389,13 @@ describe("native gjc team runtime", () => {
 		const command = buildWorkerCommand(config, worker, "win32");
 
 		expect(command).toContain("$env:GJC_TEAM_NAME = 'qa''team'");
+		expect(command).toContain("$env:JWC_SPAWNED_BY_SESSION = 'session'");
 		expect(command).toContain("$env:GJC_TEAM_WORKTREE_PATH = 'C:\\Users\\jun\\repo with spaces'");
 		expect(command).toContain(
 			"& 'C:\\Program Files\\nodejs\\node.exe' 'C:\\repo\\packages\\coding-agent\\src\\cli.ts'",
 		);
 		expect(command).toContain("You are worker-1 in gjc team qa''team.");
+		expect(buildWorkerCommand(config, worker, "darwin")).toContain("JWC_SPAWNED_BY_SESSION='session'");
 	});
 
 	it("normalizes worker prompts so psmux send-keys cannot split embedded newlines", () => {

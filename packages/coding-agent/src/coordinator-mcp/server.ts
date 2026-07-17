@@ -634,6 +634,21 @@ async function runCommand(command: string[]): Promise<{ exitCode: number; stdout
 	return { exitCode, stdout, stderr };
 }
 
+const TMUX_OWNER_SOCKET_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/u;
+
+/** Build a tmux argv scoped to the coordinator delegate's dedicated server. */
+export function tmuxCommandForCoordinatorSession(session: Record<string, unknown>, args: string[]): string[] {
+	const socketKey =
+		typeof session.tmux_socket_key === "string"
+			? session.tmux_socket_key
+			: typeof session.tmuxSocketKey === "string"
+				? session.tmuxSocketKey
+				: undefined;
+	if (socketKey === undefined) return ["tmux", ...args];
+	if (!TMUX_OWNER_SOCKET_KEY_PATTERN.test(socketKey)) throw new Error("coordinator_tmux_owner_socket_invalid");
+	return ["tmux", "-L", socketKey, ...args];
+}
+
 type TmuxSessionProbe = { state: "live" | "missing" | "unknown"; detail?: string };
 
 function isDeterministicTmuxMissing(result: { stdout: string; stderr: string }): boolean {
@@ -647,7 +662,7 @@ async function probeTmuxSession(session: Record<string, unknown>): Promise<TmuxS
 	if (typeof tmuxSession !== "string" || tmuxSession.length === 0)
 		return { state: "unknown", detail: "tmux_id_missing" };
 	try {
-		const checked = await runCommand(["tmux", "has-session", "-t", tmuxSession]);
+		const checked = await runCommand(tmuxCommandForCoordinatorSession(session, ["has-session", "-t", tmuxSession]));
 		if (checked.exitCode === 0) return { state: "live" };
 		if (isDeterministicTmuxMissing(checked)) return { state: "missing" };
 		return { state: "unknown", detail: "tmux_probe_failed" };
@@ -663,14 +678,15 @@ async function proveTmuxSessionOwner(session: Record<string, unknown>): Promise<
 	if (typeof tmuxSession !== "string" || !recordedCwd) return false;
 	let listed: { exitCode: number; stdout: string; stderr: string };
 	try {
-		listed = await runCommand([
-			"tmux",
-			"list-panes",
-			"-t",
-			tmuxSession,
-			"-F",
-			"#{session_name}\t#{pane_id}\t#{pane_start_path}",
-		]);
+		listed = await runCommand(
+			tmuxCommandForCoordinatorSession(session, [
+				"list-panes",
+				"-t",
+				tmuxSession,
+				"-F",
+				"#{session_name}\t#{pane_id}\t#{pane_start_path}",
+			]),
+		);
 	} catch {
 		return false;
 	}
@@ -686,8 +702,10 @@ async function proveTmuxSessionOwner(session: Record<string, unknown>): Promise<
 	return false;
 }
 
-async function sendTmuxPromptKeys(target: string, prompt: string): Promise<boolean> {
-	const sent = await runCommand(["tmux", "send-keys", "-t", target, prompt, "C-m", "C-m"]);
+async function sendTmuxPromptKeys(session: Record<string, unknown>, target: string, prompt: string): Promise<boolean> {
+	const sent = await runCommand(
+		tmuxCommandForCoordinatorSession(session, ["send-keys", "-t", target, prompt, "C-m", "C-m"]),
+	);
 	return sent.exitCode === 0;
 }
 
@@ -704,6 +722,7 @@ async function startTmuxSession(
 ): Promise<Record<string, unknown> | null> {
 	if (!config.sessionCommand) return null;
 	const sessionName = `gjc-coordinator-${randomUUID().slice(0, 8)}`;
+	const tmuxSocketKey = `jwc-owner-${randomUUID()}`;
 	const runtimeStateFile = sessionStateFile(namespaceDir, sessionName);
 	const sessionCommand = [
 		"exec env",
@@ -714,28 +733,31 @@ async function startTmuxSession(
 		`${JWC_COORDINATOR_SESSION_ID_ENV}=${shellQuote(sessionName)}`,
 		buildCoordinatorSessionCommand(config.sessionCommand, input.mpreset),
 	].join(" ");
-	const started = await runCommand([
-		"tmux",
-		"new-session",
-		"-d",
-		"-P",
-		"-F",
-		"#{session_name}:#{window_index}.#{pane_index} #{pane_id}",
-		"-s",
-		sessionName,
-		"-c",
-		input.cwd,
-		sessionCommand,
-	]);
+	const ownerScope = { tmuxSocketKey };
+	const started = await runCommand(
+		tmuxCommandForCoordinatorSession(ownerScope, [
+			"new-session",
+			"-d",
+			"-P",
+			"-F",
+			"#{session_name}:#{window_index}.#{pane_index} #{pane_id}",
+			"-s",
+			sessionName,
+			"-c",
+			input.cwd,
+			sessionCommand,
+		]),
+	);
 	if (started.exitCode !== 0) throw new Error(`coordinator_tmux_start_failed:${started.stderr || started.stdout}`);
 	const [tmuxTarget, paneId] = started.stdout.trim().split(/\s+/, 2);
 	const initialPromptTmuxKeysSent = input.prompt
-		? await sendTmuxPromptKeys(tmuxTarget || sessionName, input.prompt)
+		? await sendTmuxPromptKeys(ownerScope, tmuxTarget || sessionName, input.prompt)
 		: false;
 	return {
 		sessionId: sessionName,
 		tmuxSession: sessionName,
 		tmuxTarget: tmuxTarget || sessionName,
+		tmuxSocketKey,
 		paneId,
 		cwd: input.cwd,
 		createdAt: new Date().toISOString(),
@@ -749,7 +771,9 @@ async function startTmuxSession(
 async function captureTmuxTail(session: Record<string, unknown>, lines: number): Promise<string[]> {
 	const target = typeof session.tmux_target === "string" ? session.tmux_target : session.tmuxTarget;
 	if (typeof target !== "string" || target.length === 0) return [];
-	const captured = await runCommand(["tmux", "capture-pane", "-t", target, "-p", "-S", `-${lines}`]);
+	const captured = await runCommand(
+		tmuxCommandForCoordinatorSession(session, ["capture-pane", "-t", target, "-p", "-S", `-${lines}`]),
+	);
 	if (captured.exitCode !== 0) return [];
 	return captured.stdout.split("\n").slice(-lines);
 }
@@ -757,7 +781,7 @@ async function captureTmuxTail(session: Record<string, unknown>, lines: number):
 async function sendTmuxPrompt(session: Record<string, unknown>, prompt: string): Promise<boolean> {
 	const target = typeof session.tmux_target === "string" ? session.tmux_target : session.tmuxTarget;
 	if (typeof target !== "string" || target.length === 0) return false;
-	return await sendTmuxPromptKeys(target, prompt);
+	return await sendTmuxPromptKeys(session, target, prompt);
 }
 
 async function hasTmuxSession(session: Record<string, unknown>): Promise<boolean | null> {
@@ -936,7 +960,9 @@ export function createCoordinatorMcpServer(options: CoordinatorMcpServerOptions 
 				}
 				const tmuxSession =
 					typeof session.tmux_session === "string" ? session.tmux_session : (session.tmuxSession as string);
-				const killed = await runCommand(["tmux", "kill-session", "-t", tmuxSession]);
+				const killed = await runCommand(
+					tmuxCommandForCoordinatorSession(session, ["kill-session", "-t", tmuxSession]),
+				);
 				if (killed.exitCode !== 0) {
 					return { ok: false, reason: "tmux_stop_failed", session_id: sessionId, closed: false };
 				}

@@ -60,6 +60,19 @@ describe("CustomEditor transcript keybinding priority", () => {
 	});
 });
 
+describe("CustomEditor command palette keybinding", () => {
+	it("opens the palette from its configured action key", () => {
+		const editor = createEditor();
+		const onOpenCommandPalette = vi.fn();
+		editor.onOpenCommandPalette = onOpenCommandPalette;
+		editor.setActionKeys("app.commandPalette.open", ["ctrl+y"]);
+
+		editor.handleInput(ctrl("y"));
+
+		expect(onOpenCommandPalette).toHaveBeenCalledTimes(1);
+	});
+});
+
 describe("CustomEditor double-Escape exit safety net", () => {
 	const ESC = "\x1b";
 
@@ -87,6 +100,21 @@ describe("CustomEditor double-Escape exit safety net", () => {
 
 		editor.handleInput(ESC);
 		expect(onExit).toHaveBeenCalledTimes(0);
+	});
+
+	it("leaves double Escape with a draft to the input-loss boundary", () => {
+		const editor = createEditor();
+		const onForcedExit = vi.fn();
+		const onEscape = vi.fn();
+		editor.onForcedExit = onForcedExit;
+		editor.onEscape = onEscape;
+		editor.setText("draft");
+
+		editor.handleInput(ESC);
+		editor.handleInput(ESC);
+
+		expect(onForcedExit).not.toHaveBeenCalled();
+		expect(onEscape).toHaveBeenCalledTimes(2);
 	});
 
 	it("resets the double-Escape tracker when a non-Escape key is pressed in between", () => {

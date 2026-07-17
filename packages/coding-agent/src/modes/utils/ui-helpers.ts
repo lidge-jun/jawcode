@@ -20,7 +20,12 @@ import { SkillMessageComponent } from "../../modes/components/skill-message";
 import { ToolExecutionComponent } from "../../modes/components/tool-execution";
 import { UserMessageComponent } from "../../modes/components/user-message";
 import { theme } from "../../modes/theme/theme";
-import type { CompactionQueuedMessage, InteractiveModeContext } from "../../modes/types";
+import {
+	type CompactionQueuedMessage,
+	type ComposerOwnership,
+	canApplyComposerOwnership,
+	type InteractiveModeContext,
+} from "../../modes/types";
 import {
 	type CustomMessage,
 	isSilentAbort,
@@ -928,10 +933,12 @@ export class UiHelpers {
 		}
 	}
 
-	queueCompactionMessage(text: string, mode: "steer" | "followUp"): void {
+	queueCompactionMessage(text: string, mode: "steer" | "followUp", ownership?: ComposerOwnership): void {
 		this.ctx.compactionQueuedMessages.push({ text, mode } as CompactionQueuedMessage);
-		this.ctx.editor.addToHistory(text);
-		this.ctx.editor.setText("");
+		if (canApplyComposerOwnership(ownership, this.ctx.editor)) {
+			this.ctx.editor.addToHistory(text);
+			this.ctx.editor.setText("");
+		}
 		this.ctx.updatePendingMessagesDisplay();
 		this.ctx.showStatus("Queued message for after compaction");
 	}

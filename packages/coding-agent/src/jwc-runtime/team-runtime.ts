@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import type { Dirent } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { NOTIFICATION_CHILD_SESSION_ENV } from "../notifications/config";
 import type { WorkflowHudSummary } from "../skill-state/active-state";
 import { buildTeamHudSummary as buildWorkflowTeamHudSummary } from "../skill-state/workflow-hud";
 import { WORKFLOW_STATE_VERSION } from "../skill-state/workflow-state-contract";
@@ -1962,6 +1963,7 @@ export function buildWorkerCommand(
 		`GJC_TEAM_STATE_ROOT=${shellQuote(config.state_root)}`,
 		`GJC_TEAM_LEADER_CWD=${shellQuote(config.leader.cwd)}`,
 		`GJC_TEAM_DISPLAY_NAME=${shellQuote(config.display_name)}`,
+		`${NOTIFICATION_CHILD_SESSION_ENV}=${shellQuote(config.leader.session_id.trim() || config.team_name)}`,
 		...(worker.worktree_path ? [`GJC_TEAM_WORKTREE_PATH=${shellQuote(worker.worktree_path)}`] : []),
 	];
 	if (platform === "win32") {
@@ -1974,6 +1976,7 @@ export function buildWorkerCommand(
 			["GJC_TEAM_STATE_ROOT", config.state_root],
 			["GJC_TEAM_LEADER_CWD", config.leader.cwd],
 			["GJC_TEAM_DISPLAY_NAME", config.display_name],
+			[NOTIFICATION_CHILD_SESSION_ENV, config.leader.session_id.trim() || config.team_name],
 			...(worker.worktree_path ? ([["GJC_TEAM_WORKTREE_PATH", worker.worktree_path]] as const) : []),
 		].map(([key, value]) => `$env:${key} = ${powershellQuote(value)}`);
 		return `${envAssignments.join("; ")}; ${buildPowerShellInvocation(config.worker_command, [prompt])}`;

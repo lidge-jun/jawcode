@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { decideOwnerClaim } from "../src/notifications/daemon-owner";
+import { NOTIFICATION_DAEMON_GENERATION } from "../src/notifications/protocol";
 import type { TransportOwnerState } from "../src/notifications/transport-state";
 
 const IDENTITY = { tokenFingerprint: "tok123456789", chatIdFingerprint: "chat12345678" };
@@ -7,6 +8,7 @@ const IDENTITY = { tokenFingerprint: "tok123456789", chatIdFingerprint: "chat123
 function owner(overrides: Partial<TransportOwnerState> = {}): TransportOwnerState {
 	return {
 		version: 1,
+		generation: NOTIFICATION_DAEMON_GENERATION,
 		ownerId: "owner-a",
 		pid: 4242,
 		startedAt: 1_000,
@@ -56,6 +58,27 @@ describe("decideOwnerClaim", () => {
 			pidAlive: aliveAll,
 		});
 		expect(decision).toEqual({ action: "defer", reason: "live-owner" });
+	});
+
+	it("reloads an older live generation and never downgrades a newer owner", () => {
+		expect(
+			decideOwnerClaim({
+				current: owner({ pid: 9999, heartbeatAt: 1_995, generation: undefined }),
+				candidate: { ...IDENTITY, pid: 5 },
+				now: 2_000,
+				heartbeatTtlMs: 20_000,
+				pidAlive: aliveAll,
+			}),
+		).toEqual({ action: "reload", reason: "stale-generation" });
+		expect(
+			decideOwnerClaim({
+				current: owner({ pid: 9999, heartbeatAt: 1_995, generation: NOTIFICATION_DAEMON_GENERATION + 1 }),
+				candidate: { ...IDENTITY, pid: 5 },
+				now: 2_000,
+				heartbeatTtlMs: 20_000,
+				pidAlive: aliveAll,
+			}),
+		).toEqual({ action: "defer", reason: "live-owner" });
 	});
 
 	it("claims when the owner heartbeat is stale", () => {

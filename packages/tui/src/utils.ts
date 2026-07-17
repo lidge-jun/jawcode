@@ -5,6 +5,7 @@ import {
 	setAmbiguousWidthWide as nativeSetAmbiguousWidthWide,
 	sliceWithWidth as nativeSliceWithWidth,
 	truncateToWidth as nativeTruncateToWidth,
+	visibleWidth as nativeVisibleWidth,
 	wrapTextWithAnsi as nativeWrapTextWithAnsi,
 	type SliceResult,
 } from "@jawcode-dev/natives";
@@ -112,6 +113,8 @@ function normalizeForWidth(str: string): string {
 	return normalized === str ? str : normalized;
 }
 
+const HANGUL_TONE_MARK_REGEX = /[\u302e\u302f]/u;
+
 /**
  * East Asian Ambiguous width policy (260703 WP2.5). Terminals resolve EAW-A
  * characters (…, §, ·) by context — 1 cell in non-CJK setups, 2 in
@@ -163,10 +166,15 @@ export function visibleWidthRaw(str: string): number {
 	}
 
 	const normalized = normalizeForWidth(str);
+	const text = tabCount === 0 ? normalized : normalized.replaceAll("\t", " ".repeat(getDefaultTabWidth()));
+	// Bun counts Hangul tone marks as standalone wide glyphs while the native
+	// wrapper correctly keeps them in the preceding Hangul grapheme. Transcript
+	// rebuilds must use the same width decision as wrapping or Korean prose is
+	// padded and reflowed against a different row boundary.
+	if (HANGUL_TONE_MARK_REGEX.test(text)) return nativeVisibleWidth(text, getDefaultTabWidth());
 	const sw =
 		typeof Bun !== "undefined" ? (s: string) => Bun.stringWidth(s, { ambiguousIsNarrow }) : (s: string) => s.length;
-	if (tabCount === 0) return sw(normalized);
-	return sw(normalized.replaceAll("\t", " ".repeat(getDefaultTabWidth())));
+	return sw(text);
 }
 
 /**

@@ -36,7 +36,7 @@ import {
 } from "../jaw-interview/structured-renderer";
 import { gateAnswerToResult, questionToGate } from "../modes/shared/agent-wire/jaw-interview-gate";
 import { getMarkdownTheme, type Theme, theme } from "../modes/theme/theme";
-import { bridgeAsk } from "../notifications/ask-bridge";
+import { type AskChatRedirectResult, bridgeAsk, isAskChatRedirectResult } from "../notifications/ask-bridge";
 import askDescription from "../prompts/tools/ask.md" with { type: "text" };
 import { renderStatusLine } from "../tui";
 import type { ToolSession } from ".";
@@ -108,6 +108,10 @@ export interface AskToolDetails {
 	customInput?: string;
 	/** Multi-part question mode */
 	results?: QuestionResult[];
+	/** The user chose to continue the question in chat instead of answering here. */
+	chatRedirect?: AskChatRedirectResult;
+	/** Questions surfaced when `chatRedirect` is present. */
+	questions?: string[];
 }
 
 // =============================================================================
@@ -115,9 +119,10 @@ export interface AskToolDetails {
 // =============================================================================
 
 const OTHER_OPTION = "Other (type your own)";
+const CHAT_REDIRECT_OPTION = "Chat about this";
 const RECOMMENDED_SUFFIX = " (Recommended)";
-/** Upper bound for interview ask title viewport; actual rows come from terminal budget in ExtensionUiController. */
-const JAW_INTERVIEW_SELECTOR_SCROLL_TITLE_ROWS = 48;
+/** Upper bound for ask title viewport; the UI controller clamps this to the live terminal budget. */
+const ASK_SELECTOR_SCROLL_TITLE_ROWS = 48;
 
 function getDoneOptionLabel(): string {
 	return `${theme.status.success} Done selecting`;
@@ -170,6 +175,7 @@ interface SelectionResult {
 	timedOut: boolean;
 	navigation?: "back" | "forward";
 	cancelled?: boolean;
+	chatRedirect?: AskChatRedirectResult;
 }
 
 interface NavigationControls {
@@ -273,7 +279,7 @@ async function askSingleQuestion(
 				? {
 						customInputListSlot: true,
 						listSlotCustomInput: {
-							label: `${optionLabels.length + 1}. Type your own`,
+							label: `${optionsToShow.length + 1}. Type your own`,
 							onSubmit: (text: string) => {
 								inlineInput = text;
 							},
@@ -338,6 +344,7 @@ async function askSingleQuestion(
 				opts.push(doneLabel);
 			}
 			opts.push(otherOptionLabel);
+			opts.push(CHAT_REDIRECT_OPTION);
 
 			const prefix = selected.size > 0 ? `(${selected.size} selected) ` : "";
 			const {
@@ -358,6 +365,9 @@ async function askSingleQuestion(
 				return { selectedOptions: Array.from(selected), customInput, timedOut, cancelled: true };
 			}
 			if (choice === doneLabel) break;
+			if (choice === CHAT_REDIRECT_OPTION) {
+				return { selectedOptions: Array.from(selected), customInput, timedOut, chatRedirect: { kind: "chat" } };
+			}
 
 			if (choice === otherOptionLabel) {
 				if (selectTimedOut) {
@@ -401,7 +411,9 @@ async function askSingleQuestion(
 		selectedOptions = Array.from(selected);
 	} else {
 		const displayLabels = addRecommendedSuffix(optionLabels, recommended);
-		const optionsWithNavigation = options.useDockedCustomInput ? displayLabels : [...displayLabels, otherOptionLabel];
+		const optionsWithNavigation = options.useDockedCustomInput
+			? [...displayLabels, CHAT_REDIRECT_OPTION]
+			: [...displayLabels, otherOptionLabel, CHAT_REDIRECT_OPTION];
 
 		let initialIndex = recommended;
 		const previouslySelected = selectedOptions[0];
@@ -409,7 +421,7 @@ async function askSingleQuestion(
 			const selectedIndex = optionLabels.indexOf(previouslySelected);
 			if (selectedIndex >= 0) initialIndex = selectedIndex;
 		} else if (customInput !== undefined) {
-			initialIndex = displayLabels.length;
+			initialIndex = optionsWithNavigation.length;
 		}
 		if (initialIndex !== undefined) {
 			// With the v2 list slot the input row sits at index options.length, so a
@@ -430,6 +442,9 @@ async function askSingleQuestion(
 
 		if (arrowNavigation) {
 			return { selectedOptions, customInput, timedOut, navigation: arrowNavigation };
+		}
+		if (choice === CHAT_REDIRECT_OPTION) {
+			return { selectedOptions, customInput, timedOut, chatRedirect: { kind: "chat" } };
 		}
 		if (choice === undefined) {
 			if (!timedOut) {
@@ -612,15 +627,17 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
 					navigation,
 					cancelled,
 					timedOut,
+					chatRedirect,
 				} = await askSingleQuestion(ui, displayQuestion, optionLabels, q.multi ?? false, {
 					recommended: q.recommended,
 					timeout: timeout ?? undefined,
 					signal: options?.signalOverride ?? signal,
 					initialSelection,
 					navigation: options?.navigation,
-					scrollTitleRows: jawInterviewPrompt === null ? undefined : JAW_INTERVIEW_SELECTOR_SCROLL_TITLE_ROWS,
+					scrollTitleRows: ASK_SELECTOR_SCROLL_TITLE_ROWS,
 					useDockedCustomInput: shouldNumberOptions ? true : undefined,
 				});
+				if (chatRedirect) return chatRedirect;
 				const selectedOptions = shouldNumberOptions
 					? displaySelectedOptions.map(selected => {
 							const displayIndex = optionLabels.indexOf(selected);
@@ -648,21 +665,35 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
 				answer = await bridgeAsk(notificationServer, {
 					actionId: toolCallId,
 					prompt: q.question,
-					options: rawOptionLabels,
+					options: [...rawOptionLabels, CHAT_REDIRECT_OPTION],
 					allowFreeText: true,
 					local: askQuestion(q, { signalOverride: composedSignal }),
 					dismiss,
-					onRemote: value => ({
-						optionLabels: rawOptionLabels,
-						selectedOptions: rawOptionLabels.includes(value) ? [value] : [],
-						customInput: rawOptionLabels.includes(value) ? undefined : value,
-						navigation: undefined as NavigationControls | undefined,
-						cancelled: false,
-						timedOut: false,
-					}),
+					onRemote: value =>
+						value === CHAT_REDIRECT_OPTION
+							? { kind: "chat" as const }
+							: {
+									optionLabels: rawOptionLabels,
+									selectedOptions: rawOptionLabels.includes(value) ? [value] : [],
+									customInput: rawOptionLabels.includes(value) ? undefined : value,
+									navigation: undefined as NavigationControls | undefined,
+									cancelled: false,
+									timedOut: false,
+								},
 				});
 			} else {
 				answer = await askQuestion(q);
+			}
+			if (isAskChatRedirectResult(answer)) {
+				return {
+					content: [
+						{
+							type: "text" as const,
+							text: `User chose to chat about this instead of answering.\n\nQuestions asked:\n${q.question}`,
+						},
+					],
+					details: { chatRedirect: answer, questions: [q.question] },
+				};
 			}
 			const { optionLabels, selectedOptions, customInput, cancelled, timedOut } = answer;
 
@@ -709,14 +740,20 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
 				allowForward: true,
 				progressText: `${questionIndex + 1}/${params.questions.length}`,
 			};
-			const {
-				optionLabels,
-				selectedOptions,
-				customInput,
-				navigation: navAction,
-				cancelled,
-				timedOut,
-			} = await askQuestion(q, { previous, navigation });
+			const answer = await askQuestion(q, { previous, navigation });
+			if (isAskChatRedirectResult(answer)) {
+				const questions = params.questions.map(question => question.question);
+				return {
+					content: [
+						{
+							type: "text" as const,
+							text: `User chose to chat about this instead of answering.\n\nQuestions asked:\n${questions.join("\n")}`,
+						},
+					],
+					details: { chatRedirect: answer, questions },
+				};
+			}
+			const { optionLabels, selectedOptions, customInput, navigation: navAction, cancelled, timedOut } = answer;
 
 			if (cancelled && !timedOut) {
 				context?.abort();

@@ -7,6 +7,7 @@ import {
 	readNotificationDiscoveryRecord,
 	writeNotificationDiscoveryRecord,
 } from "../src/notifications/discovery";
+import { ASK_CONTROLS_CAPABILITY } from "../src/notifications/protocol";
 import {
 	markStaleNotificationDiscoveryRecord,
 	type NotificationConnectSnapshot,
@@ -54,7 +55,7 @@ describe("notification session registry", () => {
 		const session = registry();
 		session.enqueueAction({ actionId: "action-1", prompt: "Deploy?", options: ["Deploy", "Skip"] });
 
-		const snapshot = expectSnapshot(session.connect("connect-token"));
+		const snapshot = expectSnapshot(session.connect("connect-token", [ASK_CONTROLS_CAPABILITY]));
 
 		expect(snapshot).toEqual({
 			sessionId: "session-1",
@@ -64,6 +65,16 @@ describe("notification session registry", () => {
 			],
 		});
 		expect(JSON.stringify(snapshot)).not.toContain("connect-token");
+	});
+
+	it("withholds unresolved asks from clients without ask controls", () => {
+		const session = registry();
+		session.enqueueAction({ actionId: "action-1", prompt: "Deploy?", options: ["Deploy", "Skip"] });
+
+		expect(expectSnapshot(session.connect("connect-token"))).toEqual({
+			sessionId: "session-1",
+			frames: [{ type: "hello", version: 1, sessionId: "session-1" }],
+		});
 	});
 
 	it("maps remote accepted, idempotent replay, and local-won races to wire frames", () => {

@@ -54,6 +54,7 @@ function writeSkillFile(dir: string, skillName: string, body: string): string {
 type StubEditor = {
 	setText: (text: string) => void;
 	getText: () => string;
+	getComposerGeneration: () => number;
 	addToHistory: ReturnType<typeof vi.fn>;
 	onSubmit?: (text: string) => Promise<void>;
 };
@@ -64,12 +65,17 @@ function createStubInputControllerContext(opts: {
 	busyPromptMode?: "steer" | "queue";
 }) {
 	let editorText = "";
+	let composerGeneration = 0;
 	const editor: StubEditor = {
 		setText(text) {
+			if (text !== editorText) composerGeneration += 1;
 			editorText = text;
 		},
 		getText() {
 			return editorText;
+		},
+		getComposerGeneration() {
+			return composerGeneration;
 		},
 		addToHistory: vi.fn(),
 	};
@@ -505,12 +511,17 @@ describe("AgentSession custom-role tag dequeue (E4-E7)", () => {
 
 function createStubInteractiveModeContextForUiHelpers(session: AgentSession) {
 	let editorText = "";
+	let composerGeneration = 0;
 	const editor: StubEditor = {
 		setText(text) {
+			if (text !== editorText) composerGeneration += 1;
 			editorText = text;
 		},
 		getText() {
 			return editorText;
+		},
+		getComposerGeneration() {
+			return composerGeneration;
 		},
 		addToHistory: vi.fn(),
 	};
