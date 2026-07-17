@@ -169,9 +169,9 @@ describe("runJwcGcCommand arg parsing + branding", () => {
 	});
 });
 
-describe("defaultGcAdapters wires only file_locks this phase", () => {
-	test("returns exactly the file_locks adapter", () => {
+describe("defaultGcAdapters", () => {
+	test("wires the safe harness, team, file-lock, and registry stores", () => {
 		const adapters = defaultGcAdapters();
-		expect(adapters.map(a => a.store)).toEqual(["file_locks"]);
+		expect(adapters.map(a => a.store)).toEqual(["harness_leases", "team_workers", "file_locks", "registry_entries"]);
 	});
 });

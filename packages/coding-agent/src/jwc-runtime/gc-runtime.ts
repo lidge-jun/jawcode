@@ -12,18 +12,20 @@
  *   error all mean KEEP — a live process is never signalled or killed.
  * - Dry-run by default: nothing is deleted unless `--prune`/`--force`.
  *
- * Phase 1 wires ONLY the file_locks store; team/tmux/harness/registry stores
- * stay in the forward-compat `GcStore` union but are not yet active.
+ * Harness leases, team workers, file locks, and registry entries are wired.
+ * Tmux sessions stay inactive until JWC can prove terminal owner identity.
  */
 
 import { fileLocksGcAdapter } from "../config/file-lock-gc";
+import { harnessLeasesGcAdapter, registryEntriesGcAdapter } from "../harness-control-plane/gc-adapter";
 import { buildGcReportText } from "./gc-render";
+import { teamWorkersGcAdapter } from "./team-gc";
 
 /** Forward-compat union of all stores GC may eventually own. */
 export type GcStore = "harness_leases" | "team_workers" | "file_locks" | "tmux_sessions" | "registry_entries";
 
 /** Stores wired this phase. The runtime-mapped key type derives from this. */
-export const GC_STORES = ["file_locks"] as const;
+export const GC_STORES = ["harness_leases", "team_workers", "file_locks", "registry_entries"] as const;
 
 /** Runtime-mapped store key — the subset of `GcStore` actually wired now. */
 export type ActiveGcStore = (typeof GC_STORES)[number];
@@ -154,6 +156,15 @@ export const gcPidProbe: GcPidProbe = (pid: number): GcPidProbeResult => {
 		return { status: "keep", reason: "unknown", error: code ?? String(error) };
 	}
 };
+
+/** Map the shared fail-closed probe to the harness lease classifier shape. */
+export function gcProbeToLeasePidStatus(probe: GcPidProbe): (pid: number) => "alive" | "dead" | "eperm" {
+	return (pid: number) => {
+		const result = probe(pid);
+		if (result.status === "dead") return "dead";
+		return result.reason === "eperm" ? "eperm" : "alive";
+	};
+}
 
 /** Translate a probe result into a record-friendly pid status label. */
 export function gcPidStatusLabel(result: GcPidProbeResult): Exclude<GcPidStatus, "none"> {
@@ -379,10 +390,9 @@ export function gcHelpText(): string {
 }
 
 /**
- * Assemble the wired store adapters. Phase 1 wires ONLY the file_locks store
- * via a top-level static import (team/tmux/harness/registry adapters are
- * deferred and intentionally NOT imported — no inline `await import`).
+ * Assemble store-owned adapters through top-level static imports. Tmux GC is
+ * intentionally excluded until terminal owner identity can be revalidated.
  */
 export function defaultGcAdapters(): GcStoreAdapter[] {
-	return [fileLocksGcAdapter];
+	return [harnessLeasesGcAdapter, teamWorkersGcAdapter, fileLocksGcAdapter, registryEntriesGcAdapter];
 }
