@@ -45,6 +45,22 @@ function stateForEvent(event: RuntimeStateEvent): RuntimeState | null {
 	return null;
 }
 
+function assistantText(assistant: AssistantMessage | undefined): string | null {
+	if (!assistant) return null;
+	const text = assistant.content
+		.filter(part => part.type === "text")
+		.map(part => part.text)
+		.join("\n")
+		.trim();
+	return text || null;
+}
+
+function reasonForEvent(event: RuntimeStateEvent, state: RuntimeState): string | null {
+	if (state !== "errored") return null;
+	const assistant = lastAssistant(event.messages);
+	return assistant?.errorMessage?.trim() || "agent_error";
+}
+
 export async function persistCoordinatorRuntimeStateFromEvent(
 	event: RuntimeStateEvent,
 	context: RuntimeStateContext,
@@ -74,11 +90,22 @@ export async function persistCoordinatorRuntimeStateFromEvent(
 		current_turn_id: typeof previous.current_turn_id === "string" ? previous.current_turn_id : null,
 		last_turn_id: typeof previous.last_turn_id === "string" ? previous.last_turn_id : null,
 		live: typeof previous.live === "boolean" ? previous.live : null,
-		reason: null,
+		reason: reasonForEvent(event, state),
 		source: "agent_session_event",
 		event: event.type,
 		cwd: context.cwd,
 		session_file: context.sessionFile ?? null,
+		...(event.type === "agent_end"
+			? {
+					final_response: {
+						text: assistantText(lastAssistant(event.messages)),
+						format: "markdown",
+						source: "agent_end",
+						artifact_path: null,
+						truncated: false,
+					},
+				}
+			: {}),
 	};
 	try {
 		await fs.mkdir(path.dirname(stateFile), { recursive: true });

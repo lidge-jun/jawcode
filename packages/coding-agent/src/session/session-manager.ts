@@ -40,6 +40,7 @@ import {
 	isBlobRef,
 	isImageDataUrl,
 	MemoryBlobStore,
+	ResidentBlobMissingError,
 	resolveImageData,
 	resolveImageDataUrl,
 	resolveResidentImageDataSync,
@@ -1249,6 +1250,10 @@ interface ResidentMaterializeContext {
 	sessionFile?: string;
 }
 
+function residentBlobMissingPlaceholder(error: ResidentBlobMissingError): string {
+	return `[Session resident ${error.kind} blob missing: sha256:${error.hash}; original content unavailable]`;
+}
+
 function cloneJsonSemantic<T>(value: T): T {
 	return JSON.parse(JSON.stringify(value)) as T;
 }
@@ -1316,12 +1321,18 @@ function materializeResidentValueSync(
 		const cacheKey = `${obj.kind}:${obj.ref}`;
 		const cached = cache.get(cacheKey);
 		if (cached !== undefined) return cached;
-		const resolved =
-			obj.kind === "imageUrl"
-				? resolveResidentImageDataUrlSync(stores.image, obj.ref, { ...context, kind: "imageUrl" })
-				: obj.kind === "imageData"
-					? resolveResidentImageDataSync(stores.image, obj.ref, { ...context, kind: "imageData" })
-					: resolveTextBlobSync(stores.text, obj.ref, { ...context, kind: "text" });
+		let resolved: string;
+		try {
+			resolved =
+				obj.kind === "imageUrl"
+					? resolveResidentImageDataUrlSync(stores.image, obj.ref, { ...context, kind: "imageUrl" })
+					: obj.kind === "imageData"
+						? resolveResidentImageDataSync(stores.image, obj.ref, { ...context, kind: "imageData" })
+						: resolveTextBlobSync(stores.text, obj.ref, { ...context, kind: "text" });
+		} catch (error) {
+			if (!(error instanceof ResidentBlobMissingError)) throw error;
+			resolved = residentBlobMissingPlaceholder(error);
+		}
 		cache.set(cacheKey, resolved);
 		return resolved;
 	}
