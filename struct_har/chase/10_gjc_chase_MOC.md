@@ -144,7 +144,7 @@
 | 10.100 | `gjc_chase_ci_release_stabilization` | ⬜ | P3 | affected-path, SDK publish, shard isolation, biome | `4a80bac9..3ddf26079` |
 | 10.101 | `gjc_chase_browser_psmux_misc` | ⬜ | P3 | expired browser tabs, psmux lifecycle, context maintenance | `4a80bac9..3ddf26079` |
 | 10.102 | `gjc_chase_agent_async_misc` | ⬜ | P3 | async resume, session dirs, MCP tools-only, admission | `4a80bac9..3ddf26079` |
-| 10.103 | `gjc_chase_provider_safety_transport` | ⬜ | P2 | provider safety stops, managed fallback authority | `4a80bac9..3ddf26079` |
+| 10.103 | [`gjc_chase_provider_safety_transport`](./_fin/10/10.103_gjc_chase_provider_safety_transport.md) | ✅ **_fin** | P2 | typed provider safety stops, managed fallback authority | `4a80bac9..3ddf26079` |
 | 10.104 | `gjc_chase_docs_changelog_qa` | ⬜ | P3 | changelog dedup, QA evidence, SDK guide repair | `4a80bac9..3ddf26079` |
 | 10.105 | `gjc_chase_routing_fallback_availability_cache` | ⬜ | P1 | routing/fallback hardening, availability cache, subagent stickiness | `3ddf26079..904eab21c` |
 | 10.106 | `gjc_chase_config_ux_credential_setup` | ⬜ | P2 | config doctor, credential setup, keybindings, SDK UX | `3ddf26079..904eab21c` |
