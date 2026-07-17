@@ -49,6 +49,7 @@ import { AssistantMessageEventStream } from "../utils/event-stream";
 import { finalizeErrorMessage, type RawHttpRequestDump } from "../utils/http-inspector";
 import { getOpenAIStreamIdleTimeoutMs, iterateWithIdleTimeout } from "../utils/idle-iterator";
 import { parseStreamingJson } from "../utils/json-parse";
+import { isInvalidatedOAuthTokenError } from "../utils/oauth/auth-errors";
 import { resolveRetryBudget } from "../utils/retry-budget";
 import { adaptSchemaForStrict, NO_STRICT, sanitizeSchemaForOpenAIResponses, toolWireSchema } from "../utils/schema";
 import { compactGrammarDefinition } from "./grammar";
@@ -1624,7 +1625,7 @@ async function handleCodexStreamFailure(
 		resetCodexSessionMetadata(context.requestContext.websocketState);
 	}
 	output.stopReason = context.options?.signal?.aborted ? "aborted" : "error";
-	output.errorStatus = extractHttpStatusFromError(error);
+	output.errorStatus = isInvalidatedOAuthTokenError(error) ? 401 : extractHttpStatusFromError(error);
 	output.errorMessage = await finalizeErrorMessage(error, context.requestContext.rawRequestDump);
 	output.duration = Date.now() - context.startTime;
 	if (context.firstTokenTime) {
@@ -2459,7 +2460,7 @@ async function openCodexSseEventStream(
 		const info = await parseCodexError(response);
 		const error = new Error(info.friendlyMessage || info.message);
 		(error as { headers?: Headers; status?: number }).headers = response.headers;
-		(error as { headers?: Headers; status?: number }).status = response.status;
+		(error as { headers?: Headers; status?: number }).status = info.status;
 		throw error;
 	}
 	if (!response.body) {

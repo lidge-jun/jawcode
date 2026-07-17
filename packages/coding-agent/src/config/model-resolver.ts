@@ -66,6 +66,34 @@ export function formatModelSelectorValue(selector: string, thinkingLevel: Thinki
 	return thinkingLevel && thinkingLevel !== ThinkingLevel.Inherit ? `${selector}:${thinkingLevel}` : selector;
 }
 
+/**
+ * Rebase a configured fallback list around the model selected for this session.
+ * A selected entry keeps only its forward suffix so retries never move backward
+ * to an earlier fallback. A thinking-level variant of the same concrete model
+ * becomes the new head while preserving the entries after that model.
+ *
+ * JWC's retry.fallbackChains omit the role primary, so selections outside the
+ * configured list retain the existing selected-head plus fallback-list shape.
+ */
+export function rebaseModelFallbackChain(selectedSelector: string, configuredFallbacks: readonly string[]): string[] {
+	const selected = selectedSelector.trim();
+	if (!selected) return configuredFallbacks.map(selector => selector.trim()).filter(Boolean);
+
+	const normalizedFallbacks = configuredFallbacks.map(selector => selector.trim()).filter(Boolean);
+	const exactIndex = normalizedFallbacks.indexOf(selected);
+	if (exactIndex >= 0) return normalizedFallbacks.slice(exactIndex);
+
+	const selectedModel = parseModelString(selected);
+	const concreteIndex = selectedModel
+		? normalizedFallbacks.findIndex(selector => {
+				const parsed = parseModelString(selector);
+				return parsed?.provider === selectedModel.provider && parsed.id === selectedModel.id;
+			})
+		: -1;
+	const tail = concreteIndex >= 0 ? normalizedFallbacks.slice(concreteIndex + 1) : normalizedFallbacks;
+	return [selected, ...tail];
+}
+
 function getOpenRouterRouteSuffix(modelId: string): { baseId: string; suffix: string } | undefined {
 	const colonIdx = modelId.lastIndexOf(":");
 	if (colonIdx === -1) {
@@ -201,10 +229,25 @@ interface ModelPreferenceContext {
 	modelOrder: Map<string, number>;
 }
 
+const preferenceContexts = new WeakMap<readonly Model<Api>[], Map<string, ModelPreferenceContext>>();
+
+function preferenceCacheKey(preferences: ModelMatchPreferences | undefined): string {
+	return JSON.stringify([preferences?.usageOrder ?? [], preferences?.deprioritizeProviders ?? ["openrouter"]]);
+}
+
 function buildPreferenceContext(
 	availableModels: Model<Api>[],
 	preferences: ModelMatchPreferences | undefined,
 ): ModelPreferenceContext {
+	const cacheKey = preferenceCacheKey(preferences);
+	let cachedContexts = preferenceContexts.get(availableModels);
+	if (!cachedContexts) {
+		cachedContexts = new Map();
+		preferenceContexts.set(availableModels, cachedContexts);
+	}
+	const cached = cachedContexts.get(cacheKey);
+	if (cached) return cached;
+
 	const modelUsageRank = new Map<string, number>();
 	const providerUsageRank = new Map<string, number>();
 	const usageOrder = preferences?.usageOrder ?? [];
@@ -225,7 +268,9 @@ function buildPreferenceContext(
 		modelOrder.set(formatModelString(availableModels[i]), i);
 	}
 
-	return { modelUsageRank, providerUsageRank, deprioritizedProviders, modelOrder };
+	const context = { modelUsageRank, providerUsageRank, deprioritizedProviders, modelOrder };
+	cachedContexts.set(cacheKey, context);
+	return context;
 }
 
 function pickPreferredModel(candidates: Model<Api>[], context: ModelPreferenceContext): Model<Api> {
@@ -307,6 +352,7 @@ function findExactCanonicalModelMatch(
 	modelReference: string,
 	availableModels: Model<Api>[],
 	modelRegistry: CanonicalModelRegistry | undefined,
+	sessionId?: string,
 ): Model<Api> | undefined {
 	if (!modelRegistry) {
 		return undefined;
@@ -318,6 +364,7 @@ function findExactCanonicalModelMatch(
 	return modelRegistry.resolveCanonicalModel?.(trimmedReference, {
 		availableOnly: false,
 		candidates: availableModels,
+		sessionId,
 	});
 }
 
@@ -329,7 +376,7 @@ function tryMatchModel(
 	modelPattern: string,
 	availableModels: Model<Api>[],
 	context: ModelPreferenceContext,
-	options?: { modelRegistry?: CanonicalModelRegistry },
+	options?: { modelRegistry?: CanonicalModelRegistry; sessionId?: string },
 ): Model<Api> | undefined {
 	// Explicit provider/model selectors always bypass canonical coalescing.
 	const exactRefMatch = findExactModelReferenceMatch(modelPattern, availableModels);
@@ -338,7 +385,12 @@ function tryMatchModel(
 	}
 
 	// Exact canonical ids coalesce provider variants before bare-id matching.
-	const exactCanonicalMatch = findExactCanonicalModelMatch(modelPattern, availableModels, options?.modelRegistry);
+	const exactCanonicalMatch = findExactCanonicalModelMatch(
+		modelPattern,
+		availableModels,
+		options?.modelRegistry,
+		options?.sessionId,
+	);
 	if (exactCanonicalMatch) {
 		return exactCanonicalMatch;
 	}
@@ -444,7 +496,11 @@ function parseModelPatternWithContext(
 	pattern: string,
 	availableModels: Model<Api>[],
 	context: ModelPreferenceContext,
-	options?: { allowInvalidThinkingSelectorFallback?: boolean; modelRegistry?: CanonicalModelRegistry },
+	options?: {
+		allowInvalidThinkingSelectorFallback?: boolean;
+		modelRegistry?: CanonicalModelRegistry;
+		sessionId?: string;
+	},
 ): ParsedModelResult {
 	// Try exact match first
 	const exactMatch = tryMatchModel(pattern, availableModels, context, options);
@@ -501,7 +557,11 @@ export function parseModelPattern(
 	pattern: string,
 	availableModels: Model<Api>[],
 	preferences?: ModelMatchPreferences,
-	options?: { allowInvalidThinkingSelectorFallback?: boolean; modelRegistry?: CanonicalModelRegistry },
+	options?: {
+		allowInvalidThinkingSelectorFallback?: boolean;
+		modelRegistry?: CanonicalModelRegistry;
+		sessionId?: string;
+	},
 ): ParsedModelResult {
 	const context = buildPreferenceContext(availableModels, preferences);
 	return parseModelPatternWithContext(pattern, availableModels, context, options);
@@ -617,7 +677,12 @@ export interface ResolvedModelRoleValue {
 export function resolveModelRoleValue(
 	roleValue: string | undefined,
 	availableModels: Model<Api>[],
-	options?: { settings?: Settings; matchPreferences?: ModelMatchPreferences; modelRegistry?: CanonicalModelRegistry },
+	options?: {
+		settings?: Settings;
+		matchPreferences?: ModelMatchPreferences;
+		modelRegistry?: CanonicalModelRegistry;
+		sessionId?: string;
+	},
 ): ResolvedModelRoleValue {
 	if (!roleValue) {
 		return { model: undefined, thinkingLevel: undefined, explicitThinkingLevel: false, warning: undefined };
@@ -637,6 +702,7 @@ export function resolveModelRoleValue(
 	for (const effectivePattern of effectivePatterns) {
 		const resolved = parseModelPattern(effectivePattern, availableModels, options?.matchPreferences, {
 			modelRegistry: options?.modelRegistry,
+			sessionId: options?.sessionId,
 		});
 		if (resolved.model) {
 			return {
@@ -733,6 +799,7 @@ export function resolveModelOverride(
 	modelPatterns: string[],
 	modelRegistry: ModelLookupRegistry,
 	settings?: Settings,
+	sessionId?: string,
 ): { model?: Model<Api>; thinkingLevel?: ThinkingLevel; explicitThinkingLevel: boolean } {
 	if (modelPatterns.length === 0) return { explicitThinkingLevel: false };
 	const availableModels = modelRegistry.getAvailable();
@@ -742,6 +809,7 @@ export function resolveModelOverride(
 			settings,
 			matchPreferences,
 			modelRegistry,
+			sessionId,
 		});
 		if (model) {
 			return { model, thinkingLevel, explicitThinkingLevel };
@@ -793,6 +861,7 @@ export async function resolveModelOverrideWithAuthFallback(
 			settings,
 			matchPreferences,
 			modelRegistry,
+			sessionId,
 		});
 		if (!candidate.model) continue;
 		primary ??= candidate;
@@ -807,7 +876,7 @@ export async function resolveModelOverrideWithAuthFallback(
 		return { ...primary, authFallbackUsed: false };
 	}
 
-	const fallback = resolveModelOverride([parentActiveModelPattern], modelRegistry, settings);
+	const fallback = resolveModelOverride([parentActiveModelPattern], modelRegistry, settings, sessionId);
 	if (!fallback.model) {
 		return { ...primary, authFallbackUsed: false };
 	}

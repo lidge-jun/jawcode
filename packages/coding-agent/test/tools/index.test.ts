@@ -43,7 +43,7 @@ function createDiscoverySessionHooks(): Partial<ToolSession> {
 	const selected: string[] = [];
 	return {
 		isMCPDiscoveryEnabled: () => true,
-		getDiscoverableMCPTools: () => [],
+		getDiscoverableTools: () => [],
 		getSelectedMCPToolNames: () => [...selected],
 		activateDiscoveredMCPTools: async toolNames => {
 			const activated: string[] = [];
