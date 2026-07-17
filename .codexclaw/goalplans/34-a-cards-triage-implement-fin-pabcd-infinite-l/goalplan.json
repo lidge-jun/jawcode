@@ -1,0 +1,87 @@
+{
+  "objective": "34 A cards triage+implement+fin — PABCD infinite loop",
+  "slug": "34-a-cards-triage-implement-fin-pabcd-infinite-l",
+  "createdAt": "2026-07-17T04:47:24.315Z",
+  "updatedAt": "2026-07-17T04:57:42.916Z",
+  "activeWorkPhaseId": "wp1",
+  "workPhases": [
+    {
+      "id": "wp0",
+      "title": "WP0: Triage all 34 A cards — CLOSE_NOW / IMPLEMENT / REJECT",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp0-t1",
+          "title": "GJC 16 A cards triage",
+          "status": "pending"
+        },
+        {
+          "id": "wp0-t2",
+          "title": "OMP 18 A cards triage",
+          "status": "pending"
+        }
+      ],
+      "criteriaIds": [
+        "c1"
+      ]
+    },
+    {
+      "id": "wp1",
+      "title": "WP1: Close CLOSE_NOW cards → _fin",
+      "status": "in_progress",
+      "tasks": [],
+      "criteriaIds": [
+        "c1",
+        "c3",
+        "c4"
+      ]
+    },
+    {
+      "id": "wp2",
+      "title": "WP2+: Implement IMPLEMENT cards",
+      "status": "pending",
+      "tasks": [],
+      "criteriaIds": [
+        "c1",
+        "c2",
+        "c3",
+        "c4"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "c1",
+      "scenario": "34 A cards all ✅ + _fin",
+      "expectedEvidence": "ls _fin shows all 34",
+      "capturedEvidence": "",
+      "status": "open"
+    },
+    {
+      "id": "c2",
+      "scenario": "code changes pass tsc/tests",
+      "expectedEvidence": "build+test exit 0",
+      "capturedEvidence": "",
+      "status": "open"
+    },
+    {
+      "id": "c3",
+      "scenario": "MOC rows updated",
+      "expectedEvidence": "grep ✅ _fin in MOC",
+      "capturedEvidence": "",
+      "status": "open"
+    },
+    {
+      "id": "c4",
+      "scenario": "Decision Slots filled",
+      "expectedEvidence": "grep Decision in each card",
+      "capturedEvidence": "",
+      "status": "open"
+    }
+  ],
+  "host": {
+    "armed": true,
+    "armedAt": "2026-07-17T05:07:00.000Z",
+    "source": "freeze"
+  }
+}

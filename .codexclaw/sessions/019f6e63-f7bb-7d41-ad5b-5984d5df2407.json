@@ -1,8 +1,8 @@
 {
-  "phase": "I",
-  "sessionId": "019f6de9-f741-7233-9af9-c1684303685b",
-  "slug": "omp-175-additional-commits-chase-cards-20-071-20",
-  "updatedAt": "2026-07-17T04:35:04.981Z",
+  "phase": "IDLE",
+  "sessionId": "019f6e63-f7bb-7d41-ad5b-5984d5df2407",
+  "slug": "34-a-cards-triage-implement-fin-pabcd-infinite-l",
+  "updatedAt": "2026-07-17T04:57:42.915Z",
   "flags": {
     "interview": false,
     "auditPassed": false,
@@ -10,8 +10,8 @@
   },
   "supersededBy": null,
   "injectedTurns": [],
-  "lastInjectedPhase": "I",
-  "orchestrationActive": true,
+  "lastInjectedPhase": null,
+  "orchestrationActive": false,
   "interview": null,
   "stopBlockPhase": null,
   "stopBlockCount": 0,
