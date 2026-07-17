@@ -2260,6 +2260,12 @@ describe("ModelRegistry", () => {
 			expect(llama?.contextWindow).toBe(262144);
 			expect(llama?.maxTokens).toBe(8192);
 			expect(llama?.input).toEqual(["text", "image"]);
+			expect(llama?.api).toBe("openai-completions");
+			expect(llama?.baseUrl).toBe("http://127.0.0.1:8080/v1");
+			expect(llama?.reasoning).toBe(true);
+			const compat = llama?.compat as { thinkingFormat?: string; supportsReasoningEffort?: boolean } | undefined;
+			expect(compat?.thinkingFormat).toBe("qwen-chat-template");
+			expect(compat?.supportsReasoningEffort).toBe(false);
 		});
 	});
 	describe("bundled Anthropic catalog availability", () => {

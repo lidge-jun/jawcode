@@ -19,6 +19,11 @@ const PERSISTENT_USAGE_LIMIT_FIXTURES = [
 		name: "Codex usage limit",
 		message: "usage_limit_reached",
 	},
+	{
+		name: "xAI SuperGrok credit exhaustion",
+		message:
+			"403 You have run out of credits or need a Grok subscription. (type=personal-team-blocked:spending-limit)",
+	},
 ] as const;
 
 describe("parseRateLimitReason", () => {

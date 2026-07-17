@@ -82,6 +82,7 @@ export interface OpenAICodexResponsesOptions extends StreamOptions {
 	toolChoice?: ToolChoice;
 	preferWebsockets?: boolean;
 	serviceTier?: ServiceTier;
+	responsesLite?: boolean;
 }
 
 const CODEX_DEBUG = $flag("PI_CODEX_DEBUG");
@@ -666,6 +667,7 @@ async function buildTransformedCodexRequestBody(
 		reasoningSummary: options?.reasoningSummary ?? "auto",
 		textVerbosity: options?.textVerbosity,
 		include: options?.include,
+		responsesLite: options?.responsesLite,
 	};
 
 	return transformRequestBody(params, model, codexOptions, { developerMessages });

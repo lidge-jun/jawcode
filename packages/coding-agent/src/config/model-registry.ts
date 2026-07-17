@@ -1176,7 +1176,7 @@ export class ModelRegistry {
 		// Merge runtime extension models so they survive refresh() cycles
 		const combined = this.#mergeCustomModels(withConfigModels, this.#runtimeModelOverlays);
 		const withModelOverrides = this.#applyModelOverrides(combined, this.#modelOverrides);
-		this.#models = this.#applyRuntimeProviderOverrides(withModelOverrides);
+		this.#models = this.#applyLlamaCppQwenThinkingToModels(this.#applyRuntimeProviderOverrides(withModelOverrides));
 		this.#rebuildCanonicalIndex();
 		this.#lastStaticLoadMtime = this.#modelsConfigFile.getMtimeMs();
 	}
@@ -1635,7 +1635,7 @@ export class ModelRegistry {
 		// Merge runtime extension models so they survive online discovery completion
 		const combined = this.#mergeCustomModels(withConfigModels, this.#runtimeModelOverlays);
 		const withModelOverrides = this.#applyModelOverrides(combined, this.#modelOverrides);
-		this.#models = this.#applyRuntimeProviderOverrides(withModelOverrides);
+		this.#models = this.#applyLlamaCppQwenThinkingToModels(this.#applyRuntimeProviderOverrides(withModelOverrides));
 		this.#rebuildCanonicalIndex();
 	}
 
@@ -2001,24 +2001,26 @@ export class ModelRegistry {
 			const id = item.id;
 			if (!id) continue;
 			discovered.push(
-				enrichModelThinking({
-					id,
-					name: id,
-					api: providerConfig.api,
-					provider: providerConfig.provider,
-					baseUrl,
-					reasoning: false,
-					input: serverMetadata?.input ?? ["text"],
-					cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-					contextWindow: serverMetadata?.contextWindow ?? 128000,
-					maxTokens: Math.min(serverMetadata?.contextWindow ?? Number.POSITIVE_INFINITY, 8192),
-					headers,
-					compat: {
-						supportsStore: false,
-						supportsDeveloperRole: false,
-						supportsReasoningEffort: false,
-					},
-				}),
+				this.#applyLlamaCppQwenThinking(
+					enrichModelThinking({
+						id,
+						name: id,
+						api: providerConfig.api,
+						provider: providerConfig.provider,
+						baseUrl,
+						reasoning: false,
+						input: serverMetadata?.input ?? ["text"],
+						cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+						contextWindow: serverMetadata?.contextWindow ?? 128000,
+						maxTokens: Math.min(serverMetadata?.contextWindow ?? Number.POSITIVE_INFINITY, 8192),
+						headers,
+						compat: {
+							supportsStore: false,
+							supportsDeveloperRole: false,
+							supportsReasoningEffort: false,
+						},
+					}),
+				),
 			);
 		}
 		return this.#applyProviderModelOverrides(providerConfig.provider, discovered);
@@ -2081,6 +2083,45 @@ export class ModelRegistry {
 		} catch {
 			return raw;
 		}
+	}
+
+	#ensureLlamaCppV1BaseUrl(baseUrl: string): string {
+		return baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
+	}
+
+	#isLlamaCppQwenModel(id: string): boolean {
+		return id.toLowerCase().includes("qwen") || /(?:ternary-)?bonsai-27b/i.test(id);
+	}
+
+	#applyLlamaCppQwenThinking(model: Model<Api>): Model<Api> {
+		if (!this.#isLlamaCppQwenModel(model.id)) return model;
+		return enrichModelThinking({
+			...model,
+			api: "openai-completions",
+			baseUrl: model.transport
+				? model.baseUrl
+				: this.#ensureLlamaCppV1BaseUrl(this.#normalizeLlamaCppBaseUrl(model.baseUrl)),
+			reasoning: true,
+			compat: {
+				...model.compat,
+				supportsStore: false,
+				supportsDeveloperRole: false,
+				supportsReasoningEffort: false,
+				thinkingFormat: "qwen-chat-template",
+			},
+		}) as Model<Api>;
+	}
+
+	#applyLlamaCppQwenThinkingToModels(models: Model<Api>[]): Model<Api>[] {
+		const llamaCppProviders = new Set(
+			this.#discoverableProviders
+				.filter(provider => provider.discovery.type === "llama.cpp")
+				.map(provider => provider.provider),
+		);
+		if (llamaCppProviders.size === 0) return models;
+		return models.map(model =>
+			llamaCppProviders.has(model.provider) ? this.#applyLlamaCppQwenThinking(model) : model,
+		);
 	}
 
 	#toLlamaCppNativeBaseUrl(baseUrl: string): string {
@@ -2772,10 +2813,12 @@ export class ModelRegistry {
 				transportOverride,
 			);
 			this.#runtimeProviderOverrides.set(providerName, nextRuntimeOverride);
-			this.#models = this.#models.map(m => {
-				if (m.provider !== providerName) return m;
-				return this.#applyProviderTransportOverride(m, transportOverride);
-			});
+			this.#models = this.#applyLlamaCppQwenThinkingToModels(
+				this.#models.map(m => {
+					if (m.provider !== providerName) return m;
+					return this.#applyProviderTransportOverride(m, transportOverride);
+				}),
+			);
 			this.#rebuildCanonicalIndex();
 		}
 	}

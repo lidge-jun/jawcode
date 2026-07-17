@@ -759,6 +759,12 @@ export type AssistantMessageEvent =
 export interface OpenAICompat extends ToolChoiceCompat {
 	/** Whether the provider supports the `store` field. Default: auto-detected from URL. */
 	supportsStore?: boolean;
+	/** Whether Responses replay accepts `input_image.detail: "original"`. Default: true. */
+	supportsImageDetailOriginal?: boolean;
+	/** Whether Responses requests accept `reasoning.summary`. Default: true. */
+	supportsReasoningSummary?: boolean;
+	/** Whether Responses requests accept `reasoning.encrypted_content` in `include`. Default: true. */
+	includeEncryptedReasoning?: boolean;
 	/** Whether the provider supports the `developer` role (vs `system`). Default: auto-detected from URL. */
 	supportsDeveloperRole?: boolean;
 	/**

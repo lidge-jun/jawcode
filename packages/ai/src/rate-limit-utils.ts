@@ -23,7 +23,7 @@ const OPENROUTER_DAILY_FREE_LIMIT_PATTERN = /\bfree[-_ ]models[-_ ]per[-_ ]day\b
 // ZAI reports durable token exhaustion as "[1310][Weekly/Monthly Limit Exhausted...]".
 // Keep this explicit so generic "rate limit exhausted, retry..." throttles remain retryable.
 const USAGE_LIMIT_PATTERN =
-	/usage.?limit|usage_limit_reached|usage_not_included|limit_reached|weekly\/monthly\s+limit\s+exhausted|quota.?(?:exceeded|reached|insufficient)|resource.?exhausted|insufficient.?(?:balance|quota)|out[-_ ]of[-_ ]credits/i;
+	/usage.?limit|usage_limit_reached|usage_not_included|limit_reached|weekly\/monthly\s+limit\s+exhausted|quota.?(?:exceeded|reached|insufficient)|resource.?exhausted|insufficient.?(?:balance|quota)|(?:run\s+)?out[-_ ]of[-_ ]credits|personal-team-blocked/i;
 
 function matchesPersistentUsageLimit(errorMessage: string): boolean {
 	return (

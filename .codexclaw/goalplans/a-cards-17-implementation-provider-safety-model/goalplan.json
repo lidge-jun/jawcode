@@ -2,8 +2,8 @@
   "objective": "A cards 17 implementation: provider safety, model catalog, auth/transport, TUI/UX",
   "slug": "a-cards-17-implementation-provider-safety-model",
   "createdAt": "2026-07-17T06:04:04.507Z",
-  "updatedAt": "2026-07-17T05:50:00.000Z",
-  "activeWorkPhaseId": "wp1",
+  "updatedAt": "2026-07-17T06:40:00.000Z",
+  "activeWorkPhaseId": "wp3",
   "workPhases": [
     {
       "id": "wp0",
@@ -21,32 +21,32 @@
     {
       "id": "wp1",
       "title": "WP1: Provider safety (10.090, 10.089, 10.105, 10.106, 20.053)",
-      "status": "in_progress",
+      "status": "done",
       "tasks": [
         {
           "id": "wp1-t1",
           "title": "10.090 dead-shim migration",
-          "status": "pending"
+          "status": "done"
         },
         {
           "id": "wp1-t2",
           "title": "10.089 sticky fallback chains",
-          "status": "pending"
+          "status": "done"
         },
         {
           "id": "wp1-t3",
           "title": "10.105 routing/availability cache",
-          "status": "pending"
+          "status": "done"
         },
         {
           "id": "wp1-t4",
           "title": "10.106 credential persistence safety",
-          "status": "pending"
+          "status": "done"
         },
         {
           "id": "wp1-t5",
           "title": "20.053 rotation/serialization/isolation",
-          "status": "pending"
+          "status": "done"
         }
       ],
       "criteriaIds": [
@@ -58,32 +58,32 @@
     {
       "id": "wp2",
       "title": "WP2: Model catalog (10.083, 10.097, 10.099, 20.055, 20.067)",
-      "status": "pending",
+      "status": "done",
       "tasks": [
         {
           "id": "wp2-t1",
           "title": "10.083 GPT-5.6 backend persistence",
-          "status": "pending"
+          "status": "done"
         },
         {
           "id": "wp2-t2",
           "title": "10.097 coordinator mpreset",
-          "status": "pending"
+          "status": "done"
         },
         {
           "id": "wp2-t3",
           "title": "10.099 durable selection atomicity",
-          "status": "pending"
+          "status": "done"
         },
         {
           "id": "wp2-t4",
           "title": "20.055 perf tracking backend",
-          "status": "pending"
+          "status": "done"
         },
         {
           "id": "wp2-t5",
           "title": "20.067 usage classifier/spend-limit",
-          "status": "pending"
+          "status": "done"
         }
       ],
       "criteriaIds": [
@@ -95,7 +95,7 @@
     {
       "id": "wp3",
       "title": "WP3: Auth/transport (20.047, 20.079)",
-      "status": "pending",
+      "status": "in_progress",
       "tasks": [
         {
           "id": "wp3-t1",
