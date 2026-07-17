@@ -11,7 +11,9 @@ JsonValue: TypeAlias = JsonPrimitive | list["JsonValue"] | dict[str, "JsonValue"
 JsonObject: TypeAlias = dict[str, JsonValue]
 
 Attribution: TypeAlias = Literal["user", "agent"]
-ThinkingLevel: TypeAlias = Literal["off", "minimal", "low", "medium", "high", "xhigh"]
+ThinkingLevel: TypeAlias = Literal[
+    "inherit", "off", "minimal", "low", "medium", "high", "xhigh", "max"
+]
 StreamingBehavior: TypeAlias = Literal["steer", "followUp"]
 SteeringMode: TypeAlias = Literal["all", "one-at-a-time"]
 InterruptMode: TypeAlias = Literal["immediate", "wait"]
@@ -31,19 +33,24 @@ ExtensionUiMethod: TypeAlias = Literal[
     "setWidget",
     "setTitle",
     "set_editor_text",
+    "open_url",
 ]
 InteractiveExtensionUiMethod: TypeAlias = Literal["select", "confirm", "input", "editor"]
-PassiveExtensionUiMethod: TypeAlias = Literal["notify", "setStatus", "setWidget", "setTitle", "set_editor_text"]
+PassiveExtensionUiMethod: TypeAlias = Literal[
+    "notify", "setStatus", "setWidget", "setTitle", "set_editor_text", "open_url"
+]
 ValueExtensionUiMethod: TypeAlias = Literal["select", "input", "editor"]
 
 PASSIVE_EXTENSION_UI_METHODS: Final[frozenset[PassiveExtensionUiMethod]] = frozenset(
-    {"notify", "setStatus", "setWidget", "setTitle", "set_editor_text"}
+    {"notify", "setStatus", "setWidget", "setTitle", "set_editor_text", "open_url"}
 )
 INTERACTIVE_EXTENSION_UI_METHODS: Final[frozenset[InteractiveExtensionUiMethod]] = frozenset(
     {"select", "confirm", "input", "editor"}
 )
 VALUE_EXTENSION_UI_METHODS: Final[frozenset[ValueExtensionUiMethod]] = frozenset({"select", "input", "editor"})
-_THINKING_LEVEL_VALUES: Final[frozenset[str]] = frozenset({"off", "minimal", "low", "medium", "high", "xhigh"})
+_THINKING_LEVEL_VALUES: Final[frozenset[str]] = frozenset(
+    {"inherit", "off", "minimal", "low", "medium", "high", "xhigh", "max"}
+)
 _WORKFLOW_GATE_KIND_VALUES: Final[frozenset[str]] = frozenset({"question", "approval", "execution"})
 _STEERING_MODE_VALUES: Final[frozenset[str]] = frozenset({"all", "one-at-a-time"})
 _INTERRUPT_MODE_VALUES: Final[frozenset[str]] = frozenset({"immediate", "wait"})
@@ -63,6 +70,7 @@ _EXTENSION_UI_METHOD_VALUES: Final[frozenset[str]] = frozenset(
         "setWidget",
         "setTitle",
         "set_editor_text",
+        "open_url",
     }
 )
 _AGENT_MESSAGE_ROLE_VALUES: Final[frozenset[str]] = frozenset(
@@ -797,6 +805,8 @@ class ExtensionUiRequest:
     widget_lines: tuple[str, ...] | None = None
     widget_placement: WidgetPlacement | None = None
     text: str | None = None
+    url: str | None = None
+    instructions: str | None = None
     type: Literal["extension_ui_request"] = "extension_ui_request"
 
     def is_passive(self) -> bool:
@@ -1334,6 +1344,8 @@ def parse_extension_ui_request(payload: JsonObject) -> ExtensionUiRequest:
             ),
         ),
         text=_optional_str(payload, "text"),
+        url=_optional_str(payload, "url"),
+        instructions=_optional_str(payload, "instructions"),
     )
 
 

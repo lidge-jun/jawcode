@@ -196,6 +196,7 @@ export function planTasks(paths: readonly string[], packages: readonly Workspace
 	const rustChanged = paths.some(isRustPath);
 	const installChanged = paths.some(isInstallPath);
 	const publishChanged = paths.some(isReleasePublishPath);
+	const jwcSdkPackageChanged = paths.some(changedPath => changedPath.startsWith("packages/jwc/"));
 	const toolingScriptChanged = paths.some(isToolingScriptPath);
 	const needsNativeRuntime = paths.some(isCodingAgentRuntimePath) || fullWorkspace;
 	const workflowHarnessOnly = paths.length > 0 && paths.every(isWorkflowHarnessPath);
@@ -230,6 +231,23 @@ export function planTasks(paths: readonly string[], packages: readonly Workspace
 	if (publishChanged) {
 		add(tasks, "release-publish-contract", "Release publish contract tests", ["bun", "run", "test:release"]);
 		add(tasks, "release-publish-dry-run", "Release publish dry-run", ["bun", "scripts/ci-release-publish.ts", "--dry-run"]);
+	}
+	if (jwcSdkPackageChanged) {
+		addNativeBuild(tasks);
+		add(
+			tasks,
+			"jwc-sdk-build-node",
+			"Build Node SDK bundle",
+			packageScriptCommand("build:node"),
+			resolvePackageCwd("packages/jwc"),
+		);
+		add(
+			tasks,
+			"jwc-sdk-package-smoke",
+			"Packed SDK smoke",
+			["node", "scripts/smoke-packed-sdk.mjs"],
+			resolvePackageCwd("packages/jwc"),
+		);
 	}
 
 	if (pythonChanged) {
