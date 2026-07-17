@@ -377,6 +377,77 @@ describe("AgentSession retry fallback", () => {
 		]);
 	});
 
+	it("continues forward from a session-selected fallback and records the switch", async () => {
+		const primaryModel = getBundledModel("anthropic", "claude-sonnet-4-5");
+		const firstFallback = getBundledModel("openai", "gpt-4o-mini");
+		const selectedFallback = getBundledModel("openai", "gpt-4o");
+		const finalFallback = getBundledModel("google", "gemini-1.5-flash");
+		if (!primaryModel || !firstFallback || !selectedFallback || !finalFallback) {
+			throw new Error("Expected bundled test models to exist");
+		}
+
+		const requestedModels: string[] = [];
+		const fallbackAppliedEvents: Array<Extract<AgentSessionEvent, { type: "retry_fallback_applied" }>> = [];
+		const mock = createMockModel({
+			responses: [{ throw: "service unavailable: 503 overloaded" }, { content: ["Recovered on sticky selection"] }],
+		});
+		const agent = new Agent({
+			getApiKey: provider => `${provider}-test-key`,
+			initialState: {
+				model: primaryModel,
+				systemPrompt: ["Test"],
+				tools: [],
+				messages: [],
+			},
+			streamFn: (model, context, options) => {
+				requestedModels.push(`${model.provider}/${model.id}`);
+				return mock.stream(model, context, options);
+			},
+		});
+
+		const settings = Settings.isolated({
+			"compaction.enabled": false,
+			"retry.baseDelayMs": 1,
+			"retry.maxRetries": 1,
+			"retry.fallbackChains": {
+				default: [
+					`${firstFallback.provider}/${firstFallback.id}`,
+					`${selectedFallback.provider}/${selectedFallback.id}`,
+					`${finalFallback.provider}/${finalFallback.id}`,
+				],
+			},
+		});
+		settings.setModelRole("default", `${primaryModel.provider}/${primaryModel.id}`);
+
+		session = new AgentSession({
+			agent,
+			sessionManager: SessionManager.inMemory(),
+			settings,
+			modelRegistry,
+		});
+		session.subscribe(event => {
+			if (event.type === "retry_fallback_applied") fallbackAppliedEvents.push(event);
+		});
+
+		await session.setModel(selectedFallback, "default");
+		await session.prompt("Continue forward from the selected fallback");
+		await session.waitForIdle();
+
+		const selected = `${selectedFallback.provider}/${selectedFallback.id}`;
+		const final = `${finalFallback.provider}/${finalFallback.id}`;
+		expect(requestedModels).toEqual([selected, final]);
+		expect(fallbackAppliedEvents).toEqual([
+			{
+				type: "retry_fallback_applied",
+				from: selected,
+				to: final,
+				role: "default",
+			},
+		]);
+		expect(session.model?.provider).toBe(finalFallback.provider);
+		expect(session.model?.id).toBe(finalFallback.id);
+	});
+
 	it("uses Google retry hints in quota errors before quota backoff", async () => {
 		const model = getBundledModel("google", "gemini-1.5-flash");
 		if (!model) {

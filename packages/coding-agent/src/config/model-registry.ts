@@ -62,6 +62,20 @@ export function isAuthenticated(apiKey: string | undefined | null): apiKey is st
 	return Boolean(apiKey) && apiKey !== kNoAuth;
 }
 
+const MAX_SESSION_CANONICAL_VARIANTS = 64;
+
+function envAvailabilityFingerprint(): string {
+	return Object.entries(process.env)
+		.filter(
+			([name]) =>
+				/(?:_API_KEY|_OAUTH_TOKEN|_ACCESS_TOKEN)$/.test(name) ||
+				/^(?:GH_TOKEN|GITHUB_TOKEN|HF_TOKEN|COPILOT_GITHUB_TOKEN)$/.test(name),
+		)
+		.sort(([left], [right]) => left.localeCompare(right))
+		.map(([name, value]) => `${name}=${value ?? ""}`)
+		.join("\u0000");
+}
+
 export type ModelRole = "default";
 
 export interface ModelRoleInfo {
@@ -512,6 +526,8 @@ export interface ProviderDiscoveryState {
 export interface CanonicalModelQueryOptions {
 	availableOnly?: boolean;
 	candidates?: readonly Model<Api>[];
+	/** Stable session identity used to keep a canonical variant sticky within a session. */
+	sessionId?: string;
 }
 
 /** Result of loading custom models from models.json */
@@ -981,6 +997,11 @@ function getConfiguredProviderOrderFromSettings(): string[] {
 export class ModelRegistry {
 	#models: Model<Api>[] = [];
 	#canonicalIndex: CanonicalModelIndex = { records: [], byId: new Map(), bySelector: new Map() };
+	#availableModelsCache: Model<Api>[] | undefined;
+	#availableModelsAuthFingerprint: string | undefined;
+	#availableModelsDisabledProviders: string | undefined;
+	#availableModelsEnvFingerprint: string | undefined;
+	#sessionCanonicalVariants = new Map<string, string>();
 	#customProviderApiKeys: Map<string, string> = new Map();
 	#keylessProviders: Set<string> = new Set();
 	#discoverableProviders: DiscoveryProviderConfig[] = [];
@@ -1030,6 +1051,7 @@ export class ModelRegistry {
 			const keyConfig = this.#customProviderApiKeys.get(provider);
 			return keyConfig;
 		});
+		this.authStorage.onGenerationChanged(() => this.#invalidateAvailableModels());
 		// Load models synchronously in constructor
 		this.#loadModels();
 	}
@@ -2211,7 +2233,15 @@ export class ModelRegistry {
 			return;
 		}
 		this.#canonicalIndex = buildCanonicalModelIndex(this.#models, this.#equivalenceConfig);
+		this.#invalidateAvailableModels();
 		this.#rebuildPending = false;
+	}
+
+	#invalidateAvailableModels(): void {
+		this.#availableModelsCache = undefined;
+		this.#availableModelsAuthFingerprint = undefined;
+		this.#availableModelsDisabledProviders = undefined;
+		this.#availableModelsEnvFingerprint = undefined;
 	}
 
 	#suspendRebuild(): void {
@@ -2225,6 +2255,7 @@ export class ModelRegistry {
 		if (this.#rebuildSuspended === 0 && this.#rebuildPending) {
 			this.#rebuildPending = false;
 			this.#canonicalIndex = buildCanonicalModelIndex(this.#models, this.#equivalenceConfig);
+			this.#invalidateAvailableModels();
 		}
 	}
 
@@ -2275,12 +2306,22 @@ export class ModelRegistry {
 		return this.#models;
 	}
 
-	#isModelAvailable(model: Model<Api>): boolean {
-		const disabledProviders = getDisabledProviderIdsFromSettings();
+	#isModelAvailable(model: Model<Api>, disabledProviders = getDisabledProviderIdsFromSettings()): boolean {
 		return (
 			!disabledProviders.has(model.provider) &&
 			(this.#keylessProviders.has(model.provider) || this.authStorage.hasAuth(model.provider))
 		);
+	}
+
+	#authAvailabilityFingerprint(): string {
+		const providers = new Set(this.#models.map(model => model.provider));
+		return [...providers]
+			.sort()
+			.map(
+				provider =>
+					`${provider}=${this.#keylessProviders.has(provider) || this.authStorage.hasAuth(provider) ? "1" : "0"}`,
+			)
+			.join("\u0000");
 	}
 
 	#filterCanonicalVariants(
@@ -2290,11 +2331,12 @@ export class ModelRegistry {
 		const candidateKeys = options?.candidates
 			? new Set(options.candidates.map(candidate => formatCanonicalVariantSelector(candidate)))
 			: undefined;
+		const disabledProviders = options?.availableOnly ? getDisabledProviderIdsFromSettings() : undefined;
 		return record.variants.filter(variant => {
 			if (candidateKeys && !candidateKeys.has(variant.selector)) {
 				return false;
 			}
-			if (options?.availableOnly && !this.#isModelAvailable(variant.model)) {
+			if (options?.availableOnly && !this.#isModelAvailable(variant.model, disabledProviders)) {
 				return false;
 			}
 			return true;
@@ -2324,12 +2366,32 @@ export class ModelRegistry {
 		return result;
 	}
 
+	#rememberCanonicalVariant(sessionId: string, selector: string): void {
+		this.#sessionCanonicalVariants.delete(sessionId);
+		this.#sessionCanonicalVariants.set(sessionId, selector);
+		if (this.#sessionCanonicalVariants.size <= MAX_SESSION_CANONICAL_VARIANTS) return;
+		const oldestSessionId = this.#sessionCanonicalVariants.keys().next().value;
+		if (oldestSessionId !== undefined) {
+			this.#sessionCanonicalVariants.delete(oldestSessionId);
+		}
+	}
+
 	#resolveCanonicalVariant(
 		variants: readonly CanonicalModelVariant[],
 		allCandidates: readonly Model<Api>[],
+		sessionId?: string,
 	): CanonicalModelVariant | undefined {
 		if (variants.length === 0) {
 			return undefined;
+		}
+		const stickySelector = sessionId ? this.#sessionCanonicalVariants.get(sessionId) : undefined;
+		const stickyVariant = stickySelector ? variants.find(variant => variant.selector === stickySelector) : undefined;
+		if (stickyVariant && sessionId) {
+			this.#rememberCanonicalVariant(sessionId, stickyVariant.selector);
+			return stickyVariant;
+		}
+		if (sessionId && stickySelector) {
+			this.#sessionCanonicalVariants.delete(sessionId);
 		}
 		const providerRank = this.#providerRank(allCandidates);
 		const modelOrder = new Map<string, number>();
@@ -2364,8 +2426,10 @@ export class ModelRegistry {
 			if (sourceRank[left.source] !== sourceRank[right.source]) {
 				return sourceRank[left.source] - sourceRank[right.source];
 			}
-			if (left.model.id.length !== right.model.id.length) {
-				return left.model.id.length - right.model.id.length;
+			const leftCost = left.model.cost.input + left.model.cost.cacheRead;
+			const rightCost = right.model.cost.input + right.model.cost.cacheRead;
+			if (leftCost !== rightCost) {
+				return leftCost - rightCost;
 			}
 			const leftOrder = modelOrder.get(left.selector) ?? Number.MAX_SAFE_INTEGER;
 			const rightOrder = modelOrder.get(right.selector) ?? Number.MAX_SAFE_INTEGER;
@@ -2403,7 +2467,11 @@ export class ModelRegistry {
 			return undefined;
 		}
 		const candidates = options?.candidates ?? (options?.availableOnly ? this.getAvailable() : this.getAll());
-		return this.#resolveCanonicalVariant(variants, candidates)?.model;
+		const resolved = this.#resolveCanonicalVariant(variants, candidates, options?.sessionId);
+		if (resolved && options?.sessionId) {
+			this.#rememberCanonicalVariant(options.sessionId, resolved.selector);
+		}
+		return resolved?.model;
 	}
 
 	getCanonicalId(model: Model<Api>): string | undefined {
@@ -2415,7 +2483,23 @@ export class ModelRegistry {
 	 * This is a fast check that doesn't refresh OAuth tokens.
 	 */
 	getAvailable(): Model<Api>[] {
-		return this.#models.filter(model => this.#isModelAvailable(model));
+		const disabledProviders = getDisabledProviderIdsFromSettings();
+		const disabledProviderKey = [...disabledProviders].sort().join("\u0000");
+		const envFingerprint = envAvailabilityFingerprint();
+		const authFingerprint = this.#authAvailabilityFingerprint();
+		if (
+			this.#availableModelsCache &&
+			this.#availableModelsAuthFingerprint === authFingerprint &&
+			this.#availableModelsDisabledProviders === disabledProviderKey &&
+			this.#availableModelsEnvFingerprint === envFingerprint
+		) {
+			return this.#availableModelsCache;
+		}
+		this.#availableModelsCache = this.#models.filter(model => this.#isModelAvailable(model, disabledProviders));
+		this.#availableModelsAuthFingerprint = authFingerprint;
+		this.#availableModelsDisabledProviders = disabledProviderKey;
+		this.#availableModelsEnvFingerprint = envFingerprint;
+		return this.#availableModelsCache;
 	}
 
 	/**

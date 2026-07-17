@@ -223,9 +223,6 @@ export interface ToolSession {
 	setTodoPhases?: (phases: TodoPhase[]) => void;
 	/** Whether MCP tool discovery is active for this session. */
 	isMCPDiscoveryEnabled?: () => boolean;
-	/** Get hidden-but-discoverable MCP tools for search_tool_bm25 prompts and fallbacks.
-	 * @deprecated Use getDiscoverableTools with source filter instead. */
-	getDiscoverableMCPTools?: () => import("../runtime-mcp/discoverable-tool-metadata").DiscoverableMCPTool[];
 	/** Get the cached discoverable MCP search index for search_tool_bm25 execution.
 	 * @deprecated Use getDiscoverableToolSearchIndex instead. */
 	getDiscoverableMCPSearchIndex?: () => import("../tool-discovery/tool-index").DiscoverableMCPSearchIndex;
