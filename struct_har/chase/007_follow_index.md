@@ -272,7 +272,7 @@ OMP는 1:1 이식하지 않는다. P1 model/auth/provider 레퍼런스를 먼저
 | D21 | 071 | [20.071 Warp event bridge](./20.071_omp_chase_warp_event_bridge.md) | P2 | ⬜ |
 | D22 | 072 | [20.072 cursor/advisor/xdev](./20.072_omp_chase_cursor_advisor_xdev.md) | P2 | ⬜ |
 | D23 | 073 | [20.073 TUI rendering/status](./20.073_omp_chase_tui_rendering_status.md) | P2 | ⬜ |
-| D25 | 075 | [20.075 coding-agent tool restoration](./20.075_omp_chase_coding_agent_tool_restoration.md) | P2 | ⬜ |
+| D25 | 075 | [20.075 coding-agent tool restoration](./_fin/20/20.075_omp_chase_coding_agent_tool_restoration.md) | P2 | ✅ **_fin** |
 | D26 | 076 | [20.076 session/plan lifecycle](./20.076_omp_chase_session_plan_lifecycle.md) | P2 | ⬜ |
 | D27 | 077 | [20.077 plugins/CommonJS/MCP](./20.077_omp_chase_plugins_commonjs_mcp.md) | P2 | ⬜ |
 | D29 | 079 | [20.079 Codex Lite/telemetry](./20.079_omp_chase_codex_lite_telemetry.md) | P2 | ⬜ |
