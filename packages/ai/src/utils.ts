@@ -12,6 +12,52 @@ export function normalizeSystemPrompts(systemPrompt: readonly string[] | string 
 	return prompts.map(prompt => redactSensitiveCredentials(prompt.toWellFormed())).filter(prompt => prompt.length > 0);
 }
 
+export function sanitizeJsonStrings(value: unknown): unknown {
+	return sanitizeJsonStringsInner(value, new WeakMap<object, unknown>());
+}
+
+/** Serialize tool arguments as a JSON object suitable for provider wire payloads. */
+export function serializeToolArguments(value: unknown): string {
+	let candidate = value;
+	if (typeof candidate === "string") {
+		const trimmed = candidate.trim();
+		if (!trimmed) return "{}";
+		try {
+			candidate = JSON.parse(trimmed);
+		} catch {
+			return "{}";
+		}
+	}
+
+	if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return "{}";
+	try {
+		return JSON.stringify(sanitizeJsonStrings(candidate));
+	} catch {
+		return "{}";
+	}
+}
+
+function sanitizeJsonStringsInner(value: unknown, seen: WeakMap<object, unknown>): unknown {
+	if (typeof value === "string") return value.toWellFormed();
+	if (!value || typeof value !== "object") return value;
+	const cached = seen.get(value);
+	if (cached !== undefined) return cached;
+	if (Array.isArray(value)) {
+		const sanitized: unknown[] = [];
+		seen.set(value, sanitized);
+		for (const item of value) {
+			sanitized.push(sanitizeJsonStringsInner(item, seen));
+		}
+		return sanitized;
+	}
+	const sanitized: Record<string, unknown> = {};
+	seen.set(value, sanitized);
+	for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+		sanitized[key] = sanitizeJsonStringsInner(val, seen);
+	}
+	return sanitized;
+}
+
 export function toNumber(value: unknown): number | undefined {
 	if (typeof value === "number" && Number.isFinite(value)) return value;
 	if (typeof value === "string" && value.trim()) {

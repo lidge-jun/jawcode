@@ -56,7 +56,7 @@ Role: OCX proxy that routes Codex-compatible requests to non-OpenAI providers an
 
 ### Interview Decision Patch Plan (2026-07-09)
 
-Decision source: [10.080_gjc_chase_model_provider_effort_fugu_safety.md](../10.080_gjc_chase_model_provider_effort_fugu_safety.md).
+Decision source: [10.080_gjc_chase_model_provider_effort_fugu_safety.md](../_fin/10/10.080_gjc_chase_model_provider_effort_fugu_safety.md).
 
 Import all provider-specific patches, including Fugu/Sakana and ZAI. That does not mean every patch becomes native JWC code. It means every imported provider delta must be triaged across both JWC and OCX, because OCX is the Codex proxy path where provider aliases, model IDs, auth modes, wire adapters, and catalog visibility may need parallel treatment.
 
