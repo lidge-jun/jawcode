@@ -61,6 +61,18 @@ describe("planTasks command shape", () => {
 			"scripts/ci-dev-affected.test.ts",
 		]);
 	});
+
+	test("jwc SDK package changes build natives and the Node bundle before packed smoke", () => {
+		const tasks = planForPaths(["packages/jwc/src/sdk.ts"]);
+		const keys = tasks.map(task => task.key);
+
+		expect(keys).toContain("native-linux-x64");
+		expect(keys).toContain("jwc-sdk-build-node");
+		expect(keys).toContain("jwc-sdk-package-smoke");
+		expect(keys.indexOf("native-linux-x64")).toBeLessThan(keys.indexOf("jwc-sdk-build-node"));
+		expect(keys.indexOf("jwc-sdk-build-node")).toBeLessThan(keys.indexOf("jwc-sdk-package-smoke"));
+		expect(tasks.find(task => task.key === "jwc-sdk-package-smoke")?.cwd).toBe(resolvePackageCwd("packages/jwc"));
+	});
 });
 
 describe("runCommand cwd execution", () => {

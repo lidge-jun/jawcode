@@ -761,23 +761,23 @@ class RpcClient:
             if request.method == "cancel" or request.is_passive():
                 return
             if request.method == "confirm":
-                self.send_workflow_gate_response(request.id, confirm)
+                self.send_ui_confirmation(request.id, confirm)
                 return
             if request.method == "select":
                 if select_value is not None:
-                    self.send_workflow_gate_response(request.id, select_value)
+                    self.send_ui_value(request.id, select_value)
                 else:
                     self.cancel_ui_request(request.id)
                 return
             if request.method == "input":
                 if input_value is not None:
-                    self.send_workflow_gate_response(request.id, input_value)
+                    self.send_ui_value(request.id, input_value)
                 else:
                     self.cancel_ui_request(request.id)
                 return
             if request.method == "editor":
                 if editor_value is not None:
-                    self.send_workflow_gate_response(request.id, editor_value)
+                    self.send_ui_value(request.id, editor_value)
                 else:
                     self.cancel_ui_request(request.id)
 

@@ -2,8 +2,8 @@
   "objective": "34 A cards triage+implement+fin — PABCD infinite loop",
   "slug": "34-a-cards-triage-implement-fin-pabcd-infinite-l",
   "createdAt": "2026-07-17T04:47:24.315Z",
-  "updatedAt": "2026-07-17T05:24:07.565Z",
-  "activeWorkPhaseId": "wp2",
+  "updatedAt": "2026-07-17T05:38:34.083Z",
+  "activeWorkPhaseId": null,
   "workPhases": [
     {
       "id": "wp0",
@@ -70,7 +70,7 @@
     {
       "id": "wp2",
       "title": "WP2+: Implement IMPLEMENT cards",
-      "status": "in_progress",
+      "status": "done",
       "tasks": [],
       "criteriaIds": [
         "c1",
