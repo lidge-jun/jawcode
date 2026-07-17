@@ -1,6 +1,6 @@
 # 20 — omp_chase_MOC (omp 따라잡기)
 
-> 상태: 🟡 운영 중 (2026-07-03 · worktree `89371141`)
+> 상태: 🟡 운영 중 (2026-07-17 · worktree `0e8d9f4`)
 > **정본 디렉터리**: `struct_har/chase/20_*` · `20.NNN_*`
 > **의미**: `devlog/_omp_chase/oh-my-pi` 대비 jwc **약함(G2)** — 참조·설계 (`20.NNN`). **1:1 이식 ❌**
 
@@ -24,7 +24,7 @@
 
 | omp | jwc |
 |---|---|
-| `d0c1890a6` (`origin/main`, v16.3.4) | `89371141` (worktree, 2026-07-03) |
+| `b0d04e517` (`origin/main`, v17.0.1) | `0e8d9f4` (worktree, 2026-07-17) |
 
 > GJC head is intentionally not repeated here; see [10_gjc_chase_MOC.md](./10_gjc_chase_MOC.md).
 
@@ -45,6 +45,8 @@
 | OMP v16.2.5→16.2.9 (175 commits, `ca9f2847e..b6c9747d4`) | 8 reference 클러스터: AI providers/catalog/service-tier, MCP oauth/reauth, compaction/snapcompact/session-scope, TUI loader/MCP-enable, prompts/subagent/discovery, web-search/provider, stats sync/perf, misc(dictation·binary·CJK font·yield·irc·windows) | [20.023](./20.023_omp_chase_ai_providers_catalog_service_tier.md)–[20.030](./20.030_omp_chase_misc_dictation_binary_font_yield_irc_win.md) reference-only (1:1 port ❌) — 미래 설계 입력 |
 | OMP v16.2.9→16.3.1 (433 commits, `b6c9747d4..0ea6ea630`) | 5 reference 클러스터: native/search pipeline, AI thinking/catalog/speech, session/patch/rewind integrity, TUI/collab/browser resilience, tool schema/task/TTS/stats | [20.031](./20.031_omp_chase_native_search_pipeline.md)–[20.034](./20.034_omp_chase_tui_collab_browser_resilience.md) active reference; [20.035](./_fin/20/20.035_omp_chase_tool_schema_task_tts_stats.md) ✅ _fin reference-triage |
 | OMP v16.3.1→16.3.4 (216 commits, `0ea6ea630..d0c1890a6`) | 5 reference clusters: AI catalog/auth/usage, session/async/plan integrity, hashline/tool/plugin/task safety, TUI/terminal/render resilience, robomp/ISO/sandbox/release references | [20.036](./20.036_omp_chase_ai_catalog_auth_usage.md)–[20.040](./20.040_omp_chase_robomp_iso_sandbox_release.md) active reference |
+| OMP v16.3.4→16.3.12 (541 commits, `d0c1890a6..f25ab54c5`) | 4 reference clusters: Codex usage self-heal/auth rotation, LiteLLM catalog/vision metadata, skill autocomplete/discovery/GitHub refs, plan execution/agent hooks/subagent/TTSR | [20.041](./20.041_omp_chase_codex_usage_self_heal_auth_rotation.md)–[20.044](./20.044_omp_chase_plan_execution_agent_subagent_hooks.md) active reference |
+| OMP v16.3.12→16.4.2 (140 non-merge commits, `f25ab54c5..7aa1d581c`) | 6 reference clusters: model catalog GPT-5.6/Grok-4.5/effort tiers, codex broker blocks/responses-lite/version headers, xAI OAuth device flow/replay/reasoning, agent yield/abort/ask-timeout integrity, OAuth refresh serialization/MCP discovery, TUI grid-render/tools/natives/config | [20.045](./20.045_omp_chase_model_catalog_gpt56_grok_effort.md)–[20.050](./20.050_omp_chase_tui_grid_render_tools_natives_config.md) active reference |
 
 ## 활성 (`20.NNN`)
 
@@ -90,6 +92,50 @@
 | 038 | [20.038_omp_chase_hashline_tool_plugin_task_safety.md](./20.038_omp_chase_hashline_tool_plugin_task_safety.md) | hashline/tool/plugin/task safety | reference | ⬜ |
 | 039 | [20.039_omp_chase_tui_terminal_render_resilience.md](./20.039_omp_chase_tui_terminal_render_resilience.md) | TUI/terminal/render resilience | reference | ⬜ |
 | 040 | [20.040_omp_chase_robomp_iso_sandbox_release.md](./20.040_omp_chase_robomp_iso_sandbox_release.md) | robomp/ISO/sandbox/release references | reference | ⬜ |
+| 041 | [20.041_omp_chase_codex_usage_self_heal_auth_rotation.md](./_fin/20/20.041_omp_chase_codex_usage_self_heal_auth_rotation.md) | Codex usage self-heal/auth rotation/credential sharing | reference | ✅ _fin 260709 (reference-triage) |
+| 042 | [20.042_omp_chase_litellm_catalog_vision_metadata.md](./_fin/20/20.042_omp_chase_litellm_catalog_vision_metadata.md) | LiteLLM catalog/vision metadata/cache | reference | ✅ _fin 260709 (reference-triage) |
+| 043 | [20.043_omp_chase_skill_autocomplete_discovery_github.md](./_fin/20/20.043_omp_chase_skill_autocomplete_discovery_github.md) | skill autocomplete/discovery/GitHub refs | reference | ✅ _fin 260709 (reference-triage) |
+| 044 | [20.044_omp_chase_plan_execution_agent_subagent_hooks.md](./_fin/20/20.044_omp_chase_plan_execution_agent_subagent_hooks.md) | plan execution/agent hooks/subagent/TTSR | reference | ✅ _fin 260709 (reference-triage) |
+| 045 | [20.045_omp_chase_model_catalog_gpt56_grok_effort.md](./20.045_omp_chase_model_catalog_gpt56_grok_effort.md) | model catalog: GPT-5.6/Grok-4.5, tier routing, effort tiers | reference | ⬜ |
+| 046 | [20.046_omp_chase_codex_broker_blocks_responses_lite.md](./20.046_omp_chase_codex_broker_blocks_responses_lite.md) | codex broker block guards + responses-lite + cache affinity | reference | ⬜ |
+| 047 | [20.047_omp_chase_xai_oauth_replay_reasoning.md](./20.047_omp_chase_xai_oauth_replay_reasoning.md) | xAI OAuth device flow + replay shapes + reasoning | reference | ⬜ |
+| 048 | [20.048_omp_chase_agent_yield_abort_ask_timeout.md](./20.048_omp_chase_agent_yield_abort_ask_timeout.md) | agent yield/abort/ask-timeout + idle-watchdog integrity | reference | ⬜ |
+| 049 | [20.049_omp_chase_oauth_refresh_serialization_mcp.md](./20.049_omp_chase_oauth_refresh_serialization_mcp.md) | OAuth refresh serialization + MCP discovery/stdio | reference | ⬜ |
+| 050 | [20.050_omp_chase_tui_grid_render_tools_natives_config.md](./20.050_omp_chase_tui_grid_render_tools_natives_config.md) | TUI grid render + tools/natives/config misc — **hub → 050a-e** (render/streaming/ACP · grep/read selectors · natives/bash/clipboard · config/extension/session/realm · providers/usage/orchestration) | reference | ⬜ split 260711 |
+| 20.051 | `omp_chase_model_hub_selector` | ⬜ | P1 | model hub, floating selection, role management, search ranking | `7aa1d581c..b0d04e517` |
+| 20.052 | `omp_chase_catalog_pricing_routing` | ⬜ | P1 | Kimi 65K, MAI routes, GLM-5.2, OpenRouter catalog | `7aa1d581c..b0d04e517` |
+| 20.053 | `omp_chase_auth_oauth_credential` | ⬜ | P1 | credential rotation, serialized refresh, org-scoped identity | `7aa1d581c..b0d04e517` |
+| 20.054 | `omp_chase_provider_transport_schema` | ⬜ | P1 | Vertex effort gating, schema coercion, endpoint and stream guards | `7aa1d581c..b0d04e517` |
+| 20.055 | `omp_chase_model_resolver_fallback` | ⬜ | P1 | hard-error fallback, retry exhaustion, thinking and vision fallback | `7aa1d581c..b0d04e517` |
+| 20.056 | `omp_chase_vibe_mode` | ⬜ | P2 | persistent workers, background agents, session lifecycle | `7aa1d581c..b0d04e517` |
+| 20.057 | `omp_chase_ask_dialog` | ⬜ | P2 | rich ask dialog, multi-select gating, notes and redirects | `7aa1d581c..b0d04e517` |
+| 20.058 | `omp_chase_tui_render_streaming` | ⬜ | P2 | streamed tables and diffs, viewport stability, cmux routing | `7aa1d581c..b0d04e517` |
+| 20.059 | `omp_chase_advisor_steering` | ⬜ | P2 | late blocker steering, unsafe-note quarantine, terminal notes | `7aa1d581c..b0d04e517` |
+| 20.060 | `omp_chase_agent_loop_tool_stream` | ⬜ | P2 | toolUse retry, partial-call cleanup, provider error surfacing | `7aa1d581c..b0d04e517` |
+| 20.061 | `omp_chase_search_grep_tools` | ⬜ | P2 | xAI web search, advanced grep, ranged budgets, xd consolidation | `7aa1d581c..b0d04e517` |
+| 20.062 | `omp_chase_plugin_mcp_discovery` | ⬜ | P2 | plugin guards, MCP roots and stdio, skill reload and cache | `7aa1d581c..b0d04e517` |
+| 20.063 | `omp_chase_session_settings_startup` | ⬜ | P3 | settings collisions, startup bounds, plan reentry, print status | `7aa1d581c..b0d04e517` |
+| 20.064 | `omp_chase_mnemopi_memory_eval` | ⬜ | P3 | memory trim safety, runtime recovery, isolated evals | `7aa1d581c..b0d04e517` |
+| 20.065 | `omp_chase_browser_bash_commit` | ⬜ | P3 | browser watchdogs, shell abort, commit teardown, URL resolution | `7aa1d581c..b0d04e517` |
+| 20.066 | `omp_chase_collab_web_extension` | ⬜ | P3 | markdown rendering, transcript dedup, steer queueing | `7aa1d581c..b0d04e517` |
+| 20.067 | `omp_chase_usage_quota_spend_limit` | ⬜ | P1 | spend-limit taxonomy, usage reconciliation, snapshot validation | `7aa1d581c..b0d04e517` |
+| 20.068 | `omp_chase_tui_sixel_subagent_misc` | ⬜ | P3 | SIXEL sizing, subagent sanitization, CJK and editor edges | `7aa1d581c..b0d04e517` |
+| 20.069 | `omp_chase_centralized_prompt_small_model` | ⬜ | P2 | small-model preprocessing, task-agent resolution, thinking precedence | `7aa1d581c..b0d04e517` |
+| 20.070 | `omp_chase_ci_release_changelog` | ⬜ | P3 | release bumps, changelog dedup, stale tests, CI stabilization | `7aa1d581c..b0d04e517` |
+| 20.071 | `omp_chase_warp_event_bridge` | ⬜ | P2 | Warp TUI events, OSC emitter, permission | `b0d04e517..5394081390` |
+| 20.072 | `omp_chase_cursor_advisor_xdev` | ⬜ | P2 | cursor exec bridge, advisor tools, xdev | `b0d04e517..5394081390` |
+| 20.073 | `omp_chase_tui_rendering_status` | ⬜ | P2 | TUI rendering, status bar, images, skills | `b0d04e517..5394081390` |
+| 20.074 | `omp_chase_ai_credential_redaction` | ⬜ | P1 | credential redaction, blocked retry, BigInt | `b0d04e517..5394081390` |
+| 20.075 | `omp_chase_coding_agent_tool_restoration` | ⬜ | P2 | PlanYolo restore, tool safeguards, xdev | `b0d04e517..5394081390` |
+| 20.076 | `omp_chase_session_plan_lifecycle` | ⬜ | P2 | session dispose, plan exits, role model | `b0d04e517..5394081390` |
+| 20.077 | `omp_chase_plugins_commonjs_mcp` | ⬜ | P2 | CommonJS/ESM, plugin reload, MCP ownership | `b0d04e517..5394081390` |
+| 20.078 | `omp_chase_bash_irc_registry` | ⬜ | P3 | bash timeout, PTY shells, IRC lifecycle | `b0d04e517..5394081390` |
+| 20.079 | `omp_chase_codex_lite_telemetry` | ⬜ | P2 | Codex Lite, telemetry OTLP, generate_image | `b0d04e517..5394081390` |
+| 20.080 | `omp_chase_ci_style_changelog` | ⬜ | P3 | CI, style, changelog, test fixes | `b0d04e517..5394081390` |
+
+> **260717 delta**: +20 cards (20.051–20.070), range `7aa1d581c..b0d04e517` (v16.4.2→v17.0.1, 586 non-merge).
+
+> **260717 delta (supplement 2)**: +10 cards (20.071–20.080), range `b0d04e517..5394081390` (v17.0.1+, 175 non-merge).
 
 ## 완료
 

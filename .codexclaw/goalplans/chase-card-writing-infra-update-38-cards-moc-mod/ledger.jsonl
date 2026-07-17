@@ -1,0 +1,5 @@
+{"ts":"2026-07-17T03:40:42.462Z","slug":"chase-card-writing-infra-update-38-cards-moc-mod","event":"created","detail":"init objective=\"chase card writing + infra update: 38 cards + MOC + model/ update based on 260717 tracking docs\" criteria=0"}
+{"ts":"2026-07-17T03:42:37.740Z","slug":"chase-card-writing-infra-update-38-cards-moc-mod","event":"workphase_done","detail":"closed wp1"}
+{"ts":"2026-07-17T03:42:37.740Z","slug":"chase-card-writing-infra-update-38-cards-moc-mod","event":"workphase_started","detail":"started wp2"}
+{"ts":"2026-07-17T03:57:48.691Z","slug":"chase-card-writing-infra-update-38-cards-moc-mod","event":"workphase_done","detail":"closed wp2"}
+{"ts":"2026-07-17T03:57:48.691Z","slug":"chase-card-writing-infra-update-38-cards-moc-mod","event":"workphase_started","detail":"started wp3"}

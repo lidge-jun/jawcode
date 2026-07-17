@@ -1,0 +1,5 @@
+{"ts":"2026-07-10T23:48:57.148Z","slug":"close-all-non-deferred-chase-gaps-in-jawcode-by","event":"created","detail":"init objective=\"Close all non-deferred chase gaps in jawcode by implementing code changes or recording reject/adapt decisions with verification. WP1-WP9 covering 10.080,083,085,084,073,070,067,082-split,066,072,074,068,076,086,071,075 and OMP reference sweep 20.018,024,046,048,049.\" criteria=0"}
+{"ts":"2026-07-11T00:31:23.598Z","slug":"close-all-non-deferred-chase-gaps-in-jawcode-by","event":"workphase_done","detail":"closed wp2-session-rpc"}
+{"ts":"2026-07-11T00:31:23.598Z","slug":"close-all-non-deferred-chase-gaps-in-jawcode-by","event":"workphase_started","detail":"started wp3-workflow-goal"}
+{"ts":"2026-07-11T00:48:48.638Z","slug":"close-all-non-deferred-chase-gaps-in-jawcode-by","event":"workphase_done","detail":"closed wp3-workflow-goal"}
+{"ts":"2026-07-11T00:48:48.638Z","slug":"close-all-non-deferred-chase-gaps-in-jawcode-by","event":"workphase_started","detail":"started wp4-irc-core"}

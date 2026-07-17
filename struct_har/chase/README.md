@@ -17,13 +17,13 @@
 
 [008_gjc_jwc_naming_contract.md](./008_gjc_jwc_naming_contract.md) — upstream `gjc-rpc` → jaw **`python/jwc-rpc`** (`jwc_rpc`).
 
-## 정본 축 (2026-07-03)
+## 정본 축 (2026-07-17)
 
 | 축 | 클론 / SoT | struct_har 대조 |
 |---|---|---|
-| **gjc** | `devlog/_gjc_chase/gajae-code/` @ **`db7938e1`** (`upstream/dev`) | [../gjc_origin/](../gjc_origin/) |
-| **jwc** | worktree @ **`89371141`** | [../jwc_patched/](../jwc_patched/) · [structure/](../../structure/) |
-| **omp** | `devlog/_omp_chase/oh-my-pi/` @ **`d0c1890a6`** (`origin/main`) | [../omp_origin/](../omp_origin/) |
+| **gjc** | `devlog/_gjc_chase/gajae-code/` @ **`904eab21c`** (`upstream/dev`, v0.11.1+) | [../gjc_origin/](../gjc_origin/) |
+| **jwc** | worktree @ **`0e8d9f4`**+dirty | [../jwc_patched/](../jwc_patched/) · [structure/](../../structure/) |
+| **omp** | `devlog/_omp_chase/oh-my-pi/` @ **`5394081390`** (`origin/main`, v17.0.1+) | [../omp_origin/](../omp_origin/) |
 | **자체 백로그** | 99·M2·OSS | [006_jwc_own_backlog.md](./006_jwc_own_backlog.md) |
 
 ## 문서 트리
@@ -39,6 +39,7 @@
 | [005_devlog_numbering.md](./005_devlog_numbering.md) | NNN · `_fin` |
 | [006_jwc_own_backlog.md](./006_jwc_own_backlog.md) | G3/G4 |
 | [bands/](./bands/) | 밴드 카드 |
+| [model/](./model/) | **모델/프로바이더** 지원 전용 참조 (cross-project 패치 인덱스) |
 
 ## 갱신
 

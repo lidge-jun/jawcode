@@ -1,0 +1,59 @@
+{
+  "objective": "GJC 41 additional commits chase cards 10.105-10.107 + MOC pin update",
+  "slug": "gjc-41-additional-commits-chase-cards-10-105-10",
+  "createdAt": "2026-07-17T04:10:09.207Z",
+  "updatedAt": "2026-07-17T04:25:00.000Z",
+  "activeWorkPhaseId": null,
+  "workPhases": [
+    {
+      "id": "wp1",
+      "title": "Cards 10.105-10.107 + MOC update",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp1-t1",
+          "title": "3 chase cards",
+          "status": "done"
+        },
+        {
+          "id": "wp1-t2",
+          "title": "MOC+README+gap pin update",
+          "status": "done"
+        }
+      ],
+      "criteriaIds": [
+        "c1",
+        "c2",
+        "c3"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "c1",
+      "scenario": "3 cards written",
+      "expectedEvidence": "ls shows 10.105-10.107",
+      "capturedEvidence": "ls shows 10.105, 10.106, 10.107 (3 cards)",
+      "status": "met"
+    },
+    {
+      "id": "c2",
+      "scenario": "41 commits covered",
+      "expectedEvidence": "all 41 hashes in cards",
+      "capturedEvidence": "19+18+4=41 commits, verified by Hooke subagent, 0 gaps",
+      "status": "met"
+    },
+    {
+      "id": "c3",
+      "scenario": "MOC+pins updated",
+      "expectedEvidence": "grep shows new rows and pins",
+      "capturedEvidence": "Banach: MOC +3 rows, README pin 904eab21c, gap inventory updated, follow index +3 entries",
+      "status": "met"
+    }
+  ],
+  "host": {
+    "armed": true,
+    "armedAt": "2026-07-17T04:16:00.000Z",
+    "source": "freeze"
+  }
+}

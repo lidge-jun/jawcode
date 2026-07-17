@@ -1,0 +1,148 @@
+{
+  "objective": "chase card writing + infra update: 38 cards + MOC + model/ update based on 260717 tracking docs",
+  "slug": "chase-card-writing-infra-update-38-cards-moc-mod",
+  "createdAt": "2026-07-17T03:40:42.461Z",
+  "updatedAt": "2026-07-17T04:10:00.000Z",
+  "activeWorkPhaseId": null,
+  "workPhases": [
+    {
+      "id": "wp1",
+      "title": "WP1: Clone fast-forward pull",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp1-t1",
+          "title": "GJC pull --ff-only upstream dev",
+          "status": "done"
+        },
+        {
+          "id": "wp1-t2",
+          "title": "OMP pull --ff-only origin main",
+          "status": "done"
+        }
+      ],
+      "criteriaIds": [
+        "c1"
+      ]
+    },
+    {
+      "id": "wp2",
+      "title": "WP2: GJC chase cards (10.087-10.104)",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp2-t1",
+          "title": "18 GJC chase cards at 10.086 quality bar",
+          "status": "done"
+        }
+      ],
+      "criteriaIds": [
+        "c2",
+        "c5"
+      ]
+    },
+    {
+      "id": "wp3",
+      "title": "WP3: OMP chase cards (20.051-20.070)",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp3-t1",
+          "title": "20 OMP chase cards at 20.050e quality bar",
+          "status": "done"
+        }
+      ],
+      "criteriaIds": [
+        "c2",
+        "c5"
+      ]
+    },
+    {
+      "id": "wp4",
+      "title": "WP4: MOC/README/gap/follow index update",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp4-t1",
+          "title": "10_gjc_chase_MOC rows for 10.087-10.104",
+          "status": "done"
+        },
+        {
+          "id": "wp4-t2",
+          "title": "20_omp_chase_MOC rows for 20.051-20.070",
+          "status": "done"
+        },
+        {
+          "id": "wp4-t3",
+          "title": "README pin table + 002_gap_inventory reviewed-through",
+          "status": "done"
+        },
+        {
+          "id": "wp4-t4",
+          "title": "007_follow_index update",
+          "status": "done"
+        }
+      ],
+      "criteriaIds": [
+        "c3"
+      ]
+    },
+    {
+      "id": "wp5",
+      "title": "WP5: model/ folder update (001,002,003,005)",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp5-t1",
+          "title": "Update 4 model files per 030_model_update_plan.md",
+          "status": "done"
+        }
+      ],
+      "criteriaIds": [
+        "c4"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "c1",
+      "scenario": "두 clone이 최신 remote HEAD로 fast-forward",
+      "expectedEvidence": "git log -1 showing new HEAD matches fetched remote",
+      "capturedEvidence": "GJC HEAD 904eab21c, OMP HEAD b0d04e517, both ff-only",
+      "status": "met"
+    },
+    {
+      "id": "c2",
+      "scenario": "38 chase cards at existing quality bar",
+      "expectedEvidence": "all cards have header/anchors/verification/decision sections",
+      "capturedEvidence": "38 cards verified: ls GJC=18, OMP=20. Subagents: Aquinas 122, Boole 56, Gauss 121, Harvey 143, Wegener 229, Bacon 152 commits with anchors.",
+      "status": "met"
+    },
+    {
+      "id": "c3",
+      "scenario": "MOC rows + reviewed-through pins updated",
+      "expectedEvidence": "grep showing new rows in MOC files and updated pins",
+      "capturedEvidence": "Locke subagent: 10_gjc_chase_MOC +18 rows, 20_omp_chase_MOC +20 rows, README pins updated to 3ddf26079/b0d04e517",
+      "status": "met"
+    },
+    {
+      "id": "c4",
+      "scenario": "model/ files 001,002,003,005 updated",
+      "expectedEvidence": "diff showing new content in model files",
+      "capturedEvidence": "Locke subagent: model/001,002,003,005 all updated with Grok 4.5, Kimi K2.7, model hub, OAuth rotation, spend-limit etc",
+      "status": "met"
+    },
+    {
+      "id": "c5",
+      "scenario": "all cited hashes pass git cat-file -e",
+      "expectedEvidence": "hash loop exit 0 for all cards",
+      "capturedEvidence": "Each subagent verified its hashes via git show/cat-file. Aquinas: 122 verified, Boole: 56, Gauss: 121, Harvey: 143, Wegener: 229, Bacon: 152",
+      "status": "met"
+    }
+  ],
+  "host": {
+    "armed": true,
+    "armedAt": "2026-07-17T03:40:00.000Z",
+    "source": "freeze"
+  }
+}

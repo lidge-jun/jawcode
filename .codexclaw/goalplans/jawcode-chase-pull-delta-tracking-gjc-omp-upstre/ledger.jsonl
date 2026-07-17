@@ -1,0 +1,5 @@
+{"ts":"2026-07-17T02:44:10.544Z","slug":"jawcode-chase-pull-delta-tracking-gjc-omp-upstre","event":"created","detail":"init objective=\"jawcode chase pull delta tracking: GJC+OMP upstream 델타를 클러스터별 세부 파일로 분해, sol 병렬 dispatch 추적 문서 완성. Phase 0: docs-first roadmap, Phase 1: GJC 세부 파일, Phase 2: OMP 세부 파일, Phase 3: model 교차 추적 + dispatch\" criteria=0"}
+{"ts":"2026-07-17T02:57:13.358Z","slug":"jawcode-chase-pull-delta-tracking-gjc-omp-upstre","event":"workphase_done","detail":"closed wp0"}
+{"ts":"2026-07-17T02:57:13.358Z","slug":"jawcode-chase-pull-delta-tracking-gjc-omp-upstre","event":"workphase_started","detail":"started wp1"}
+{"ts":"2026-07-17T03:24:35.490Z","slug":"jawcode-chase-pull-delta-tracking-gjc-omp-upstre","event":"workphase_done","detail":"closed wp1"}
+{"ts":"2026-07-17T03:24:35.492Z","slug":"jawcode-chase-pull-delta-tracking-gjc-omp-upstre","event":"workphase_started","detail":"started wp2"}

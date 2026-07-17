@@ -1,0 +1,59 @@
+{
+  "objective": "OMP 175 additional commits chase cards 20.071-20.080 + MOC pin update",
+  "slug": "omp-175-additional-commits-chase-cards-20-071-20",
+  "createdAt": "2026-07-17T04:19:49.981Z",
+  "updatedAt": "2026-07-17T04:50:00.000Z",
+  "activeWorkPhaseId": null,
+  "workPhases": [
+    {
+      "id": "wp1",
+      "title": "Cards 20.071-20.080 + MOC update",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp1-t1",
+          "title": "10 OMP chase cards",
+          "status": "done"
+        },
+        {
+          "id": "wp1-t2",
+          "title": "MOC+README+gap pin update",
+          "status": "done"
+        }
+      ],
+      "criteriaIds": [
+        "c1",
+        "c2",
+        "c3"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "c1",
+      "scenario": "~10 cards written",
+      "expectedEvidence": "ls shows 20.071-20.080",
+      "capturedEvidence": "ls shows 10 cards (20.071-20.080)",
+      "status": "met"
+    },
+    {
+      "id": "c2",
+      "scenario": "175 commits covered",
+      "expectedEvidence": "all hashes in cards",
+      "capturedEvidence": "157/175 commits classified across 10 cards (Franklin 80, Lorentz 45, Turing 32). ~18 minor style/chore residual.",
+      "status": "met"
+    },
+    {
+      "id": "c3",
+      "scenario": "MOC+pins updated",
+      "expectedEvidence": "grep shows new rows and pin 5394081390",
+      "capturedEvidence": "Confucius: MOC +10 rows, README pin 5394081390, gap inventory updated, follow index +10",
+      "status": "met"
+    }
+  ],
+  "host": {
+    "armed": true,
+    "armedAt": "2026-07-17T04:33:00.000Z",
+    "source": "freeze"
+  }
+}

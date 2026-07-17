@@ -1,0 +1,171 @@
+{
+  "objective": "jawcode chase pull delta tracking: GJC+OMP upstream 델타를 클러스터별 세부 파일로 분해, sol 병렬 dispatch 추적 문서 완성. Phase 0: docs-first roadmap, Phase 1: GJC 세부 파일, Phase 2: OMP 세부 파일, Phase 3: model 교차 추적 + dispatch",
+  "slug": "jawcode-chase-pull-delta-tracking-gjc-omp-upstre",
+  "createdAt": "2026-07-17T02:44:10.543Z",
+  "updatedAt": "2026-07-17T03:30:00.000Z",
+  "activeWorkPhaseId": null,
+  "workPhases": [
+    {
+      "id": "wp0",
+      "title": "Phase 0: docs-first roadmap — monolithic 파일을 세부 파일 구조로 재설계",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp0-t1",
+          "title": "260711 패턴 분석: 기존 chase_card_cycle의 파일 구조/명명 규약 추출",
+          "status": "done"
+        },
+        {
+          "id": "wp0-t2",
+          "title": "devlog unit 파일 트리 설계 (decade docs: 000-range research + 010/020/030 phase docs)",
+          "status": "done"
+        },
+        {
+          "id": "wp0-t3",
+          "title": "기존 monolithic 4개 파일을 목차(index)로 전환하는 계획 작성",
+          "status": "done"
+        },
+        {
+          "id": "wp0-t4",
+          "title": "000_plan.md 작성 (전체 로드맵, 파일 맵, 의존성 순서)",
+          "status": "done"
+        }
+      ],
+      "criteriaIds": [
+        "c1",
+        "c5"
+      ]
+    },
+    {
+      "id": "wp1",
+      "title": "Phase 1: GJC 302 커밋 → 18개 클러스터별 개별 세부 파일",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp1-t1",
+          "title": "GJC non-merge 커밋 전수 목록 추출 + 클러스터 배정",
+          "status": "done"
+        },
+        {
+          "id": "wp1-t2",
+          "title": "클러스터별 세부 파일 작성 (010_gjc_C01~C18, 커밋 해시 전수)",
+          "status": "done"
+        },
+        {
+          "id": "wp1-t3",
+          "title": "batch-note 커밋 (version bumps, CI-only 등) 분류 파일 작성",
+          "status": "done"
+        }
+      ],
+      "criteriaIds": [
+        "c1",
+        "c2"
+      ]
+    },
+    {
+      "id": "wp2",
+      "title": "Phase 2: OMP 586 커밋 → 20개 클러스터별 개별 세부 파일",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp2-t1",
+          "title": "OMP non-merge 커밋 전수 목록 추출 + 클러스터 배정",
+          "status": "done"
+        },
+        {
+          "id": "wp2-t2",
+          "title": "클러스터별 세부 파일 작성 (020_omp_D01~D20, 커밋 해시 전수)",
+          "status": "done"
+        },
+        {
+          "id": "wp2-t3",
+          "title": "batch-note 커밋 분류 파일 작성",
+          "status": "done"
+        }
+      ],
+      "criteriaIds": [
+        "c1",
+        "c2"
+      ]
+    },
+    {
+      "id": "wp3",
+      "title": "Phase 3: model/provider 교차 추적 + sol dispatch 세부 배분",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp3-t1",
+          "title": "GJC model delta 세부 파일 (030_model_gjc_delta.md)",
+          "status": "done"
+        },
+        {
+          "id": "wp3-t2",
+          "title": "OMP model delta 세부 파일 (030_model_omp_delta.md)",
+          "status": "done"
+        },
+        {
+          "id": "wp3-t3",
+          "title": "model/ 폴더 갱신 계획 (030_model_update_plan.md)",
+          "status": "done"
+        },
+        {
+          "id": "wp3-t4",
+          "title": "sol dispatch 세부 배분 문서 (040_sol_dispatch_detail.md)",
+          "status": "done"
+        },
+        {
+          "id": "wp3-t5",
+          "title": "기존 monolithic 파일 → index 전환 완료",
+          "status": "done"
+        }
+      ],
+      "criteriaIds": [
+        "c3",
+        "c4",
+        "c5"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "c1",
+      "scenario": "세부 파일이 260711 카드 수준 diff-level 정밀도 (커밋 해시, 파일 경로, 주제 분류)",
+      "expectedEvidence": "각 세부 파일에 커밋 해시 테이블 + 파일 경로 + 주제 태그 존재",
+      "capturedEvidence": "All 40 cluster files have commit hash tables with file paths and theme tags. Verified by Mencius/Fermat/Anscombe/Nietzsche/Bohr/Jason subagents.",
+      "status": "met"
+    },
+    {
+      "id": "c2",
+      "scenario": "GJC 302 + OMP 586 non-merge 커밋 전수가 최소 하나의 세부 파일에 배정",
+      "expectedEvidence": "git rev-list --count 교차 검증으로 누락 0 확인",
+      "capturedEvidence": "GJC 302/302 (Heisenberg verified, 44 gap filled). OMP 586/586 (Plato verified, 262 gap filled). Zero remaining gaps.",
+      "status": "met"
+    },
+    {
+      "id": "c3",
+      "scenario": "model/provider 관련 커밋 이중 태깅 (클러스터 파일 + model 교차 파일)",
+      "expectedEvidence": "model delta 파일에 해당 커밋 전수 + 클러스터 파일 역참조 존재",
+      "capturedEvidence": "030_model_gjc_delta.md (24 hashes, 6 clusters) + 030_model_omp_delta.md (8 clusters) created by Nash. Cross-references link to 010/020 cluster files.",
+      "status": "met"
+    },
+    {
+      "id": "c4",
+      "scenario": "sol dispatch slots에 disjoint write scope 명시",
+      "expectedEvidence": "dispatch 문서에 worker별 write scope 테이블, scope 겹침 0",
+      "capturedEvidence": "040_sol_dispatch_gjc.md (7 workers) + 040_sol_dispatch_omp.md (10 workers) with disjoint card paths verified by Nash. 38 card paths, 0 overlaps.",
+      "status": "met"
+    },
+    {
+      "id": "c5",
+      "scenario": "기존 monolithic 파일이 세부 파일로 대체 (목차/index로 전환)",
+      "expectedEvidence": "10_/20_/30_/40_ 파일이 세부 파일 링크 목차로 변환됨",
+      "capturedEvidence": "10_/20_/30_/40_ files converted to INDEX with link tables. grep INDEX count=8 matches across 4 files.",
+      "status": "met"
+    }
+  ],
+  "host": {
+    "armed": true,
+    "armedAt": "2026-07-17T02:44:10.543Z",
+    "source": "freeze"
+  }
+}

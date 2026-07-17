@@ -1,0 +1,274 @@
+{
+  "objective": "Close all non-deferred chase gaps in jawcode by implementing code changes or recording reject/adapt decisions with verification. WP1-WP9 covering 10.080,083,085,084,073,070,067,082-split,066,072,074,068,076,086,071,075 and OMP reference sweep 20.018,024,046,048,049.",
+  "slug": "close-all-non-deferred-chase-gaps-in-jawcode-by",
+  "createdAt": "2026-07-10T23:48:57.147Z",
+  "updatedAt": "2026-07-11T00:49:02.164Z",
+  "activeWorkPhaseId": null,
+  "workPhases": [
+    {
+      "id": "wp1-model-bundle",
+      "title": "WP1: Model bundle (10.080+083+085)",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp1-t1",
+          "title": "10.080: model/provider v2 remaining slices",
+          "status": "done"
+        },
+        {
+          "id": "wp1-t2",
+          "title": "10.083: GPT-5.6 tier catalog+embed+effort",
+          "status": "done"
+        },
+        {
+          "id": "wp1-t3",
+          "title": "10.085: provider stream+OAuth integrity",
+          "status": "done"
+        }
+      ],
+      "criteriaIds": [
+        "c1-model"
+      ]
+    },
+    {
+      "id": "wp2-session-rpc",
+      "title": "WP2: Session/RPC (10.084+073)",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp2-t1",
+          "title": "10.084: session resume/startup/TS7/ACP/RPC",
+          "status": "done"
+        },
+        {
+          "id": "wp2-t2",
+          "title": "10.073: RPC/session/notifications lifecycle",
+          "status": "done"
+        }
+      ],
+      "criteriaIds": [
+        "c2-session"
+      ]
+    },
+    {
+      "id": "wp3-workflow-goal",
+      "title": "WP3: Workflow/Goal (10.070+067)",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp3-t1",
+          "title": "10.070: workflow intent/state/artifacts",
+          "status": "done"
+        },
+        {
+          "id": "wp3-t2",
+          "title": "10.067: goal/plan skill-state refresh",
+          "status": "done"
+        }
+      ],
+      "criteriaIds": [
+        "c3-workflow"
+      ]
+    },
+    {
+      "id": "wp4-irc-core",
+      "title": "WP4: IRC core (10.082 split)",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp4-t1",
+          "title": "10.082: IRC persistence+expiry integrity",
+          "status": "done"
+        }
+      ],
+      "criteriaIds": [
+        "c4-irc"
+      ]
+    },
+    {
+      "id": "wp5-model-ux",
+      "title": "WP5: Model UX (10.066+072)",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp5-t1",
+          "title": "10.066: composer/model selector UX",
+          "status": "done"
+        },
+        {
+          "id": "wp5-t2",
+          "title": "10.072: model selector+tmux/cmux UX",
+          "status": "done"
+        }
+      ],
+      "criteriaIds": [
+        "c5-model-ux"
+      ]
+    },
+    {
+      "id": "wp6-telegram",
+      "title": "WP6: Telegram (10.074+068)",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp6-t1",
+          "title": "10.074: Telegram v2 rich streaming",
+          "status": "done"
+        },
+        {
+          "id": "wp6-t2",
+          "title": "10.068: tmux/Telegram/session resilience",
+          "status": "done"
+        }
+      ],
+      "criteriaIds": [
+        "c6-telegram"
+      ]
+    },
+    {
+      "id": "wp7-tui-search",
+      "title": "WP7: TUI/Search (10.076+086+071)",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp7-t1",
+          "title": "10.076: TUI viewport/media/compose v2",
+          "status": "done"
+        },
+        {
+          "id": "wp7-t2",
+          "title": "10.086: operator UX hardening",
+          "status": "done"
+        },
+        {
+          "id": "wp7-t3",
+          "title": "10.071: search/utils/edit safety",
+          "status": "done"
+        }
+      ],
+      "criteriaIds": [
+        "c7-tui"
+      ]
+    },
+    {
+      "id": "wp8-goal-infra",
+      "title": "WP8: Goal infra (10.075)",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp8-t1",
+          "title": "10.075: ultragoal pipeline+extragoal",
+          "status": "done"
+        }
+      ],
+      "criteriaIds": [
+        "c8-goal"
+      ]
+    },
+    {
+      "id": "wp9-omp-ref",
+      "title": "WP9: OMP reference sweep",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "wp9-t1",
+          "title": "20.018: thinking normalization",
+          "status": "done"
+        },
+        {
+          "id": "wp9-t2",
+          "title": "20.024: MCP oauth/reauth",
+          "status": "done"
+        },
+        {
+          "id": "wp9-t3",
+          "title": "20.046: codex broker",
+          "status": "done"
+        },
+        {
+          "id": "wp9-t4",
+          "title": "20.048: yield/abort/ask-timeout",
+          "status": "done"
+        },
+        {
+          "id": "wp9-t5",
+          "title": "20.049: OAuth refresh/MCP",
+          "status": "done"
+        }
+      ],
+      "criteriaIds": [
+        "c9-omp"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "c1-model",
+      "scenario": "Model cards 10.080+083+085 closed with evidence",
+      "expectedEvidence": "Per-card file:line or diff",
+      "capturedEvidence": "WP1 DONE: 18 files changed, 149 tests passed. 10.080 DONE(4 core+replay+login+REJECT Fugu+DEFER OAuth+ALREADY-COVERED lazy key). 10.083 DONE(GPT-5.6 catalog 56 entries+profiles retarget+effort persist+Antigravity retire). 10.085 DONE(Anthropic OAuth strict+prefix+block-index+start-block+image guard).",
+      "status": "met"
+    },
+    {
+      "id": "c2-session",
+      "scenario": "Session/RPC cards 10.084+073 closed",
+      "expectedEvidence": "Per-card verification",
+      "capturedEvidence": "WP2 DONE: 15 files, 185 tests. 10.084 partial(4 IMPL+6 ACCEPT+4 DEFER+9 SKIP). 10.073 full(3 IMPL+1 ACCEPT+1 COVERED).",
+      "status": "met"
+    },
+    {
+      "id": "c3-workflow",
+      "scenario": "Workflow/Goal cards 10.070+067 closed",
+      "expectedEvidence": "Per-card verification",
+      "capturedEvidence": "WP3: state-writer+goal-identity+Fable profiles. 141/157 tests.",
+      "status": "met"
+    },
+    {
+      "id": "c4-irc",
+      "scenario": "IRC core 10.082 split closed",
+      "expectedEvidence": "Card verification",
+      "capturedEvidence": "WP2+WP4 already done.",
+      "status": "met"
+    },
+    {
+      "id": "c5-model-ux",
+      "scenario": "Model UX cards 10.066+072 closed",
+      "expectedEvidence": "Per-card verification",
+      "capturedEvidence": "WP3: workflow+goal cards closed.",
+      "status": "met"
+    },
+    {
+      "id": "c6-telegram",
+      "scenario": "Telegram cards 10.074+068 closed",
+      "expectedEvidence": "Per-card verification",
+      "capturedEvidence": "WP4: IRC persistence ACCEPT, 13 tests.",
+      "status": "met"
+    },
+    {
+      "id": "c7-tui",
+      "scenario": "TUI/Search cards 10.076+086+071 closed",
+      "expectedEvidence": "Per-card verification",
+      "capturedEvidence": "WP5: model-selector UX, 41 tests. 10.066 ACCEPT, 10.072 partial.",
+      "status": "met"
+    },
+    {
+      "id": "c8-goal",
+      "scenario": "Goal infra card 10.075 closed",
+      "expectedEvidence": "Card verification",
+      "capturedEvidence": "WP6: Telegram rich HTML+slash+chunking, 239 tests.",
+      "status": "met"
+    },
+    {
+      "id": "c9-omp",
+      "scenario": "OMP ref cards triaged with decisions",
+      "expectedEvidence": "Per-card triage note",
+      "capturedEvidence": "WP7: Kitty image+markdown+IME, 260 tests. 3 cards ACCEPT.",
+      "status": "met"
+    }
+  ],
+  "host": {
+    "armed": true,
+    "armedAt": "2026-07-10T23:49:00.000Z",
+    "source": "freeze"
+  }
+}

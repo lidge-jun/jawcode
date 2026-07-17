@@ -1,0 +1,18 @@
+{
+  "phase": "IDLE",
+  "sessionId": "cli",
+  "slug": "close-all-non-deferred-chase-gaps-in-jawcode-by",
+  "updatedAt": "2026-07-11T00:48:48.637Z",
+  "flags": {
+    "interview": false,
+    "auditPassed": false,
+    "checkPassed": false
+  },
+  "supersededBy": null,
+  "injectedTurns": [],
+  "lastInjectedPhase": null,
+  "orchestrationActive": false,
+  "interview": null,
+  "stopBlockPhase": null,
+  "stopBlockCount": 0
+}

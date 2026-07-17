@@ -1,18 +1,18 @@
 {
   "roles": {
     "explorer": {
-      "mode": "default",
-      "model": null,
+      "mode": "model",
+      "model": "gpt-5.5",
       "promptOverride": null
     },
     "reviewer": {
-      "mode": "default",
-      "model": null,
+      "mode": "model",
+      "model": "gpt-5.5",
       "promptOverride": null
     },
     "executor": {
-      "mode": "default",
-      "model": null,
+      "mode": "model",
+      "model": "gpt-5.5",
       "promptOverride": null
     }
   }
