@@ -227,3 +227,8 @@
 {"ts":"2026-07-17T06:41:36.167Z","sessionId":"019f6de9-f741-7233-9af9-c1684303685b","from":"IDLE","to":"P","reason":"cli"}
 {"ts":"2026-07-17T06:41:36.220Z","sessionId":"019f6de9-f741-7233-9af9-c1684303685b","from":"P","to":"A","reason":"cli","evidence":"WP3 P: 2 auth/transport cards. Plan in 030_wp3_auth_transport.md."}
 {"ts":"2026-07-17T06:41:36.272Z","sessionId":"019f6de9-f741-7233-9af9-c1684303685b","from":"A","to":"B","reason":"cli","evidence":"WP3 A: self-audit pass, 2 cards with clear targets, WP1+WP2 foundation landed"}
+{"ts":"2026-07-17T07:00:24.071Z","sessionId":"019f6de9-f741-7233-9af9-c1684303685b","from":"B","to":"C","reason":"cli","evidence":"WP3 B: 2 cards implemented. 20.047(xAI device flow, 7t), 20.079(Codex Lite, 13t). Committed."}
+{"ts":"2026-07-17T07:00:24.126Z","sessionId":"019f6de9-f741-7233-9af9-c1684303685b","from":"C","to":"IDLE","reason":"done","evidence":"WP3 C verified: 20 focused tests passed, Biome passed"}
+{"ts":"2026-07-17T07:00:41.013Z","sessionId":"019f6de9-f741-7233-9af9-c1684303685b","from":"IDLE","to":"P","reason":"cli"}
+{"ts":"2026-07-17T07:00:41.064Z","sessionId":"019f6de9-f741-7233-9af9-c1684303685b","from":"P","to":"A","reason":"cli","evidence":"WP4 P: 4 TUI/UX cards. Plan in 040_wp4_tui_ux.md."}
+{"ts":"2026-07-17T07:00:41.117Z","sessionId":"019f6de9-f741-7233-9af9-c1684303685b","from":"A","to":"B","reason":"cli","evidence":"WP4 A: self-audit, TUI targets concrete, independent of WP1-3"}

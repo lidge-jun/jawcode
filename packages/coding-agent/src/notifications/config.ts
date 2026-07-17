@@ -3,6 +3,22 @@ import type { Settings } from "../config/settings";
 
 export type NotificationVerbosity = "lean" | "verbose";
 
+/** Per-spawn marker set by JWC-owned separate-process child launchers. */
+export const NOTIFICATION_CHILD_SESSION_ENV = "JWC_SPAWNED_BY_SESSION";
+const LEGACY_NOTIFICATION_CHILD_SESSION_ENV = "GJC_SPAWNED_BY_SESSION";
+
+/**
+ * Consume the one-generation child marker. Deleting it prevents a marked child from implicitly
+ * marking its own descendants; each JWC spawn site must set provenance for the child it creates.
+ */
+export function consumeNotificationChildSessionMarker(env: NodeJS.ProcessEnv = process.env): boolean {
+	const marked =
+		Object.hasOwn(env, NOTIFICATION_CHILD_SESSION_ENV) || Object.hasOwn(env, LEGACY_NOTIFICATION_CHILD_SESSION_ENV);
+	delete env[NOTIFICATION_CHILD_SESSION_ENV];
+	delete env[LEGACY_NOTIFICATION_CHILD_SESSION_ENV];
+	return marked;
+}
+
 export interface NotificationSettingsSnapshot {
 	enabled: boolean;
 	botToken: string | undefined;

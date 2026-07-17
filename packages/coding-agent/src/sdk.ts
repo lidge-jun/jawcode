@@ -1964,6 +1964,8 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 			sessionId: logicalSessionId,
 			cwd,
 			taskDepth: options.taskDepth,
+			parentTaskPrefix: options.parentTaskPrefix,
+			currentAgentType: options.currentAgentType,
 			registerCleanup: (name, cleanup) => toolCleanups.set(name, cleanup),
 		});
 

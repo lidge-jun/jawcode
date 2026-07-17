@@ -2,8 +2,8 @@
   "objective": "A cards 17 implementation: provider safety, model catalog, auth/transport, TUI/UX",
   "slug": "a-cards-17-implementation-provider-safety-model",
   "createdAt": "2026-07-17T06:04:04.507Z",
-  "updatedAt": "2026-07-17T06:40:00.000Z",
-  "activeWorkPhaseId": "wp3",
+  "updatedAt": "2026-07-17T07:00:00.000Z",
+  "activeWorkPhaseId": "wp4",
   "workPhases": [
     {
       "id": "wp0",
@@ -95,17 +95,17 @@
     {
       "id": "wp3",
       "title": "WP3: Auth/transport (20.047, 20.079)",
-      "status": "in_progress",
+      "status": "done",
       "tasks": [
         {
           "id": "wp3-t1",
           "title": "20.047 xAI device flow",
-          "status": "pending"
+          "status": "done"
         },
         {
           "id": "wp3-t2",
           "title": "20.079 Codex Lite",
-          "status": "pending"
+          "status": "done"
         }
       ],
       "criteriaIds": [
@@ -117,7 +117,7 @@
     {
       "id": "wp4",
       "title": "WP4: TUI/UX (10.091, 10.092, 10.094, 20.057)",
-      "status": "pending",
+      "status": "in_progress",
       "tasks": [
         {
           "id": "wp4-t1",

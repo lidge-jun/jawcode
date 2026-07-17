@@ -5,6 +5,7 @@ import type { AppKeybinding } from "../../config/keybindings";
 type ConfigurableEditorAction = Extract<
 	AppKeybinding,
 	| "app.interrupt"
+	| "app.commandPalette.open"
 	| "app.clear"
 	| "app.exit"
 	| "app.suspend"
@@ -25,6 +26,7 @@ type ConfigurableEditorAction = Extract<
 
 const DEFAULT_ACTION_KEYS: Record<ConfigurableEditorAction, KeyId[]> = {
 	"app.interrupt": ["escape"],
+	"app.commandPalette.open": ["ctrl+shift+p"],
 	"app.clear": ["ctrl+c"],
 	"app.exit": ["ctrl+d"],
 	"app.suspend": ["ctrl+z"],
@@ -107,6 +109,7 @@ type PastePendingClearReason = "timeout" | "queue-limit";
  */
 export class CustomEditor extends Editor {
 	onEscape?: () => void;
+	onOpenCommandPalette?: () => void;
 	/**
 	 * Optional high-priority interrupt consumer. Invoked when the interrupt key
 	 * is pressed, before `onEscape`. Returning `true` consumes the keystroke.
@@ -175,6 +178,23 @@ export class CustomEditor extends Editor {
 	#pasteDecisionToken = 0;
 	#pasteDecisionTimeout: NodeJS.Timeout | undefined;
 	#pendingPasteInput: string[] = [];
+	#composerGeneration = 0;
+
+	getComposerGeneration(): number {
+		return this.#composerGeneration;
+	}
+
+	override setText(text: string): void {
+		const before = this.getText();
+		super.setText(text);
+		if (this.getText() !== before) this.#composerGeneration += 1;
+	}
+
+	override insertText(text: string): void {
+		const before = this.getText();
+		super.insertText(text);
+		if (this.getText() !== before) this.#composerGeneration += 1;
+	}
 
 	setActionKeys(action: ConfigurableEditorAction, keys: KeyId[]): void {
 		this.#actionKeys.set(action, [...keys]);
@@ -279,7 +299,9 @@ export class CustomEditor extends Editor {
 			if (token !== this.#pasteDecisionToken) return;
 			this.#clearPasteDecisionTimeout();
 			if (!handled) {
+				const before = this.getText();
 				super.handleInput(`\x1b[200~${pasteContent}\x1b[201~`);
+				if (this.getText() !== before) this.#composerGeneration += 1;
 			}
 			this.#pasteDecisionPending = false;
 			this.#drainPendingPasteInput(remaining);
@@ -388,6 +410,11 @@ export class CustomEditor extends Editor {
 			return;
 		}
 
+		if (this.#matchesAction(data, "app.commandPalette.open") && this.onOpenCommandPalette) {
+			this.onOpenCommandPalette();
+			return;
+		}
+
 		// Intercept configured backward model cycling (check before forward cycling)
 		if (this.#matchesAction(data, "app.model.cycleBackward") && this.onCycleModelBackward) {
 			this.onCycleModelBackward();
@@ -406,12 +433,11 @@ export class CustomEditor extends Editor {
 			return;
 		}
 
-		// IME-independent exit safety net (devlog 082.1): Escape is always 0x1b
-		// regardless of the active input source, so a double-press is a guaranteed
-		// way out even when Ctrl chords (ctrl+c / ctrl+d) are swallowed by a Hangul
-		// IME on legacy terminals. The first Escape keeps its normal interrupt/dismiss
-		// behavior below; only the second within the window exits.
-		if (matchesKey(data, "escape")) {
+		// IME-independent exit safety net (devlog 082.1): with an empty composer,
+		// a second Escape exits even when Ctrl chords are swallowed by a Hangul IME.
+		// A non-empty composer belongs to InputController's double-Escape draft-clear
+		// boundary, so both Escapes fall through to onEscape instead of exiting.
+		if (matchesKey(data, "escape") && this.getText().trim().length === 0) {
 			const now = Date.now();
 			const exitNow = this.onForcedExit ?? this.onExit;
 			if (this.#lastEscapeAt !== 0 && now - this.#lastEscapeAt <= DOUBLE_ESCAPE_EXIT_WINDOW_MS && exitNow) {
@@ -510,6 +536,8 @@ export class CustomEditor extends Editor {
 		}
 
 		// Pass to parent for normal handling
+		const before = this.getText();
 		super.handleInput(data);
+		if (this.getText() !== before) this.#composerGeneration += 1;
 	}
 }

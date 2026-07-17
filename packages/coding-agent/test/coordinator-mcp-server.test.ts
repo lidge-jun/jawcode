@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { COORDINATOR_MCP_TOOL_NAMES, createCoordinatorMcpServer } from "../src/coordinator-mcp/server";
+import {
+	COORDINATOR_MCP_TOOL_NAMES,
+	createCoordinatorMcpServer,
+	tmuxCommandForCoordinatorSession,
+} from "../src/coordinator-mcp/server";
 
 const tempDirs: string[] = [];
 
@@ -17,6 +21,21 @@ afterEach(async () => {
 });
 
 describe("Coordinator MCP server protocol", () => {
+	it("routes each coordinator delegate through its recorded tmux owner socket", () => {
+		expect(
+			tmuxCommandForCoordinatorSession({ tmuxSocketKey: "jwc-owner-a" }, ["has-session", "-t", "delegate-a"]),
+		).toEqual(["tmux", "-L", "jwc-owner-a", "has-session", "-t", "delegate-a"]);
+		expect(tmuxCommandForCoordinatorSession({}, ["has-session", "-t", "legacy"])).toEqual([
+			"tmux",
+			"has-session",
+			"-t",
+			"legacy",
+		]);
+		expect(() => tmuxCommandForCoordinatorSession({ tmuxSocketKey: "--malformed owner" }, ["has-session"])).toThrow(
+			"coordinator_tmux_owner_socket_invalid",
+		);
+	});
+
 	it("initializes with JWC coordinator server identity and lists JWC-named tools", async () => {
 		const server = createCoordinatorMcpServer({ env: {} });
 

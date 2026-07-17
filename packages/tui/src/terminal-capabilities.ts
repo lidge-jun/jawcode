@@ -16,6 +16,7 @@ export enum NotifyProtocol {
 export type TerminalId = "kitty" | "ghostty" | "wezterm" | "iterm2" | "vscode" | "alacritty" | "base" | "trueColor";
 
 const SIXEL_DCS_START_REGEX = /\x1bP(?:[0-9;]*)q/u;
+const KITTY_GRAPHICS_CONTROL_REGEX = /\x1b_G(?:[a-z]=|;)/u;
 /** Terminal capability details used for rendering and protocol selection. */
 export class TerminalInfo {
 	constructor(
@@ -30,6 +31,9 @@ export class TerminalInfo {
 		if (!this.imageProtocol) return false;
 		if (this.imageProtocol === ImageProtocol.Sixel) {
 			return SIXEL_DCS_START_REGEX.test(line.slice(0, 128));
+		}
+		if (this.imageProtocol === ImageProtocol.Kitty) {
+			return KITTY_GRAPHICS_CONTROL_REGEX.test(line.slice(0, 128));
 		}
 		return line.slice(0, 64).includes(this.imageProtocol);
 	}
@@ -69,10 +73,9 @@ export function terminalSupportsBce(env: Record<string, string | undefined> = pr
 	// bg rows there must keep the literal-padding fallback (visually correct;
 	// the outer-terminal reflow hazard doesn't apply since the mux owns pane
 	// wrapping). TMUX env catches sessions where TERM was overridden.
-	if (env.TMUX) return false;
+	if (isUnderTerminalMultiplexer(env)) return false;
 	const term = env.TERM?.trim() ?? "";
 	if (!term || term === "dumb") return false;
-	if (/^(tmux|screen)/i.test(term)) return false;
 	if (BCE_TERM_PREFIX.test(term)) return true;
 	return TERMINAL_ID !== "base";
 }
@@ -83,14 +86,42 @@ export function isNotificationSuppressed(): boolean {
 	return value === "off" || value === "0" || value === "false";
 }
 
-function getForcedImageProtocol(): ImageProtocol | null | undefined {
-	const raw = $env.PI_FORCE_IMAGE_PROTOCOL?.trim().toLowerCase();
+const MULTIPLEXER_DISABLED_ENV_VALUES = new Set(["0", "false", "off", "no"]);
+
+function multiplexerEnvEnabled(value: string | undefined): boolean {
+	const normalized = value?.trim().toLowerCase();
+	return normalized !== undefined && normalized.length > 0 && !MULTIPLEXER_DISABLED_ENV_VALUES.has(normalized);
+}
+
+/** Detect terminal multiplexers that intercept graphics and hyperlink escapes. */
+export function isUnderTerminalMultiplexer(env: NodeJS.ProcessEnv = process.env): boolean {
+	if (
+		multiplexerEnvEnabled(env.TMUX) ||
+		multiplexerEnvEnabled(env.TMUX_PANE) ||
+		multiplexerEnvEnabled(env.STY) ||
+		multiplexerEnvEnabled(env.ZELLIJ) ||
+		multiplexerEnvEnabled(env.JWC_TMUX_LAUNCHED) ||
+		multiplexerEnvEnabled(env.GJC_TMUX_LAUNCHED)
+	) {
+		return true;
+	}
+	const term = env.TERM?.trim().toLowerCase() ?? "";
+	return term.startsWith("tmux") || term.startsWith("screen");
+}
+
+function getForcedImageProtocol(env: NodeJS.ProcessEnv = process.env): ImageProtocol | null | undefined {
+	const raw = env.PI_FORCE_IMAGE_PROTOCOL?.trim().toLowerCase();
 	if (!raw) return undefined;
 	if (raw === "kitty") return ImageProtocol.Kitty;
 	if (raw === "iterm2" || raw === "iterm") return ImageProtocol.Iterm2;
 	if (raw === "sixel") return ImageProtocol.Sixel;
 	if (raw === "off" || raw === "none" || raw === "0" || raw === "false") return null;
 	return null;
+}
+
+/** Whether image protocol selection was explicitly configured, including off. */
+export function isImageProtocolForced(env: NodeJS.ProcessEnv = process.env): boolean {
+	return getForcedImageProtocol(env) !== undefined;
 }
 
 function parseMajorMinorVersion(versionRaw?: string): { major: number; minor: number } | null {
@@ -125,7 +156,7 @@ function getFallbackImageProtocol(terminalId: TerminalId): ImageProtocol | null 
 	if (!process.stdout.isTTY) return null;
 	if (terminalId === "vscode" || terminalId === "alacritty") return null;
 	const term = process.env.TERM?.toLowerCase() ?? "";
-	if (term.includes("screen") || term.includes("tmux") || term.includes("ghostty")) {
+	if (term.includes("ghostty")) {
 		return ImageProtocol.Kitty;
 	}
 	return null;
@@ -208,10 +239,10 @@ export const TERMINAL = (() => {
 			);
 		}
 	}
-	// tmux and screen multiplexers do not reliably forward OSC 8 hyperlinks
+	const underMultiplexer = isUnderTerminalMultiplexer();
+	// Multiplexers do not reliably forward OSC 8 hyperlinks
 	// to the outer terminal, so force them off regardless of detected terminal.
-	const term = process.env.TERM?.toLowerCase() ?? "";
-	if (resolved.hyperlinks && (process.env.TMUX || term.startsWith("tmux") || term.startsWith("screen"))) {
+	if (resolved.hyperlinks && underMultiplexer) {
 		resolved = new TerminalInfo(
 			resolved.id,
 			resolved.imageProtocol,
@@ -219,6 +250,12 @@ export const TERMINAL = (() => {
 			false,
 			resolved.notifyProtocol,
 		);
+	}
+	// Raw Kitty/iTerm2 graphics are not end-to-end safe through multiplexers.
+	// Suppress automatic detection; an explicit PI_FORCE_IMAGE_PROTOCOL value is
+	// the only opt-in for a chain known to forward graphics correctly.
+	if (resolved.imageProtocol && forcedImageProtocol === undefined && underMultiplexer) {
+		resolved = new TerminalInfo(resolved.id, null, resolved.trueColor, resolved.hyperlinks, resolved.notifyProtocol);
 	}
 	return resolved;
 })();

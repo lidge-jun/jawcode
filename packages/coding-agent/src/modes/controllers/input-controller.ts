@@ -4,13 +4,19 @@ import { type AgentMessage, ThinkingLevel } from "@jawcode-dev/agent-core";
 import type { Message } from "@jawcode-dev/ai";
 import type { AutocompleteProvider, OverlayHandle, SlashCommand } from "@jawcode-dev/tui";
 import { $env, sanitizeText } from "@jawcode-dev/utils";
+import { type AppKeybinding, KEYBINDINGS } from "../../config/keybindings";
 import { isSettingsInitialized, settings } from "../../config/settings";
 import { resolveSubskillActivationForSkillInvocation } from "../../extensibility/jwc-plugins";
 import { buildSkillPromptMessage, parseSkillInvocations } from "../../extensibility/skills";
 import { expandEmoticons } from "../../modes/emoji-autocomplete";
 import { createPromptActionAutocompleteProvider } from "../../modes/prompt-action-autocomplete";
 import { theme } from "../../modes/theme/theme";
-import type { InteractiveModeContext } from "../../modes/types";
+import {
+	type CommandPaletteAction,
+	type ComposerOwnership,
+	canApplyComposerOwnership,
+	type InteractiveModeContext,
+} from "../../modes/types";
 import {
 	canMarkEntireBacklog,
 	commitFinalizedBacklog,
@@ -62,6 +68,7 @@ const HANGUL_IME_HINT_KEY = "ime-hangul-chord";
 const HANGUL_IME_HINT_DURATION_MS = 4_000;
 // Double-press exit window — aligned with Claude Code's 800ms (devlog 99.20.06 W1).
 const DOUBLE_PRESS_EXIT_WINDOW_MS = 800;
+const DRAFT_CLEAR_DOUBLE_ESCAPE_WINDOW_MS = 800;
 const CLIPBOARD_TEMP_IMAGE_FILE_PATTERN = /^clipboard-\d{4}-\d{2}-\d{2}-\d{6}-[A-Za-z0-9]+\.(?:png|jpe?g|gif|webp)$/i;
 const MACOS_CLIPBOARD_TEMP_DIR_PATTERN = /^\/var\/folders\/[^/]+\/[^/]+\/T$/;
 
@@ -83,6 +90,35 @@ export class InputController {
 
 	/** Auto-clear timer for the transient Hangul IME chord hint. */
 	#hangulImeHintTimer: NodeJS.Timeout | undefined;
+	#draftClearEscapeText: string | undefined;
+	#slashCommands: SlashCommand[] = [];
+	#commandPaletteActions = new Map<AppKeybinding, CommandPaletteAction>();
+	#paletteCommandInFlight = false;
+
+	#registerCommandPaletteAction(action: AppKeybinding, handler: () => void | Promise<void>): void {
+		this.#commandPaletteActions.set(action, {
+			id: action,
+			label: KEYBINDINGS[action].description,
+			handler,
+		});
+	}
+
+	#resetEscapeGestures(): void {
+		this.ctx.lastEscapeTime = 0;
+		this.ctx.lastComposerClearEscapeTime = 0;
+		this.#draftClearEscapeText = undefined;
+	}
+
+	#armDraftClearEscape(text: string, now: number): void {
+		this.ctx.lastEscapeTime = 0;
+		this.ctx.lastComposerClearEscapeTime = now;
+		this.#draftClearEscapeText = text;
+		this.ctx.showStatus("press Esc again to clear");
+	}
+
+	#canModifyComposer(ownership: ComposerOwnership): boolean {
+		return canApplyComposerOwnership(ownership, this.ctx.editor);
+	}
 
 	#abortInteractive(options?: { silent?: boolean }): Promise<void> {
 		this.ctx.onUserInterrupt();
@@ -94,6 +130,7 @@ export class InputController {
 	}
 
 	setupKeyHandlers(): void {
+		this.#commandPaletteActions.clear();
 		this.ctx.editor.setActionKeys("app.interrupt", this.ctx.keybindings.getKeys("app.interrupt"));
 		this.ctx.editor.shouldBypassAutocompleteOnEscape = () =>
 			Boolean(
@@ -161,12 +198,19 @@ export class InputController {
 					void this.#abortInteractive();
 				}
 			} else if (this.ctx.editor.getText().trim()) {
-				// Esc with typed text clears the draft and resets the double-Esc
-				// window (omp input-controller.ts:318-323). This idle+text state
-				// was previously an unhandled no-op.
-				this.ctx.editor.setText("");
-				this.ctx.ui.requestRender();
+				const text = this.ctx.editor.getText();
+				const now = Date.now();
 				this.ctx.lastEscapeTime = 0;
+				if (
+					now - this.ctx.lastComposerClearEscapeTime < DRAFT_CLEAR_DOUBLE_ESCAPE_WINDOW_MS &&
+					this.#draftClearEscapeText === text
+				) {
+					this.ctx.editor.addToHistory(text);
+					this.ctx.clearEditor();
+					this.#resetEscapeGestures();
+				} else {
+					this.#armDraftClearEscape(text, now);
+				}
 			} else {
 				// Double-interrupt with empty editor triggers /tree, /branch, or nothing based on setting
 				const action = settings.get("doubleEscapeAction");
@@ -186,10 +230,14 @@ export class InputController {
 			}
 		};
 
+		const clear = () => this.handleCtrlC();
 		this.ctx.editor.setActionKeys("app.clear", this.ctx.keybindings.getKeys("app.clear"));
-		this.ctx.editor.onClear = () => this.handleCtrlC();
+		this.ctx.editor.onClear = clear;
+		this.#registerCommandPaletteAction("app.clear", clear);
 		this.ctx.editor.setActionKeys("app.exit", this.ctx.keybindings.getKeys("app.exit"));
-		this.ctx.editor.onExit = () => this.handleCtrlD();
+		const exit = () => this.handleCtrlD();
+		this.ctx.editor.onExit = exit;
+		this.#registerCommandPaletteAction("app.exit", exit);
 		// Double-Escape safety net (082.1) keeps its guaranteed immediate exit —
 		// decoupled from onExit, which is now a double-press chord (99.20.06 W2).
 		this.ctx.editor.onForcedExit = () => void this.ctx.shutdown();
@@ -207,31 +255,53 @@ export class InputController {
 			this.#showExitPendingNotice("esc");
 		};
 		this.ctx.editor.setActionKeys("app.suspend", this.ctx.keybindings.getKeys("app.suspend"));
-		this.ctx.editor.onSuspend = () => this.handleCtrlZ();
+		const suspend = () => this.handleCtrlZ();
+		this.ctx.editor.onSuspend = suspend;
+		this.#registerCommandPaletteAction("app.suspend", suspend);
 		this.ctx.editor.setActionKeys("app.thinking.cycle", this.ctx.keybindings.getKeys("app.thinking.cycle"));
-		this.ctx.editor.onCycleThinkingLevel = () => this.cycleThinkingLevel();
+		const cycleThinking = () => this.cycleThinkingLevel();
+		this.ctx.editor.onCycleThinkingLevel = cycleThinking;
+		this.#registerCommandPaletteAction("app.thinking.cycle", cycleThinking);
+		this.ctx.editor.setActionKeys("app.commandPalette.open", this.ctx.keybindings.getKeys("app.commandPalette.open"));
+		this.ctx.editor.onOpenCommandPalette = () => this.openCommandPalette();
 		this.ctx.editor.setActionKeys("app.model.cycleForward", this.ctx.keybindings.getKeys("app.model.cycleForward"));
-		this.ctx.editor.onCycleModelForward = () => this.cycleRoleModel();
+		const cycleModelForward = () => this.cycleRoleModel();
+		this.ctx.editor.onCycleModelForward = cycleModelForward;
+		this.#registerCommandPaletteAction("app.model.cycleForward", cycleModelForward);
 		this.ctx.editor.setActionKeys("app.model.cycleBackward", this.ctx.keybindings.getKeys("app.model.cycleBackward"));
-		this.ctx.editor.onCycleModelBackward = () => this.cycleRoleModel({ temporary: true });
+		const cycleModelBackward = () => this.cycleRoleModel({ temporary: true });
+		this.ctx.editor.onCycleModelBackward = cycleModelBackward;
+		this.#registerCommandPaletteAction("app.model.cycleBackward", cycleModelBackward);
 		this.ctx.editor.setActionKeys(
 			"app.model.selectTemporary",
 			this.ctx.keybindings.getKeys("app.model.selectTemporary"),
 		);
-		this.ctx.editor.onSelectModelTemporary = () => this.ctx.showModelSelector({ temporaryOnly: true });
+		const selectTemporaryModel = () => this.ctx.showModelSelector({ temporaryOnly: true });
+		this.ctx.editor.onSelectModelTemporary = selectTemporaryModel;
+		this.#registerCommandPaletteAction("app.model.selectTemporary", selectTemporaryModel);
 
 		// Global debug handler on TUI (works regardless of focus)
 		this.ctx.ui.onDebug = () => this.ctx.showDebugSelector();
 		this.ctx.editor.setActionKeys("app.model.select", this.ctx.keybindings.getKeys("app.model.select"));
-		this.ctx.editor.onSelectModel = () => this.ctx.showModelSelector();
+		const selectModel = () => this.ctx.showModelSelector();
+		this.ctx.editor.onSelectModel = selectModel;
+		this.#registerCommandPaletteAction("app.model.select", selectModel);
 		this.ctx.editor.setActionKeys("app.history.search", this.ctx.keybindings.getKeys("app.history.search"));
-		this.ctx.editor.onHistorySearch = () => this.ctx.showHistorySearch();
+		const searchHistory = () => this.ctx.showHistorySearch();
+		this.ctx.editor.onHistorySearch = searchHistory;
+		this.#registerCommandPaletteAction("app.history.search", searchHistory);
 		this.ctx.editor.setActionKeys("app.thinking.toggle", this.ctx.keybindings.getKeys("app.thinking.toggle"));
-		this.ctx.editor.onToggleThinking = () => this.ctx.toggleThinkingBlockVisibility();
+		const toggleThinking = () => this.ctx.toggleThinkingBlockVisibility();
+		this.ctx.editor.onToggleThinking = toggleThinking;
+		this.#registerCommandPaletteAction("app.thinking.toggle", toggleThinking);
 		this.ctx.editor.setActionKeys("app.transcript.full", this.ctx.keybindings.getKeys("app.transcript.full"));
-		this.ctx.editor.onFullTranscript = () => this.showFullTranscript();
+		const fullTranscript = () => this.showFullTranscript();
+		this.ctx.editor.onFullTranscript = fullTranscript;
+		this.#registerCommandPaletteAction("app.transcript.full", fullTranscript);
 		this.ctx.editor.setActionKeys("app.editor.external", this.ctx.keybindings.getKeys("app.editor.external"));
-		this.ctx.editor.onExternalEditor = () => void this.openExternalEditor();
+		const externalEditor = () => this.openExternalEditor();
+		this.ctx.editor.onExternalEditor = () => void externalEditor();
+		this.#registerCommandPaletteAction("app.editor.external", externalEditor);
 		this.ctx.editor.onShowHotkeys = () => this.ctx.handleHotkeysCommand();
 		this.ctx.editor.setActionKeys(
 			"app.clipboard.pasteImage",
@@ -242,7 +312,9 @@ export class InputController {
 			"app.clipboard.copyPrompt",
 			this.ctx.keybindings.getKeys("app.clipboard.copyPrompt"),
 		);
-		this.ctx.editor.onCopyPrompt = () => this.handleCopyPrompt();
+		const copyPrompt = () => this.handleCopyPrompt();
+		this.ctx.editor.onCopyPrompt = copyPrompt;
+		this.#registerCommandPaletteAction("app.clipboard.copyPrompt", copyPrompt);
 		this.ctx.editor.onPasteText = text => this.handleTextPaste(text);
 		this.ctx.editor.onPastePendingInputCleared = (reason, droppedInputCount) => {
 			const reasonText = reason === "timeout" ? "timed out" : "exceeded the input queue limit";
@@ -251,31 +323,45 @@ export class InputController {
 			);
 		};
 		this.ctx.editor.setActionKeys("app.tools.expand", this.ctx.keybindings.getKeys("app.tools.expand"));
-		this.ctx.editor.onExpandTools = () => this.toggleToolOutputExpansion();
+		const expandTools = () => this.toggleToolOutputExpansion();
+		this.ctx.editor.onExpandTools = expandTools;
+		this.#registerCommandPaletteAction("app.tools.expand", expandTools);
 		this.ctx.editor.setActionKeys("app.message.dequeue", this.ctx.keybindings.getKeys("app.message.dequeue"));
-		this.ctx.editor.onDequeue = () => this.handleDequeue();
+		const dequeue = () => this.handleDequeue();
+		this.ctx.editor.onDequeue = dequeue;
+		this.#registerCommandPaletteAction("app.message.dequeue", dequeue);
 		this.ctx.editor.onHangulCtrlChordHint = (_jamo, chord) => this.showHangulImeHint(chord);
 
 		this.ctx.editor.clearCustomKeyHandlers();
 		// Wire up extension shortcuts
 		this.registerExtensionShortcuts();
 
+		const togglePlanMode = () => this.ctx.handlePlanModeCommand();
+		this.#registerCommandPaletteAction("app.plan.toggle", togglePlanMode);
 		const planModeKeys = this.ctx.keybindings.getKeys("app.plan.toggle");
 		for (const key of planModeKeys) {
-			this.ctx.editor.setCustomKeyHandler(key, () => void this.ctx.handlePlanModeCommand());
+			this.ctx.editor.setCustomKeyHandler(key, () => void togglePlanMode());
 		}
 
+		const newSession = () => this.ctx.handleClearCommand();
+		this.#registerCommandPaletteAction("app.session.new", newSession);
 		for (const key of this.ctx.keybindings.getKeys("app.session.new")) {
-			this.ctx.editor.setCustomKeyHandler(key, () => this.ctx.handleClearCommand());
+			this.ctx.editor.setCustomKeyHandler(key, () => void newSession());
 		}
+		const showTree = () => this.ctx.showTreeSelector();
+		this.#registerCommandPaletteAction("app.session.tree", showTree);
 		for (const key of this.ctx.keybindings.getKeys("app.session.tree")) {
-			this.ctx.editor.setCustomKeyHandler(key, () => this.ctx.showTreeSelector());
+			this.ctx.editor.setCustomKeyHandler(key, showTree);
 		}
+		const forkSession = () => this.ctx.showUserMessageSelector();
+		this.#registerCommandPaletteAction("app.session.fork", forkSession);
 		for (const key of this.ctx.keybindings.getKeys("app.session.fork")) {
-			this.ctx.editor.setCustomKeyHandler(key, () => this.ctx.showUserMessageSelector());
+			this.ctx.editor.setCustomKeyHandler(key, forkSession);
 		}
+		const resumeSession = () => this.ctx.showSessionSelector();
+		this.#registerCommandPaletteAction("app.session.resume", resumeSession);
 		for (const key of this.ctx.keybindings.getKeys("app.session.resume")) {
-			this.ctx.editor.setCustomKeyHandler(key, () => this.ctx.showSessionSelector());
+			this.ctx.editor.setCustomKeyHandler(key, resumeSession);
 		}
 		for (const key of this.ctx.keybindings.getKeys("app.message.followUp")) {
 			this.ctx.editor.setCustomKeyHandler(key, () => void this.handleFollowUp());
@@ -303,6 +389,7 @@ export class InputController {
 		}
 
 		this.ctx.editor.onChange = (text: string) => {
+			this.#resetEscapeGestures();
 			const wasBashMode = this.ctx.isBashMode;
 			const wasBashNoContext = this.ctx.isBashNoContext;
 			const wasPythonMode = this.ctx.isPythonMode;
@@ -321,235 +408,247 @@ export class InputController {
 	}
 
 	setupEditorSubmitHandler(): void {
-		this.ctx.editor.onSubmit = async (text: string) => {
-			text = text.trim();
-			if ((!isSettingsInitialized() || settings.get("emojiAutocomplete")) && text) text = expandEmoticons(text);
-
-			// Empty submit while streaming with queued messages: flush queues immediately
-			if (!text && this.ctx.session.isStreaming && this.ctx.session.queuedMessageCount > 0) {
-				// Abort current stream and let queued messages be processed
-				await this.#abortInteractive();
-				return;
-			}
-
-			if (!text) return;
-
-			// Continue shortcuts: "." or "c" sends empty message (agent continues, no visible message)
-			if (text === "." || text === "c") {
-				if (this.ctx.onInputCallback) {
-					this.ctx.editor.setText("");
-					this.ctx.pendingImages = [];
-					this.ctx.onInputCallback({ text: "", cancelled: false, started: true });
-				}
-				return;
-			}
-
-			const runner = this.ctx.session.extensionRunner;
-			let inputImages = this.ctx.pendingImages.length > 0 ? [...this.ctx.pendingImages] : undefined;
-
-			if (runner?.hasHandlers("input")) {
-				const result = await runner.emitInput(text, inputImages, "interactive");
-				if (result?.handled) {
-					this.ctx.editor.setText("");
-					this.ctx.pendingImages = [];
-					return;
-				}
-				if (result?.text !== undefined) {
-					text = result.text.trim();
-				}
-				if (result?.images !== undefined) {
-					inputImages = result.images;
-				}
-			}
-
-			if (!text) return;
-
-			// Handle built-in slash commands
-			const slashResult = await executeBuiltinSlashCommand(text, {
-				ctx: this.ctx,
-				handleBackgroundCommand: () => this.handleBackgroundCommand(),
+		this.ctx.editor.onSubmit = (text: string) =>
+			this.submitText(text, {
+				editor: this.ctx.editor,
+				generation: this.ctx.editor.getComposerGeneration(),
 			});
-			if (slashResult === true) {
-				// 083.7 §10: slash-only interactions never reach agent_end, so a
-				// post-overflow gap (selector/dropdown transient growth) would
-				// linger above the composer — compact here. No-op without a gap.
-				this.ctx.ui.compactViewportFill();
-				return;
-			}
-			if (typeof slashResult === "string") {
-				// Command handled but returned remaining text to use as prompt
-				text = slashResult;
-			}
+	}
 
-			// Handle skill commands (/skill:name [args]). While streaming, Enter
-			// honors `busyPromptMode`: "steer" interrupts the active turn, "queue"
-			// runs after it completes (matches the free-text Enter semantics applied
-			// a few lines below at the streaming branch). Ctrl+Enter always routes
-			// through `handleFollowUp` and dispatches the same helper with `"followUp"`.
-			if (await this.#invokeSkillCommand(text, this.#busyStreamingBehavior())) {
-				return;
-			}
+	async submitText(text: string, ownership: ComposerOwnership): Promise<void> {
+		text = text.trim();
+		if ((!isSettingsInitialized() || settings.get("emojiAutocomplete")) && text) text = expandEmoticons(text);
 
-			// Handle bash command (! for normal, !! for excluded from context)
-			if (text.startsWith("!")) {
-				const isExcluded = text.startsWith("!!");
-				const command = isExcluded ? text.slice(2).trim() : text.slice(1).trim();
-				if (command) {
-					if (this.ctx.session.isBashRunning) {
-						this.ctx.showWarning("A bash command is already running. Press Esc to cancel it first.");
-						this.ctx.editor.setText(text);
-						return;
-					}
-					this.ctx.editor.addToHistory(text);
-					await this.ctx.handleBashCommand(command, isExcluded);
-					this.ctx.isBashMode = false;
-					this.ctx.isBashNoContext = false;
-					this.ctx.updateEditorBorderColor();
-					return;
-				}
-			}
+		// Empty submit while streaming with queued messages: flush queues immediately
+		if (!text && this.ctx.session.isStreaming && this.ctx.session.queuedMessageCount > 0) {
+			// Abort current stream and let queued messages be processed
+			await this.#abortInteractive();
+			return;
+		}
 
-			// Handle python command ($ for normal, $$ for excluded from context)
-			if (text.startsWith("$")) {
-				const isExcluded = text.startsWith("$$");
-				const code = isExcluded ? text.slice(2).trim() : text.slice(1).trim();
-				if (code) {
-					if (this.ctx.session.isEvalRunning) {
-						this.ctx.showWarning("A Python execution is already running. Press Esc to cancel it first.");
-						this.ctx.editor.setText(text);
-						return;
-					}
-					this.ctx.editor.addToHistory(text);
-					await this.ctx.handlePythonCommand(code, isExcluded);
-					this.ctx.isPythonMode = false;
-					this.ctx.updateEditorBorderColor();
-					return;
-				}
-			}
+		if (!text) return;
 
-			// Queue input during compaction
-			if (this.ctx.session.isCompacting) {
-				if (this.ctx.pendingImages.length > 0) {
-					this.ctx.showStatus("Compaction in progress. Retry after it completes to send images.");
-					return;
-				}
-				this.ctx.queueCompactionMessage(text, "steer");
-				return;
-			}
-
-			// If streaming, use prompt() with the busy-prompt behavior the user
-			// selected: "steer" interrupts the active turn, "queue" defers the
-			// prompt to run after the active turn completes (in submission order).
-			// This handles extension commands (execute immediately), prompt template expansion, and queueing
-			if (this.ctx.session.isStreaming) {
-				this.ctx.editor.addToHistory(text);
-				this.ctx.editor.setText("");
-				const images = inputImages && inputImages.length > 0 ? [...inputImages] : undefined;
-				this.ctx.pendingImages = [];
-				// Record the signature so the queued message's eventual delivery
-				// (a user-role `message_start` event) leaves any draft the user has
-				// typed since queuing intact. Same protection as #783, applied to
-				// the streaming/queue path.
-				const streamingBehavior = this.#busyStreamingBehavior();
-				await this.ctx.withLocalSubmission(
-					text,
-					() => this.ctx.session.prompt(text, { streamingBehavior, images }),
-					{ imageCount: images?.length ?? 0 },
-				);
-				this.ctx.updatePendingMessagesDisplay();
-				this.ctx.ui.requestRender();
-				return;
-			}
-
-			// Normal message submission
-			// First, move any pending bash components to chat
-			this.ctx.flushPendingBashComponents();
-
-			// Generate session title on first message
-			const hasUserMessages = this.ctx.session.messages.some((m: AgentMessage) => m.role === "user");
-			if (!hasUserMessages && !this.ctx.sessionManager.getSessionName() && !$env.PI_NO_TITLE) {
-				this.ctx.session
-					.generateTitle(text)
-					.then(async title => {
-						if (title) {
-							const applied = await this.ctx.sessionManager.setSessionName(title, "auto");
-							if (applied) {
-								setSessionTerminalTitle(
-									this.ctx.sessionManager.getSessionName()!,
-									this.ctx.sessionManager.getCwd(),
-								);
-								this.ctx.updateEditorBorderColor();
-							}
-						}
-					})
-					.catch(() => {});
-			}
-
+		// Continue shortcuts: "." or "c" sends empty message (agent continues, no visible message)
+		if (text === "." || text === "c") {
 			if (this.ctx.onInputCallback) {
-				// Include any pending images from clipboard paste
-				const images = inputImages && inputImages.length > 0 ? [...inputImages] : undefined;
-				this.ctx.pendingImages = [];
-
-				// 083.9 P4: turn boundary — the finished turn's components freeze
-				// their pixels into the scrollback now (they stayed interactive
-				// until this moment), then the gap compacts.
-				// 260702 F3: while overflowed the commit lane is dead (fill=0), so
-				// first scroll the visible transcript tail into the scrollback
-				// once and reset the floor; the sweep then marks the cells
-				// committed WITHOUT a second write (as-streamed pixels are the
-				// history). Opted-out lanes (JWC_COMMIT_LANE=0) never realign,
-				// and a backlog the sweep cannot fully mark (background tool
-				// still pending across the turn boundary) must not either — its
-				// scrolled-out rows would be redrawn by the rebuild and
-				// duplicate (gpt-5.5 final-review blocker).
-				// 260703 WP3b-min (fable review C3): compact/new/switch mid-stream
-				// can swallow agent_end, leaving the streaming flag latched — a
-				// submit is a hard turn boundary, so clear it defensively or the
-				// backlog sweep below gets gated in multiplexers.
-				this.ctx.ui.setStreamingActive?.(false);
-				const markable = commitLaneEnabled() && canMarkEntireBacklog(this.ctx);
-				let realigned =
-					markable && (this.ctx.ui.realignOverflowedFrame?.(measureComposerClusterRows(this.ctx)) ?? false);
-				// 260704 (fable review): a standard-lane realign refusal is a
-				// TRANSIENT mirror desync (stale composited/pending frame) — one
-				// absolute repaint heals it because both mirrors are rewritten
-				// wholesale each pass. Heal and retry ONCE. Never blanket-adopt
-				// on refusal: the visible tail exists only on screen, so a
-				// markOnly sweep without a successful realign silently DROPS up
-				// to a screenful (loss is unrecoverable; the duplication the
-				// old no-op risks is not).
-				if (!realigned && markable && this.ctx.ui.hasOverflowedIntoScrollback?.() === true) {
-					this.ctx.ui.requestRender(false, "realign heal");
-					await new Promise(resolve => setTimeout(resolve, 25));
-					realigned =
-						this.ctx.ui.realignOverflowedFrame?.(measureComposerClusterRows(this.ctx)) ?? false;
+				if (this.#canModifyComposer(ownership)) {
+					this.ctx.pendingImages = [];
+					this.ctx.editor.setText("");
 				}
-				// The preamble (welcome banner etc.) sits above chatContainer, so
-				// the mark-only sweep can't reach it — without this the rebuild
-				// repaints it and history grows a banner copy per turn boundary.
-				if (realigned) markPreambleCommitted(this.ctx);
-				commitFinalizedBacklog(this.ctx, { markOnly: realigned });
-				// 260630: a still-expanded current turn ends here — unfreeze the
-				// overflow floor so the next turn's growth scrolls into the
-				// scrollback normally (leaving it frozen would pause history).
-				this.ctx.ui.setOverflowFloorFrozen?.(false);
-				// 260703 WP3: the expansion flags are current-turn state. Left
-				// stale, the next turn's first ctrl+o flips an already-matching
-				// flag and visibly does nothing (press-twice symptom).
-				this.ctx.toolOutputExpanded = false;
-				this.ctx.thinkingExpanded = false;
-				// 083.8 S2: collapse any post-overflow gap left by the previous turn
-				// HERE — the screen is about to change anyway (new user message), so
-				// the full rebuild is invisible. Doing this at agent_end made the
-				// final response visibly jump (devlog 083.8 ⑤).
-				this.ctx.ui.compactViewportFill();
-				// Render user message immediately, then let session events catch up
-				const submission = this.ctx.startPendingSubmission({ text, images });
-
-				this.ctx.onInputCallback(submission);
+				this.ctx.onInputCallback({ text: "", cancelled: false, started: true });
 			}
-			this.ctx.editor.addToHistory(text);
-		};
+			return;
+		}
+
+		const runner = this.ctx.session.extensionRunner;
+		const pendingImages = this.ctx.pendingImages;
+		let inputImages = this.ctx.pendingImages.length > 0 ? [...this.ctx.pendingImages] : undefined;
+
+		if (runner?.hasHandlers("input")) {
+			const result = await runner.emitInput(text, inputImages, "interactive");
+			if (result?.handled) {
+				if (this.#canModifyComposer(ownership)) {
+					if (this.ctx.pendingImages === pendingImages) this.ctx.pendingImages = [];
+					this.ctx.editor.setText("");
+				}
+				return;
+			}
+			if (result?.text !== undefined) {
+				text = result.text.trim();
+			}
+			if (result?.images !== undefined) {
+				inputImages = result.images;
+			}
+		}
+
+		if (!text) return;
+
+		// Handle built-in slash commands
+		const slashResult = await executeBuiltinSlashCommand(text, {
+			ctx: this.ctx,
+			handleBackgroundCommand: () => this.handleBackgroundCommand(),
+		});
+		if (slashResult === true) {
+			// 083.7 §10: slash-only interactions never reach agent_end, so a
+			// post-overflow gap (selector/dropdown transient growth) would
+			// linger above the composer — compact here. No-op without a gap.
+			this.ctx.ui.compactViewportFill();
+			return;
+		}
+		if (typeof slashResult === "string") {
+			// Command handled but returned remaining text to use as prompt
+			text = slashResult;
+		}
+
+		// Handle skill commands (/skill:name [args]). While streaming, Enter
+		// honors `busyPromptMode`: "steer" interrupts the active turn, "queue"
+		// runs after it completes (matches the free-text Enter semantics applied
+		// a few lines below at the streaming branch). Ctrl+Enter always routes
+		// through `handleFollowUp` and dispatches the same helper with `"followUp"`.
+		if (await this.#invokeSkillCommand(text, this.#busyStreamingBehavior(), ownership)) {
+			return;
+		}
+
+		// Handle bash command (! for normal, !! for excluded from context)
+		if (text.startsWith("!")) {
+			const isExcluded = text.startsWith("!!");
+			const command = isExcluded ? text.slice(2).trim() : text.slice(1).trim();
+			if (command) {
+				if (this.ctx.session.isBashRunning) {
+					this.ctx.showWarning("A bash command is already running. Press Esc to cancel it first.");
+					if (this.#canModifyComposer(ownership)) this.ctx.editor.setText(text);
+					return;
+				}
+				if (this.#canModifyComposer(ownership)) this.ctx.editor.addToHistory(text);
+				await this.ctx.handleBashCommand(command, isExcluded);
+				this.ctx.isBashMode = false;
+				this.ctx.isBashNoContext = false;
+				this.ctx.updateEditorBorderColor();
+				return;
+			}
+		}
+
+		// Handle python command ($ for normal, $$ for excluded from context)
+		if (text.startsWith("$")) {
+			const isExcluded = text.startsWith("$$");
+			const code = isExcluded ? text.slice(2).trim() : text.slice(1).trim();
+			if (code) {
+				if (this.ctx.session.isEvalRunning) {
+					this.ctx.showWarning("A Python execution is already running. Press Esc to cancel it first.");
+					if (this.#canModifyComposer(ownership)) this.ctx.editor.setText(text);
+					return;
+				}
+				if (this.#canModifyComposer(ownership)) this.ctx.editor.addToHistory(text);
+				await this.ctx.handlePythonCommand(code, isExcluded);
+				this.ctx.isPythonMode = false;
+				this.ctx.updateEditorBorderColor();
+				return;
+			}
+		}
+
+		// Queue input during compaction
+		if (this.ctx.session.isCompacting) {
+			if (this.ctx.pendingImages.length > 0) {
+				this.ctx.showStatus("Compaction in progress. Retry after it completes to send images.");
+				return;
+			}
+			this.ctx.queueCompactionMessage(text, "steer", ownership);
+			return;
+		}
+
+		// If streaming, use prompt() with the busy-prompt behavior the user
+		// selected: "steer" interrupts the active turn, "queue" defers the
+		// prompt to run after the active turn completes (in submission order).
+		// This handles extension commands (execute immediately), prompt template expansion, and queueing
+		if (this.ctx.session.isStreaming) {
+			if (this.#canModifyComposer(ownership)) {
+				this.ctx.editor.addToHistory(text);
+				if (this.ctx.pendingImages === pendingImages) this.ctx.pendingImages = [];
+				this.ctx.editor.setText("");
+			}
+			const images = inputImages && inputImages.length > 0 ? [...inputImages] : undefined;
+			// Record the signature so the queued message's eventual delivery
+			// (a user-role `message_start` event) leaves any draft the user has
+			// typed since queuing intact. Same protection as #783, applied to
+			// the streaming/queue path.
+			const streamingBehavior = this.#busyStreamingBehavior();
+			await this.ctx.withLocalSubmission(text, () => this.ctx.session.prompt(text, { streamingBehavior, images }), {
+				imageCount: images?.length ?? 0,
+			});
+			this.ctx.updatePendingMessagesDisplay();
+			this.ctx.ui.requestRender();
+			return;
+		}
+
+		// Normal message submission
+		// First, move any pending bash components to chat
+		this.ctx.flushPendingBashComponents();
+
+		// Generate session title on first message
+		const hasUserMessages = this.ctx.session.messages.some((m: AgentMessage) => m.role === "user");
+		if (!hasUserMessages && !this.ctx.sessionManager.getSessionName() && !$env.PI_NO_TITLE) {
+			this.ctx.session
+				.generateTitle(text)
+				.then(async title => {
+					if (title) {
+						const applied = await this.ctx.sessionManager.setSessionName(title, "auto");
+						if (applied) {
+							setSessionTerminalTitle(
+								this.ctx.sessionManager.getSessionName()!,
+								this.ctx.sessionManager.getCwd(),
+							);
+							this.ctx.updateEditorBorderColor();
+						}
+					}
+				})
+				.catch(() => {});
+		}
+
+		if (this.ctx.onInputCallback) {
+			// Include any pending images from clipboard paste
+			const images = inputImages && inputImages.length > 0 ? [...inputImages] : undefined;
+			if (this.#canModifyComposer(ownership) && this.ctx.pendingImages === pendingImages) {
+				this.ctx.pendingImages = [];
+			}
+
+			// 083.9 P4: turn boundary — the finished turn's components freeze
+			// their pixels into the scrollback now (they stayed interactive
+			// until this moment), then the gap compacts.
+			// 260702 F3: while overflowed the commit lane is dead (fill=0), so
+			// first scroll the visible transcript tail into the scrollback
+			// once and reset the floor; the sweep then marks the cells
+			// committed WITHOUT a second write (as-streamed pixels are the
+			// history). Opted-out lanes (JWC_COMMIT_LANE=0) never realign,
+			// and a backlog the sweep cannot fully mark (background tool
+			// still pending across the turn boundary) must not either — its
+			// scrolled-out rows would be redrawn by the rebuild and
+			// duplicate (gpt-5.5 final-review blocker).
+			// 260703 WP3b-min (fable review C3): compact/new/switch mid-stream
+			// can swallow agent_end, leaving the streaming flag latched — a
+			// submit is a hard turn boundary, so clear it defensively or the
+			// backlog sweep below gets gated in multiplexers.
+			this.ctx.ui.setStreamingActive?.(false);
+			const markable = commitLaneEnabled() && canMarkEntireBacklog(this.ctx);
+			let realigned =
+				markable && (this.ctx.ui.realignOverflowedFrame?.(measureComposerClusterRows(this.ctx)) ?? false);
+			// 260704 (fable review): a standard-lane realign refusal is a
+			// TRANSIENT mirror desync (stale composited/pending frame) — one
+			// absolute repaint heals it because both mirrors are rewritten
+			// wholesale each pass. Heal and retry ONCE. Never blanket-adopt
+			// on refusal: the visible tail exists only on screen, so a
+			// markOnly sweep without a successful realign silently DROPS up
+			// to a screenful (loss is unrecoverable; the duplication the
+			// old no-op risks is not).
+			if (!realigned && markable && this.ctx.ui.hasOverflowedIntoScrollback?.() === true) {
+				this.ctx.ui.requestRender(false, "realign heal");
+				await new Promise(resolve => setTimeout(resolve, 25));
+				realigned = this.ctx.ui.realignOverflowedFrame?.(measureComposerClusterRows(this.ctx)) ?? false;
+			}
+			// The preamble (welcome banner etc.) sits above chatContainer, so
+			// the mark-only sweep can't reach it — without this the rebuild
+			// repaints it and history grows a banner copy per turn boundary.
+			if (realigned) markPreambleCommitted(this.ctx);
+			commitFinalizedBacklog(this.ctx, { markOnly: realigned });
+			// 260630: a still-expanded current turn ends here — unfreeze the
+			// overflow floor so the next turn's growth scrolls into the
+			// scrollback normally (leaving it frozen would pause history).
+			this.ctx.ui.setOverflowFloorFrozen?.(false);
+			// 260703 WP3: the expansion flags are current-turn state. Left
+			// stale, the next turn's first ctrl+o flips an already-matching
+			// flag and visibly does nothing (press-twice symptom).
+			this.ctx.toolOutputExpanded = false;
+			this.ctx.thinkingExpanded = false;
+			// 083.8 S2: collapse any post-overflow gap left by the previous turn
+			// HERE — the screen is about to change anyway (new user message), so
+			// the full rebuild is invisible. Doing this at agent_end made the
+			// final response visibly jump (devlog 083.8 ⑤).
+			this.ctx.ui.compactViewportFill();
+			// Render user message immediately, then let session events catch up
+			if (this.#canModifyComposer(ownership)) this.ctx.editor.addToHistory(text);
+			const submission = this.ctx.startPendingSubmission({ text, images }, ownership);
+
+			this.ctx.onInputCallback(submission);
+		}
 	}
 
 	/**
@@ -673,11 +772,17 @@ export class InputController {
 	 * while the agent is streaming; the idle path of `promptCustomMessage`
 	 * ignores it.
 	 */
-	async #invokeSkillCommand(text: string, streamingBehavior: "steer" | "followUp"): Promise<boolean> {
+	async #invokeSkillCommand(
+		text: string,
+		streamingBehavior: "steer" | "followUp",
+		ownership?: ComposerOwnership,
+	): Promise<boolean> {
 		const invocations = parseSkillInvocations(text, this.ctx.skillCommands ?? new Map());
 		if (invocations.length === 0) return false;
-		this.ctx.editor.addToHistory(text);
-		this.ctx.editor.setText("");
+		if (!ownership || this.#canModifyComposer(ownership)) {
+			this.ctx.editor.addToHistory(text);
+			this.ctx.editor.setText("");
+		}
 		try {
 			for (let index = 0; index < invocations.length; index += 1) {
 				const invocation = invocations[index];
@@ -962,6 +1067,7 @@ export class InputController {
 	}
 
 	createAutocompleteProvider(commands: SlashCommand[], basePath: string): AutocompleteProvider {
+		this.#slashCommands = commands;
 		return createPromptActionAutocompleteProvider({
 			commands,
 			basePath,
@@ -973,6 +1079,34 @@ export class InputController {
 			moveCursorToMessageStart: () => this.ctx.editor.moveToMessageStart(),
 			moveCursorToLineStart: () => this.ctx.editor.moveToLineStart(),
 			moveCursorToLineEnd: () => this.ctx.editor.moveToLineEnd(),
+		});
+	}
+
+	openCommandPalette(): void {
+		if (this.#paletteCommandInFlight) {
+			this.ctx.showStatus("A palette command is still running.");
+			return;
+		}
+
+		this.ctx.showCommandPalette(this.#slashCommands, [...this.#commandPaletteActions.values()], async name => {
+			if (this.#paletteCommandInFlight) {
+				this.ctx.showStatus("A palette command is still running.");
+				return;
+			}
+			if (this.ctx.editor.getText() || this.ctx.pendingImages.length > 0) {
+				this.ctx.showStatus("Send or clear the draft before running a palette command.");
+				return;
+			}
+
+			this.#paletteCommandInFlight = true;
+			try {
+				await this.submitText(`/${name}`, {
+					editor: this.ctx.editor,
+					generation: this.ctx.editor.getComposerGeneration(),
+				});
+			} finally {
+				this.#paletteCommandInFlight = false;
+			}
 		});
 	}
 

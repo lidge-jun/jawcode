@@ -12,6 +12,8 @@ export interface TransportIdentity {
 
 export interface TransportOwnerState extends TransportIdentity {
 	version: 1;
+	/** Wire/capability generation spoken by the owning daemon. Absent on pre-generation owners. */
+	generation?: number;
 	ownerId: string;
 	pid: number;
 	startedAt: number;

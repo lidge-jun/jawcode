@@ -1,9 +1,17 @@
 import { ThinkingLevel } from "@jawcode-dev/agent-core";
 import { getOAuthProviders } from "@jawcode-dev/ai/utils/oauth";
 import type { OAuthProvider } from "@jawcode-dev/ai/utils/oauth/types";
-import type { Component, OverlayHandle, SelectItem } from "@jawcode-dev/tui";
-import { Container, Input, Loader, SelectList, Spacer, Text } from "@jawcode-dev/tui";
+import type {
+	CommandPaletteEntry,
+	CommandPaletteTheme,
+	Component,
+	OverlayHandle,
+	SelectItem,
+	SlashCommand,
+} from "@jawcode-dev/tui";
+import { CommandPalette, Container, Input, Loader, SelectList, Spacer, Text } from "@jawcode-dev/tui";
 import { APP_NAME, getAgentDbPath, getProjectDir } from "@jawcode-dev/utils";
+import type { AppKeybinding } from "../../config/keybindings";
 import { activateModelProfile } from "../../config/model-profile-activation";
 import { resolveOAuthProviderId } from "../../config/oauth-provider-aliases";
 import { settings } from "../../config/settings";
@@ -19,6 +27,7 @@ import {
 } from "../../extensibility/plugins/marketplace";
 import { DynamicBorder } from "../../modes/components/dynamic-border";
 import { type HelpCatalogEntry, HelpSelectorComponent } from "../../modes/components/help-selector";
+import { appKey } from "../../modes/components/keybinding-hints";
 import { QuotaPanelComponent } from "../../modes/components/quota-panel";
 import {
 	getAvailableThemes,
@@ -33,7 +42,7 @@ import {
 	setTheme,
 	theme,
 } from "../../modes/theme/theme";
-import type { InteractiveModeContext } from "../../modes/types";
+import type { CommandPaletteAction, InteractiveModeContext } from "../../modes/types";
 import { resolveResumableSession, type SessionInfo, SessionManager } from "../../session/session-manager";
 import { FileSessionStorage } from "../../session/session-storage";
 import {
@@ -94,6 +103,54 @@ function formatProviderOnboardingCommandGuide(): string {
 	].join("\n");
 }
 
+function getCommandPaletteTheme(): CommandPaletteTheme {
+	return {
+		border: text => theme.fg("border", text),
+		title: text => theme.bold(theme.fg("accent", text)),
+		queryPrefix: text => theme.fg("accent", text),
+		selectedPrefix: text => theme.fg("accent", text),
+		selectedText: text => theme.bold(text),
+		description: text => theme.fg("dim", text),
+		muted: text => theme.fg("muted", text),
+		cursor: theme.nav.cursor,
+	};
+}
+
+function buildCommandPaletteEntries(
+	keybindings: InteractiveModeContext["keybindings"],
+	commands: SlashCommand[],
+	actions: CommandPaletteAction[],
+	executeSlashCommand: (name: string) => Promise<void>,
+): { entries: CommandPaletteEntry[]; handlers: Map<string, () => void | Promise<void>> } {
+	const seenCommands = new Set<string>();
+	const handlers = new Map<string, () => void | Promise<void>>();
+	const entries: CommandPaletteEntry[] = actions.map(action => {
+		const id = `action:${action.id}`;
+		handlers.set(id, action.handler);
+		return {
+			id,
+			label: action.label,
+			description: action.id,
+			keybinding: appKey(keybindings, action.id as AppKeybinding) || undefined,
+			searchText: action.id,
+		};
+	});
+
+	for (const command of commands) {
+		if (seenCommands.has(command.name)) continue;
+		seenCommands.add(command.name);
+		const id = `command:${command.name}`;
+		entries.push({
+			id,
+			label: `/${command.name}`,
+			description: command.description ?? "Slash command",
+			searchText: command.name,
+		});
+		handlers.set(id, () => executeSlashCommand(command.name));
+	}
+	return { entries, handlers };
+}
+
 export class SelectorController {
 	constructor(private ctx: InteractiveModeContext) {}
 
@@ -122,6 +179,45 @@ export class SelectorController {
 		this.ctx.editorContainer.addChild(component);
 		this.ctx.ui.setFocus(focus);
 		this.ctx.ui.requestRender();
+	}
+
+	showCommandPalette(
+		commands: SlashCommand[],
+		actions: CommandPaletteAction[],
+		executeSlashCommand: (name: string) => Promise<void>,
+	): void {
+		const { entries, handlers } = buildCommandPaletteEntries(
+			this.ctx.keybindings,
+			commands,
+			actions,
+			executeSlashCommand,
+		);
+		let overlayHandle: OverlayHandle | undefined;
+		let closed = false;
+		const close = () => {
+			if (closed) return;
+			closed = true;
+			overlayHandle?.hide();
+			overlayHandle = undefined;
+		};
+		const palette = new CommandPalette(entries, getCommandPaletteTheme(), {
+			onCancel: close,
+			onChange: () => this.ctx.ui.requestRender(),
+			onSelect: entry => {
+				const handler = handlers.get(entry.id);
+				close();
+				void Promise.resolve()
+					.then(() => handler?.())
+					.catch(error => this.ctx.showError(error instanceof Error ? error.message : String(error)));
+			},
+		});
+		overlayHandle = this.ctx.ui.showOverlay(palette, {
+			anchor: "center",
+			width: "80%",
+			maxHeight: "80%",
+			margin: 1,
+		});
+		this.ctx.ui.setFocus(palette);
 	}
 
 	showProviderOnboarding(): void {

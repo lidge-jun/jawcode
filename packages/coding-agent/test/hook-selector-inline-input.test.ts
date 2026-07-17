@@ -1,7 +1,7 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it, vi } from "bun:test";
 import { HookSelectorComponent } from "@jawcode-dev/coding-agent/modes/components/hook-selector";
 import { getThemeByName, setThemeInstance } from "@jawcode-dev/coding-agent/modes/theme/theme";
-import type { AutocompleteProvider } from "@jawcode-dev/tui";
+import type { AutocompleteProvider, TUI } from "@jawcode-dev/tui";
 
 beforeAll(async () => {
 	const themeInstance = await getThemeByName("red-claw");
@@ -77,6 +77,33 @@ function moveToOther(component: HookSelectorComponent): void {
 }
 
 describe("HookSelectorComponent inline custom input", () => {
+	it("resets the inactivity countdown when the user types", () => {
+		vi.useFakeTimers();
+		try {
+			const selected: string[] = [];
+			const component = new HookSelectorComponent(
+				TITLE,
+				OPTIONS,
+				option => selected.push(option),
+				() => {},
+				{
+					timeout: 1000,
+					tui: { requestRender: vi.fn() } as unknown as TUI,
+				},
+			);
+
+			vi.advanceTimersByTime(750);
+			component.handleInput("x");
+			vi.advanceTimersByTime(300);
+			expect(selected).toEqual([]);
+			vi.advanceTimersByTime(700);
+			expect(selected).toEqual(["1. Option A"]);
+			component.dispose();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
 	it("keeps the title and option list visible after opening the input", () => {
 		const { component, calls } = createSelector();
 		moveToOther(component);

@@ -9555,17 +9555,21 @@ export class AgentSession {
 			attribution: "agent",
 			timestamp: incomingTimestamp,
 		};
-		void this.#emitSessionEvent({ type: "irc_message", message: incomingRecord });
-		this.#forwardIrcRelayToMain({
-			from: args.from,
-			to: this.#agentId ?? "?",
-			body: args.message,
-			kind: "message",
-			timestamp: incomingTimestamp,
-		});
+		const announceIncoming = (): void => {
+			this.#emitIrcObservation(incomingRecord);
+			this.#forwardIrcRelayToMain({
+				from: args.from,
+				to: this.#agentId ?? "?",
+				body: args.message,
+				kind: "message",
+				timestamp: incomingTimestamp,
+			});
+		};
 
 		if (!awaitReply) {
+			args.signal?.throwIfAborted();
 			this.#queueBackgroundExchangeInjection([incomingRecord]);
+			announceIncoming();
 			return { replyText: null };
 		}
 
@@ -9587,7 +9591,12 @@ export class AgentSession {
 			attribution: "agent",
 			timestamp: Date.now(),
 		};
-		void this.#emitSessionEvent({ type: "irc_message", message: replyRecord });
+		// Accept the complete exchange before exposing either observation. A
+		// provider failure or sender abort therefore cannot leave ghost IRC prose.
+		args.signal?.throwIfAborted();
+		this.#queueBackgroundExchangeInjection([incomingRecord, replyRecord]);
+		announceIncoming();
+		this.#emitIrcObservation(replyRecord);
 		this.#forwardIrcRelayToMain({
 			from: this.#agentId ?? "?",
 			to: args.from,
@@ -9595,7 +9604,6 @@ export class AgentSession {
 			kind: "reply",
 			timestamp: replyRecord.timestamp,
 		});
-		this.#queueBackgroundExchangeInjection([incomingRecord, replyRecord]);
 
 		return { replyText };
 	}
@@ -9630,7 +9638,17 @@ export class AgentSession {
 			attribution: "agent",
 			timestamp: args.timestamp,
 		};
-		mainSession.emitIrcRelayObservation(relayRecord);
+		try {
+			mainSession.emitIrcRelayObservation(relayRecord);
+		} catch (error) {
+			logger.warn("Failed to forward IRC relay observation", { error: String(error) });
+		}
+	}
+
+	#emitIrcObservation(message: CustomMessage): void {
+		void this.#emitSessionEvent({ type: "irc_message", message }).catch(error => {
+			logger.warn("Failed to emit IRC observation", { error: String(error) });
+		});
 	}
 
 	/**
@@ -9638,7 +9656,7 @@ export class AgentSession {
 	 * Does not persist the record to history. Public so other sessions can forward.
 	 */
 	emitIrcRelayObservation(record: CustomMessage): void {
-		void this.#emitSessionEvent({ type: "irc_message", message: record });
+		this.#emitIrcObservation(record);
 	}
 
 	/**

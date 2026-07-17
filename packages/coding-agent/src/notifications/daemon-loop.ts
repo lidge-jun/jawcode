@@ -11,6 +11,8 @@ export interface DaemonLoopResult {
 }
 
 export interface RunDaemonLoopOptions {
+	/** Owner id of this daemon process; prevents a waiting replacement from honoring the old owner's control. */
+	ownerId: string;
 	tick: () => Promise<DaemonTickResult>;
 	sleep: (ms: number) => Promise<void>;
 	readControl: () => Promise<DaemonControlRequest | null>;
@@ -36,7 +38,7 @@ export async function runDaemonLoop(options: RunDaemonLoopOptions): Promise<Daem
 
 	for (;;) {
 		const [request, owner] = await Promise.all([options.readControl(), options.readOwner()]);
-		const decision = decideDaemonControl({ current: owner, request });
+		const decision = decideDaemonControl({ current: owner, request, executingOwnerId: options.ownerId });
 
 		if (decision.action === "honor-stop") {
 			await options.clearControl();

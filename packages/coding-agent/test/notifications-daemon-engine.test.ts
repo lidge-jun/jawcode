@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { type RunDaemonTickOptions, runDaemonTick } from "../src/notifications/daemon-engine";
 import type { NotificationEndpointRecord } from "../src/notifications/discovery";
+import { NOTIFICATION_DAEMON_GENERATION } from "../src/notifications/protocol";
 import type { TelegramUpdate } from "../src/notifications/telegram-api";
 import { ThreadTopicRegistry } from "../src/notifications/threaded-surface";
 import { fingerprintSecret, type TransportOwnerState } from "../src/notifications/transport-state";
@@ -11,6 +12,7 @@ const CHAT = "chat-1";
 function ownerState(overrides: Partial<TransportOwnerState> = {}): TransportOwnerState {
 	return {
 		version: 1,
+		generation: NOTIFICATION_DAEMON_GENERATION,
 		ownerId: "other",
 		pid: 9999,
 		startedAt: 1_000,
@@ -65,6 +67,26 @@ describe("runDaemonTick", () => {
 		expect(result.poll).toBeUndefined();
 	});
 
+	it("requests an owner-scoped reload for a live stale-generation daemon", async () => {
+		const controls: unknown[] = [];
+		const result = await runDaemonTick(
+			baseOptions({
+				readOwner: async () => ownerState({ ownerId: "old", pid: 9999, heartbeatAt: 1_995, generation: undefined }),
+				writeControl: async (_agentDir, request) => {
+					controls.push(request);
+				},
+				heartbeatTtlMs: 20_000,
+				pidAlive: () => true,
+			}),
+		);
+		expect(result).toMatchObject({
+			decision: { action: "reload", reason: "stale-generation" },
+			owned: false,
+			scannedSessions: 0,
+		});
+		expect(controls).toEqual([{ version: 1, kind: "reload", targetOwnerId: "old", requestedAt: 2_000 }]);
+	});
+
 	it("claims when there is no owner, writes a heartbeat, scans, and polls", async () => {
 		const writer = capturingWriter();
 		const result = await runDaemonTick(
@@ -81,7 +103,13 @@ describe("runDaemonTick", () => {
 		);
 		expect(result.decision.action).toBe("claim");
 		expect(result.owned).toBe(true);
-		expect(writer.box.owner).toMatchObject({ ownerId: "self", pid: 100, heartbeatAt: 2_000, startedAt: 2_000 });
+		expect(writer.box.owner).toMatchObject({
+			ownerId: "self",
+			pid: 100,
+			heartbeatAt: 2_000,
+			startedAt: 2_000,
+			generation: NOTIFICATION_DAEMON_GENERATION,
+		});
 		expect(result.scannedSessions).toBe(1);
 		expect(result.poll).toMatchObject({ ok: true, updateCount: 1, nextOffset: 8 });
 		expect(result.nextPollState).toEqual({ offset: 8, attempt: 0 });

@@ -25,6 +25,7 @@ type FakeEditor = {
 	onChange?: (text: string) => void;
 	setText(text: string): void;
 	getText(): string;
+	getComposerGeneration(): number;
 	addToHistory(text: string): void;
 	setActionKeys(action: string, keys: string[]): void;
 	setCustomKeyHandler(key: string, handler: () => void): void;
@@ -65,6 +66,7 @@ function createContext(): {
 	};
 } {
 	let editorText = "";
+	let composerGeneration = 0;
 	const abort = vi.fn(() => Promise.resolve());
 	const abortBash = vi.fn();
 	const abortEval = vi.fn();
@@ -84,10 +86,14 @@ function createContext(): {
 	});
 	const editor: FakeEditor = {
 		setText(text: string) {
+			if (text !== editorText) composerGeneration += 1;
 			editorText = text;
 		},
 		getText() {
 			return editorText;
+		},
+		getComposerGeneration() {
+			return composerGeneration;
 		},
 		addToHistory: vi.fn(),
 		setActionKeys: vi.fn(),
@@ -138,6 +144,11 @@ function createContext(): {
 		locallySubmittedUserSignatures: new Map<string, number>(),
 		onInputCallback,
 		onUserInterrupt,
+		clearEditor() {
+			editor.setText("");
+			ctx.pendingImages = [];
+			requestRender();
+		},
 		addMessageToChat,
 		cancelPendingSubmission,
 		ensureLoadingAnimation,
@@ -147,6 +158,7 @@ function createContext(): {
 		startPendingSubmission,
 		updatePendingMessagesDisplay: vi.fn(),
 		updateEditorBorderColor: vi.fn(),
+		showStatus: vi.fn(),
 		showDebugSelector: vi.fn(),
 		toggleTodoExpansion: vi.fn(),
 		handleHotkeysCommand: vi.fn(),
@@ -195,7 +207,10 @@ describe("InputController escape behavior", () => {
 		controller.setupEditorSubmitHandler();
 		await editor.onSubmit?.("hello");
 
-		expect(spies.startPendingSubmission).toHaveBeenCalledWith({ text: "hello", images: undefined });
+		expect(spies.startPendingSubmission).toHaveBeenCalledWith(
+			{ text: "hello", images: undefined },
+			{ editor: ctx.editor, generation: 0 },
+		);
 		expect(spies.onInputCallback).toHaveBeenCalledWith(submission);
 		expect(editor.shouldBypassAutocompleteOnEscape?.()).toBe(true);
 
@@ -205,7 +220,7 @@ describe("InputController escape behavior", () => {
 		expect(spies.abort).not.toHaveBeenCalled();
 	});
 
-	it("clears a typed draft and disarms the double-Esc timer on a single Escape", () => {
+	it("clears an unchanged typed draft only on double Escape", () => {
 		const { ctx, editor, spies } = createContext();
 		// Seed a non-zero double-Esc sentinel so the reset assertion is non-vacuous.
 		ctx.lastEscapeTime = 12345;
@@ -215,11 +230,42 @@ describe("InputController escape behavior", () => {
 
 		editor.onEscape?.();
 
-		// Idle + typed text was previously a no-op; now Esc clears the draft,
-		// requests a render, and disarms the double-Esc window (sentinel -> 0).
+		expect(editor.getText()).toBe("a half-written message");
+		expect(ctx.lastEscapeTime).toBe(0);
+
+		editor.onEscape?.();
+
 		expect(editor.getText()).toBe("");
 		expect(spies.requestRender).toHaveBeenCalled();
 		expect(ctx.lastEscapeTime).toBe(0);
+		expect(editor.addToHistory).toHaveBeenCalledWith("a half-written message");
+	});
+
+	it("does not let async palette cleanup clear a newer composer generation", async () => {
+		const { ctx, editor } = createContext();
+		const entered = Promise.withResolvers<void>();
+		const release = Promise.withResolvers<void>();
+		(ctx.session as unknown as { extensionRunner: unknown }).extensionRunner = {
+			hasHandlers: () => true,
+			emitInput: async () => {
+				entered.resolve();
+				await release.promise;
+				return { handled: true };
+			},
+		};
+		const controller = new InputController(ctx);
+		const ownership = {
+			editor: ctx.editor,
+			generation: editor.getComposerGeneration(),
+		};
+
+		const dispatch = controller.submitText("/delayed", ownership);
+		await entered.promise;
+		editor.setText("newer draft");
+		release.resolve();
+		await dispatch;
+
+		expect(editor.getText()).toBe("newer draft");
 	});
 
 	it("runs /btw as a builtin side request instead of steering the active stream", async () => {
