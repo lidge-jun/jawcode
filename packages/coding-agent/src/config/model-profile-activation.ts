@@ -1,4 +1,4 @@
-import type { ThinkingLevel } from "@jawcode-dev/agent-core";
+import { ThinkingLevel } from "@jawcode-dev/agent-core";
 import type { Api, Model } from "@jawcode-dev/ai";
 import type { AgentSession } from "../session/agent-session";
 import {
@@ -116,10 +116,12 @@ export async function applyPreparedModelProfileActivation(
 	const previousThinkingLevel = prepared.previousThinkingLevel;
 	const previousAgentModelOverrides = prepared.previousAgentModelOverrides;
 	const previousPersistedDefault = prepared.settings.get("modelProfile.default");
+	const previousDefaultThinkingLevel = prepared.settings.get("defaultThinkingLevel");
 	const previousActiveProfile = prepared.session.getActiveModelProfile?.();
 	let modelChanged = false;
 	let overridesChanged = false;
 	let defaultChanged = false;
+	let defaultThinkingChanged = false;
 
 	try {
 		if (prepared.defaultModel) {
@@ -136,6 +138,10 @@ export async function applyPreparedModelProfileActivation(
 			overridesChanged = true;
 		}
 		if (options.persistDefault) {
+			if (prepared.defaultThinkingLevel !== undefined && prepared.defaultThinkingLevel !== ThinkingLevel.Inherit) {
+				prepared.settings.set("defaultThinkingLevel", prepared.defaultThinkingLevel);
+				defaultThinkingChanged = true;
+			}
 			prepared.settings.set("modelProfile.default", prepared.profileName);
 			defaultChanged = true;
 			await prepared.settings.flush();
@@ -144,6 +150,9 @@ export async function applyPreparedModelProfileActivation(
 	} catch (error) {
 		if (defaultChanged) {
 			prepared.settings.set("modelProfile.default", previousPersistedDefault);
+			if (defaultThinkingChanged) {
+				prepared.settings.set("defaultThinkingLevel", previousDefaultThinkingLevel);
+			}
 		}
 		prepared.session.setActiveModelProfile?.(previousActiveProfile);
 		if (overridesChanged) {

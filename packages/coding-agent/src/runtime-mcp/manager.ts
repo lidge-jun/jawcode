@@ -530,7 +530,7 @@ export class MCPManager {
 	}
 
 	#replaceServerTools(name: string, tools: CustomTool<TSchema, MCPToolDetails>[]): void {
-		this.#tools = this.#tools.filter(t => !t.name.startsWith(`mcp__${name}_`));
+		this.#tools = this.#tools.filter(t => t.mcpServerName !== name);
 		this.#tools.push(...tools);
 		// Stable sort by name so reconnect order does not perturb the array.
 		// See `sortMCPToolsByName` for the cache-stability rationale.
@@ -708,8 +708,8 @@ export class MCPManager {
 		}
 
 		// Remove tools from this server and notify consumers
-		const hadTools = this.#tools.some(t => t.name.startsWith(`mcp__${name}_`));
-		this.#tools = this.#tools.filter(t => !t.name.startsWith(`mcp__${name}_`));
+		const hadTools = this.#tools.some(t => t.mcpServerName === name);
+		this.#tools = this.#tools.filter(t => t.mcpServerName !== name);
 		if (hadTools) this.#onToolsChanged?.(this.#tools);
 
 		// Notify prompt consumers so stale commands are cleared

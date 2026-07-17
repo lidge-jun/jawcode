@@ -30,6 +30,7 @@ import { resolveRetryBudget } from "../utils/retry-budget";
 import { sanitizeSchemaForOpenAIResponses, toolWireSchema } from "../utils/schema";
 import { wrapFetchForSseDebug } from "../utils/sse-debug";
 import { mapToOpenAIResponsesToolChoice } from "../utils/tool-choice";
+import { wrapOpenAIFetchForBoundedRateLimits } from "./openai-bounded-rate-limits";
 import { normalizeOpenAIResponsesPromptCacheKey, supportsDeveloperRole } from "./openai-responses";
 import {
 	appendResponsesToolResultMessages,
@@ -244,7 +245,7 @@ function createClient(model: Model<"azure-openai-responses">, apiKey: string, op
 
 	const { baseUrl, apiVersion } = resolveAzureConfig(model, options);
 
-	const baseFetch = options?.fetch ?? fetch;
+	const baseFetch = wrapOpenAIFetchForBoundedRateLimits(options?.fetch ?? fetch, options?.maxRetryDelayMs);
 	const onSseEvent = options?.onSseEvent;
 	return new AzureOpenAI({
 		apiKey,

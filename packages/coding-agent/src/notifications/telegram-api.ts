@@ -112,12 +112,39 @@ export async function sendTelegramMessage(opts: {
 	token: string;
 	chatId: string;
 	text: string;
+	parseMode?: "HTML";
+	messageThreadId?: number;
 	fetchImpl?: typeof fetch;
 }): Promise<TelegramCallOutcome<{ message_id: number }>> {
+	const query: Record<string, string> = { chat_id: opts.chatId, text: opts.text };
+	if (opts.parseMode) query.parse_mode = opts.parseMode;
+	if (opts.messageThreadId !== undefined) query.message_thread_id = String(opts.messageThreadId);
 	return telegramCall<{ message_id: number }>({
 		token: opts.token,
 		method: "sendMessage",
-		query: { chat_id: opts.chatId, text: opts.text },
+		query,
+		fetchImpl: opts.fetchImpl,
+	});
+}
+
+export async function editTelegramMessage(opts: {
+	token: string;
+	chatId: string;
+	messageId: number;
+	text: string;
+	parseMode?: "HTML";
+	fetchImpl?: typeof fetch;
+}): Promise<TelegramCallOutcome<{ message_id: number }>> {
+	const query: Record<string, string> = {
+		chat_id: opts.chatId,
+		message_id: String(opts.messageId),
+		text: opts.text,
+	};
+	if (opts.parseMode) query.parse_mode = opts.parseMode;
+	return telegramCall<{ message_id: number }>({
+		token: opts.token,
+		method: "editMessageText",
+		query,
 		fetchImpl: opts.fetchImpl,
 	});
 }

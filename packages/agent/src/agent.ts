@@ -25,6 +25,7 @@ import { prewarmOpenAICodexResponsesContent } from "@jawcode-dev/ai/providers/op
 import { agentLoop, agentLoopContinue, normalizeMessagesForProvider, normalizeTools } from "./agent-loop";
 import type { AppendOnlyContextManager } from "./append-only-context";
 import type { HarmonyAuditEvent } from "./harmony-leak";
+import { assertImagePlaceholdersHavePayload } from "./image-placeholder-guard";
 import type {
 	AgentContext,
 	AgentEvent,
@@ -36,6 +37,23 @@ import type {
 	StreamFn,
 	ToolCallContext,
 } from "./types";
+
+function assertUserImagePlaceholdersHavePayload(messages: readonly AgentMessage[]): void {
+	for (const message of messages) {
+		if (!("role" in message) || message.role !== "user") continue;
+		const content = message.content;
+		if (typeof content === "string") {
+			assertImagePlaceholdersHavePayload(content, undefined);
+			continue;
+		}
+		if (!Array.isArray(content)) continue;
+		const text = content
+			.filter(part => part.type === "text")
+			.map(part => part.text)
+			.join("\n");
+		assertImagePlaceholdersHavePayload(text, content);
+	}
+}
 
 /**
  * Default convertToLlm: Keep only LLM-compatible messages, convert attachments.
@@ -270,6 +288,7 @@ export class Agent {
 		pendingToolCalls: new Set<string>(),
 		error: undefined,
 	};
+	#contextRevision = 0;
 
 	#listeners = new Set<(e: AgentEvent) => void>();
 	#abortController?: AbortController;
@@ -604,6 +623,10 @@ export class Agent {
 		return this.#state;
 	}
 
+	get contextRevision(): number {
+		return this.#contextRevision;
+	}
+
 	get appendOnlyContext(): AppendOnlyContextManager | undefined {
 		return this.#appendOnlyContext;
 	}
@@ -786,10 +809,12 @@ export class Agent {
 	// State mutators
 	setSystemPrompt(v: string[]) {
 		this.#state.systemPrompt = v;
+		this.#contextRevision++;
 	}
 
 	setModel(m: Model) {
 		this.#state.model = m;
+		this.#contextRevision++;
 	}
 
 	setThinkingLevel(l: Effort | undefined) {
@@ -822,20 +847,24 @@ export class Agent {
 
 	setTools(t: AgentTool<any>[]) {
 		this.#state.tools = t;
+		this.#contextRevision++;
 	}
 
 	replaceMessages(ms: AgentMessage[]) {
 		this.#state.messages = ms.slice();
+		this.#contextRevision++;
 	}
 
 	appendMessage(m: AgentMessage) {
 		this.#state.messages = [...this.#state.messages, m];
+		this.#contextRevision++;
 	}
 
 	popMessage(): AgentMessage | undefined {
 		const messages = this.#state.messages.slice(0, -1);
 		const removed = this.#state.messages.at(-1);
 		this.#state.messages = messages;
+		this.#contextRevision++;
 
 		if (removed && this.#state.streamMessage === removed) {
 			this.#state.streamMessage = null;
@@ -844,11 +873,16 @@ export class Agent {
 		return removed;
 	}
 
+	touchContext(): void {
+		this.#contextRevision++;
+	}
+
 	/**
 	 * Queue a steering message to interrupt the agent mid-run.
 	 * Delivered after current tool execution, skips remaining tools.
 	 */
 	steer(m: AgentMessage) {
+		assertUserImagePlaceholdersHavePayload([m]);
 		this.#steeringQueue.push(m);
 	}
 
@@ -857,6 +891,7 @@ export class Agent {
 	 * Delivered only when agent has no more tool calls or steering messages.
 	 */
 	followUp(m: AgentMessage) {
+		assertUserImagePlaceholdersHavePayload([m]);
 		this.#followUpQueue.push(m);
 	}
 
@@ -913,12 +948,14 @@ export class Agent {
 		if (this.#steeringMode === "one-at-a-time") {
 			if (this.#steeringQueue.length > 0) {
 				const first = this.#steeringQueue[0];
+				assertUserImagePlaceholdersHavePayload([first]);
 				this.#steeringQueue = this.#steeringQueue.slice(1);
 				return [first];
 			}
 			return [];
 		}
 		const steering = this.#steeringQueue.slice();
+		assertUserImagePlaceholdersHavePayload(steering);
 		this.#steeringQueue = [];
 		return steering;
 	}
@@ -927,12 +964,14 @@ export class Agent {
 		if (this.#followUpMode === "one-at-a-time") {
 			if (this.#followUpQueue.length > 0) {
 				const first = this.#followUpQueue[0];
+				assertUserImagePlaceholdersHavePayload([first]);
 				this.#followUpQueue = this.#followUpQueue.slice(1);
 				return [first];
 			}
 			return [];
 		}
 		const followUp = this.#followUpQueue.slice();
+		assertUserImagePlaceholdersHavePayload(followUp);
 		this.#followUpQueue = [];
 		return followUp;
 	}
@@ -970,6 +1009,7 @@ export class Agent {
 
 	clearMessages() {
 		this.#state.messages = [];
+		this.#contextRevision++;
 	}
 
 	abort() {
@@ -1008,6 +1048,7 @@ export class Agent {
 
 	reset() {
 		this.#state.messages = [];
+		this.#contextRevision++;
 		this.#state.isStreaming = false;
 		this.#state.streamMessage = null;
 		this.#state.pendingToolCalls = new Set<string>();
@@ -1061,6 +1102,8 @@ export class Agent {
 			msgs = [input];
 			promptOptions = imagesOrOptions as AgentPromptOptions | undefined;
 		}
+
+		assertUserImagePlaceholdersHavePayload(msgs);
 
 		await this.#runLoop(msgs, promptOptions);
 	}

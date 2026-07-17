@@ -137,7 +137,7 @@
 | 10.093 | [`gjc_chase_coordinator_mcp_session_reaper`](./_fin/10/10.093_gjc_chase_coordinator_mcp_session_reaper.md) | ✅ **_fin** | P2 | owner-proof idle reaper, tmux probe, stdio dispatch | `4a80bac9..3ddf26079` |
 | 10.094 | `gjc_chase_telegram_notification_v2` | ⬜ | P2 | /verbose /lean, directed replay, shared notification service | `4a80bac9..3ddf26079` |
 | 10.095 | `gjc_chase_deep_interview_goal_ultragoal` | ⬜ | P2 | deep-interview continuation, goal reminder, ultragoal receipt | `4a80bac9..3ddf26079` |
-| 10.096 | `gjc_chase_session_context_usage_ssot` | ⬜ | P2 | provider-reported usage SSOT, context snapshot cache | `4a80bac9..3ddf26079` |
+| 10.096 | [`gjc_chase_session_context_usage_ssot`](./_fin/10/10.096_gjc_chase_session_context_usage_ssot.md) | ✅ **_fin** | P2 | provider-reported usage SSOT, context snapshot cache | `4a80bac9..3ddf26079` |
 | 10.097 | `gjc_chase_grok_codex_benchmark_presets` | ⬜ | P1 | Grok 4.5, GPT-5.6 Codex presets, mpreset | `4a80bac9..3ddf26079` |
 | 10.098 | `gjc_chase_codex_reasoning_thinking_sdk` | ⬜ | P1 | thinking capabilities, invalid_prompt circuit breaker | `4a80bac9..3ddf26079` |
 | 10.099 | `gjc_chase_rpc_durable_selection_pet` | ⬜ | P3 | durable default model via RPC, deferred selection, pet | `4a80bac9..3ddf26079` |
@@ -148,7 +148,7 @@
 | 10.104 | `gjc_chase_docs_changelog_qa` | ⬜ | P3 | changelog dedup, QA evidence, SDK guide repair | `4a80bac9..3ddf26079` |
 | 10.105 | `gjc_chase_routing_fallback_availability_cache` | ⬜ | P1 | routing/fallback hardening, availability cache, subagent stickiness | `3ddf26079..904eab21c` |
 | 10.106 | `gjc_chase_config_ux_credential_setup` | ⬜ | P2 | config doctor, credential setup, keybindings, SDK UX | `3ddf26079..904eab21c` |
-| 10.107 | `gjc_chase_context_compaction_ci` | ⬜ | P2 | compaction/pruning/hindsight budgets, CI native addon | `3ddf26079..904eab21c` |
+| 10.107 | [`gjc_chase_context_compaction_ci`](./_fin/10/10.107_gjc_chase_context_compaction_ci.md) | ✅ **_fin** | P2 | compaction/pruning/hindsight budgets, CI native addon | `3ddf26079..904eab21c` |
 
 > **260717 delta**: +18 cards (10.087–10.104), range `4a80bac9..3ddf26079` (v0.9.6→v0.11.1+, 302 non-merge).
 > **260717 delta (supplement)**: +3 cards (10.105–10.107), range `3ddf26079..904eab21c` (post-v0.11.1, 41 non-merge).

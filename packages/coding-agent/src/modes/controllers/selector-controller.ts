@@ -256,8 +256,9 @@ export class SelectorController {
 	/** 083.4: dropdown for /effort — pick a reasoning effort (thinking level). */
 	showEffortSelector(): void {
 		const levels: SelectItem[] = [
+			{ value: "inherit", label: "inherit", description: "Use the configured default" },
 			{ value: "off", label: "off", description: "No reasoning" },
-			{ value: "min", label: "minimal", description: "Very brief reasoning (~1k tokens)" },
+			{ value: "minimal", label: "minimal", description: "Very brief reasoning (~1k tokens)" },
 			{ value: "low", label: "low", description: "Light reasoning (~2k tokens)" },
 			{ value: "medium", label: "medium", description: "Moderate reasoning (~8k tokens)" },
 			{ value: "high", label: "high", description: "Deep reasoning (~16k tokens)" },
@@ -274,9 +275,24 @@ export class SelectorController {
 			if (currentIndex >= 0) list.setSelectedIndex(currentIndex);
 			list.onSelect = item => {
 				done();
-				this.ctx.session.setThinkingLevel(item.value as ThinkingLevel);
+				const selectedLevel = item.value as ThinkingLevel;
+				const configuredDefault = this.ctx.settings.get("defaultThinkingLevel");
+				const levelToApply = selectedLevel === ThinkingLevel.Inherit ? configuredDefault : selectedLevel;
+				this.ctx.session.setThinkingLevel(levelToApply);
+				if (selectedLevel !== ThinkingLevel.Inherit) {
+					this.ctx.settings.set("defaultThinkingLevel", selectedLevel);
+					void this.ctx.notifyConfigChanged?.();
+				}
 				this.ctx.statusLine.invalidate();
-				this.ctx.showStatus(`Reasoning effort set to ${this.ctx.session.thinkingLevel ?? "off"}.`);
+				const selectedLabel =
+					selectedLevel === ThinkingLevel.Inherit
+						? `inherit (configured default: ${configuredDefault})`
+						: selectedLevel;
+				const scopeLabel =
+					selectedLevel === ThinkingLevel.Inherit ? "Reasoning effort" : "Default reasoning effort";
+				this.ctx.showStatus(
+					`${scopeLabel} set to ${selectedLabel}. Effective effort: ${this.ctx.session.thinkingLevel ?? "off"}.`,
+				);
 				this.ctx.ui.requestRender();
 			};
 			list.onCancel = () => {
@@ -858,7 +874,10 @@ export class SelectorController {
 					try {
 						if (selection.kind === "preset") {
 							await this.#applyModelAssignmentPreset(selection);
-							modelSelector.refreshFromSettings();
+							modelSelector.refreshFromSettings({
+								currentModel: this.ctx.session.model,
+								currentThinkingLevel: this.ctx.session.thinkingLevel,
+							});
 							this.ctx.ui.requestRender();
 							return;
 						}
@@ -872,7 +891,11 @@ export class SelectorController {
 								},
 								{ persistDefault: selection.setDefault },
 							);
-							modelSelector.refreshFromSettings({ currentProfileName: selection.profileName });
+							modelSelector.refreshFromSettings({
+								currentProfileName: selection.profileName,
+								currentModel: this.ctx.session.model,
+								currentThinkingLevel: this.ctx.session.thinkingLevel,
+							});
 							this.ctx.statusLine.invalidate();
 							this.ctx.updateEditorBorderColor();
 							this.ctx.showStatus(
@@ -901,7 +924,10 @@ export class SelectorController {
 							if (thinkingLevel && thinkingLevel !== ThinkingLevel.Inherit) {
 								this.ctx.session.setThinkingLevel(thinkingLevel);
 							}
-							modelSelector.refreshFromSettings();
+							modelSelector.refreshFromSettings({
+								currentModel: this.ctx.session.model,
+								currentThinkingLevel: this.ctx.session.thinkingLevel,
+							});
 							this.ctx.statusLine.invalidate();
 							this.ctx.updateEditorBorderColor();
 							this.ctx.showStatus(`Default model: ${selectedSelector ?? model.id}`);
@@ -919,7 +945,10 @@ export class SelectorController {
 							this.ctx.settings.set("task.agentModelOverrides", nextOverrides);
 							this.ctx.settings.override("task.agentModelOverrides", nextOverrides);
 							this.ctx.settings.getStorage()?.recordModelUsage(`${model.provider}/${model.id}`);
-							modelSelector.refreshFromSettings();
+							modelSelector.refreshFromSettings({
+								currentModel: this.ctx.session.model,
+								currentThinkingLevel: this.ctx.session.thinkingLevel,
+							});
 							this.ctx.showStatus(`${role} agent model: ${value}`);
 							this.ctx.ui.requestRender();
 						}
@@ -927,6 +956,8 @@ export class SelectorController {
 						modelSelector.refreshFromSettings({
 							currentProfileName:
 								this.ctx.session.getActiveModelProfile?.() ?? this.ctx.settings.get("modelProfile.default"),
+							currentModel: this.ctx.session.model,
+							currentThinkingLevel: this.ctx.session.thinkingLevel,
 						});
 						this.ctx.ui.requestRender();
 						this.ctx.showError(error instanceof Error ? error.message : String(error));
@@ -940,6 +971,7 @@ export class SelectorController {
 					...options,
 					currentProfileName:
 						this.ctx.session.getActiveModelProfile?.() ?? this.ctx.settings.get("modelProfile.default"),
+					currentThinkingLevel: this.ctx.session.thinkingLevel,
 				},
 			);
 			return { component: modelSelector, focus: modelSelector };

@@ -24,6 +24,7 @@ import {
 	type CatalogDiscoveryConfig,
 	type CatalogProviderDescriptor,
 	isCatalogDescriptor,
+	OPENAI_GPT_5_6_TIER_DESCRIPTORS,
 	PROVIDER_DESCRIPTORS,
 } from "../src/provider-models/descriptors";
 import {
@@ -60,6 +61,34 @@ function createAzureOpenAICatalogModels(): Model<"azure-openai-responses">[] {
 			baseUrl: "",
 		} as Model<"azure-openai-responses">;
 	});
+}
+
+function createOpenAIGpt56CatalogModels(): Model<"openai-responses" | "openai-codex-responses">[] {
+	return OPENAI_GPT_5_6_TIER_DESCRIPTORS.flatMap(descriptor => [
+		{
+			...descriptor,
+			api: "openai-responses" as const,
+			provider: "openai" as const,
+			baseUrl: "",
+			reasoning: true,
+			input: ["text", "image"] as const,
+			contextWindow: 1_050_000,
+			maxTokens: 128_000,
+			applyPatchToolType: "freeform" as const,
+		},
+		{
+			...descriptor,
+			api: "openai-codex-responses" as const,
+			provider: "openai-codex" as const,
+			baseUrl: "https://chatgpt.com/backend-api",
+			reasoning: true,
+			input: ["text", "image"] as const,
+			contextWindow: 373_000,
+			maxTokens: 128_000,
+			preferWebsockets: true,
+			applyPatchToolType: "freeform" as const,
+		},
+	]);
 }
 
 const packageRoot = path.join(import.meta.dir, "..");
@@ -357,9 +386,15 @@ async function generateModels() {
 		)
 	).flat();
 	const gitLabDuoModels = getGitLabDuoModels();
-	// Combine models (models.dev has priority)
+	// Combine models. Curated descriptors take priority over remote discovery.
 	let allModels = applyGlobalModelsDevFallback(
-		[...modelsDevModels, ...catalogProviderModels, ...gitLabDuoModels, ...createAzureOpenAICatalogModels()],
+		[
+			...createOpenAIGpt56CatalogModels(),
+			...modelsDevModels,
+			...catalogProviderModels,
+			...gitLabDuoModels,
+			...createAzureOpenAICatalogModels(),
+		],
 		modelsDevModels,
 	);
 

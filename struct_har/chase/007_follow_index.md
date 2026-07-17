@@ -131,7 +131,7 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 | C07 | 093 | [10.093 coordinator MCP/session reaper](./_fin/10/10.093_gjc_chase_coordinator_mcp_session_reaper.md) | P2 | ✅ **_fin** |
 | C08 | 094 | [10.094 Telegram notification v2](./10.094_gjc_chase_telegram_notification_v2.md) | P2 | ⬜ |
 | C09 | 095 | [10.095 deep-interview/goal/ultragoal](./10.095_gjc_chase_deep_interview_goal_ultragoal.md) | P2 | ⬜ |
-| C10 | 096 | [10.096 session context-usage SSOT](./10.096_gjc_chase_session_context_usage_ssot.md) | P2 | ⬜ |
+| C10 | 096 | [10.096 session context-usage SSOT](./_fin/10/10.096_gjc_chase_session_context_usage_ssot.md) | P2 | ✅ **_fin** |
 | C04 | 090 | [10.090 prompt refactor/compact ralplan](./10.090_gjc_chase_prompt_refactor_compact_ralplan.md) | P2 | ⬜ |
 | C13 | 099 | [10.099 RPC durable selection/pet](./10.099_gjc_chase_rpc_durable_selection_pet.md) | P3 | ⬜ |
 | C14 | 100 | [10.100 CI/release stabilization](./10.100_gjc_chase_ci_release_stabilization.md) | P3 | ⬜ |
@@ -145,7 +145,7 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 |---|---:|---|---|---|
 | S1 | 105 | [10.105 routing/fallback availability cache](./10.105_gjc_chase_routing_fallback_availability_cache.md) | P1 | ⬜ |
 | S2 | 106 | [10.106 config UX/credential setup](./10.106_gjc_chase_config_ux_credential_setup.md) | P2 | ⬜ |
-| S3 | 107 | [10.107 context compaction/CI](./10.107_gjc_chase_context_compaction_ci.md) | P2 | ⬜ |
+| S3 | 107 | [10.107 context compaction/CI](./_fin/10/10.107_gjc_chase_context_compaction_ci.md) | P2 | ✅ **_fin** |
 
 ### Legacy RPC / early-priority carried rows
 | 순 | NNN | 문서 | P | 상태 |

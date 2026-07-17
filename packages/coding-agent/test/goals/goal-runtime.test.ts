@@ -203,7 +203,7 @@ describe("goal runtime", () => {
 		expect(harness.persists.at(-1)?.mode).toBeUndefined();
 	});
 
-	it("escapes XML in goal helpers and rendered prompts without budget language", () => {
+	it("escapes XML in goal helpers and renders honest terminal-state language", () => {
 		const objective = "Fix <root>&keep>safe";
 		const goal = createGoal({ objective });
 		const prompt = renderGoalPrompt("active", goal);
@@ -211,18 +211,22 @@ describe("goal runtime", () => {
 		expect(renderTrustedObjective(objective)).toBe("<objective>\nFix &lt;root&gt;&amp;keep&gt;safe\n</objective>");
 		expect(prompt).toContain("Fix &lt;root&gt;&amp;keep&gt;safe");
 		expect(prompt).not.toContain(objective);
-		expect(prompt.toLowerCase()).not.toContain("budget");
-		expect(prompt.toLowerCase()).not.toContain("remaining");
+		// Budget language is allowed only in the honest-terminal direction: a budget/time
+		// stop is reported as such, never rounded up to completion — and context pressure
+		// is explicitly not budget exhaustion (loop-value sync 260709).
+		expect(prompt).toContain("never round a budget/time stop up to completion");
+		expect(prompt).toContain("Context pressure is not budget exhaustion");
 		expect(prompt).toContain("requires PABCD or orchestration");
 		expect(prompt).toContain("jwc orchestrate <stage>");
 	});
 
-	it("renders continuation prompts with PABCD reminders and without budget language", () => {
+	it("renders continuation prompts with PABCD reminders and honest terminal-state language", () => {
 		const prompt = renderGoalPrompt("continuation", createGoal());
 		expect(prompt).toContain("PABCD requested");
 		expect(prompt).toContain("jwc orchestrate <stage>");
-		expect(prompt.toLowerCase()).not.toContain("budget");
-		expect(prompt.toLowerCase()).not.toContain("remaining");
+		expect(prompt).toContain("Context pressure is not budget exhaustion");
+		expect(prompt).toContain("Remaining independent features are the NEXT work-phases");
+		expect(prompt.toLowerCase()).not.toContain("wrap up");
 	});
 
 	it("returns the input verbatim when escapeXmlText has nothing to escape", () => {

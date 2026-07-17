@@ -35,7 +35,7 @@ import {
 	type ToolChoice,
 	type ToolResultMessage,
 } from "../types";
-import { normalizeSystemPrompts } from "../utils";
+import { normalizeSystemPrompts, sanitizeJsonStrings } from "../utils";
 import { createAbortSourceTracker } from "../utils/abort";
 import { AssistantMessageEventStream } from "../utils/event-stream";
 import { toFirepassWireModelId, toFireworksWireModelId } from "../utils/fireworks-model-id";
@@ -67,6 +67,7 @@ import {
 	hasCopilotVisionInput,
 	resolveGitHubCopilotBaseUrl,
 } from "./github-copilot-headers";
+import { wrapOpenAIFetchForBoundedRateLimits } from "./openai-bounded-rate-limits";
 import { detectOpenAICompat, type ResolvedOpenAICompat, resolveOpenAICompat } from "./openai-completions-compat";
 import {
 	applyOpenAIRequestTransformBody,
@@ -161,7 +162,7 @@ function normalizeStreamingContentText(content: unknown): string {
 function serializeToolArguments(value: unknown): string {
 	if (value && typeof value === "object" && !Array.isArray(value)) {
 		try {
-			return JSON.stringify(value);
+			return JSON.stringify(sanitizeJsonStrings(value));
 		} catch {
 			return "{}";
 		}
@@ -173,7 +174,7 @@ function serializeToolArguments(value: unknown): string {
 		try {
 			const parsed = JSON.parse(trimmed);
 			if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-				return JSON.stringify(parsed);
+				return JSON.stringify(sanitizeJsonStrings(parsed));
 			}
 		} catch {}
 		return "{}";
@@ -462,6 +463,7 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions"> = (
 				options?.streamFirstEventTimeoutMs,
 				options?.authCredentialType,
 				options?.requestMaxRetries,
+				options?.maxRetryDelayMs,
 			);
 			const premiumRequestsTotal = copilotPremiumRequests;
 			getCapturedErrorResponse = captureErrorResponse;
@@ -956,6 +958,7 @@ async function createClient(
 	streamFirstEventTimeoutOverride?: number,
 	authCredentialType?: OpenAICompletionsOptions["authCredentialType"],
 	requestMaxRetries?: number,
+	maxRetryDelayMs?: number,
 ): Promise<{
 	client: OpenAI;
 	copilotPremiumRequests: number | undefined;
@@ -1055,8 +1058,9 @@ async function createClient(
 		},
 		baseFetch.preconnect ? { preconnect: baseFetch.preconnect } : {},
 	);
+	const boundedFetch = wrapOpenAIFetchForBoundedRateLimits(wrappedFetch, maxRetryDelayMs);
 	const transformedFetch = wrapFetchForOpenAIRequestTransform(
-		wrappedFetch,
+		boundedFetch,
 		model.requestTransform,
 		`Gajae-Code/${packageJson.version}`,
 	);

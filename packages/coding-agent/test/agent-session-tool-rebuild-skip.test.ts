@@ -145,6 +145,63 @@ describe("AgentSession refreshMCPTools rebuild skipping", () => {
 		expect(rebuildCount).toBe(2);
 	});
 
+	it("rolls back the registry, active wrappers, prompt, and selection when an MCP refresh rebuild fails", async () => {
+		let failRebuild = false;
+		const readTool = createBasicTool("read", "Read");
+		const oldTool = createMcpCustomTool("mcp__nucleus_old", "nucleus", "old", "Old tool");
+		const newTool = createMcpCustomTool("mcp__nucleus_new", "nucleus", "new", "New tool");
+		const sessionManager = SessionManager.inMemory();
+		const agent = new Agent({
+			initialState: {
+				model: createModel(),
+				systemPrompt: ["initial"],
+				tools: [readTool],
+				messages: [],
+			},
+		});
+		const session = new AgentSession({
+			agent,
+			sessionManager,
+			settings: Settings.isolated({ "mcp.discoveryMode": true }),
+			modelRegistry: {} as never,
+			toolRegistry: new Map([[readTool.name, readTool]]),
+			mcpDiscoveryEnabled: true,
+			initialSelectedMCPToolNames: [oldTool.name],
+			rebuildSystemPrompt: async toolNames => {
+				if (failRebuild) throw new Error("rebuild failed");
+				return { systemPrompt: [`tools:${toolNames.join(",")}`] };
+			},
+		});
+		sessions.push(session);
+
+		await session.refreshMCPTools([oldTool]);
+		await session.activateDiscoveredMCPTools([oldTool.name]);
+		const activeNamesBefore = session.getActiveToolNames();
+		const activeToolsBefore = [...session.agent.state.tools];
+		const selectedBefore = session.getSelectedMCPToolNames();
+		const persistedBefore = sessionManager.buildSessionContext().selectedMCPToolNames;
+		const promptBefore = [...session.systemPrompt];
+		failRebuild = true;
+
+		await expect(session.refreshMCPTools([newTool])).rejects.toThrow("rebuild failed");
+
+		expect(session.getToolByName(oldTool.name)).toBeDefined();
+		expect(session.getToolByName(newTool.name)).toBeUndefined();
+		expect(session.getActiveToolNames()).toEqual(activeNamesBefore);
+		expect(session.agent.state.tools).toEqual(activeToolsBefore);
+		for (const [index, activeTool] of session.agent.state.tools.entries()) {
+			expect(activeTool).toBe(activeToolsBefore[index]);
+		}
+		expect(session.getSelectedMCPToolNames()).toEqual(selectedBefore);
+		expect(sessionManager.buildSessionContext().selectedMCPToolNames).toEqual(persistedBefore);
+		expect(session.systemPrompt).toEqual(promptBefore);
+
+		failRebuild = false;
+		await session.refreshMCPTools([newTool]);
+		expect(session.getToolByName(oldTool.name)).toBeUndefined();
+		expect(session.getToolByName(newTool.name)).toBeDefined();
+	});
+
 	it("rebuilds when the active tool list changes via setActiveToolsByName", async () => {
 		let rebuildCount = 0;
 		const { session } = newSession(async toolNames => {

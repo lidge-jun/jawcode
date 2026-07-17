@@ -34,4 +34,4 @@ When done → run `jwc orchestrate d` yourself via the shell tool to close the o
 1. If a devlog loop plan exists with `pending` phases: mark the just-completed phase `done` in the MOC, then re-enter `jwc orchestrate p` for the next `pending` phase. When a `jwc goal` is active, proceed automatically (HOTL); otherwise confirm with the user first.
 2. If no loop plan exists but a `jwc goal` is active: check whether the goal objective is fully achieved. If work remains, re-enter planning with `jwc orchestrate p`. If the goal is complete, run `jwc goal done`.
 3. If the goal is truly impossible or needs a direction change, pause and ask the user.
-Do not treat IDLE as the end when loop phases or goal work remain.
+Do not treat IDLE as the end when loop phases or goal work remain. Work-phases chain HETEROGENEOUS units: a completely different feature that fits the goal is simply the next cycle at `jwc orchestrate p` — "needs its own cycle/PABCD" is a plan statement, never a reason to close the goal, and a list of remaining independent features is not an honest terminal state.

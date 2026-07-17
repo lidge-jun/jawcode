@@ -82,6 +82,11 @@ export interface StateWriterOptions {
 	audit?: StateWriterAuditContext;
 }
 
+export interface WorkflowEnvelopeWriteResult {
+	path: string;
+	stamped: unknown;
+}
+
 export interface DeleteIfOwnedOptions extends StateWriterOptions {
 	predicate?: (current: unknown) => boolean | Promise<boolean>;
 }
@@ -388,11 +393,11 @@ export async function writeJsonAtomic(
 	return filePath;
 }
 
-export async function writeWorkflowEnvelopeAtomic(
+export async function writeWorkflowEnvelopeAtomicWithResult(
 	targetPath: string,
 	value: unknown,
 	options?: StateWriterOptions,
-): Promise<string> {
+): Promise<WorkflowEnvelopeWriteResult> {
 	const filePath = resolveJwcTarget(targetPath, cwdForOptions(options));
 	const withReceipt = withWorkflowReceipt(value, buildReceipt(options));
 	const stamped = stampWorkflowEnvelopeChecksum(withReceipt, filePath);
@@ -406,7 +411,16 @@ export async function writeWorkflowEnvelopeAtomic(
 	}
 	await atomicWrite(filePath, jsonText(stamped));
 	await maybeAudit(filePath, options);
-	return filePath;
+	return { path: filePath, stamped };
+}
+
+export async function writeWorkflowEnvelopeAtomic(
+	targetPath: string,
+	value: unknown,
+	options?: StateWriterOptions,
+): Promise<string> {
+	const result = await writeWorkflowEnvelopeAtomicWithResult(targetPath, value, options);
+	return result.path;
 }
 
 export async function writeTextAtomic(targetPath: string, text: string, options?: StateWriterOptions): Promise<string> {

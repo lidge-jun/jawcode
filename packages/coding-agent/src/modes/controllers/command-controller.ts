@@ -922,7 +922,35 @@ export class CommandController {
 	}
 
 	async handleClearCommand(): Promise<void> {
-		await this.#runNewSessionFlow();
+		await this.handleContextClearCommand();
+	}
+
+	async handleContextClearCommand(): Promise<void> {
+		if (this.ctx.loadingAnimation) {
+			this.ctx.loadingAnimation.stop();
+			this.ctx.loadingAnimation = undefined;
+		}
+		this.ctx.statusContainer.clear();
+
+		if (this.ctx.session.isCompacting) {
+			this.ctx.session.abortCompaction();
+			while (this.ctx.session.isCompacting) {
+				await Bun.sleep(10);
+			}
+		}
+		if (!(await this.ctx.session.clearContext())) return;
+
+		this.ctx.statusLine.invalidate();
+		this.ctx.updateEditorTopBorder();
+		this.ctx.updateEditorBorderColor();
+		this.ctx.ui.requestRender();
+
+		this.ctx.chatContainer.clear();
+		this.ctx.pendingMessagesContainer.clear();
+		this.ctx.streamingComponent = undefined;
+		this.ctx.streamingMessage = undefined;
+
+		this.ctx.ui.requestRender();
 	}
 
 	async handleDropCommand(): Promise<void> {

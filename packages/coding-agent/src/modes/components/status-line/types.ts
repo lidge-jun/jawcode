@@ -49,7 +49,7 @@ export interface SegmentContext {
 		cost: number;
 		tokensPerSecond: number | null;
 	};
-	contextPercent: number;
+	contextPercent: number | null;
 	contextWindow: number;
 	autoCompactEnabled: boolean;
 	subagentCount: number;

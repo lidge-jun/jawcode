@@ -12,6 +12,11 @@ Usage:
 
 This is an autonomous continuation. The objective persists across turns; do not redefine success around a smaller, easier, or already-completed subset.
 
+Two continuation values that are never negotiable:
+
+- **Remaining independent features are the NEXT work-phases, not a completion reason.** Work-phases chain heterogeneous units in one session: a feature unrelated to the unit just closed is simply the next cycle (re-enter planning / `jwc orchestrate p`). "Each of these needs its own implementation cycle" describes the plan — it never justifies `goal({op:"complete"})` or ending the run while those units fit the objective.
+- **Context pressure is not budget exhaustion.** An approaching context limit or compaction means checkpoint durable state (devlog, `jwc goal update` with evidence) and continue after the flush — memory lives on disk. "Context is getting large" never justifies completing, shrinking, or abandoning the goal. A budget stop is only real when a stated token/time bound is actually hit, and it is reported as budget-exhausted with best-so-far evidence, never as completion.
+
 Before calling `goal({op:"complete"})`, you MUST perform a completion audit against the current repo state:
 
 1. **Restate the objective as concrete deliverables.** What files, behaviors, tests, gates, or artifacts must exist for the objective to be true? Write them down (todo_write, or in your reasoning).

@@ -252,6 +252,23 @@ export interface ImageRenderOptions {
 	maxWidthCells?: number;
 	maxHeightCells?: number;
 	preserveAspectRatio?: boolean;
+	/** Kitty-only stable image id. Defaults to a content hash. */
+	imageId?: number;
+	/** Kitty-only stable placement id. Persistent components should allocate one per instance. */
+	placementId?: number;
+	/** Kitty-only test/custom sink for the one-time transmit sequence. */
+	onTransmit?: (sequence: string) => void;
+}
+
+/** Derive a stable non-zero kitty image id from the base64 payload. */
+export function kittyImageId(base64Data: string): number {
+	let hash = 0x811c9dc5;
+	for (let i = 0; i < base64Data.length; i++) {
+		hash ^= base64Data.charCodeAt(i);
+		hash = Math.imul(hash, 0x01000193);
+	}
+	hash >>>= 0;
+	return hash === 0 ? 1 : hash;
 }
 
 // Default cell dimensions - updated by TUI when terminal responds to query
@@ -306,6 +323,59 @@ export function encodeKitty(
 	}
 
 	return chunks.join("");
+}
+
+const transmittedKittyImageIds = new Set<number>();
+
+/** Forget uploaded kitty image ids, primarily for terminal restarts and tests. */
+export function resetKittyTransmissions(): void {
+	transmittedKittyImageIds.clear();
+}
+
+let kittyTransmitWriter: (sequence: string) => void = sequence => {
+	if (process.stdout.isTTY) process.stdout.write(sequence);
+};
+
+export function setKittyTransmitWriter(writer: (sequence: string) => void): void {
+	kittyTransmitWriter = writer;
+}
+
+/** Upload kitty image data without creating a placement. */
+export function encodeKittyTransmit(base64Data: string, imageId: number): string {
+	const CHUNK_SIZE = 4096;
+	const params = ["a=t", "f=100", "q=2", `i=${imageId}`];
+
+	if (base64Data.length <= CHUNK_SIZE) {
+		return `\x1b_G${params.join(",")};${base64Data}\x1b\\`;
+	}
+
+	const chunks: string[] = [];
+	let offset = 0;
+	let isFirst = true;
+	while (offset < base64Data.length) {
+		const chunk = base64Data.slice(offset, offset + CHUNK_SIZE);
+		const isLast = offset + CHUNK_SIZE >= base64Data.length;
+		if (isFirst) {
+			chunks.push(`\x1b_G${params.join(",")},m=1;${chunk}\x1b\\`);
+			isFirst = false;
+		} else if (isLast) {
+			chunks.push(`\x1b_Gm=0;${chunk}\x1b\\`);
+		} else {
+			chunks.push(`\x1b_Gm=1;${chunk}\x1b\\`);
+		}
+		offset += CHUNK_SIZE;
+	}
+	return chunks.join("");
+}
+
+/** Place previously uploaded kitty image data without moving the cursor. */
+export function encodeKittyPlacement(options: {
+	imageId: number;
+	placementId: number;
+	columns: number;
+	rows: number;
+}): string {
+	return `\x1b_Ga=p,i=${options.imageId},p=${options.placementId},c=${options.columns},r=${options.rows},C=1,q=2\x1b\\`;
 }
 
 export function encodeITerm2(
@@ -515,11 +585,18 @@ export function getImageDimensions(base64Data: string, mimeType: string): ImageD
 	return null;
 }
 
+export interface RenderedImage {
+	sequence: string;
+	rows: number;
+	/** True when the sequence does not move the cursor or carry pixel data. */
+	cursorNeutral?: boolean;
+}
+
 export function renderImage(
 	base64Data: string,
 	imageDimensions: ImageDimensions,
 	options: ImageRenderOptions = {},
-): { sequence: string; rows: number } | null {
+): RenderedImage | null {
 	if (!TERMINAL.imageProtocol) {
 		return null;
 	}
@@ -528,11 +605,17 @@ export function renderImage(
 	const fit = calculateImageFit(imageDimensions, options, cellDims);
 
 	if (TERMINAL.imageProtocol === ImageProtocol.Kitty) {
-		const sequence = encodeKitty(base64Data, {
-			columns: fit.columns,
+		const imageId = options.imageId ?? kittyImageId(base64Data);
+		const placementId = options.placementId ?? 1;
+		if (!transmittedKittyImageIds.has(imageId)) {
+			(options.onTransmit ?? kittyTransmitWriter)(encodeKittyTransmit(base64Data, imageId));
+			transmittedKittyImageIds.add(imageId);
+		}
+		return {
+			sequence: encodeKittyPlacement({ imageId, placementId, columns: fit.columns, rows: fit.rows }),
 			rows: fit.rows,
-		});
-		return { sequence, rows: fit.rows };
+			cursorNeutral: true,
+		};
 	}
 
 	if (TERMINAL.imageProtocol === ImageProtocol.Sixel) {

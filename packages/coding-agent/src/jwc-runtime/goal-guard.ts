@@ -172,7 +172,7 @@ export function validateCompletionReceipt(input: {
 	if (hashStructuredValue(event.jwcGoalJson) !== receipt.jwcGoalSnapshotHash) {
 		return {
 			state: "active_stale_receipt",
-			message: `Goal ${input.goal.id} receipt goal({"op":"get"}) snapshot hash does not match ledger.`,
+			message: `Goal ${input.goal.id} durable identity snapshot hash does not match ledger.`,
 			goalId: input.goal.id,
 		};
 	}
@@ -286,7 +286,7 @@ export async function assertCanCompleteCurrentGoal(input: {
 	const diagnostic = await readGoalVerificationState(input);
 	if (["inactive", "unrelated_goal", "active_verified_complete"].includes(diagnostic.state)) return;
 	throw new Error(
-		`${diagnostic.message} Run strict \`jwc goal checkpoint --status complete --quality-gate-json <file> --gjc-goal-json <file>\` first, or record review blockers and rerun verification.`,
+		`${diagnostic.message} Run strict \`jwc goal checkpoint --status complete --quality-gate-json <file>\` first, or record review blockers and rerun verification.`,
 	);
 }
 
