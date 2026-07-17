@@ -116,10 +116,6 @@ function normalizeResultOutput(result: BashResult | BashInteractiveResult): stri
 	return result.output || "";
 }
 
-function isInteractiveResult(result: BashResult | BashInteractiveResult): result is BashInteractiveResult {
-	return "timedOut" in result;
-}
-
 /**
  * jwc fork (devlog 081.11): a timed-out command used to surface only its
  * partial output when any was captured, so models treated the kill as a
@@ -287,11 +283,11 @@ export class BashTool implements AgentTool<BashToolSchema, BashToolDetails> {
 	}
 
 	#buildResultText(result: BashResult | BashInteractiveResult, timeoutSec: number, outputText: string): string {
+		if (result.timedOut) {
+			throw new ToolError(formatTimedOutResult(normalizeResultOutput(result), timeoutSec));
+		}
 		if (result.cancelled) {
 			throw new ToolError(normalizeResultOutput(result) || "Command aborted");
-		}
-		if (isInteractiveResult(result) && result.timedOut) {
-			throw new ToolError(formatTimedOutResult(normalizeResultOutput(result), timeoutSec));
 		}
 		if (result.exitCode === undefined) {
 			throw new ToolError(`${outputText}\n\nCommand failed: missing exit status`);
@@ -967,6 +963,7 @@ export class BashTool implements AgentTool<BashToolSchema, BashToolDetails> {
 					output: outputText,
 					exitCode,
 					cancelled: false,
+					timedOut: false,
 					truncated: finalOutput.truncated,
 					totalLines: outputLineCount,
 					totalBytes: outputByteLen,
@@ -1020,14 +1017,14 @@ export class BashTool implements AgentTool<BashToolSchema, BashToolDetails> {
 					onChunk: streamTailUpdates(tailBuffer, onUpdate),
 					onMinimizedSave: originalText => saveBashOriginalArtifact(this.session, originalText),
 				});
+		if (result.timedOut) {
+			throw new ToolError(formatTimedOutResult(normalizeResultOutput(result), timeoutSec));
+		}
 		if (result.cancelled) {
 			if (signal?.aborted) {
 				throw new ToolAbortError(normalizeResultOutput(result) || "Command aborted");
 			}
 			throw new ToolError(normalizeResultOutput(result) || "Command aborted");
-		}
-		if (isInteractiveResult(result) && result.timedOut) {
-			throw new ToolError(formatTimedOutResult(normalizeResultOutput(result), timeoutSec));
 		}
 		return this.#buildCompletedResult(result, timeoutSec, {
 			requestedTimeoutSec,
