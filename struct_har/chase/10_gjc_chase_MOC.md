@@ -62,7 +62,7 @@
 | 007 | [10.007_gjc_chase_team_profile_self_heal.md](./_fin/10/10.007_gjc_chase_team_profile_self_heal.md) | team·leader profile | **P1** | ✅ _fin |
 | 012-steer | [10.012_gjc_chase_goal_steering.md](./_fin/10/10.012_gjc_chase_goal_steering.md) | goal steering | P2 | ✅ _fin |
 | 013-cache | [10.013_gjc_chase_assistant_msg_cache.md](./_fin/10/10.013_gjc_chase_assistant_msg_cache.md) | assistant cache | P3 | ✅ _fin |
-| 019 | [10.019_gjc_chase_gc_file_lock.md](./10.019_gjc_chase_gc_file_lock.md) | gc | P2 | ⬜ |
+| 019 | [10.019_gjc_chase_gc_file_lock.md](./_fin/10/10.019_gjc_chase_gc_file_lock.md) | gc | P2 | ✅ **_fin** |
 | 021 | [10.021_gjc_chase_goal_redteam_review.md](./_fin/10/10.021_gjc_chase_goal_redteam_review.md) | goal red-team | P2 | ✅ _fin (split→027) |
 | 023 | [10.023_gjc_chase_task_notification_context.md](./_fin/10/10.023_gjc_chase_task_notification_context.md) | task notify | P2 | ✅ _fin |
 | 020 | [10.020_gjc_chase_deep_interview_semantics.md](./_fin/10/10.020_gjc_chase_deep_interview_semantics.md) | interview ref | P3 | ✅ _fin |

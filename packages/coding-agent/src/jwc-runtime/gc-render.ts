@@ -8,7 +8,10 @@ import type { ActiveGcStore, GcRecord, GcReport } from "./gc-runtime";
 import { GC_STORES } from "./gc-runtime";
 
 const STORE_HEADINGS: Record<ActiveGcStore, string> = {
+	harness_leases: "Harness leases",
+	team_workers: "Team workers",
 	file_locks: "Config file-locks",
+	registry_entries: "Harness root registry entries",
 };
 
 function actionLabel(record: GcRecord): string {

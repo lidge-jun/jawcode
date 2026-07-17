@@ -3,7 +3,12 @@ import { writeFileSync } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { removeFileLockDirForGc, withFileLock } from "@jawcode-dev/coding-agent/config/file-lock";
+import {
+	type FileLockOwnerToken,
+	readFileLockInfoForGc,
+	removeFileLockDirForGc,
+	withFileLock,
+} from "@jawcode-dev/coding-agent/config/file-lock";
 import { fileLocksGcAdapter } from "@jawcode-dev/coding-agent/config/file-lock-gc";
 import type { GcContext, GcPidProbe, GcRecord } from "@jawcode-dev/coding-agent/jwc-runtime/gc-runtime";
 
@@ -11,6 +16,10 @@ const DEAD_PID = 525_252;
 const LIVE_PID = 636_363;
 
 const tempDirs: string[] = [];
+
+function expectedOwner(pid: number, timestamp: number): FileLockOwnerToken {
+	return { pid, timestamp, stat: { dev: 0, ino: 0, mtimeMs: 0, ctimeMs: 0 } };
+}
 
 afterEach(async () => {
 	for (const dir of tempDirs.splice(0)) {
@@ -111,10 +120,11 @@ describe("removeFileLockDirForGc owner-token guard (GJC #606)", () => {
 	test("removes the dir when the on-disk token matches the expected owner", async () => {
 		const base = await makeTemp();
 		const lockDir = path.join(base, "match.lock");
-		const token = { pid: DEAD_PID, timestamp: 1000 };
-		await writeInfo(lockDir, token);
+		await writeInfo(lockDir, { pid: DEAD_PID, timestamp: 1000 });
+		const token = await readFileLockInfoForGc(lockDir);
+		expect(token).not.toBeNull();
 
-		const outcome = await removeFileLockDirForGc(lockDir, token);
+		const outcome = await removeFileLockDirForGc(lockDir, token!);
 
 		expect(outcome).toBe("removed");
 		expect(await fs.exists(lockDir)).toBe(false);
@@ -125,7 +135,7 @@ describe("removeFileLockDirForGc owner-token guard (GJC #606)", () => {
 		const lockDir = path.join(base, "reclaimed.lock");
 		await writeInfo(lockDir, { pid: LIVE_PID, timestamp: 2000 });
 
-		const outcome = await removeFileLockDirForGc(lockDir, { pid: DEAD_PID, timestamp: 1000 });
+		const outcome = await removeFileLockDirForGc(lockDir, expectedOwner(DEAD_PID, 1000));
 
 		expect(outcome).toBe("owner_changed");
 		expect(await fs.exists(lockDir)).toBe(true);
@@ -138,7 +148,7 @@ describe("removeFileLockDirForGc owner-token guard (GJC #606)", () => {
 		const lockDir = path.join(base, "ts.lock");
 		await writeInfo(lockDir, { pid: DEAD_PID, timestamp: 9999 });
 
-		const outcome = await removeFileLockDirForGc(lockDir, { pid: DEAD_PID, timestamp: 1000 });
+		const outcome = await removeFileLockDirForGc(lockDir, expectedOwner(DEAD_PID, 1000));
 
 		expect(outcome).toBe("owner_changed");
 		expect(await fs.exists(lockDir)).toBe(true);
@@ -149,7 +159,7 @@ describe("removeFileLockDirForGc owner-token guard (GJC #606)", () => {
 		const lockDir = path.join(base, "noinfo.lock");
 		await fs.mkdir(lockDir, { recursive: true });
 
-		const outcome = await removeFileLockDirForGc(lockDir, { pid: DEAD_PID, timestamp: 1000 });
+		const outcome = await removeFileLockDirForGc(lockDir, expectedOwner(DEAD_PID, 1000));
 
 		expect(outcome).toBe("missing");
 		expect(await fs.exists(lockDir)).toBe(true);
