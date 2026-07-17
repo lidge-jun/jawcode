@@ -174,6 +174,23 @@ describe("AgentSession role model thinking behavior", () => {
 		expect(sessionSettings.getModelRole("default")).toBe(`${slowModel.provider}/${slowModel.id}:off`);
 	});
 
+	it("clears stale explicit thinking when automatic assignment changes the resolved model", async () => {
+		const previousModel = getAnthropicModelOrThrow("claude-sonnet-4-5");
+		const nextModel = getAnthropicModelOrThrow("claude-sonnet-4-6");
+
+		await createSession({
+			initialModelId: previousModel.id,
+			initialThinkingLevel: Effort.Low,
+			modelRoles: {
+				default: `${previousModel.provider}/${previousModel.id}:off`,
+			},
+		});
+
+		await session.setModel(nextModel);
+
+		expect(sessionSettings.getModelRole("default")).toBe(`${nextModel.provider}/${nextModel.id}`);
+	});
+
 	it("clamps unsupported selections from model metadata", async () => {
 		const model = getAnthropicModelOrThrow("claude-sonnet-4-6");
 		const agent = new Agent({

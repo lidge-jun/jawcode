@@ -92,7 +92,7 @@ import {
 import { AgentSession, type ForkContextSeed } from "./session/agent-session";
 import { resolveAuthBrokerConfig } from "./session/auth-broker-config";
 import { AuthBrokerClient, AuthStorage, RemoteAuthCredentialStore } from "./session/auth-storage";
-import { type CustomMessage, convertToLlm } from "./session/messages";
+import { type CustomMessage, convertToLlm, replaceLlmImagesWithText } from "./session/messages";
 import { SessionManager } from "./session/session-manager";
 import { formatNoModelsAvailableFallback } from "./setup/model-onboarding-guidance";
 import { closeAllConnections } from "./ssh/connection-manager";
@@ -1785,36 +1785,16 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 
 		const slashCommands = await slashCommandsPromise;
 
-		// Create convertToLlm wrapper that filters images if blockImages is enabled (defense-in-depth)
+		// Keep images out of provider replay when disabled or unsupported by the active model.
 		const convertToLlmWithBlockImages = (messages: AgentMessage[]): Message[] => {
 			const converted = convertToLlm(messages);
-			// Check setting dynamically so mid-session changes take effect
-			if (!settings.get("images.blockImages")) {
-				return converted;
+			if (settings.get("images.blockImages")) {
+				return replaceLlmImagesWithText(converted, "Image reading is disabled.");
 			}
-			// Filter out ImageContent from all messages, replacing with text placeholder
-			return converted.map(msg => {
-				if (msg.role === "user" || msg.role === "toolResult") {
-					const content = msg.content;
-					if (Array.isArray(content)) {
-						const hasImages = content.some(c => c.type === "image");
-						if (hasImages) {
-							const filteredContent = content
-								.map(c =>
-									c.type === "image" ? { type: "text" as const, text: "Image reading is disabled." } : c,
-								)
-								.filter((c, i, arr) => {
-									// Dedupe consecutive "Image reading is disabled." texts
-									if (!(c.type === "text" && c.text === "Image reading is disabled." && i > 0)) return true;
-									const prev = arr[i - 1];
-									return !(prev.type === "text" && prev.text === "Image reading is disabled.");
-								});
-							return { ...msg, content: filteredContent };
-						}
-					}
-				}
-				return msg;
-			});
+			const activeModel = agent.state.model ?? model;
+			return activeModel && !activeModel.input.includes("image")
+				? replaceLlmImagesWithText(converted, "[image omitted: the active model does not support image input]")
+				: converted;
 		};
 
 		// Final convertToLlm: chain block-images filter with secret obfuscation

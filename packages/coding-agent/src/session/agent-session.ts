@@ -139,7 +139,9 @@ import {
 	formatModelString,
 	parseModelString,
 	type ResolvedModelRoleValue,
+	rankModelFallbackCandidates,
 	rebaseModelFallbackChain,
+	resolveDurableModelThinkingLevel,
 	resolveModelRoleValue,
 	type ScopedModelSelection,
 } from "../config/model-resolver";
@@ -930,6 +932,7 @@ export class AgentSession {
 
 	#scopedModels: ScopedModelSelection[];
 	#thinkingLevel: ThinkingLevel | undefined;
+	#defaultModelSelectionTail: Promise<void> = Promise.resolve();
 	#promptTemplates: PromptTemplate[];
 	#slashCommands: FileSlashCommand[];
 
@@ -2241,6 +2244,17 @@ export class AgentSession {
 			if (event.message.role === "assistant") {
 				this.#lastAssistantMessage = event.message;
 				const assistantMsg = event.message as AssistantMessage;
+				const isSafetyStop =
+					assistantMsg.errorKind === "provider_safety_stop" ||
+					(assistantMsg.errorMessage !== undefined &&
+						isLegacyProviderSafetyStopMessage(assistantMsg.errorMessage));
+				const isOverflow = isContextOverflow(assistantMsg, this.model?.contextWindow ?? 0);
+				if (assistantMsg.stopReason !== "aborted" && !isSafetyStop && !isOverflow) {
+					this.settings.getStorage()?.recordModelPerformance(`${assistantMsg.provider}/${assistantMsg.model}`, {
+						latencyMs: assistantMsg.duration,
+						error: assistantMsg.stopReason === "error",
+					});
+				}
 				const currentGrantsAnthropicPriority =
 					this.serviceTier === "priority" || this.serviceTier === "claude-only";
 				if (assistantMsg.disabledFeatures?.includes("priority") && currentGrantsAnthropicPriority) {
@@ -2405,6 +2419,9 @@ export class AgentSession {
 			if (this.#isRetryableError(msg)) {
 				const didRetry = await this.#handleRetryableError(msg);
 				if (didRetry) return; // Retry was initiated, don't proceed to compaction
+			} else if (this.#isHardErrorFallbackEligible(msg)) {
+				const didRetry = await this.#handleRetryableError(msg, { hardErrorFallback: true });
+				if (didRetry) return;
 			}
 			if (this.#retryAttempt > 0) {
 				// A prior retry ended on a non-retryable (terminal) message: emit
@@ -6172,6 +6189,11 @@ export class AgentSession {
 		role: string = "default",
 		options?: { selector?: string; thinkingLevel?: ThinkingLevel },
 	): Promise<void> {
+		if (role === "default") {
+			await this.#setDefaultModelSelection(model, options);
+			return;
+		}
+
 		const previousEditMode = this.#resolveActiveEditMode();
 		const apiKey = await this.#modelRegistry.getApiKey(model, this.sessionId);
 		if (!apiKey) {
@@ -6191,6 +6213,70 @@ export class AgentSession {
 		// configured defaultLevel; otherwise preserve the current level.
 		this.setThinkingLevel(model.thinking?.defaultLevel ?? this.thinkingLevel);
 		await this.#syncEditToolModeAfterModelChange(previousEditMode);
+	}
+
+	async #setDefaultModelSelection(
+		model: Model,
+		options?: { selector?: string; thinkingLevel?: ThinkingLevel },
+	): Promise<void> {
+		const predecessor = this.#defaultModelSelectionTail;
+		const transaction = Promise.withResolvers<void>();
+		this.#defaultModelSelectionTail = transaction.promise;
+		try {
+			await predecessor;
+			const expectedSessionId = this.sessionId;
+			const apiKey = await this.#modelRegistry.getApiKey(model, expectedSessionId);
+			if (!apiKey) throw new Error(`No API key for ${model.provider}/${model.id}`);
+
+			const effectiveLevel = resolveDurableModelThinkingLevel(model, options?.thinkingLevel, this.thinkingLevel);
+			await this.waitForIdle();
+			if (this.sessionId !== expectedSessionId) throw new Error("Session changed while selecting model");
+
+			const previousDefaultModelRole = this.settings.getGlobal("modelRoles")?.default;
+			const previousSessionState = this.sessionManager.captureState();
+			const previousModel = this.model;
+			const previousThinkingLevel = this.#thinkingLevel;
+			const previousActiveRetryFallback = this.#activeRetryFallback;
+			await this.settings.setGlobalModelRoleAndFlush(
+				"default",
+				this.#formatRoleModelValue("default", model, options?.selector, options?.thinkingLevel),
+			);
+
+			try {
+				await this.setModelTemporary(model, effectiveLevel);
+				if (this.thinkingLevel === previousThinkingLevel) {
+					this.sessionManager.appendThinkingLevelChange(this.thinkingLevel);
+				}
+				this.sessionManager.appendModelChange(`${model.provider}/${model.id}`, "default");
+				await this.sessionManager.flush();
+				await this.sessionManager.rewriteEntries();
+			} catch (error) {
+				await this.settings.setGlobalModelRoleAndFlush("default", previousDefaultModelRole).catch(rollbackError => {
+					logger.warn("Failed to restore durable default model selection after live apply failure", {
+						error: String(rollbackError),
+					});
+				});
+				this.sessionManager.restoreState(previousSessionState);
+				await this.sessionManager.rewriteEntries().catch(rollbackError => {
+					logger.warn("Failed to restore session transcript after default model selection failure", {
+						error: String(rollbackError),
+					});
+				});
+				const failedEditMode = this.#resolveActiveEditMode();
+				if (previousModel) this.#setModelWithProviderSessionReset(previousModel);
+				this.#thinkingLevel = previousThinkingLevel;
+				this.agent.setThinkingLevel(toReasoningEffort(previousThinkingLevel));
+				this.#activeRetryFallback = previousActiveRetryFallback;
+				await this.#syncEditToolModeAfterModelChange(failedEditMode).catch(rollbackError => {
+					logger.warn("Failed to restore edit mode after default model selection failure", {
+						error: String(rollbackError),
+					});
+				});
+				throw error;
+			}
+		} finally {
+			transaction.resolve();
+		}
 	}
 
 	/**
@@ -7685,6 +7771,12 @@ export class AgentSession {
 		if (!existingRoleValue) return modelKey;
 
 		const thinkingLevel = extractExplicitThinkingSelector(existingRoleValue, this.settings);
+		const existingRole = resolveModelRoleValue(existingRoleValue, this.#modelRegistry.getAvailable(), {
+			settings: this.settings,
+			modelRegistry: this.#modelRegistry,
+			sessionId: this.sessionId,
+		});
+		if (existingRole.model && !modelsAreEqual(existingRole.model, model)) return modelKey;
 		return formatModelSelectorValue(modelKey, thinkingLevel);
 	}
 	#resolveContextPromotionConfiguredTarget(currentModel: Model, availableModels: Model[]): Model | undefined {
@@ -8658,12 +8750,20 @@ export class AgentSession {
 		const parsedCurrent = parseRetryFallbackSelector(currentSelector);
 		const currentBaseSelector = parsedCurrent ? formatRetryFallbackBaseSelector(parsedCurrent) : undefined;
 		const exactIndex = chain.findIndex(selector => selector.raw === currentSelector);
-		if (exactIndex >= 0) return chain.slice(exactIndex + 1);
-		const baseIndex = currentBaseSelector
-			? chain.findIndex(selector => formatRetryFallbackBaseSelector(selector) === currentBaseSelector)
-			: -1;
-		if (baseIndex >= 0) return chain.slice(baseIndex + 1);
-		return chain.slice(1);
+		let candidates: RetryFallbackSelector[];
+		if (exactIndex >= 0) {
+			candidates = chain.slice(exactIndex + 1);
+		} else {
+			const baseIndex = currentBaseSelector
+				? chain.findIndex(selector => formatRetryFallbackBaseSelector(selector) === currentBaseSelector)
+				: -1;
+			candidates = baseIndex >= 0 ? chain.slice(baseIndex + 1) : chain.slice(1);
+		}
+
+		const performance = this.settings.getStorage()?.getModelPerformance();
+		return performance
+			? rankModelFallbackCandidates(candidates, performance, formatRetryFallbackBaseSelector)
+			: candidates;
 	}
 
 	async #applyRetryFallbackCandidate(
@@ -8815,11 +8915,26 @@ export class AgentSession {
 		return undefined;
 	}
 
+	#isHardErrorFallbackEligible(message: AssistantMessage): boolean {
+		if (this.#classifyErrorForRetry(message) !== "terminal") return false;
+		if (
+			message.errorKind === "provider_safety_stop" ||
+			(message.errorMessage !== undefined && isLegacyProviderSafetyStopMessage(message.errorMessage))
+		) {
+			return false;
+		}
+		if (/request was aborted|request aborted|the user aborted/i.test(message.errorMessage ?? "")) return false;
+		if (message.content.some(content => content.type === "toolCall")) return false;
+		const currentSelector = this.model ? formatRetryFallbackSelector(this.model, this.thinkingLevel) : undefined;
+		return this.#hasRetryFallbackCandidate({ currentSelector });
+	}
+
 	/**
-	 * Handle retryable errors with exponential backoff.
+	 * Handle retryable errors with exponential backoff and hard errors whose
+	 * only recovery is switching to a configured fallback model.
 	 * @returns true if retry was initiated, false if max retries exceeded or disabled
 	 */
-	async #handleRetryableError(message: AssistantMessage): Promise<boolean> {
+	async #handleRetryableError(message: AssistantMessage, options?: { hardErrorFallback?: boolean }): Promise<boolean> {
 		const retrySettings = this.settings.getGroup("retry");
 		if (!retrySettings.enabled) return false;
 		const retryClassification = this.#classifyErrorForRetry(message);
@@ -8837,18 +8952,7 @@ export class AgentSession {
 			this.#retryResolve = resolve;
 		}
 
-		if (!unboundedClass && this.#retryAttempt > retrySettings.maxRetries) {
-			// Max retries exceeded, emit final failure and reset
-			await this.#emitSessionEvent({
-				type: "auto_retry_end",
-				success: false,
-				attempt: this.#retryAttempt - 1,
-				finalError: message.errorMessage,
-			});
-			this.#retryAttempt = 0;
-			this.#resolveRetry(); // Resolve so waitForRetry() completes
-			return false;
-		}
+		const retryBudgetExhausted = !unboundedClass && this.#retryAttempt > retrySettings.maxRetries;
 
 		const errorMessage = message.errorMessage || "Unknown error";
 		const parsedRetryAfterMs = this.#parseRetryAfterMsFromError(errorMessage);
@@ -8856,7 +8960,7 @@ export class AgentSession {
 		let switchedCredential = false;
 		let switchedModel = false;
 
-		if (this.model && isUsageLimitError(errorMessage)) {
+		if (!retryBudgetExhausted && this.model && isUsageLimitError(errorMessage)) {
 			const retryAfterMs = parsedRetryAfterMs ?? calculateRateLimitBackoffMs(parseRateLimitReason(errorMessage));
 			const switched = await this.#modelRegistry.authStorage.markUsageLimitReached(
 				this.model.provider,
@@ -8884,6 +8988,27 @@ export class AgentSession {
 			} else if (parsedRetryAfterMs && parsedRetryAfterMs > delayMs) {
 				delayMs = parsedRetryAfterMs;
 			}
+		}
+
+		if (options?.hardErrorFallback && !switchedModel) {
+			this.#retryAttempt = 0;
+			this.#resolveRetry();
+			return false;
+		}
+
+		if (retryBudgetExhausted) {
+			if (!switchedModel) {
+				await this.#emitSessionEvent({
+					type: "auto_retry_end",
+					success: false,
+					attempt: this.#retryAttempt - 1,
+					finalError: message.errorMessage,
+				});
+				this.#retryAttempt = 0;
+				this.#resolveRetry();
+				return false;
+			}
+			this.#retryAttempt = 1;
 		}
 
 		// Fail-fast cap: if the provider asks us to wait longer than

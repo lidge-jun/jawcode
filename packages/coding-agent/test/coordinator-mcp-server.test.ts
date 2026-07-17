@@ -130,7 +130,13 @@ describe("Coordinator MCP server protocol", () => {
 			current_turn_id: payload.turn_id,
 		});
 		expect(calls).toEqual([
-			{ cwd: root, prompt: "hello", namespace: { profile: "local", repo: "repo" }, worktree: true },
+			{
+				cwd: root,
+				prompt: "hello",
+				mpreset: null,
+				namespace: { profile: "local", repo: "repo" },
+				worktree: true,
+			},
 		]);
 	});
 

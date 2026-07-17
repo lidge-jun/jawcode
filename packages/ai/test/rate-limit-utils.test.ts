@@ -1,5 +1,25 @@
 import { describe, expect, it } from "bun:test";
-import { calculateRateLimitBackoffMs, parseRateLimitReason } from "@jawcode-dev/ai/rate-limit-utils";
+import { calculateRateLimitBackoffMs, isUsageLimitError, parseRateLimitReason } from "@jawcode-dev/ai/rate-limit-utils";
+
+const PERSISTENT_USAGE_LIMIT_FIXTURES = [
+	{
+		name: "Anthropic monthly spend limit",
+		message:
+			'429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your account\'s monthly spend limit. Please try again later."}}',
+	},
+	{
+		name: "OpenRouter daily free-model limit",
+		message: "429 Rate limit exceeded: free-models-per-day. Add 10 credits to unlock more requests per day",
+	},
+	{
+		name: "generic quota exhaustion",
+		message: "quota_exceeded: monthly quota has been exhausted",
+	},
+	{
+		name: "Codex usage limit",
+		message: "usage_limit_reached",
+	},
+] as const;
 
 describe("parseRateLimitReason", () => {
 	it("classifies Google Quota exceeded as QUOTA_EXHAUSTED", () => {
@@ -44,6 +64,25 @@ describe("parseRateLimitReason", () => {
 		expect(
 			parseRateLimitReason("Codex error event: The usage limit has been reached (code=usage_limit_reached)"),
 		).toBe("QUOTA_EXHAUSTED");
+	});
+
+	for (const fixture of PERSISTENT_USAGE_LIMIT_FIXTURES) {
+		it(`classifies ${fixture.name} as QUOTA_EXHAUSTED`, () => {
+			expect(parseRateLimitReason(fixture.message)).toBe("QUOTA_EXHAUSTED");
+		});
+	}
+});
+
+describe("isUsageLimitError", () => {
+	for (const fixture of PERSISTENT_USAGE_LIMIT_FIXTURES) {
+		it(`detects ${fixture.name}`, () => {
+			expect(isUsageLimitError(fixture.message)).toBe(true);
+		});
+	}
+
+	it("keeps transient throttles and content filters out of credential rotation", () => {
+		expect(isUsageLimitError("429 Too Many Requests. Retry after 2 seconds.")).toBe(false);
+		expect(isUsageLimitError("Provider finish_reason: content_filter")).toBe(false);
 	});
 });
 

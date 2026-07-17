@@ -108,6 +108,32 @@ export function stripInternalDetailsFields<T>(details: T | undefined): T | undef
 	return cleaned as T;
 }
 
+/** Replace images only in the ephemeral provider view, preserving persisted history. */
+export function replaceLlmImagesWithText(messages: Message[], placeholder: string): Message[] {
+	let output: Message[] | undefined;
+	for (let index = 0; index < messages.length; index += 1) {
+		const message = messages[index];
+		if (message.role !== "user" && message.role !== "developer" && message.role !== "toolResult") continue;
+		if (!Array.isArray(message.content) || !message.content.some(block => block.type === "image")) continue;
+
+		const content: Array<TextContent | ImageContent> = [];
+		for (const block of message.content) {
+			if (block.type !== "image") {
+				content.push(block);
+				continue;
+			}
+			const previous = content.at(-1);
+			if (previous?.type !== "text" || previous.text !== placeholder) {
+				content.push({ type: "text", text: placeholder });
+			}
+		}
+
+		output ??= messages.slice();
+		output[index] = { ...message, content } as Message;
+	}
+	return output ?? messages;
+}
+
 function getPrunedToolResultContent(message: ToolResultMessage): (TextContent | ImageContent)[] {
 	if (message.prunedAt === undefined) {
 		return message.content;

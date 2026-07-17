@@ -73,7 +73,7 @@ describe("AuthStorage api-key login replacement", () => {
 		if (stored?.credential.type !== "api_key") {
 			throw new Error("expected stored api-key credential");
 		}
-		expect(stored.credential.key).toBe("same-kagi-key");
+		expect(stored.credential).toEqual({ type: "api_key", key: "same-kagi-key", source: "login" });
 		expect(store.getApiKey("kagi")).toBe("same-kagi-key");
 		expect(await authStorage.getApiKey("kagi", "session-kagi-relogin")).toBe("same-kagi-key");
 	});
@@ -99,7 +99,7 @@ describe("AuthStorage api-key login replacement", () => {
 		if (stored?.credential.type !== "api_key") {
 			throw new Error("expected stored api-key credential");
 		}
-		expect(stored.credential.key).toBe("same-ollama-cloud-key");
+		expect(stored.credential).toEqual({ type: "api_key", key: "same-ollama-cloud-key", source: "login" });
 		expect(store.getApiKey("ollama-cloud")).toBe("same-ollama-cloud-key");
 		expect(await authStorage.getApiKey("ollama-cloud", "session-ollama-cloud-relogin")).toBe("same-ollama-cloud-key");
 	});
@@ -125,7 +125,7 @@ describe("AuthStorage api-key login replacement", () => {
 		if (stored?.credential.type !== "api_key") {
 			throw new Error("expected stored api-key credential");
 		}
-		expect(stored.credential.key).toBe("same-deepseek-key");
+		expect(stored.credential).toEqual({ type: "api_key", key: "same-deepseek-key", source: "login" });
 		expect(store.getApiKey("deepseek")).toBe("same-deepseek-key");
 		expect(await authStorage.getApiKey("deepseek", "session-deepseek-relogin")).toBe("same-deepseek-key");
 	});
