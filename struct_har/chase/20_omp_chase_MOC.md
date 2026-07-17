@@ -126,7 +126,7 @@
 | 20.072 | `omp_chase_cursor_advisor_xdev` | ⬜ | P2 | cursor exec bridge, advisor tools, xdev | `b0d04e517..5394081390` |
 | 20.073 | `omp_chase_tui_rendering_status` | ⬜ | P2 | TUI rendering, status bar, images, skills | `b0d04e517..5394081390` |
 | 20.074 | `omp_chase_ai_credential_redaction` | ⬜ | P1 | credential redaction, blocked retry, BigInt | `b0d04e517..5394081390` |
-| 20.075 | `omp_chase_coding_agent_tool_restoration` | ⬜ | P2 | PlanYolo restore, tool safeguards, xdev | `b0d04e517..5394081390` |
+| 20.075 | [`omp_chase_coding_agent_tool_restoration`](./_fin/20/20.075_omp_chase_coding_agent_tool_restoration.md) | ✅ **_fin** | P2 | transactional MCP refresh rollback; OMP-only owners rejected/split | `b0d04e517..5394081390` |
 | 20.076 | `omp_chase_session_plan_lifecycle` | ⬜ | P2 | session dispose, plan exits, role model | `b0d04e517..5394081390` |
 | 20.077 | `omp_chase_plugins_commonjs_mcp` | ⬜ | P2 | CommonJS/ESM, plugin reload, MCP ownership | `b0d04e517..5394081390` |
 | 20.078 | `omp_chase_bash_irc_registry` | ⬜ | P3 | bash timeout, PTY shells, IRC lifecycle | `b0d04e517..5394081390` |
