@@ -122,7 +122,7 @@
 | 078 | [10.078_gjc_chase_skill_discovery_slash_commands.md](./10.078_gjc_chase_skill_discovery_slash_commands.md) | runtime skill discovery + slash commands | P2 | ⬜ |
 | 079 | [10.079_gjc_chase_subagent_fork_session_hardening.md](./10.079_gjc_chase_subagent_fork_session_hardening.md) | subagent/fork/session hardening + MCP lifecycle | P2 | ⬜ |
 | 080 | [10.080_gjc_chase_model_provider_effort_fugu_safety.md](./10.080_gjc_chase_model_provider_effort_fugu_safety.md) | model/provider v2: effort, Fugu, safety refusals | **P1** | ⬜ |
-| 081 | [10.081_gjc_chase_session_vanish_postmortem_lifecycle.md](./10.081_gjc_chase_session_vanish_postmortem_lifecycle.md) | session vanish/postmortem + CI stabilization | P2 | ⬜ |
+| 081 | [10.081_gjc_chase_session_vanish_postmortem_lifecycle.md](./_fin/10/10.081_gjc_chase_session_vanish_postmortem_lifecycle.md) | session vanish/postmortem + CI stabilization | P2 | ✅ **_fin** 260717 |
 | 082 | [10.082_gjc_chase_irc_visualization_kitty_sidebar.md](./10.082_gjc_chase_irc_visualization_kitty_sidebar.md) | IRC visualization + kitty sidebar + expiry integrity | **P1** | ⬜ |
 | 083 | [10.083_gjc_chase_gpt56_tier_models_catalog_embed.md](./10.083_gjc_chase_gpt56_tier_models_catalog_embed.md) | GPT-5.6 tiers + models.json embed + effort persistence | **P1** | ⬜ |
 | 084 | [10.084_gjc_chase_session_resume_startup_ts7_acp_rpc.md](./10.084_gjc_chase_session_resume_startup_ts7_acp_rpc.md) | session resume/cache-cost/startup + TS7 + ACP/RPC | **P1** | ⬜ |

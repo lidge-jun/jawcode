@@ -60,4 +60,32 @@ describe("coordinator runtime state sidecar", () => {
 			},
 		});
 	});
+
+	it("persists the assistant failure reason on errored agent_end", async () => {
+		const root = await tempRoot();
+		const stateFile = path.join(root, "state.json");
+		process.env[JWC_COORDINATOR_SESSION_STATE_FILE_ENV] = stateFile;
+
+		await persistCoordinatorRuntimeStateFromEvent(
+			{
+				type: "agent_end",
+				messages: [
+					{
+						role: "assistant",
+						content: [{ type: "text", text: "Could not finish" }],
+						stopReason: "error",
+						errorMessage: "runtime vanished after prompt acceptance",
+					},
+				],
+			},
+			{ sessionId: "runtime-session", cwd: root, sessionFile: null },
+		);
+
+		const payload = JSON.parse(await Bun.file(stateFile).text());
+		expect(payload).toMatchObject({
+			state: "errored",
+			reason: "runtime vanished after prompt acceptance",
+			final_response: { text: "Could not finish", source: "agent_end" },
+		});
+	});
 });
