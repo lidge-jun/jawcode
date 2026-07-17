@@ -122,7 +122,7 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 |---|---:|---|---|---|
 | C03 | 089 | [10.089 model preset/fallback selection](./10.089_gjc_chase_model_preset_fallback_selection.md) | P1 | ⬜ |
 | C11 | 097 | [10.097 Grok/Codex benchmark presets](./10.097_gjc_chase_grok_codex_benchmark_presets.md) | P1 | ⬜ |
-| C12 | 098 | [10.098 Codex reasoning/thinking SDK](./10.098_gjc_chase_codex_reasoning_thinking_sdk.md) | P1 | ⬜ |
+| C12 | 098 | [10.098 Codex reasoning/thinking SDK](./_fin/10/10.098_gjc_chase_codex_reasoning_thinking_sdk.md) | P1 | ✅ **_fin** |
 | C02 | 088 | [10.088 security/prompt control-token](./10.088_gjc_chase_security_prompt_control_token.md) | P1 | ⬜ |
 | C01 | 087 | [10.087 SDK lifecycle ledger](./10.087_gjc_chase_sdk_lifecycle_ledger_hardening.md) | P1 | ⬜ |
 | C17 | 103 | [10.103 provider safety/transport](./_fin/10/10.103_gjc_chase_provider_safety_transport.md) | P2 | ✅ **_fin** |
@@ -136,7 +136,7 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 | C13 | 099 | [10.099 RPC durable selection/pet](./10.099_gjc_chase_rpc_durable_selection_pet.md) | P3 | ⬜ |
 | C14 | 100 | [10.100 CI/release stabilization](./10.100_gjc_chase_ci_release_stabilization.md) | P3 | ⬜ |
 | C15 | 101 | [10.101 browser/psmux misc](./10.101_gjc_chase_browser_psmux_misc.md) | P3 | ⬜ |
-| C16 | 102 | [10.102 agent async misc](./10.102_gjc_chase_agent_async_misc.md) | P3 | ⬜ |
+| C16 | 102 | [10.102 agent async misc](./_fin/10/10.102_gjc_chase_agent_async_misc.md) | P3 | ✅ **_fin** |
 | C18 | 104 | [10.104 docs/changelog/QA](./10.104_gjc_chase_docs_changelog_qa.md) | P3 | ⬜ |
 
 ### 10.105-107 post-v0.11.1 supplement (2026-07-17, `3ddf26079..904eab21c` 41 non-merge commits)
