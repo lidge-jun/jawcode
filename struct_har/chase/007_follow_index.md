@@ -128,7 +128,7 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 | C17 | 103 | [10.103 provider safety/transport](./10.103_gjc_chase_provider_safety_transport.md) | P2 | ⬜ |
 | C05 | 091 | [10.091 TUI command palette](./10.091_gjc_chase_tui_command_palette.md) | P2 | ⬜ |
 | C06 | 092 | [10.092 TUI IRC/sidebar/Kitty/tmux](./10.092_gjc_chase_tui_irc_sidebar_kitty_tmux.md) | P2 | ⬜ |
-| C07 | 093 | [10.093 coordinator MCP/session reaper](./10.093_gjc_chase_coordinator_mcp_session_reaper.md) | P2 | ⬜ |
+| C07 | 093 | [10.093 coordinator MCP/session reaper](./_fin/10/10.093_gjc_chase_coordinator_mcp_session_reaper.md) | P2 | ✅ **_fin** |
 | C08 | 094 | [10.094 Telegram notification v2](./10.094_gjc_chase_telegram_notification_v2.md) | P2 | ⬜ |
 | C09 | 095 | [10.095 deep-interview/goal/ultragoal](./10.095_gjc_chase_deep_interview_goal_ultragoal.md) | P2 | ⬜ |
 | C10 | 096 | [10.096 session context-usage SSOT](./10.096_gjc_chase_session_context_usage_ssot.md) | P2 | ⬜ |

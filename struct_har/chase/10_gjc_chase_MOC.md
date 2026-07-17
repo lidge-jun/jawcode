@@ -134,7 +134,7 @@
 | 10.090 | `gjc_chase_prompt_refactor_compact_ralplan` | ⬜ | P2 | core prompt compaction, shared ralplan guidance | `4a80bac9..3ddf26079` |
 | 10.091 | `gjc_chase_tui_command_palette` | ⬜ | P2 | searchable command palette, double-Esc draft clear | `4a80bac9..3ddf26079` |
 | 10.092 | `gjc_chase_tui_irc_sidebar_kitty_tmux` | ⬜ | P2 | IRC sidebar 70:30, Kitty anchored-wrap, sixel probe | `4a80bac9..3ddf26079` |
-| 10.093 | `gjc_chase_coordinator_mcp_session_reaper` | ⬜ | P2 | owner-proof idle reaper, tmux probe, stdio dispatch | `4a80bac9..3ddf26079` |
+| 10.093 | [`gjc_chase_coordinator_mcp_session_reaper`](./_fin/10/10.093_gjc_chase_coordinator_mcp_session_reaper.md) | ✅ **_fin** | P2 | owner-proof idle reaper, tmux probe, stdio dispatch | `4a80bac9..3ddf26079` |
 | 10.094 | `gjc_chase_telegram_notification_v2` | ⬜ | P2 | /verbose /lean, directed replay, shared notification service | `4a80bac9..3ddf26079` |
 | 10.095 | `gjc_chase_deep_interview_goal_ultragoal` | ⬜ | P2 | deep-interview continuation, goal reminder, ultragoal receipt | `4a80bac9..3ddf26079` |
 | 10.096 | `gjc_chase_session_context_usage_ssot` | ⬜ | P2 | provider-reported usage SSOT, context snapshot cache | `4a80bac9..3ddf26079` |
