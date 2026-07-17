@@ -197,3 +197,8 @@
 {"ts":"2026-07-17T04:58:34.193Z","sessionId":"019f6e63-f7bb-7d41-ad5b-5984d5df2407","from":"IDLE","to":"P","reason":"cli"}
 {"ts":"2026-07-17T04:58:34.249Z","sessionId":"019f6e63-f7bb-7d41-ad5b-5984d5df2407","from":"P","to":"A","reason":"cli","evidence":"WP1 plan: 22 IMPLEMENT cards split into 6 batches by complexity. Focused fixes first, then security, then lifecycle, then features."}
 {"ts":"2026-07-17T04:58:34.305Z","sessionId":"019f6e63-f7bb-7d41-ad5b-5984d5df2407","from":"A","to":"B","reason":"cli","evidence":"WP1 self-audit: implementation scope clear from triage, upstream diffs available in clones, proactive delegation active"}
+{"ts":"2026-07-17T05:24:07.507Z","sessionId":"019f6e63-f7bb-7d41-ad5b-5984d5df2407","from":"B","to":"C","reason":"cli","evidence":"WP1: 10 A-cards implemented+moved to _fin (GJC 5 + OMP 5). 101 packages/ files changed. Committed. 12 remain."}
+{"ts":"2026-07-17T05:24:07.564Z","sessionId":"019f6e63-f7bb-7d41-ad5b-5984d5df2407","from":"C","to":"IDLE","reason":"done","evidence":"WP1 verified: _fin shows 10 new cards, git commit confirmed, 12 remaining"}
+{"ts":"2026-07-17T05:24:23.656Z","sessionId":"019f6e63-f7bb-7d41-ad5b-5984d5df2407","from":"IDLE","to":"P","reason":"cli"}
+{"ts":"2026-07-17T05:24:23.723Z","sessionId":"019f6e63-f7bb-7d41-ad5b-5984d5df2407","from":"P","to":"A","reason":"cli","evidence":"WP2: 12 remaining A cards split into 3 batches of 4. Reduced concurrency from 6 to 3 to avoid blocked requests."}
+{"ts":"2026-07-17T05:24:23.788Z","sessionId":"019f6e63-f7bb-7d41-ad5b-5984d5df2407","from":"A","to":"B","reason":"cli","evidence":"WP2 self-audit: remaining cards have specific gaps from WP0 triage, upstream diffs available, proactive delegation active"}
