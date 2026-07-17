@@ -1,6 +1,6 @@
 # 10 — gjc_chase_MOC
 
-> 상태: 🟡 운영 중 (2026-07-03 · worktree `89371141`)
+> 상태: 🟡 운영 중 (2026-07-17 · worktree `0e8d9f4`)
 > **정본 디렉터리**: `struct_har/chase/10_*` · `10.NNN_*`
 > **의미**: `devlog/_gjc_chase/gajae-code` 대비 jwc **뒤쳐짐(G1)** — **1갭 = 문서 1개** (`10.NNN`, `001`~)
 
@@ -26,7 +26,7 @@
 
 | gjc | jwc |
 |---|---|
-| `db7938e1` (`upstream/dev`, v0.7.11) | `89371141` (worktree, 2026-07-03) |
+| `3ddf26079` (`upstream/dev`, v0.11.1+) | `0e8d9f4` (worktree, 2026-07-17 chase refresh) |
 
 > OMP head is intentionally not repeated here; see [20_omp_chase_MOC.md](./20_omp_chase_MOC.md).
 
@@ -38,6 +38,8 @@
 | 059-065 | v0.7.8 delta `fa995807..20c299eb` (21 commits): deep-interview/ralplan/ultragoal ask gate + render guard (#1287,#1290,#1294), TUI render isolation + Ctrl+Enter + status-line (#1291,#1296,#1298,#1302), tmux/Windows psmux titles (#1303,#1306), DeepInfra provider + Gemini UA (#1284,#1314), natives platform split (#1300), Telegram daemon entrypoint + Windows bell (#1299), prompt self-awareness grounding | ⬜ → 059-065 (3 no-card chore/docs) |
 | 066-069 | v0.7.9/v0.7.10 delta `20c299eb..79b42377` (54 commits): composer command/model selector UX, goal/plan skill-state refresh, tmux/Telegram/session resilience, provider/search/docs/model support | 🟡 → 066-068 active; 069 ✅ _fin (Tavily/Claude retry evidence, reverted Aside rejected) |
 | 070-073 | v0.7.11 delta `79b42377..db7938e1` (34 commits): workflow intent/state/artifact contracts, search/utils/edit safety, model-selector/tmux/cmux UX, RPC/session/notifications lifecycle | ⬜ → 070-073 active |
+| 074-081 | v0.7.11→v0.9.1 delta `db7938e1..b3b5b8a9` (248 commits): notifications/Telegram v2 rich streaming, ultragoal pipeline/extragoal, TUI viewport/media/compose v2, context/perf/compaction audit, skill discovery/slash commands, subagent/fork/session hardening, model/provider v2 (effort/Fugu/safety), session vanish/postmortem/lifecycle/CI | ⬜ → 074-081 active |
+| 082-086 | v0.9.1→v0.9.6 delta `b3b5b8a9..4a80bac9` (68 non-merge commits): IRC visualization + kitty sidebar + expiry integrity, GPT-5.6 tier family + models.json embed (v0.9.3 startup crash), session resume/cache-cost/startup/TS7/ACP/RPC, Anthropic OAuth/Bedrock stream integrity, TUI/tmux/Telegram operator UX + credential pinning + MCP disclosure | ⬜ → 082-086 active |
 | 004 | pre-send `#checkEstimatedContextBeforePrompt()` before message packing; pruning/compaction at sanctioned maintenance boundary (`devlog/_gjc_chase/gajae-code/packages/coding-agent/src/session/agent-session.ts:4747-4756,6517-6533,6537-6558`) | ✅ **_fin** [10.004](./_fin/10/10.004_gjc_chase_session_compaction.md) |
 | 007 | `GJC_TMUX_LAUNCHED_ENV`-guarded `@gjc-profile` retag only for genuinely launched leaders (`team-runtime.ts:1646-1683`; changelog `:17-18`) | ownership invariant; rebrand-safe team gap |
 | 008 | RPC lifecycle stdio | ✅ **_fin** [10.008](./_fin/10/10.008_gjc_chase_rpc_lifecycle.md) |
@@ -113,6 +115,43 @@
 | 071 | [10.071_gjc_chase_search_utils_edit_safety.md](./10.071_gjc_chase_search_utils_edit_safety.md) | search perf + utils/edit safety | P2 | ⬜ |
 | 072 | [10.072_gjc_chase_model_selector_tmux_cmux_ux.md](./10.072_gjc_chase_model_selector_tmux_cmux_ux.md) | model selector + tmux/cmux UX | P2 | ⬜ |
 | 073 | [10.073_gjc_chase_rpc_session_notifications_lifecycle.md](./10.073_gjc_chase_rpc_session_notifications_lifecycle.md) | RPC/session/notifications lifecycle | P1 | ⬜ |
+| 074 | [10.074_gjc_chase_notifications_telegram_v2_rich_streaming.md](./10.074_gjc_chase_notifications_telegram_v2_rich_streaming.md) | notifications/Telegram v2: rich, streaming, slash commands | P2 | ⬜ |
+| 075 | [10.075_gjc_chase_ultragoal_pipeline_extragoal.md](./10.075_gjc_chase_ultragoal_pipeline_extragoal.md) | ultragoal pipeline + extragoal review gates | P2 | ⬜ |
+| 076 | [10.076_gjc_chase_tui_viewport_media_compose_v2.md](./10.076_gjc_chase_tui_viewport_media_compose_v2.md) | TUI viewport/media/compose v2 | P2 | ⬜ |
+| 077 | [10.077_gjc_chase_context_perf_compaction_audit.md](./10.077_gjc_chase_context_perf_compaction_audit.md) | context/perf audit + prompt lifecycle | **P1** | ⬜ |
+| 078 | [10.078_gjc_chase_skill_discovery_slash_commands.md](./10.078_gjc_chase_skill_discovery_slash_commands.md) | runtime skill discovery + slash commands | P2 | ⬜ |
+| 079 | [10.079_gjc_chase_subagent_fork_session_hardening.md](./10.079_gjc_chase_subagent_fork_session_hardening.md) | subagent/fork/session hardening + MCP lifecycle | P2 | ⬜ |
+| 080 | [10.080_gjc_chase_model_provider_effort_fugu_safety.md](./10.080_gjc_chase_model_provider_effort_fugu_safety.md) | model/provider v2: effort, Fugu, safety refusals | **P1** | ⬜ |
+| 081 | [10.081_gjc_chase_session_vanish_postmortem_lifecycle.md](./10.081_gjc_chase_session_vanish_postmortem_lifecycle.md) | session vanish/postmortem + CI stabilization | P2 | ⬜ |
+| 082 | [10.082_gjc_chase_irc_visualization_kitty_sidebar.md](./10.082_gjc_chase_irc_visualization_kitty_sidebar.md) | IRC visualization + kitty sidebar + expiry integrity | **P1** | ⬜ |
+| 083 | [10.083_gjc_chase_gpt56_tier_models_catalog_embed.md](./10.083_gjc_chase_gpt56_tier_models_catalog_embed.md) | GPT-5.6 tiers + models.json embed + effort persistence | **P1** | ⬜ |
+| 084 | [10.084_gjc_chase_session_resume_startup_ts7_acp_rpc.md](./10.084_gjc_chase_session_resume_startup_ts7_acp_rpc.md) | session resume/cache-cost/startup + TS7 + ACP/RPC | **P1** | ⬜ |
+| 085 | [10.085_gjc_chase_provider_stream_oauth_integrity.md](./10.085_gjc_chase_provider_stream_oauth_integrity.md) | Anthropic OAuth/Bedrock stream + credential integrity | **P1** | ⬜ |
+| 086 | [10.086_gjc_chase_tui_tmux_telegram_operator_ux.md](./10.086_gjc_chase_tui_tmux_telegram_operator_ux.md) | TUI/tmux/Telegram operator UX + MCP disclosure | P2 | ⬜ |
+| 10.087 | `gjc_chase_sdk_lifecycle_ledger_hardening` | ⬜ | P1 | SDK lifecycle ledger crash-safety, PID reuse, receipt parsing | `4a80bac9..3ddf26079` |
+| 10.088 | `gjc_chase_security_prompt_control_token` | ⬜ | P1 | control-token neutralization, untrusted content framing | `4a80bac9..3ddf26079` |
+| 10.089 | `gjc_chase_model_preset_fallback_selection` | ⬜ | P1 | sticky fallback chains, durable default model selection | `4a80bac9..3ddf26079` |
+| 10.090 | `gjc_chase_prompt_refactor_compact_ralplan` | ⬜ | P2 | core prompt compaction, shared ralplan guidance | `4a80bac9..3ddf26079` |
+| 10.091 | `gjc_chase_tui_command_palette` | ⬜ | P2 | searchable command palette, double-Esc draft clear | `4a80bac9..3ddf26079` |
+| 10.092 | `gjc_chase_tui_irc_sidebar_kitty_tmux` | ⬜ | P2 | IRC sidebar 70:30, Kitty anchored-wrap, sixel probe | `4a80bac9..3ddf26079` |
+| 10.093 | `gjc_chase_coordinator_mcp_session_reaper` | ⬜ | P2 | owner-proof idle reaper, tmux probe, stdio dispatch | `4a80bac9..3ddf26079` |
+| 10.094 | `gjc_chase_telegram_notification_v2` | ⬜ | P2 | /verbose /lean, directed replay, shared notification service | `4a80bac9..3ddf26079` |
+| 10.095 | `gjc_chase_deep_interview_goal_ultragoal` | ⬜ | P2 | deep-interview continuation, goal reminder, ultragoal receipt | `4a80bac9..3ddf26079` |
+| 10.096 | `gjc_chase_session_context_usage_ssot` | ⬜ | P2 | provider-reported usage SSOT, context snapshot cache | `4a80bac9..3ddf26079` |
+| 10.097 | `gjc_chase_grok_codex_benchmark_presets` | ⬜ | P1 | Grok 4.5, GPT-5.6 Codex presets, mpreset | `4a80bac9..3ddf26079` |
+| 10.098 | `gjc_chase_codex_reasoning_thinking_sdk` | ⬜ | P1 | thinking capabilities, invalid_prompt circuit breaker | `4a80bac9..3ddf26079` |
+| 10.099 | `gjc_chase_rpc_durable_selection_pet` | ⬜ | P3 | durable default model via RPC, deferred selection, pet | `4a80bac9..3ddf26079` |
+| 10.100 | `gjc_chase_ci_release_stabilization` | ⬜ | P3 | affected-path, SDK publish, shard isolation, biome | `4a80bac9..3ddf26079` |
+| 10.101 | `gjc_chase_browser_psmux_misc` | ⬜ | P3 | expired browser tabs, psmux lifecycle, context maintenance | `4a80bac9..3ddf26079` |
+| 10.102 | `gjc_chase_agent_async_misc` | ⬜ | P3 | async resume, session dirs, MCP tools-only, admission | `4a80bac9..3ddf26079` |
+| 10.103 | `gjc_chase_provider_safety_transport` | ⬜ | P2 | provider safety stops, managed fallback authority | `4a80bac9..3ddf26079` |
+| 10.104 | `gjc_chase_docs_changelog_qa` | ⬜ | P3 | changelog dedup, QA evidence, SDK guide repair | `4a80bac9..3ddf26079` |
+| 10.105 | `gjc_chase_routing_fallback_availability_cache` | ⬜ | P1 | routing/fallback hardening, availability cache, subagent stickiness | `3ddf26079..904eab21c` |
+| 10.106 | `gjc_chase_config_ux_credential_setup` | ⬜ | P2 | config doctor, credential setup, keybindings, SDK UX | `3ddf26079..904eab21c` |
+| 10.107 | `gjc_chase_context_compaction_ci` | ⬜ | P2 | compaction/pruning/hindsight budgets, CI native addon | `3ddf26079..904eab21c` |
+
+> **260717 delta**: +18 cards (10.087–10.104), range `4a80bac9..3ddf26079` (v0.9.6→v0.11.1+, 302 non-merge).
+> **260717 delta (supplement)**: +3 cards (10.105–10.107), range `3ddf26079..904eab21c` (post-v0.11.1, 41 non-merge).
 
 ## 완료
 

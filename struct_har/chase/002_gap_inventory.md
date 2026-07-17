@@ -1,7 +1,7 @@
 # chase — 갭 인벤토리 (횡단)
 
-> 스냅샷: gjc **`db7938e1`** (`upstream/dev`) · jwc **`89371141`** (worktree) · omp **`d0c1890a6`** (`origin/main`) (2026-07-03 **chase pull refresh**).
-> **reviewed through**: GJC `db7938e1` · OMP `d0c1890a6` · JWC `89371141`
+> 스냅샷: gjc **`904eab21c`** (`upstream/dev`, v0.11.1+) · jwc **`89371141`** (worktree) · omp **`b0d04e517`** (`origin/main`, v17.0.1) (2026-07-17 **chase pull refresh**).
+> **reviewed through**: GJC `4a80bac9..904eab21c` · OMP `7aa1d581c..5394081390` · JWC `89371141`
 > **명명**: [008_gjc_jwc_naming_contract.md](./008_gjc_jwc_naming_contract.md) — Python **`python/jwc-rpc`** (`jwc_rpc`); upstream만 `gjc-rpc`.
 > **RPC 실현성**: [devlog 03_rpc_bundle_feasibility_jwc_rpc](../../devlog/_fin/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md)
 > 상태: `⬜` 미착수 · `🟡` 설계/부분 · `✅` jwc 선행 · `—` 해당 없음
@@ -11,8 +11,8 @@
 
 | 축 | jwc가 **앞서거나 유일** | jwc가 **뒤처지거나 약함** |
 |---|---|---|
-| **gjc** | orchestrate/PABCD, jaw 표면, `.jwc`, lazy `computer_use`, pi-shell·submit gate(10.009·10.010 ✅), goal busy-loop #616 ✅, session compaction/progress ✅, RPC lifecycle/receipt spool/registry/team profile `_fin`(10.008·10.011·10.018·10.007 ✅), provider/search docs/retry evidence 10.069 ✅ | active GJC upstream/dev chase cards include 10.027, 10.039, 10.044-050, 10.063, 10.066-068, and new 10.070-073 |
-| **omp** | 4 workflow 번들, jaw 워크플로; 20.035 public tool contract reference triaged ✅ | task-agent, session ops, memory, pruning and remaining v16.3.4 native/AI/session/TUI/tool/runtime references = **참조** ([20.031](./20.031_omp_chase_native_search_pipeline.md)-[20.040](./20.040_omp_chase_robomp_iso_sandbox_release.md)) |
+| **gjc** | orchestrate/PABCD, jaw 표면, `.jwc`, lazy `computer_use`, pi-shell·submit gate(10.009·10.010 ✅), goal busy-loop #616 ✅, session compaction/progress ✅, RPC lifecycle/receipt spool/registry/team profile `_fin`(10.008·10.011·10.018·10.007 ✅), provider/search docs/retry evidence 10.069 ✅ | active GJC v0.9.1 chase cards: 10.027, 10.039, 10.044-050, 10.063, 10.066-068, 10.070-073, **new 10.074-081** (248 commits v0.7.11→v0.9.1) |
+| **omp** | 4 workflow 번들, jaw 워크플로; 20.035 public tool contract reference triaged ✅; **20.041-044 reference-triage ✅ _fin 260709** | task-agent, session ops, memory, pruning + v16.3.12 remaining references = **참조** ([20.031](./20.031_omp_chase_native_search_pipeline.md)-[20.040](./20.040_omp_chase_robomp_iso_sandbox_release.md)) |
 | **자체** | 100 Node 완료, TUI O(n²) 수정, 99.03·99.01·99.07 부분 | 99.02·99.04·99.05·99.06 · M2 110+ |
 
 ## 밴드별
