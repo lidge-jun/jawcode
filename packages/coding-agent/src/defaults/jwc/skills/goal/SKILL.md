@@ -116,6 +116,8 @@ Classify the story before choosing the loop shape (`LOOP-ARCHETYPE-01`):
 
 Repair thresholds apply inside a story (`LOOP-REPAIR-01`). Two consecutive failed repairs of the same failure require root-cause analysis before another patch. Three require replan or handoff back to jaw-interview. Three same-phase gate/checkpoint failures in one story count as no-progress and force a clarification return instead of another retry.
 
+Conditional-path activation grounding: when a story adds or changes a path that only runs under a trigger absent from the happy path (error handler, fallback, retry, cache, guard, gated branch, threshold behavior), the verification lane must TRIGGER that condition for real and OBSERVE the path execute with its intended effect (a hit assertion, log line, or counter that is read back). "All verifier lanes green" does not cover a branch no lane drives; a change whose observable output is byte-identical to baseline should be presumed dead and instrumented before "no effect" is concluded. Record the activation artifact in the checkpoint evidence like any other durable proof.
+
 Unattended goal loops must state tool/credential scope, token or cost budget, and wall-clock bound before execution. Missing resource bounds on high-risk surfaces are a stop-and-ask condition.
 
 ## Dynamic steering
@@ -338,6 +340,27 @@ win-rates, graded suites), apply plateau discipline on top of the normal gate:
   instance/opponent analysis), not only from existing code parameters. An
   all-threshold-tweak candidate list signals parameter-space anchoring — regenerate
   from the state space.
+- `LOOP-MECHANISM-PROOF-01`: a candidate whose value is a new branch or mechanism
+  needs activation evidence from the instances it targets — a counter, log line, or
+  trace showing the branch actually fired — before the story adopts it. Aggregate
+  score movement is not activation proof; in a multi-feature candidate a dead
+  mechanism hides behind the other features' gains. A zero-delta solo ablation
+  (single-feature candidate scores exactly baseline on the instances it was built to
+  flip) means "presume the path never ran; instrument first", not "weak feature".
+  Record the activation artifact in the ledger checkpoint evidence.
+- `LOOP-RESIDUAL-TRACE-01`: a residual failure carried into story close-out needs a
+  mechanism-level trace (which branches armed, which did not, why the outcome
+  followed) or the explicit label `unexplained` in the ledger. A plausible story
+  about the environment or opponent is a hypothesis, not evidence, until the trace
+  confirms our own relevant mechanism acted.
+- `LOOP-PEER-CONTRAST-01`: when a peer or reference artifact achieves the objective
+  on an instance we fail, the next generation's first analysis deliverable is a
+  behavioral diff of the two traces (what they did that we did not) before any new
+  candidate — the cheapest capability-gap detector available, and a free
+  counterexample to any environment story. (These three adopted 2026-07-06 from a
+  contest-bot incident: an endgame branch shipped inside a passing combo while
+  structurally unreachable; its solo ablation was baseline-exact, and one stderr
+  trace line exposed the leak in minutes.)
 - When the true evaluator is rate-limited and local checks are proxies, quantify
   proxy/oracle divergence before trusting proxy accept/reject; an optimistic proxy is
   never sole acceptance evidence. Replay-based evidence is prefix-valid only — state
@@ -350,6 +373,16 @@ win-rates, graded suites), apply plateau discipline on top of the normal gate:
   died, and what evidence would falsify the current direction. Treat
   story-complete -> idle -> next-plan as a context and bias flush; resume from the
   disk artifacts, not from transcript momentum.
+- `LOOP-CONTINUE-01`: the loop keeps the turn alive; the agent decides what "remaining
+  work" means. Do not redefine the objective downward — success criteria from the plan
+  are the bar. Audit completion against current repo state, not memory. Read durable
+  state (worklog, devlog, goalplan ledger) before planning the next pass. IDLE is not
+  the end while work remains: if unmet criteria remain under an active goal, start the
+  next story at plan.
+- Divergence/collapse: PABCD is convergence-first. Divergence is a mode for
+  open-ended-optimization (§archetype), not a standing habit. Enter deliberately when
+  intent is open or approach is uncertain; in goal mode, enter when plateau is detected.
+  Collapse early for spec work, late for metric work. Turn off after resolution.
 
 ## Handoff back to planning
 

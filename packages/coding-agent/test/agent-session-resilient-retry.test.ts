@@ -209,6 +209,22 @@ describe("AgentSession resilient retry", () => {
 		expect(last.errorMessage).toContain("401");
 	});
 
+	it("surfaces provider safety refusals without retrying", async () => {
+		session = buildSession({
+			responses: [{ throw: "Refusal (safety): Content flagged by safety filters" }],
+		});
+		vi.spyOn(scheduler, "wait").mockResolvedValue(undefined);
+		const { retryStartEvents } = track(session);
+
+		await session.prompt("trigger provider safety refusal");
+		await session.waitForIdle();
+
+		expect(retryStartEvents).toHaveLength(0);
+		const last = lastAssistant(session);
+		expect(last.stopReason).toBe("error");
+		expect(last.errorMessage).toContain("Refusal");
+	});
+
 	it("surfaces deliberate request aborts without retrying", async () => {
 		session = buildSession({ responses: [{ throw: "Request was aborted." }] });
 		vi.spyOn(scheduler, "wait").mockResolvedValue(undefined);

@@ -130,6 +130,26 @@ function formatHyperlink(text: string, target: string): string {
 	return `\x1b]8;;${safeTarget}\x07${text}\x1b]8;;\x07`;
 }
 
+function stripHtmlComments(raw: string): string {
+	let result = "";
+	let index = 0;
+	while (index < raw.length) {
+		const start = raw.indexOf("<!--", index);
+		if (start < 0) {
+			result += raw.slice(index);
+			break;
+		}
+		result += raw.slice(index, start);
+		const end = raw.indexOf("-->", start + 4);
+		if (end < 0) {
+			result += raw.slice(start);
+			break;
+		}
+		index = end + 3;
+	}
+	return result;
+}
+
 export class Markdown implements Component {
 	#text: string;
 	#paddingX: number; // Left/right padding
@@ -515,12 +535,11 @@ export class Markdown implements Component {
 				}
 				break;
 
-			case "html":
-				// Render HTML as plain text (escaped for terminal)
-				if ("raw" in token && typeof token.raw === "string") {
-					lines.push(this.#applyDefaultStyle(token.raw.trim()));
-				}
+			case "html": {
+				const visibleHtml = "raw" in token && typeof token.raw === "string" ? stripHtmlComments(token.raw) : "";
+				if (visibleHtml.trim().length > 0) lines.push(this.#applyDefaultStyle(visibleHtml.trim()));
 				break;
+			}
 
 			case "space":
 				// Space tokens represent blank lines in markdown
@@ -606,12 +625,11 @@ export class Markdown implements Component {
 					break;
 				}
 
-				case "html":
-					// Render inline HTML as plain text
-					if ("raw" in token && typeof token.raw === "string") {
-						result += applyTextWithNewlines(token.raw);
-					}
+				case "html": {
+					const visibleHtml = "raw" in token && typeof token.raw === "string" ? stripHtmlComments(token.raw) : "";
+					if (visibleHtml.trim().length > 0) result += applyTextWithNewlines(visibleHtml);
 					break;
+				}
 
 				default:
 					// Handle any other inline token types as plain text
@@ -964,6 +982,9 @@ export function renderInlineMarkdown(text: string, mdTheme: MarkdownTheme, baseC
 					return `${applyText(prefix)}${content}`;
 				})
 				.join(applyText(" "));
+		} else if (token.type === "html" && "raw" in token && typeof token.raw === "string") {
+			const visibleHtml = stripHtmlComments(token.raw);
+			if (visibleHtml.trim().length > 0) result += applyText(visibleHtml);
 		} else if ("text" in token && typeof token.text === "string") {
 			result += applyText(token.text);
 		}
@@ -998,6 +1019,11 @@ function renderInlineTokens(tokens: Token[], mdTheme: MarkdownTheme, applyText: 
 			case "link": {
 				const linkText = renderInlineTokens(token.tokens || [], mdTheme, applyText);
 				result += mdTheme.link(mdTheme.underline(linkText)) + styleReset;
+				break;
+			}
+			case "html": {
+				const visibleHtml = "raw" in token && typeof token.raw === "string" ? stripHtmlComments(token.raw) : "";
+				if (visibleHtml.trim().length > 0) result += applyText(visibleHtml);
 				break;
 			}
 			default:

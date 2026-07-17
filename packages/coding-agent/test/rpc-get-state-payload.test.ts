@@ -37,7 +37,7 @@ function dispatchContext(): RpcCommandDispatchContext {
 		messages: [],
 		queuedMessageCount: 0,
 		getTodoPhases: () => [],
-		getContextUsage: () => ({ tokens: 0, contextWindow: 200_000, percent: 0 }),
+		getContextUsage: () => ({ tokens: 0, contextWindow: 200_000, percent: 0, source: "provider_anchor" }),
 		systemPrompt: ["short system prompt"],
 		agent: {
 			state: {
@@ -71,7 +71,12 @@ describe("RPC get_state payload", () => {
 		expect(data.messageCount).toBe(0);
 		expect(data.queuedMessageCount).toBe(0);
 		expect(data.todoPhases).toEqual([]);
-		expect(data.contextUsage).toEqual({ tokens: 0, contextWindow: 200_000, percent: 0 });
+		expect(data.contextUsage).toEqual({
+			tokens: 0,
+			contextWindow: 200_000,
+			percent: 0,
+			source: "provider_anchor",
+		});
 	});
 
 	it("includes static fields only when requested", async () => {

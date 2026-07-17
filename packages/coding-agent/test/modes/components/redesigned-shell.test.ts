@@ -48,7 +48,7 @@ function createFooterSession(): AgentSession {
 				},
 			],
 		},
-		getContextUsage: () => ({ contextWindow: 200_000, percent: 42.5 }),
+		getContextUsage: () => ({ tokens: 85_000, contextWindow: 200_000, percent: 42.5, source: "provider_anchor" }),
 		getGoalModeState: () => undefined,
 		getAsyncJobSnapshot: () => ({ running: [] }),
 		isFastModeActive: () => false,

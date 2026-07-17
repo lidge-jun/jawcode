@@ -281,11 +281,13 @@ export interface ExtensionUIContext {
 // ============================================================================
 
 export interface ContextUsage {
-	/** Estimated context tokens, or null if unknown (e.g. right after compaction, before next LLM response). */
+	/** Provider-anchored context tokens plus unsent trailing estimates, or null when exact anchoring is unavailable. */
 	tokens: number | null;
 	contextWindow: number;
 	/** Context usage as percentage of context window, or null if tokens is unknown. */
 	percent: number | null;
+	/** Provenance of the authoritative session snapshot shared by status, context, ACP, and RPC. */
+	source: "provider_anchor" | "heuristic" | "unknown";
 }
 
 export type CompactionProgressTrigger = "manual" | "auto_threshold" | "auto_overflow" | "auto_idle";

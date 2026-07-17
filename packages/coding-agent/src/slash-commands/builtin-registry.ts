@@ -1,6 +1,6 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import type { ThinkingLevel } from "@jawcode-dev/agent-core";
+import { ThinkingLevel } from "@jawcode-dev/agent-core";
 import { type AuthStorage, type Model, modelsAreEqual } from "@jawcode-dev/ai";
 import { APP_NAME, getAgentDir, setProjectDir } from "@jawcode-dev/utils";
 import {
@@ -32,19 +32,9 @@ import {
 	parseProviderCompatibility,
 } from "../setup/provider-onboarding";
 import { parseThinkingLevel } from "../thinking";
+import { getDisplayChangelogEntries } from "../utils/changelog";
 import { getSearchProvider, nativeSearchProviderFor, setPreferredSearchProvider } from "../web/search/provider";
 import { isSearchProviderPreference, type SearchProviderId } from "../web/search/types";
-
-/**
- * 083.4: parse a /effort argument, accepting Codex ReasoningEffort vocabulary
- * (none/minimal) as aliases for jwc thinking levels (off/min).
- */
-function parseEffortArg(raw: string): ThinkingLevel | undefined {
-	const normalized = raw === "none" ? "off" : raw === "minimal" ? "min" : raw;
-	const level = parseThinkingLevel(normalized);
-	// "inherit" is a model-selector concept, not a session effort.
-	return level === "inherit" ? undefined : level;
-}
 
 /** jwc fork (devlog 260702_tone_command): /tone dispatch vocabulary. */
 const TONE_PRESET_NAMES = ["sarcastic", "savage", "deadpan", "hype", "uhehe"] as const;
@@ -455,6 +445,60 @@ function modelSelectionUsage(runtime: SlashCommandRuntime, currentModelLine?: st
 	]
 		.filter((line): line is string => Boolean(line))
 		.join("\n\n");
+}
+
+const EFFORT_COMMAND_INPUT_HINT = "[inherit|off|minimal|low|medium|high|xhigh|max]";
+const EFFORT_COMMAND_ACCEPTED_VALUES = ["inherit", "off", "minimal", "low", "medium", "high", "xhigh", "max"] as const;
+
+function effortCommandUsage(prefix?: string): string {
+	return [prefix, `Usage: /effort ${EFFORT_COMMAND_INPUT_HINT}`]
+		.filter((line): line is string => Boolean(line))
+		.join("\n");
+}
+
+function formatEffortStatus(runtime: SlashCommandRuntime): string {
+	const current = runtime.session.thinkingLevel ?? ThinkingLevel.Off;
+	const configuredDefault = runtime.settings.get("defaultThinkingLevel");
+	const supported = runtime.session.getAvailableThinkingLevels();
+	return [
+		`Current effective effort: ${current}`,
+		`Configured default effort: ${configuredDefault}`,
+		`Accepted values: ${EFFORT_COMMAND_ACCEPTED_VALUES.join(", ")}`,
+		`Current-model supported levels: ${supported.length > 0 ? supported.join(", ") : "(none reported)"}`,
+	].join("\n");
+}
+
+async function handleEffortCommand(
+	command: ParsedSlashCommand,
+	runtime: SlashCommandRuntime,
+): Promise<SlashCommandResult> {
+	const tokens = command.args.trim().split(/\s+/).filter(Boolean);
+	if (tokens.length === 0) {
+		await runtime.output(formatEffortStatus(runtime));
+		return commandConsumed();
+	}
+	if (tokens.length !== 1) {
+		return usage(effortCommandUsage("Invalid effort input."), runtime);
+	}
+
+	const requestedToken = tokens[0];
+	const requestedLevel = parseThinkingLevel(requestedToken);
+	if (!requestedToken || !requestedLevel) {
+		return usage(effortCommandUsage(`Invalid effort: ${tokens[0] ?? ""}.`), runtime);
+	}
+
+	const levelToApply =
+		requestedLevel === ThinkingLevel.Inherit ? runtime.settings.get("defaultThinkingLevel") : requestedLevel;
+	runtime.session.setThinkingLevel(levelToApply, false);
+	const effectiveLevel = runtime.session.thinkingLevel ?? ThinkingLevel.Off;
+	const requestedLabel =
+		requestedLevel === ThinkingLevel.Inherit ? `${requestedLevel} (${levelToApply})` : requestedLevel;
+	const clampedSuffix =
+		effectiveLevel === levelToApply ? "" : ` Requested ${levelToApply}; effective ${effectiveLevel}.`;
+	await runtime.output(
+		`Reasoning effort set to ${requestedLabel}. Effective effort: ${effectiveLevel}.${clampedSuffix}`,
+	);
+	return commandConsumed();
 }
 
 function refreshStatusLine(ctx: InteractiveModeContext): void {
@@ -947,67 +991,6 @@ const BUILTIN_SLASH_COMMAND_REGISTRY: ReadonlyArray<SlashCommandSpec> = [
 		},
 	},
 	{
-		name: "effort",
-		description: "Set reasoning effort for the current session",
-		acpDescription: "Set reasoning effort",
-		acpInputHint: "[off|minimal|low|medium|high|xhigh|max]",
-		subcommands: [
-			{ name: "off", description: "No reasoning" },
-			{ name: "minimal", description: "Very brief reasoning (~1k tokens)" },
-			{ name: "low", description: "Light reasoning (~2k tokens)" },
-			{ name: "medium", description: "Moderate reasoning (~8k tokens)" },
-			{ name: "high", description: "Deep reasoning (~16k tokens)" },
-			{ name: "xhigh", description: "Maximum reasoning (~32k tokens)" },
-			{ name: "max", description: "Unrestricted reasoning" },
-			{ name: "status", description: "Show current reasoning effort" },
-		],
-		allowArgs: true,
-		handle: async (command, runtime) => {
-			const raw = command.args.trim().toLowerCase();
-			if (!raw || raw === "status") {
-				await runtime.output(
-					`Reasoning effort: ${runtime.session.thinkingLevel ?? "off"}. Options: off, minimal, low, medium, high, xhigh, max.`,
-				);
-				return commandConsumed();
-			}
-			const level = parseEffortArg(raw);
-			if (!level) {
-				await runtime.output(
-					`Unknown effort "${command.args.trim()}". Options: off, minimal, low, medium, high, xhigh, max.`,
-				);
-				return commandConsumed();
-			}
-			runtime.session.setThinkingLevel(level);
-			await runtime.output(`Reasoning effort set to ${runtime.session.thinkingLevel ?? "off"}.`);
-			return commandConsumed();
-		},
-		handleTui: (command, runtime) => {
-			const raw = command.args.trim().toLowerCase();
-			if (!raw) {
-				runtime.ctx.showEffortSelector();
-				runtime.ctx.editor.setText("");
-				return;
-			}
-			if (raw === "status") {
-				runtime.ctx.showStatus(
-					`Reasoning effort: ${runtime.ctx.session.thinkingLevel ?? "off"} (off|minimal|low|medium|high|xhigh|max)`,
-				);
-				runtime.ctx.editor.setText("");
-				return;
-			}
-			const level = parseEffortArg(raw);
-			if (!level) {
-				runtime.ctx.showError(`Unknown effort "${command.args.trim()}" (off|minimal|low|medium|high|xhigh|max)`);
-				runtime.ctx.editor.setText("");
-				return;
-			}
-			runtime.ctx.session.setThinkingLevel(level);
-			refreshStatusLine(runtime.ctx);
-			runtime.ctx.showStatus(`Reasoning effort set to ${runtime.ctx.session.thinkingLevel ?? "off"}.`);
-			runtime.ctx.editor.setText("");
-		},
-	},
-	{
 		// jwc fork (devlog 260702_tone_command): persona tone presets + custom lane.
 		// handle-only by design — the TUI dispatcher delegates through
 		// adaptTuiSlashRuntime, so status/output routes via showStatus.
@@ -1418,8 +1401,10 @@ const BUILTIN_SLASH_COMMAND_REGISTRY: ReadonlyArray<SlashCommandSpec> = [
 				return commandConsumed();
 			}
 			if (args === "login" || args.startsWith("login ")) {
+				const providerId = args.slice("login".length).trim();
+				const loginCommand = providerId ? `/login ${providerId}` : "/login [provider-id]";
 				await runtime.output(
-					"Use the terminal UI /login selector for browser, device-code, or manual callback provider login.",
+					`Open the terminal UI and run ${loginCommand} for OAuth/subscription account login. Paste callbacks with /login <redirect URL or code>.`,
 				);
 				return commandConsumed();
 			}
@@ -1924,9 +1909,81 @@ const BUILTIN_SLASH_COMMAND_REGISTRY: ReadonlyArray<SlashCommandSpec> = [
 		},
 	},
 	{
+		name: "effort",
+		description: "Show or set model reasoning effort",
+		acpDescription: "Show or set model reasoning effort",
+		inlineHint: EFFORT_COMMAND_INPUT_HINT,
+		acpInputHint: EFFORT_COMMAND_INPUT_HINT,
+		allowArgs: true,
+		handle: handleEffortCommand,
+		handleTui: async (command, runtime) => {
+			if (command.args.trim()) {
+				const result = await handleEffortCommand(command, adaptTuiSlashRuntime(runtime.ctx));
+				runtime.ctx.statusLine.invalidate();
+				runtime.ctx.updateEditorBorderColor();
+				runtime.ctx.updateEditorTopBorder();
+				runtime.ctx.editor.setText("");
+				runtime.ctx.ui.requestRender();
+				return result;
+			}
+
+			if (typeof runtime.ctx.showEffortSelector === "function") {
+				runtime.ctx.showEffortSelector();
+				runtime.ctx.editor.setText("");
+				return;
+			}
+
+			const result = await handleEffortCommand(command, adaptTuiSlashRuntime(runtime.ctx));
+			runtime.ctx.editor.setText("");
+			return result;
+		},
+	},
+	{
 		name: "exit",
+		aliases: ["quit"],
 		description: "Exit the application",
 		handleTui: shutdownHandlerTui,
+	},
+	{
+		name: "clear",
+		description: "Clear conversation context (preserves session)",
+		acpDescription: "Clear conversation context while preserving the current session",
+		handleTui: async (_command, runtime) => {
+			runtime.ctx.editor.setText("");
+			if (!(await runtime.ctx.session.clearContext())) return commandConsumed();
+			runtime.ctx.statusLine.invalidate();
+			runtime.ctx.updateEditorTopBorder();
+			runtime.ctx.updateEditorBorderColor();
+			runtime.ctx.ui.requestRender();
+			return commandConsumed();
+		},
+	},
+	{
+		name: "changelog",
+		description: "Show recent changes",
+		acpDescription: "Show recent changes",
+		allowArgs: true,
+		inlineHint: "[full|--full]",
+		handle: async (command, runtime) => {
+			const args = command.args.trim().toLowerCase();
+			if (args && args !== "full" && args !== "--full") {
+				return usage("Usage: /changelog [full|--full]", runtime);
+			}
+			const showFull = args === "full" || args === "--full";
+			const allEntries = getDisplayChangelogEntries();
+			const entriesToShow = showFull ? allEntries : allEntries.slice(0, 3);
+			const changelogMarkdown =
+				entriesToShow.length > 0
+					? [...entriesToShow]
+							.reverse()
+							.map(entry => entry.content)
+							.join("\n\n")
+					: "No changelog entries found.";
+			const title = showFull ? "Full Changelog" : "Recent Changes";
+			const hint = showFull ? "" : "\n\nUse `/changelog --full` to view the complete changelog.";
+			await runtime.output(`${title}\n\n${changelogMarkdown}${hint}`);
+			return commandConsumed();
+		},
 	},
 ];
 

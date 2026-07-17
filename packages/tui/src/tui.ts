@@ -162,6 +162,10 @@ function useLegacyMultiplexerFullRender(): boolean {
 	return $flag("PI_TUI_LEGACY_MULTIPLEXER_FULL_RENDER");
 }
 
+function useViewportRepaintPath(): boolean {
+	return isMultiplexerSession() && !useLegacyMultiplexerFullRender();
+}
+
 /**
  * Options for overlay positioning and sizing.
  * Values can be absolute numbers or percentage strings (e.g., "50%").
@@ -945,16 +949,19 @@ export class TUI extends Container {
 		}
 		if (renderMetrics.enabled) renderMetrics.recordRequest(source);
 		if (force) {
+			const preserveViewportCursor = useViewportRepaintPath();
 			// A forced full redraw supersedes any queued input-priority render.
 			this.#inputRenderPending = false;
 			this.#previousLines = [];
 			this.#previousWidth = -1; // -1 triggers widthChanged, forcing a full clear
 			this.#clearPreparedLineCaches();
 			this.#previousHeight = -1; // -1 triggers heightChanged, forcing a full clear
-			this.#cursorRow = 0;
-			this.#hardwareCursorRow = 0;
-			this.#viewportTopRow = 0;
-			this.#maxLinesRendered = 0;
+			if (!preserveViewportCursor) {
+				this.#cursorRow = 0;
+				this.#hardwareCursorRow = 0;
+				this.#viewportTopRow = 0;
+				this.#maxLinesRendered = 0;
+			}
 			if (this.#renderTimer) {
 				clearTimeout(this.#renderTimer);
 				this.#renderTimer = undefined;
@@ -2294,7 +2301,7 @@ export class TUI extends Container {
 			this.#hardwareCursorRow = toRow;
 			buffer += seq;
 			buffer += "\x1b[?2026l"; // End synchronized output
-			if (!this.#writeTerminal(buffer)) return;
+			if (!this.#writeRenderBufferAndReanchorImeCursor(buffer, cursorPos, newLines.length)) return;
 			// Reset max lines when clearing, otherwise track growth
 			if (clear) {
 				this.#maxLinesRendered = newLines.length;
@@ -2352,7 +2359,7 @@ export class TUI extends Container {
 			this.#hardwareCursorRow = cursorToRow;
 			buffer += cursorSeq;
 			buffer += "\x1b[?2026l";
-			if (!this.#writeTerminal(buffer)) return;
+			if (!this.#writeRenderBufferAndReanchorImeCursor(buffer, cursorPos, newLines.length)) return;
 
 			if ($flag("PI_DEBUG_REDRAW")) {
 				const logPath = getDebugLogPath();
@@ -2407,7 +2414,7 @@ export class TUI extends Container {
 			this.#hardwareCursorRow = cursorToRow;
 			buffer += cursorSeq;
 			buffer += "\x1b[?2026l";
-			if (!this.#writeTerminal(buffer)) return;
+			if (!this.#writeRenderBufferAndReanchorImeCursor(buffer, cursorPos, newLines.length)) return;
 			this.#cursorRow = Math.max(0, newLines.length - 1);
 			this.#maxLinesRendered = newLines.length;
 			this.#viewportTopRow = nextViewportTop;
@@ -2452,7 +2459,7 @@ export class TUI extends Container {
 			buffer += cursorSeq;
 			buffer += "\x1b[?2026l";
 
-			if (!this.#writeTerminal(buffer)) return;
+			if (!this.#writeRenderBufferAndReanchorImeCursor(buffer, cursorPos, newLines.length)) return;
 
 			if ($flag("PI_DEBUG_REDRAW")) {
 				const logPath = getDebugLogPath();
@@ -2645,7 +2652,7 @@ export class TUI extends Container {
 				this.#hardwareCursorRow = toRow;
 				buffer += seq;
 				buffer += "\x1b[?2026l";
-				if (!this.#writeTerminal(buffer)) return;
+				if (!this.#writeRenderBufferAndReanchorImeCursor(buffer, cursorPos, newLines.length)) return;
 			}
 			this.#previousLines = newLines;
 			this.#previousWidth = width;
@@ -2800,7 +2807,7 @@ export class TUI extends Container {
 		}
 
 		// Write entire buffer at once
-		if (!this.#writeTerminal(buffer)) return;
+		if (!this.#writeRenderBufferAndReanchorImeCursor(buffer, cursorPos, newLines.length)) return;
 
 		// Track cursor position for next render.
 		// cursorRow tracks end of content (for viewport calculation).
@@ -2853,18 +2860,28 @@ export class TUI extends Container {
 		return { seq, toRow: targetRow };
 	}
 
+	#writeRenderBufferAndReanchorImeCursor(
+		buffer: string,
+		cursorPos: { row: number; col: number } | null,
+		totalLines: number,
+	): boolean {
+		if (!this.#writeTerminal(buffer)) return false;
+		if (!this.#showHardwareCursor) return true;
+		return this.#writeCursorPosition(cursorPos, totalLines);
+	}
+
 	/**
 	 * Write the hardware cursor position to the terminal as a standalone
 	 * synchronized output block. Use when there is no surrounding render buffer
 	 * to embed the sequences into.
 	 */
-	#writeCursorPosition(cursorPos: { row: number; col: number } | null, totalLines: number): void {
+	#writeCursorPosition(cursorPos: { row: number; col: number } | null, totalLines: number): boolean {
 		if (!cursorPos || totalLines <= 0) {
-			this.#hideCursor();
-			return;
+			return this.#hideCursor();
 		}
 		const { seq, toRow } = this.#cursorControlSequence(cursorPos, totalLines, this.#hardwareCursorRow);
 		this.#hardwareCursorRow = toRow;
-		this.#writeTerminal(`\x1b[?2026h${seq}\x1b[?2026l`);
+		// A standalone write preserves macOS IME composition state after synchronized repaint.
+		return this.#writeTerminal(seq);
 	}
 }

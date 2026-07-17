@@ -13,6 +13,9 @@ import { APP_NAME, ENGINE_NAME, MIN_BUN_VERSION, procmgr, VERSION } from "@jawco
 // `HTTP2Unsupported`. See @jawcode-dev/ai/utils/h2-fetch for details.
 installH2Fetch();
 
+import { warnIfMacOSNoFileLimitTooLow } from "./cli/nofile-limit";
+warnIfMacOSNoFileLimitTooLow();
+
 // Strip macOS malloc-stack-logging env vars before any subprocess is spawned.
 // Otherwise every child bun process (subagents, plugin installs, ptree spawns,
 // etc.) prints a `MallocStackLogging: can't turn off …` warning to stderr.
@@ -45,6 +48,7 @@ const baseCommands: CommandEntry[] = [
 	{ name: "ultragoal", load: () => import("./commands/ultragoal").then(m => m.default) },
 	{ name: "ralplan", load: () => import("./commands/ralplan").then(m => m.default) },
 	{ name: "config", load: () => import("./commands/config").then(m => m.default) },
+	{ name: "stats", load: () => import("./commands/stats").then(m => m.default) },
 	{ name: "notify", load: () => import("./commands/notify").then(m => m.default) },
 	{ name: "mcp-serve", load: () => import("./commands/mcp-serve").then(m => m.default) },
 	{ name: "local-provider", load: () => import("./commands/local-provider").then(m => m.default) },

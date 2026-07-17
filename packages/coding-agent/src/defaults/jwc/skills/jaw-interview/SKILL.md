@@ -1,7 +1,7 @@
 ---
 name: jaw-interview
 description: IPABCD I-stage engine — Socratic jaw interview with dual-audit ambiguity gating before execution approval
-argument-hint: "[--quick|--standard|--deep] <idea or vague description>"
+argument-hint: "[--trace] [--quick|--standard|--deep] <idea or vague description>"
 pipeline: [jaw-interview, plan]
 handoff-policy: approval-required
 handoff: .jwc/specs/jaw-interview-{slug}.md
@@ -20,11 +20,14 @@ Jaw Interview implements Ouroboros-inspired Socratic questioning with mathematic
 - User says "ouroboros", "socratic", "I have a vague idea", "not sure exactly what I want"
 - User wants to avoid "that's not what I meant" outcomes from autonomous execution
 - Task is complex enough that jumping to code would waste cycles on scope discovery
+- User asks for implementation but the target, scope, acceptance criteria, or safety boundary is ambiguous enough that mutation would require guessing
+- User requests a trace/research pre-step before the interview, e.g. `/skill:jaw-interview --trace <idea>`
 - User wants mathematically-validated clarity before committing to execution
 </Use_When>
 
 <Do_Not_Use_When>
 - User has a detailed, specific request with file paths, function names, or acceptance criteria -- execute directly
+- User has an explicit concrete low-risk implementation request with enough target, scope, and acceptance criteria to execute safely -- execute directly
 - User wants to explore options or brainstorm -- use the orchestrate plan stage (`jwc orchestrate p`) instead
 - User wants a quick fix or single change -- delegate to executor or execution
 - User says "just do it" or "skip the questions" without an explicit execution path -- respect their intent by ending interview and writing a `pending approval` spec, not by mutating files or delegating execution

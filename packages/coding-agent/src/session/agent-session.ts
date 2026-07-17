@@ -207,6 +207,8 @@ import type { Mem0SessionState } from "../mem0/state";
 import { resolveMemoryBackend } from "../memory-backend";
 import type { WorkflowGateEmitter } from "../modes/shared/agent-wire/unattended-session";
 import { getCurrentThemeName, theme } from "../modes/theme/theme";
+import { computeNonMessageTokens } from "../modes/utils/context-usage";
+import { publishNotificationAgentEvent } from "../notifications/turn-stream";
 import type { PlanModeState } from "../plan-mode/state";
 import autoContinuePrompt from "../prompts/system/auto-continue.md" with { type: "text" };
 import eagerTodoPrompt from "../prompts/system/eager-todo.md" with { type: "text" };
@@ -290,6 +292,10 @@ import type {
 } from "./session-manager";
 import { getLatestCompactionEntry } from "./session-manager";
 import { ToolChoiceQueue } from "./tool-choice-queue";
+import {
+	pruneSupersededMaintenanceReminders,
+	pruneSupersededVolatileProjectContext,
+} from "./volatile-context-pruning";
 import { YieldQueue } from "./yield-queue";
 
 /** Session-specific events that extend the core AgentEvent */
@@ -962,6 +968,7 @@ export class AgentSession {
 	// Compaction state
 	#compactionAbortController: AbortController | undefined = undefined;
 	#autoCompactionAbortController: AbortController | undefined = undefined;
+	#contextUsageCache: { key: string; value: ContextUsage } | undefined;
 
 	// Branch summarization state
 	#branchSummaryAbortController: AbortController | undefined = undefined;
@@ -1710,6 +1717,16 @@ export class AgentSession {
 		manager.cancelOwnerForReplacement({ ownerId: this.#agentId });
 	}
 
+	#suppressOwnAsyncJobDeliveries(): void {
+		if (!this.#agentId) return;
+		const manager = AsyncJobManager.instance();
+		if (!manager) return;
+		const pendingJobIds = manager.getDeliveryState({ ownerId: this.#agentId }).pendingJobIds;
+		if (pendingJobIds.length > 0) {
+			manager.acknowledgeDeliveries(pendingJobIds);
+		}
+	}
+
 	// =========================================================================
 	// Event Subscription
 	// =========================================================================
@@ -2017,6 +2034,9 @@ export class AgentSession {
 				displayEvent = { ...event, message: { ...message, content: deobfuscatedContent } };
 			}
 		}
+		publishNotificationAgentEvent(this.sessionId, displayEvent, {
+			redact: this.settings.get("notifications.redact"),
+		});
 
 		if (event.type === "turn_start") {
 			const usage = this.getSessionStats().tokens;
@@ -3345,11 +3365,15 @@ export class AgentSession {
 				maxAttempts: event.maxAttempts,
 			});
 		} else if (event.type === "goal_updated") {
-			await this.#extensionRunner.emit({
-				type: "goal_updated",
-				goal: event.goal,
-				state: event.state,
-			});
+			try {
+				await this.#extensionRunner.emit({
+					type: "goal_updated",
+					goal: event.goal,
+					state: event.state,
+				});
+			} catch (error) {
+				logger.warn("Goal updated extension hook failed", { error: String(error) });
+			}
 		}
 	}
 
@@ -4224,48 +4248,80 @@ export class AgentSession {
 	 */
 	async refreshMCPTools(mcpTools: CustomTool[]): Promise<void> {
 		const previousSelectedMCPToolNames = this.getSelectedMCPToolNames();
-		const existingNames = Array.from(this.#toolRegistry.keys());
-		for (const name of existingNames) {
-			const tool = this.#toolRegistry.get(name);
-			if (this.#discoverableMCPTools.has(name) || (tool && isMCPBridgeTool(tool))) {
-				this.#toolRegistry.delete(name);
-			}
-		}
-
-		const getCustomToolContext = (): CustomToolContext => ({
-			sessionManager: this.sessionManager,
-			modelRegistry: this.#modelRegistry,
-			model: this.model,
-			isIdle: () => !this.isStreaming,
-			hasQueuedMessages: () => this.queuedMessageCount > 0,
-			abort: () => {
-				this.agent.abort();
-			},
-		});
-
-		for (const customTool of mcpTools) {
-			const wrapped = CustomToolAdapter.wrap(customTool, getCustomToolContext) as AgentTool;
-			const finalTool = (
-				this.#extensionRunner ? new ExtensionToolWrapper(wrapped, this.#extensionRunner) : wrapped
-			) as AgentTool;
-			this.#toolRegistry.set(finalTool.name, finalTool);
-		}
-
-		this.#setDiscoverableMCPTools(this.#collectDiscoverableMCPToolsFromRegistry());
-		this.#pruneSelectedMCPToolNames();
-		if (!this.buildDisplaySessionContext().hasPersistedMCPToolSelection) {
-			this.#selectedMCPToolNames = new Set([
-				...this.#selectedMCPToolNames,
-				...this.#getConfiguredDefaultSelectedMCPToolNames(),
-			]);
-		}
-		this.#rememberSessionDefaultSelectedMCPToolNames(
-			this.sessionFile,
-			this.#getConfiguredDefaultSelectedMCPToolNames(),
+		const previousRegistry = new Map(this.#toolRegistry);
+		const previousDiscoverableMCPTools = new Map(this.#discoverableMCPTools);
+		const previousDiscoverableMCPSearchIndex = this.#discoverableMCPSearchIndex;
+		const previousDiscoverableToolSearchIndex = this.#discoverableToolSearchIndex;
+		const previousSelectedMCPToolSet = new Set(this.#selectedMCPToolNames);
+		const previousSelectedDiscoveredToolNames = new Set(this.#selectedDiscoveredToolNames);
+		const previousActiveTools = [...this.agent.state.tools];
+		const previousBaseSystemPrompt = [...this.#baseSystemPrompt];
+		const previousSystemPrompt = [...this.agent.state.systemPrompt];
+		const previousAppliedToolSignature = this.#lastAppliedToolSignature;
+		const previousSessionDefaultSelections = new Map(
+			Array.from(
+				this.#sessionDefaultSelectedMCPToolNames,
+				([sessionFile, toolNames]): [string, string[]] => [sessionFile, [...toolNames]],
+			),
 		);
+		const existingNames = Array.from(this.#toolRegistry.keys());
+		try {
+			for (const name of existingNames) {
+				const tool = this.#toolRegistry.get(name);
+				if (this.#discoverableMCPTools.has(name) || (tool && isMCPBridgeTool(tool))) {
+					this.#toolRegistry.delete(name);
+				}
+			}
 
-		const nextActive = [...this.#getActiveNonMCPToolNames(), ...this.getSelectedMCPToolNames()];
-		await this.#applyActiveToolsByName(nextActive, { previousSelectedMCPToolNames });
+			const getCustomToolContext = (): CustomToolContext => ({
+				sessionManager: this.sessionManager,
+				modelRegistry: this.#modelRegistry,
+				model: this.model,
+				isIdle: () => !this.isStreaming,
+				hasQueuedMessages: () => this.queuedMessageCount > 0,
+				abort: () => {
+					this.agent.abort();
+				},
+			});
+
+			for (const customTool of mcpTools) {
+				const wrapped = CustomToolAdapter.wrap(customTool, getCustomToolContext) as AgentTool;
+				const finalTool = (
+					this.#extensionRunner ? new ExtensionToolWrapper(wrapped, this.#extensionRunner) : wrapped
+				) as AgentTool;
+				this.#toolRegistry.set(finalTool.name, finalTool);
+			}
+
+			this.#setDiscoverableMCPTools(this.#collectDiscoverableMCPToolsFromRegistry());
+			this.#pruneSelectedMCPToolNames();
+			if (!this.buildDisplaySessionContext().hasPersistedMCPToolSelection) {
+				this.#selectedMCPToolNames = new Set([
+					...this.#selectedMCPToolNames,
+					...this.#getConfiguredDefaultSelectedMCPToolNames(),
+				]);
+			}
+			this.#rememberSessionDefaultSelectedMCPToolNames(
+				this.sessionFile,
+				this.#getConfiguredDefaultSelectedMCPToolNames(),
+			);
+
+			const nextActive = [...this.#getActiveNonMCPToolNames(), ...this.getSelectedMCPToolNames()];
+			await this.#applyActiveToolsByName(nextActive, { previousSelectedMCPToolNames });
+		} catch (error) {
+			this.#toolRegistry.clear();
+			for (const [name, tool] of previousRegistry) this.#toolRegistry.set(name, tool);
+			this.#discoverableMCPTools = previousDiscoverableMCPTools;
+			this.#discoverableMCPSearchIndex = previousDiscoverableMCPSearchIndex;
+			this.#discoverableToolSearchIndex = previousDiscoverableToolSearchIndex;
+			this.#selectedMCPToolNames = previousSelectedMCPToolSet;
+			this.#selectedDiscoveredToolNames = previousSelectedDiscoveredToolNames;
+			this.#sessionDefaultSelectedMCPToolNames = previousSessionDefaultSelections;
+			this.agent.setTools(previousActiveTools);
+			this.#baseSystemPrompt = previousBaseSystemPrompt;
+			this.agent.setSystemPrompt(previousSystemPrompt);
+			this.#lastAppliedToolSignature = previousAppliedToolSignature;
+			throw error;
+		}
 	}
 
 	/**
@@ -5998,6 +6054,43 @@ export class AgentSession {
 	/**
 	 * Set a display name for the current session.
 	 */
+	/**
+	 * Clear active conversational/model context while preserving the current
+	 * session identity and durable history trail.
+	 */
+	async clearContext(): Promise<boolean> {
+		const sessionId = this.sessionId;
+		this.#disconnectFromAgent();
+		await this.abort();
+		this.#cancelOwnAsyncJobs();
+		this.#suppressOwnAsyncJobDeliveries();
+		this.yieldQueue.clear();
+		this.#pendingBackgroundExchanges = [];
+		this.#closeAllProviderSessions("context clear");
+		this.agent.reset();
+		await this.sessionManager.flush();
+		this.setTodoPhases([]);
+		this.#syncAgentSessionId(sessionId);
+		this.#steeringMessages = [];
+		this.#followUpMessages = [];
+		this.#pendingNextTurnMessages = [];
+		this.#scheduledHiddenNextTurnGeneration = undefined;
+
+		this.sessionManager.appendThinkingLevelChange(this.thinkingLevel);
+		if (this.model) {
+			this.sessionManager.appendModelChange(`${this.model.provider}/${this.model.id}`);
+		}
+		this.sessionManager.appendServiceTierChange(this.serviceTier ?? null);
+		this.#todoReminderCount = 0;
+		this.#planReferenceSent = false;
+		this.#planReferencePath = "local://PLAN.md";
+		this.#reconnectToAgent();
+		return true;
+	}
+
+	/**
+	 * Set a display name for the current session.
+	 */
 	setSessionName(name: string, source: "auto" | "user" = "auto"): Promise<boolean> {
 		return this.sessionManager.setSessionName(name, source);
 	}
@@ -6446,19 +6539,27 @@ export class AgentSession {
 
 	async #pruneToolOutputs(): Promise<{ prunedCount: number; tokensSaved: number } | undefined> {
 		const branchEntries = this.sessionManager.getBranch();
+		const volatileContext = pruneSupersededVolatileProjectContext(branchEntries);
+		const singletonReminders = pruneSupersededMaintenanceReminders(branchEntries);
+		const customUpdates = [...volatileContext.changed, ...singletonReminders.changed];
+		if (customUpdates.length > 0) this.sessionManager.applyCustomMessageEntryUpdates(customUpdates);
 		const encoding = this.model ? resolveModelEncoding(this.model) : undefined;
 		const result = pruneToolOutputs(branchEntries, DEFAULT_PRUNE_CONFIG, encoding);
-		if (result.prunedCount === 0) {
+		if (result.prunedCount === 0 && customUpdates.length === 0) {
 			return undefined;
 		}
-		this.sessionManager.applyMessageEntryUpdates(result.prunedEntries);
+		if (result.prunedCount > 0) this.sessionManager.applyMessageEntryUpdates(result.prunedEntries);
 
 		await this.sessionManager.rewriteEntries();
 		const sessionContext = this.buildModelSessionContext();
 		this.agent.replaceMessages(sessionContext.messages);
 		this.#syncTodoPhasesFromBranch();
 		this.#closeCodexProviderSessionsForHistoryRewrite();
-		return result;
+		return {
+			prunedCount: result.prunedCount + customUpdates.length,
+			tokensSaved:
+				result.tokensSaved + Math.ceil((volatileContext.bytesSaved + singletonReminders.bytesSaved) / 4),
+		};
 	}
 
 	/**
@@ -10152,8 +10253,8 @@ export class AgentSession {
 
 	/**
 	 * Get current context usage statistics.
-	 * Uses the last assistant message's usage data when available,
-	 * otherwise estimates tokens for all messages.
+	 * Provider-reported usage is authoritative. Only messages after the latest
+	 * successful usage-bearing assistant are estimated as an unsent delta.
 	 */
 	getContextUsage(): ContextUsage | undefined {
 		const model = this.model;
@@ -10161,6 +10262,8 @@ export class AgentSession {
 
 		const contextWindow = model.contextWindow ?? 0;
 		if (contextWindow <= 0) return undefined;
+		const cacheKey = `${this.agent.contextRevision}|${model.provider}|${model.id}|${contextWindow}`;
+		if (this.#contextUsageCache?.key === cacheKey) return { ...this.#contextUsageCache.value };
 
 		// After compaction, the last assistant usage reflects pre-compaction context size.
 		// We can only trust usage from an assistant that responded after the latest compaction.
@@ -10187,18 +10290,22 @@ export class AgentSession {
 			}
 
 			if (!hasPostCompactionUsage) {
-				return { tokens: null, contextWindow, percent: null };
+				const value: ContextUsage = { tokens: null, contextWindow, percent: null, source: "unknown" };
+				this.#contextUsageCache = { key: cacheKey, value };
+				return { ...value };
 			}
 		}
 
 		const estimate = this.#estimateContextTokens();
 		const percent = (estimate.tokens / contextWindow) * 100;
-
-		return {
+		const value: ContextUsage = {
 			tokens: estimate.tokens,
 			contextWindow,
 			percent,
+			source: estimate.anchored ? "provider_anchor" : "heuristic",
 		};
+		this.#contextUsageCache = { key: cacheKey, value };
+		return { ...value };
 	}
 
 	async fetchUsageReports(signal?: AbortSignal): Promise<UsageReport[] | null> {
@@ -10213,51 +10320,55 @@ export class AgentSession {
 	/**
 	 * Estimate context tokens for display/status (cheap heuristic, no native tokenizer).
 	 */
-	#estimateContextTokens(): { tokens: number } {
+	#estimateContextTokens(): { tokens: number; anchored: boolean } {
 		return this.#estimateContextTokensWith(msg => this.#estimateMessageDisplayTokens(msg));
 	}
 
 	/**
 	 * Estimate context tokens for compaction decisions (native tokenizer, accurate).
 	 */
-	#estimateContextTokensForCompaction(pendingMessages?: AgentMessage[]): { tokens: number } {
+	#estimateContextTokensForCompaction(pendingMessages?: AgentMessage[]): { tokens: number; anchored: boolean } {
 		return this.#estimateContextTokensWith(msg => this.#estimateMessageNativeContextTokens(msg), pendingMessages);
+	}
+
+	#anchorableAssistantUsage(message: AgentMessage): Usage | undefined {
+		if (message.role !== "assistant") return undefined;
+		const assistant = message as AssistantMessage;
+		if (assistant.stopReason === "aborted" || assistant.stopReason === "error") return undefined;
+		return calculateContextTokens(assistant.usage) > 0 ? assistant.usage : undefined;
 	}
 
 	#estimateContextTokensWith(
 		estimateFn: (msg: AgentMessage) => number,
 		pendingMessages?: AgentMessage[],
-	): { tokens: number } {
+	): { tokens: number; anchored: boolean } {
 		const messages = this.messages;
 		const allMessages = pendingMessages ? [...messages, ...pendingMessages] : messages;
-
-		const estimated = allMessages.reduce((sum, msg) => sum + estimateFn(msg), 0);
 
 		let lastUsageIndex: number | null = null;
 		let lastUsage: Usage | undefined;
 		for (let i = messages.length - 1; i >= 0; i--) {
-			const msg = messages[i];
-			if (msg.role === "assistant") {
-				const assistantMsg = msg as AssistantMessage;
-				if (assistantMsg.usage) {
-					lastUsage = assistantMsg.usage;
-					lastUsageIndex = i;
-					break;
-				}
+			const usage = this.#anchorableAssistantUsage(messages[i]);
+			if (usage) {
+				lastUsage = usage;
+				lastUsageIndex = i;
+				break;
 			}
 		}
 
 		if (!lastUsage || lastUsageIndex === null) {
-			return { tokens: estimated };
+			const encoding = this.model ? resolveModelEncoding(this.model) : undefined;
+			const estimatedMessages = allMessages.reduce((sum, msg) => sum + estimateFn(msg), 0);
+			return { tokens: computeNonMessageTokens(this, encoding) + estimatedMessages, anchored: false };
 		}
 
-		const usageTokens = calculatePromptTokens(lastUsage);
+		const usageTokens = calculateContextTokens(lastUsage);
 		let trailingTokens = 0;
 		for (let i = lastUsageIndex + 1; i < allMessages.length; i++) {
 			trailingTokens += estimateFn(allMessages[i]);
 		}
 
-		return { tokens: Math.max(usageTokens + trailingTokens, estimated) };
+		return { tokens: usageTokens + trailingTokens, anchored: true };
 	}
 
 	#estimateMessageDisplayTokens(msg: AgentMessage): number {

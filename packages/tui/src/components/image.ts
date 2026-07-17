@@ -1,11 +1,21 @@
 import {
 	getImageDimensions,
 	type ImageDimensions,
+	ImageProtocol,
 	imageFallback,
+	kittyImageId,
 	renderImage,
 	TERMINAL,
 } from "../terminal-capabilities";
 import type { Component } from "../tui";
+
+let nextPlacementId = 1;
+
+function allocatePlacementId(): number {
+	const id = nextPlacementId;
+	nextPlacementId = nextPlacementId >= 0x7fffffff ? 1 : nextPlacementId + 1;
+	return id;
+}
 
 export interface ImageTheme {
 	fallbackColor: (str: string) => string;
@@ -26,6 +36,8 @@ export class Image implements Component {
 
 	#cachedLines?: string[];
 	#cachedWidth?: number;
+	#kittyImageId?: number;
+	readonly #kittyPlacementId = allocatePlacementId();
 
 	constructor(
 		base64Data: string,
@@ -57,22 +69,28 @@ export class Image implements Component {
 		let lines: string[];
 
 		if (TERMINAL.imageProtocol) {
+			if (TERMINAL.imageProtocol === ImageProtocol.Kitty) {
+				this.#kittyImageId ??= kittyImageId(this.#base64Data);
+			}
 			const result = renderImage(this.#base64Data, this.#dimensions, {
 				maxWidthCells: maxWidth,
 				maxHeightCells: this.#options.maxHeightCells,
+				imageId: this.#kittyImageId,
+				placementId: this.#kittyPlacementId,
 			});
 
 			if (result) {
-				// Return `rows` lines so TUI accounts for image height
-				// First (rows-1) lines are empty (TUI clears them)
-				// Last line: move cursor back up, then output image sequence
-				lines = [];
-				for (let i = 0; i < result.rows - 1; i++) {
-					lines.push("");
+				if (result.cursorNeutral) {
+					// Kitty placements anchor to the first reserved row and are safe to replay.
+					lines = [result.sequence];
+					for (let i = 0; i < result.rows - 1; i++) lines.push("");
+				} else {
+					// Cursor-advancing protocols draw from the last reserved row.
+					lines = [];
+					for (let i = 0; i < result.rows - 1; i++) lines.push("");
+					const moveUp = result.rows > 1 ? `\x1b[${result.rows - 1}A` : "";
+					lines.push(moveUp + result.sequence);
 				}
-				// Move cursor up to first row, then output image
-				const moveUp = result.rows > 1 ? `\x1b[${result.rows - 1}A` : "";
-				lines.push(moveUp + result.sequence);
 			} else {
 				const fallback = imageFallback(this.#mimeType, this.#dimensions, this.#options.filename);
 				lines = [this.#theme.fallbackColor(fallback)];

@@ -40,7 +40,9 @@ export interface ContextBreakdown {
 	contextWindow: number;
 	categories: CategoryInfo[];
 	lastUserTurnTokens: number;
-	usedTokens: number;
+	estimatedCategoryTotal: number;
+	usedTokens: number | null;
+	source: "provider_anchor" | "heuristic" | "unknown";
 	autoCompactBufferTokens: number;
 	freeTokens: number;
 }
@@ -197,7 +199,11 @@ export function computeContextBreakdown(
 		},
 	];
 
-	const usedTokens = categories.reduce((sum, c) => sum + c.tokens, 0);
+	const estimatedCategoryTotal = categories.reduce((sum, c) => sum + c.tokens, 0);
+	const contextUsage = session.getContextUsage?.();
+	const source = contextUsage?.source ?? "heuristic";
+	const usedTokens = source === "unknown" ? null : (contextUsage?.tokens ?? estimatedCategoryTotal);
+	const tokensForFreeSpace = usedTokens ?? estimatedCategoryTotal;
 
 	let autoCompactBufferTokens = 0;
 	if (contextWindow > 0) {
@@ -221,16 +227,18 @@ export function computeContextBreakdown(
 			);
 		}
 	}
-	autoCompactBufferTokens = Math.min(autoCompactBufferTokens, Math.max(0, contextWindow - usedTokens));
+	autoCompactBufferTokens = Math.min(autoCompactBufferTokens, Math.max(0, contextWindow - tokensForFreeSpace));
 
-	const freeTokens = Math.max(0, contextWindow - usedTokens - autoCompactBufferTokens);
+	const freeTokens = Math.max(0, contextWindow - tokensForFreeSpace - autoCompactBufferTokens);
 
 	return {
 		model,
 		contextWindow,
 		categories,
 		lastUserTurnTokens,
+		estimatedCategoryTotal,
 		usedTokens,
+		source,
 		autoCompactBufferTokens,
 		freeTokens,
 	};
@@ -317,7 +325,16 @@ function percentString(part: number, whole: number, fractionDigits = 1): string 
 
 function buildLegendLines(breakdown: ContextBreakdown, theme: typeof Theme): string[] {
 	const lines: string[] = [];
-	const { model, contextWindow, categories, usedTokens, autoCompactBufferTokens, freeTokens } = breakdown;
+	const {
+		model,
+		contextWindow,
+		categories,
+		estimatedCategoryTotal,
+		usedTokens,
+		source,
+		autoCompactBufferTokens,
+		freeTokens,
+	} = breakdown;
 
 	const modelName = model?.name ?? model?.id ?? "no model";
 	const modelId = model?.id ?? "unknown";
@@ -325,10 +342,26 @@ function buildLegendLines(breakdown: ContextBreakdown, theme: typeof Theme): str
 
 	lines.push(theme.bold(`${modelName}`) + theme.fg("dim", ` (${windowLabel} context)`));
 	lines.push(theme.fg("muted", `${modelId}[${windowLabel}]`));
+	const sourceLabel =
+		source === "provider_anchor"
+			? "provider-reported"
+			: source === "unknown"
+				? "estimated; exact count unknown until next response"
+				: "estimated";
 	lines.push(
-		`${theme.bold(formatNumber(usedTokens))}${theme.fg("dim", `/${windowLabel} tokens`)}` +
-			theme.fg("muted", ` (${percentString(usedTokens, contextWindow)})`),
+		usedTokens === null
+			? theme.bold(`unknown/${windowLabel} tokens`) + theme.fg("muted", ` (${sourceLabel})`)
+			: `${theme.bold(formatNumber(usedTokens))}${theme.fg("dim", `/${windowLabel} tokens`)}` +
+					theme.fg("muted", ` (${percentString(usedTokens, contextWindow)}; ${sourceLabel})`),
 	);
+	if (source === "provider_anchor" && usedTokens !== null && estimatedCategoryTotal !== usedTokens) {
+		lines.push(
+			theme.fg(
+				"muted",
+				`Estimated category total: ${formatNumber(estimatedCategoryTotal)} tokens (composition below is estimated)`,
+			),
+		);
+	}
 	lines.push("");
 	lines.push(theme.fg("muted", "Estimated usage by category"));
 

@@ -4,6 +4,8 @@ export type NotificationServerFrame =
 	| NotificationActionNeededFrame
 	| NotificationActionResolvedFrame
 	| NotificationReplyRejectedFrame
+	| NotificationSessionClosedFrame
+	| NotificationTurnStreamFrame
 	| NotificationServerHelloFrame
 	| NotificationPongFrame;
 
@@ -26,6 +28,20 @@ export interface NotificationReplyRejectedFrame {
 	actionId?: string;
 	reason: string;
 	source?: "local" | "telegram";
+}
+
+export interface NotificationSessionClosedFrame {
+	type: "session_closed";
+	sessionId: string;
+}
+
+export interface NotificationTurnStreamFrame {
+	type: "turn_stream";
+	sessionId: string;
+	phase: "live" | "finalized";
+	text: string;
+	messageRef?: string;
+	finalAnswer?: boolean;
 }
 
 export interface NotificationServerHelloFrame {

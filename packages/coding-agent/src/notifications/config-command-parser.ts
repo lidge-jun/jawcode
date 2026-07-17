@@ -11,14 +11,17 @@ export type NotificationConfigCommandIntent =
 	| { kind: "set_verbosity"; verbosity: NotificationVerbosity }
 	| { kind: "show_verbosity" }
 	| { kind: "set_redact"; redact: boolean }
-	| { kind: "show_redact" };
+	| { kind: "show_redact" }
+	| { kind: "set_rich"; rich: boolean }
+	| { kind: "show_rich" };
 
 export type NotificationConfigCommandRejectionReason =
 	| "empty_command"
 	| "unknown_command"
 	| "unexpected_arguments"
 	| "invalid_verbosity"
-	| "invalid_redact_value";
+	| "invalid_redact_value"
+	| "invalid_rich_value";
 
 export type ParseNotificationConfigCommandResult =
 	| { ok: true; intent: NotificationConfigCommandIntent }
@@ -69,6 +72,13 @@ export function parseNotificationConfigCommand(input: string): ParseNotification
 			const redact = parseRedactValue(args[0] ?? "");
 			if (redact === undefined) return { ok: false, reason: "invalid_redact_value" };
 			return { ok: true, intent: { kind: "set_redact", redact } };
+		}
+		case "rich": {
+			if (args.length === 0) return { ok: true, intent: { kind: "show_rich" } };
+			if (args.length > 1) return { ok: false, reason: "unexpected_arguments" };
+			const rich = parseRedactValue(args[0] ?? "");
+			if (rich === undefined) return { ok: false, reason: "invalid_rich_value" };
+			return { ok: true, intent: { kind: "set_rich", rich } };
 		}
 		default:
 			return { ok: false, reason: "unknown_command" };

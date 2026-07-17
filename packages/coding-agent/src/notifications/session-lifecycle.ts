@@ -1,7 +1,9 @@
 import * as path from "node:path";
+import { postmortem } from "@jawcode-dev/utils";
 import type { Settings } from "../config/settings";
 import { getNotificationConfig, isNotificationEnabled } from "./config";
 import { NotificationLoopbackServer } from "./server";
+import { TelegramTurnDelivery } from "./telegram-turn-delivery";
 
 export interface MaybeStartNotificationServerOptions {
 	settings: Settings;
@@ -36,8 +38,22 @@ export async function maybeStartNotificationServer(
 	const stateRoot = path.join(options.cwd, ".jwc", "state");
 	const start = options.startServer ?? NotificationLoopbackServer.start;
 	try {
-		const server = await start({ sessionId: options.sessionId, stateRoot, now: options.now });
-		options.registerCleanup(NOTIFICATION_CLEANUP_KEY, () => server.stop());
+		const server = await start({
+			sessionId: options.sessionId,
+			stateRoot,
+			now: options.now,
+			turnDelivery:
+				config.botToken && config.chatId
+					? new TelegramTurnDelivery({ token: config.botToken, chatId: config.chatId })
+					: undefined,
+		});
+		const cancelPostmortemCleanup = postmortem.register(`notifications-session-closed:${options.sessionId}`, () =>
+			server.stop(),
+		);
+		options.registerCleanup(NOTIFICATION_CLEANUP_KEY, async () => {
+			cancelPostmortemCleanup();
+			await server.stop();
+		});
 		return server;
 	} catch (error) {
 		console.error("[notifications] loopback server start failed", (error as Error).message);

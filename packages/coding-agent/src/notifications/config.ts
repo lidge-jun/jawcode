@@ -20,6 +20,7 @@ export interface ResolvedNotificationConfig extends NotificationSettingsSnapshot
 
 export interface NotificationEnvSnapshot {
 	notifications: string | undefined;
+	notify: string | undefined;
 	token: string | undefined;
 	chatId: string | undefined;
 }
@@ -39,6 +40,7 @@ export function maskChatId(chatId: string | undefined): string | null {
 export function resolveNotificationEnv(): NotificationEnvSnapshot {
 	return {
 		notifications: $resolveEnv("GJC_NOTIFICATIONS")?.trim(),
+		notify: ($resolveEnv("JWC_NOTIFY") ?? $resolveEnv("GJC_NOTIFY"))?.trim(),
 		token: $resolveEnv("GJC_NOTIFICATIONS_TOKEN")?.trim() || undefined,
 		chatId: $resolveEnv("GJC_NOTIFICATIONS_CHAT_ID")?.trim() || undefined,
 	};
@@ -58,7 +60,7 @@ export function isNotificationConnectTokenAccepted(expectedToken: string, presen
 
 export function getNotificationConfig(settings: Settings): ResolvedNotificationConfig {
 	const env = resolveNotificationEnv();
-	const hardDisabled = env.notifications === "0";
+	const hardDisabled = env.notifications === "0" || env.notify?.toLowerCase() === "off";
 	const envRequested = env.notifications === "1";
 	const botToken = env.token ?? settings.get("notifications.telegram.botToken");
 	const chatId = env.chatId ?? settings.get("notifications.telegram.chatId");

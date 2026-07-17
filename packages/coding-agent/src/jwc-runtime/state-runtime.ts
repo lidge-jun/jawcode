@@ -54,7 +54,7 @@ import {
 	type StateWriterAuditContext,
 	softDelete,
 	updateWorkflowTransactionJournal,
-	writeWorkflowEnvelopeAtomic,
+	writeWorkflowEnvelopeAtomicWithResult,
 } from "./state-writer";
 import { getSkillManifest, isKnownWorkflowState, isValidTransition, typedArgsFor } from "./workflow-manifest";
 
@@ -355,22 +355,6 @@ function modeStateFile(cwd: string, mode: string, sessionId: string | undefined)
 
 function activeStateFile(cwd: string, sessionId: string | undefined): string {
 	return path.join(stateDirFor(cwd, sessionId), SKILL_ACTIVE_STATE_FILE);
-}
-
-async function readJsonFile(filePath: string): Promise<Record<string, unknown> | null> {
-	try {
-		const raw = await fs.readFile(filePath, "utf-8");
-		const parsed = JSON.parse(raw);
-		if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-			return parsed as Record<string, unknown>;
-		}
-		return null;
-	} catch (error) {
-		const err = error as NodeJS.ErrnoException;
-		if (err.code === "ENOENT") return null;
-		process.stderr.write(`WARNING: failed to read ${filePath}; ignoring corrupt state: ${err.message}\n`);
-		return null;
-	}
 }
 
 async function readJsonValue(filePath: string): Promise<unknown | null> {
@@ -716,7 +700,7 @@ async function writeJsonAtomic(
 	if (warning && !options?.force) {
 		throw new StateCommandError(2, `${warning}; use --force to overwrite tampered mode-state`);
 	}
-	await writeWorkflowEnvelopeAtomic(filePath, value, {
+	const writeResult = await writeWorkflowEnvelopeAtomicWithResult(filePath, value, {
 		cwd,
 		audit: {
 			category: "state",
@@ -729,7 +713,10 @@ async function writeJsonAtomic(
 			forced: options?.force ?? false,
 		},
 	});
-	return { warning, stamped: (await readJsonFile(filePath)) ?? {} };
+	if (!writeResult.stamped || typeof writeResult.stamped !== "object" || Array.isArray(writeResult.stamped)) {
+		throw new Error(`state writer did not return a stamped workflow envelope for ${filePath}`);
+	}
+	return { warning, stamped: writeResult.stamped as Record<string, unknown> };
 }
 
 function parseFieldsFlag(args: readonly string[]): StateProjectionField[] | undefined {

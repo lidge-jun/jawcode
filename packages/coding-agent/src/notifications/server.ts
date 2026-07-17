@@ -15,6 +15,8 @@ import {
 } from "./protocol";
 import type { RemoteAnswerInput, RemoteAnswerKind } from "./remote-answer";
 import { type NotificationActionDraft, NotificationSessionRegistry } from "./session-registry";
+import type { TelegramTurnDelivery } from "./telegram-turn-delivery";
+import { registerNotificationFrameSink, unregisterNotificationFrameSink } from "./turn-stream";
 
 export interface NotificationLoopbackServerOptions {
 	sessionId: string;
@@ -22,6 +24,7 @@ export interface NotificationLoopbackServerOptions {
 	/** Per-session connect token. Generated if omitted. Never logged. */
 	connectToken?: string;
 	now?: () => number;
+	turnDelivery?: TelegramTurnDelivery;
 }
 
 interface NotificationWsData {
@@ -47,6 +50,7 @@ export class NotificationLoopbackServer {
 	readonly #connectToken: string;
 	readonly #registry: NotificationSessionRegistry;
 	readonly #now: () => number;
+	readonly #turnDelivery: TelegramTurnDelivery | undefined;
 	readonly #sockets = new Set<ServerWebSocket<NotificationWsData>>();
 	readonly #drafts = new Map<string, DraftMeta>();
 	#server: Server<NotificationWsData> | undefined;
@@ -64,6 +68,7 @@ export class NotificationLoopbackServer {
 		this.#stateRoot = options.stateRoot;
 		this.#connectToken = connectToken;
 		this.#now = options.now ?? Date.now;
+		this.#turnDelivery = options.turnDelivery;
 		this.#registry = new NotificationSessionRegistry({ sessionId: options.sessionId, connectToken });
 	}
 
@@ -96,6 +101,7 @@ export class NotificationLoopbackServer {
 		};
 		await writeNotificationDiscoveryRecord(options.stateRoot, record);
 		self.#discoveryRecord = record;
+		registerNotificationFrameSink(options.sessionId, self);
 		return self;
 	}
 
@@ -175,6 +181,8 @@ export class NotificationLoopbackServer {
 	async stop(): Promise<void> {
 		if (this.#stopped) return;
 		this.#stopped = true;
+		unregisterNotificationFrameSink(this.#sessionId, this);
+		this.#broadcast({ type: "session_closed", sessionId: this.#sessionId });
 		for (const ws of this.#sockets) {
 			try {
 				ws.close(1001, "server_stopped");
@@ -185,6 +193,13 @@ export class NotificationLoopbackServer {
 		this.#sockets.clear();
 		this.#server?.stop(true);
 		await removeNotificationDiscoveryRecord(this.#stateRoot, this.#sessionId);
+	}
+
+	/** Broadcast an out-of-band session frame and mirror supported frames to Telegram. */
+	pushFrame(frame: NotificationServerFrame): void {
+		if (this.#stopped) return;
+		this.#broadcast(frame);
+		this.#turnDelivery?.deliver(frame);
 	}
 
 	#handleFetch(req: Request, server: Server<NotificationWsData>): Response | undefined {

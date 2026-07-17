@@ -67,6 +67,7 @@ function getTitleModel(registry: ModelRegistry, settings: Settings, currentModel
  *   to produce request metadata (e.g. user_id for session attribution). Using a
  *   resolver instead of a pre-evaluated value ensures the metadata's account_uuid
  *   reflects the credential actually selected for this request.
+ * @param signal Session-lifecycle cancellation for background title generation
  */
 export async function generateSessionTitle(
 	firstMessage: string,
@@ -75,6 +76,7 @@ export async function generateSessionTitle(
 	sessionId?: string,
 	currentModel?: Model<Api>,
 	metadataResolver?: (provider: string) => Record<string, unknown> | undefined,
+	signal?: AbortSignal,
 ): Promise<string | null> {
 	const model = getTitleModel(registry, settings, currentModel);
 	if (!model) {
@@ -129,6 +131,7 @@ ${truncatedMessage}
 				disableReasoning: true,
 				toolChoice: { type: "tool", name: SET_TITLE_TOOL_NAME },
 				metadata,
+				signal,
 			},
 		);
 

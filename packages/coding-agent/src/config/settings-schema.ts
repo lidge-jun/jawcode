@@ -10,6 +10,8 @@ import {
 	type SkillDiscoverySettings,
 } from "./skill-settings-defaults";
 
+const DEFAULT_THINKING_LEVELS = ["off", ...THINKING_EFFORTS] as const;
+
 /** Unified settings schema - single source of truth for all settings.
  *
  * Each setting is defined once here with:
@@ -830,13 +832,13 @@ export const SETTINGS_SCHEMA = {
 	// Reasoning and prompts
 	defaultThinkingLevel: {
 		type: "enum",
-		values: THINKING_EFFORTS,
+		values: DEFAULT_THINKING_LEVELS,
 		default: "high",
 		ui: {
 			tab: "model",
 			label: "Thinking Level",
 			description: "Reasoning depth for thinking-capable models",
-			options: [...THINKING_EFFORTS.map(getThinkingLevelMetadata)],
+			options: [...DEFAULT_THINKING_LEVELS.map(getThinkingLevelMetadata)],
 		},
 	},
 

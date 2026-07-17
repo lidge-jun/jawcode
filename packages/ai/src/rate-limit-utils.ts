@@ -76,8 +76,10 @@ export function calculateRateLimitBackoffMs(reason: RateLimitReason): number {
 }
 
 /** Detect usage/quota limit errors in error messages (persistent, requires credential switch). */
+// ZAI reports durable token exhaustion as "[1310][Weekly/Monthly Limit Exhausted...]".
+// Keep this explicit so generic "rate limit exhausted, retry..." throttles remain retryable.
 const USAGE_LIMIT_PATTERN =
-	/usage.?limit|usage_limit_reached|usage_not_included|limit_reached|quota.?exceeded|resource.?exhausted/i;
+	/usage.?limit|usage_limit_reached|usage_not_included|limit_reached|weekly\/monthly\s+limit\s+exhausted|quota.?exceeded|resource.?exhausted/i;
 
 export function isUsageLimitError(errorMessage: string): boolean {
 	return USAGE_LIMIT_PATTERN.test(errorMessage);

@@ -4,7 +4,7 @@
  * generation (generate-models.ts).
  */
 import type { ModelManagerOptions } from "../model-manager";
-import type { Api, KnownProvider } from "../types";
+import type { Api, KnownProvider, Model } from "../types";
 import type { OAuthProvider } from "../utils/oauth/types";
 import { googleModelManagerOptions } from "./google";
 import { ollamaCloudModelManagerOptions } from "./ollama";
@@ -72,6 +72,31 @@ export interface ProviderDescriptor {
 
 /** A provider descriptor that has catalog discovery configured. */
 export type CatalogProviderDescriptor = ProviderDescriptor & { catalogDiscovery: CatalogDiscoveryConfig };
+
+export interface OpenAITierModelDescriptor {
+	id: string;
+	name: string;
+	cost: Model["cost"];
+}
+
+/** Curated GPT-5.6 tier metadata shared by the OpenAI and OpenAI code catalogs. */
+export const OPENAI_GPT_5_6_TIER_DESCRIPTORS = [
+	{
+		id: "gpt-5.6-luna",
+		name: "GPT-5.6 Luna",
+		cost: { input: 1, output: 6, cacheRead: 0.1, cacheWrite: 1.25 },
+	},
+	{
+		id: "gpt-5.6-sol",
+		name: "GPT-5.6 Sol",
+		cost: { input: 5, output: 30, cacheRead: 0.5, cacheWrite: 6.25 },
+	},
+	{
+		id: "gpt-5.6-terra",
+		name: "GPT-5.6 Terra",
+		cost: { input: 2.5, output: 15, cacheRead: 0.25, cacheWrite: 3.125 },
+	},
+] as const satisfies readonly OpenAITierModelDescriptor[];
 
 /** Type guard for descriptors with catalog discovery. */
 export function isCatalogDescriptor(d: ProviderDescriptor): d is CatalogProviderDescriptor {
