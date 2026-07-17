@@ -118,9 +118,9 @@
 | 074 | [10.074_gjc_chase_notifications_telegram_v2_rich_streaming.md](./10.074_gjc_chase_notifications_telegram_v2_rich_streaming.md) | notifications/Telegram v2: rich, streaming, slash commands | P2 | ⬜ |
 | 075 | [10.075_gjc_chase_ultragoal_pipeline_extragoal.md](./10.075_gjc_chase_ultragoal_pipeline_extragoal.md) | ultragoal pipeline + extragoal review gates | P2 | ⬜ |
 | 076 | [10.076_gjc_chase_tui_viewport_media_compose_v2.md](./10.076_gjc_chase_tui_viewport_media_compose_v2.md) | TUI viewport/media/compose v2 | P2 | ⬜ |
-| 077 | [10.077_gjc_chase_context_perf_compaction_audit.md](./10.077_gjc_chase_context_perf_compaction_audit.md) | context/perf audit + prompt lifecycle | **P1** | ⬜ |
-| 078 | [10.078_gjc_chase_skill_discovery_slash_commands.md](./10.078_gjc_chase_skill_discovery_slash_commands.md) | runtime skill discovery + slash commands | P2 | ⬜ |
-| 079 | [10.079_gjc_chase_subagent_fork_session_hardening.md](./10.079_gjc_chase_subagent_fork_session_hardening.md) | subagent/fork/session hardening + MCP lifecycle | P2 | ⬜ |
+| 077 | [10.077_gjc_chase_context_perf_compaction_audit.md](./_fin/10/10.077_gjc_chase_context_perf_compaction_audit.md) | context/perf audit + prompt lifecycle | **P1** | ✅ **_fin** (tracked residual) |
+| 078 | [10.078_gjc_chase_skill_discovery_slash_commands.md](./_fin/10/10.078_gjc_chase_skill_discovery_slash_commands.md) | runtime skill discovery + slash commands | P2 | ✅ **_fin** (tracked residual) |
+| 079 | [10.079_gjc_chase_subagent_fork_session_hardening.md](./_fin/10/10.079_gjc_chase_subagent_fork_session_hardening.md) | subagent/fork/session hardening + MCP lifecycle | P2 | ✅ **_fin** (tracked residual) |
 | 080 | [10.080_gjc_chase_model_provider_effort_fugu_safety.md](./_fin/10/10.080_gjc_chase_model_provider_effort_fugu_safety.md) | model/provider v2: effort, Fugu, safety refusals | **P1** | ✅ **_fin** 260717 |
 | 081 | [10.081_gjc_chase_session_vanish_postmortem_lifecycle.md](./_fin/10/10.081_gjc_chase_session_vanish_postmortem_lifecycle.md) | session vanish/postmortem + CI stabilization | P2 | ✅ **_fin** 260717 |
 | 082 | [10.082_gjc_chase_irc_visualization_kitty_sidebar.md](./10.082_gjc_chase_irc_visualization_kitty_sidebar.md) | IRC visualization + kitty sidebar + expiry integrity | **P1** | ⬜ |
@@ -139,11 +139,11 @@
 | 10.095 | `gjc_chase_deep_interview_goal_ultragoal` | ⬜ | P2 | deep-interview continuation, goal reminder, ultragoal receipt | `4a80bac9..3ddf26079` |
 | 10.096 | [`gjc_chase_session_context_usage_ssot`](./_fin/10/10.096_gjc_chase_session_context_usage_ssot.md) | ✅ **_fin** | P2 | provider-reported usage SSOT, context snapshot cache | `4a80bac9..3ddf26079` |
 | 10.097 | `gjc_chase_grok_codex_benchmark_presets` | ⬜ | P1 | Grok 4.5, GPT-5.6 Codex presets, mpreset | `4a80bac9..3ddf26079` |
-| 10.098 | `gjc_chase_codex_reasoning_thinking_sdk` | ⬜ | P1 | thinking capabilities, invalid_prompt circuit breaker | `4a80bac9..3ddf26079` |
+| 10.098 | [`gjc_chase_codex_reasoning_thinking_sdk`](./_fin/10/10.098_gjc_chase_codex_reasoning_thinking_sdk.md) | ✅ **_fin** | P1 | adapt thinking metadata; transport-security residual tracked | `4a80bac9..3ddf26079` |
 | 10.099 | `gjc_chase_rpc_durable_selection_pet` | ⬜ | P3 | durable default model via RPC, deferred selection, pet | `4a80bac9..3ddf26079` |
 | 10.100 | `gjc_chase_ci_release_stabilization` | ⬜ | P3 | affected-path, SDK publish, shard isolation, biome | `4a80bac9..3ddf26079` |
 | 10.101 | `gjc_chase_browser_psmux_misc` | ⬜ | P3 | expired browser tabs, psmux lifecycle, context maintenance | `4a80bac9..3ddf26079` |
-| 10.102 | `gjc_chase_agent_async_misc` | ⬜ | P3 | async resume, session dirs, MCP tools-only, admission | `4a80bac9..3ddf26079` |
+| 10.102 | [`gjc_chase_agent_async_misc`](./_fin/10/10.102_gjc_chase_agent_async_misc.md) | ✅ **_fin** | P3 | adapt `agent_end` barrier/MCP epoch; session-authority residual tracked | `4a80bac9..3ddf26079` |
 | 10.103 | [`gjc_chase_provider_safety_transport`](./_fin/10/10.103_gjc_chase_provider_safety_transport.md) | ✅ **_fin** | P2 | typed provider safety stops, managed fallback authority | `4a80bac9..3ddf26079` |
 | 10.104 | `gjc_chase_docs_changelog_qa` | ⬜ | P3 | changelog dedup, QA evidence, SDK guide repair | `4a80bac9..3ddf26079` |
 | 10.105 | `gjc_chase_routing_fallback_availability_cache` | ⬜ | P1 | routing/fallback hardening, availability cache, subagent stickiness | `3ddf26079..904eab21c` |
