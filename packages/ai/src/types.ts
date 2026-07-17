@@ -555,6 +555,7 @@ export interface Usage {
 }
 
 export type StopReason = "stop" | "length" | "toolUse" | "error" | "aborted";
+export type AssistantErrorKind = "provider_safety_stop";
 
 export interface OpenAIResponsesHistoryPayload {
 	type: "openaiResponsesHistory";
@@ -597,6 +598,8 @@ export interface AssistantMessage {
 	usage: Usage;
 	stopReason: StopReason;
 	errorMessage?: string;
+	/** Typed provider classification used by retry/session policy without scraping display text. */
+	errorKind?: AssistantErrorKind;
 	/** HTTP status surfaced by the provider when the request failed. Populated by every provider's catch block alongside `errorMessage` so consumers (auth retry, telemetry, UI) can branch without regex-scraping the message. */
 	errorStatus?: number;
 	/**

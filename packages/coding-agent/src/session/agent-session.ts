@@ -280,6 +280,7 @@ import {
 	SKILL_PROMPT_MESSAGE_TYPE,
 } from "./messages";
 import { buildPabcdStageContent } from "./pabcd-stage-header";
+import { isLegacyProviderSafetyStopMessage } from "./provider-safety-stop";
 import { formatSessionDumpText } from "./session-dump-format";
 import type {
 	BranchSummaryEntry,
@@ -6939,6 +6940,14 @@ export class AgentSession {
 	 * @param skipAbortedCheck If false, include aborted messages (for pre-prompt check). Default: true
 	 */
 	async #checkCompaction(assistantMessage: AssistantMessage, skipAbortedCheck = true): Promise<void> {
+		// Provider safety stops are terminal and must never trigger maintenance/replay.
+		if (
+			assistantMessage.errorKind === "provider_safety_stop" ||
+			(assistantMessage.errorMessage !== undefined &&
+				isLegacyProviderSafetyStopMessage(assistantMessage.errorMessage))
+		) {
+			return;
+		}
 		// Skip if message was aborted (user cancelled) - unless skipAbortedCheck is false
 		if (skipAbortedCheck && assistantMessage.stopReason === "aborted") return;
 		const contextWindow = this.model?.contextWindow ?? 0;
@@ -8422,14 +8431,24 @@ export class AgentSession {
 	}
 
 	/**
-	 * Ordered retry classification: overflow (compaction) -> terminal (surface)
-	 * -> usage_limit (rotation) -> transient (retry) -> unknown (retry).
+	 * Ordered retry classification: typed safety stop (surface) -> legacy safety
+	 * stop (surface) -> overflow (compaction) -> terminal (surface) -> usage_limit
+	 * (rotation) -> transient (retry) -> unknown (retry).
 	 */
 	#classifyErrorForRetry(message: AssistantMessage): RetryErrorClassification {
-		if (message.stopReason !== "error" || !message.errorMessage) return "none";
+		if (message.stopReason !== "error") return "none";
+		if (message.errorKind === "provider_safety_stop") return "terminal";
+		if (!message.errorMessage) return "none";
+		const err = message.errorMessage;
+		// Provider safety refusals (e.g. Anthropic stop_reason "refusal" /
+		// "sensitive") are deterministic for the submitted context: replaying
+		// the identical conversation re-triggers the identical refusal, so an
+		// auto-retry loop can never succeed and only re-bills the full context
+		// on every attempt. Surface immediately instead of joining the
+		// unbounded "unknown" retry class.
+		if (isLegacyProviderSafetyStopMessage(err)) return "terminal";
 		const contextWindow = this.model?.contextWindow ?? 0;
 		if (isContextOverflow(message, contextWindow)) return "overflow";
-		const err = message.errorMessage;
 		if (isLocalModelEndpoint(this.model) && this.#isLocalProviderAvailabilityErrorMessage(err)) {
 			return "local_unavailable";
 		}

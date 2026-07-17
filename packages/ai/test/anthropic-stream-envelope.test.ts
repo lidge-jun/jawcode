@@ -531,6 +531,7 @@ describe("anthropic stream envelope handling", () => {
 
 		expect(result.stopReason).toBe("error");
 		expect(result.errorMessage).toContain("Refusal (no details provided)");
+		expect(result.errorKind).toBe("provider_safety_stop");
 		expect(result.errorMessage).not.toContain("An unknown error occurred");
 		expect(countEvents(events, "error")).toBe(1);
 		expect(countEvents(events, "done")).toBe(0);
