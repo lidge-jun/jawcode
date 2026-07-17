@@ -21,6 +21,12 @@ import {
 	coordinatorNamespacePath,
 	requireCoordinatorMutation,
 } from "./policy";
+import {
+	createSessionReaper,
+	DEFAULT_SESSION_IDLE_TTL_MS,
+	DEFAULT_SESSION_SWEEP_INTERVAL_MS,
+	type ReapableSession,
+} from "./session-reaper";
 
 export type { CoordinatorToolName };
 export { COORDINATOR_MCP_PROTOCOL_VERSION, COORDINATOR_MCP_SERVER_NAME, COORDINATOR_MCP_TOOL_NAMES };
@@ -49,6 +55,7 @@ interface SessionStartInput {
 interface CoordinatorServices {
 	listSessions?: () => unknown[] | Promise<unknown[]>;
 	startSession?: (input: SessionStartInput) => unknown | Promise<unknown>;
+	stopSession?: (input: { sessionId: string; session: Record<string, unknown> }) => boolean | Promise<boolean>;
 }
 
 interface CoordinatorMcpServerOptions {
@@ -139,6 +146,16 @@ const ACTIVE_TURN_STATUSES = new Set<TurnStatus>(["delivering", "active", "waiti
 const TERMINAL_TURN_STATUSES = new Set<TurnStatus>(["completed", "failed", "cancelled", "superseded"]);
 const TURN_ID_PATTERN = /^turn-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SAFE_EXTERNAL_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,127}$/;
+const COORDINATOR_OWNER_KIND = "jwc-coordinator-mcp";
+
+function coordinatorOwnerNamespace(config: CoordinatorMcpConfig): string {
+	return `${config.namespace.profile ?? "unscoped-profile"}/${config.namespace.repo ?? "unscoped-repo"}`;
+}
+
+function positiveEnvMilliseconds(value: string | undefined, fallback: number): number {
+	const parsed = Number.parseInt(value ?? "", 10);
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
 
 function textResult(
 	payload: unknown,
@@ -171,6 +188,17 @@ function toolSchema(name: CoordinatorToolName): {
 				type: "object",
 				properties: { cwd, prompt: { type: "string" }, allow_mutation: allowMutation },
 				required: ["cwd", "allow_mutation"],
+			},
+		};
+	}
+	if (name === "jwc_coordinator_stop_session") {
+		return {
+			name,
+			description: "Stop an idle coordinator-owned session after proving its recorded owner identity.",
+			inputSchema: {
+				type: "object",
+				properties: { session_id: sessionId, allow_mutation: allowMutation },
+				required: ["session_id", "allow_mutation"],
 			},
 		};
 	}
@@ -587,6 +615,58 @@ async function runCommand(command: string[]): Promise<{ exitCode: number; stdout
 	return { exitCode, stdout, stderr };
 }
 
+type TmuxSessionProbe = { state: "live" | "missing" | "unknown"; detail?: string };
+
+function isDeterministicTmuxMissing(result: { stdout: string; stderr: string }): boolean {
+	return /can't find session|no server running|no sessions|failed to connect|error connecting to/i.test(
+		`${result.stderr}\n${result.stdout}`,
+	);
+}
+
+async function probeTmuxSession(session: Record<string, unknown>): Promise<TmuxSessionProbe> {
+	const tmuxSession = typeof session.tmux_session === "string" ? session.tmux_session : session.tmuxSession;
+	if (typeof tmuxSession !== "string" || tmuxSession.length === 0)
+		return { state: "unknown", detail: "tmux_id_missing" };
+	try {
+		const checked = await runCommand(["tmux", "has-session", "-t", tmuxSession]);
+		if (checked.exitCode === 0) return { state: "live" };
+		if (isDeterministicTmuxMissing(checked)) return { state: "missing" };
+		return { state: "unknown", detail: "tmux_probe_failed" };
+	} catch {
+		return { state: "unknown", detail: "tmux_probe_spawn_failed" };
+	}
+}
+
+async function proveTmuxSessionOwner(session: Record<string, unknown>): Promise<boolean> {
+	const tmuxSession = typeof session.tmux_session === "string" ? session.tmux_session : session.tmuxSession;
+	const recordedPane = typeof session.pane_id === "string" ? session.pane_id : session.paneId;
+	const recordedCwd = typeof session.cwd === "string" ? session.cwd : undefined;
+	if (typeof tmuxSession !== "string" || !recordedCwd) return false;
+	let listed: { exitCode: number; stdout: string; stderr: string };
+	try {
+		listed = await runCommand([
+			"tmux",
+			"list-panes",
+			"-t",
+			tmuxSession,
+			"-F",
+			"#{session_name}\t#{pane_id}\t#{pane_start_path}",
+		]);
+	} catch {
+		return false;
+	}
+	if (listed.exitCode !== 0) return false;
+	const canonicalCwd = await fs.realpath(recordedCwd).catch(() => path.resolve(recordedCwd));
+	for (const line of listed.stdout.split("\n")) {
+		const [sessionName, paneId, paneCwd] = line.split("\t");
+		if (sessionName !== tmuxSession || !paneCwd) continue;
+		if (typeof recordedPane === "string" && paneId !== recordedPane) continue;
+		const canonicalPaneCwd = await fs.realpath(paneCwd).catch(() => path.resolve(paneCwd));
+		if (canonicalPaneCwd === canonicalCwd) return true;
+	}
+	return false;
+}
+
 async function sendTmuxPromptKeys(target: string, prompt: string): Promise<boolean> {
 	const sent = await runCommand(["tmux", "send-keys", "-t", target, prompt, "C-m", "C-m"]);
 	return sent.exitCode === 0;
@@ -661,10 +741,8 @@ async function sendTmuxPrompt(session: Record<string, unknown>, prompt: string):
 }
 
 async function hasTmuxSession(session: Record<string, unknown>): Promise<boolean | null> {
-	const tmuxSession = typeof session.tmux_session === "string" ? session.tmux_session : session.tmuxSession;
-	if (typeof tmuxSession !== "string" || tmuxSession.length === 0) return null;
-	const checked = await runCommand(["tmux", "has-session", "-t", tmuxSession]);
-	return checked.exitCode === 0;
+	const probe = await probeTmuxSession(session);
+	return probe.state === "live" ? true : probe.state === "missing" ? false : null;
 }
 
 function lastMatchingLine(lines: string[], pattern: RegExp): string | null {
@@ -791,6 +869,110 @@ export function createCoordinatorMcpServer(options: CoordinatorMcpServerOptions 
 	function sessionFile(sessionId: unknown): string {
 		return path.join(namespaceDir, "sessions", `${safeExternalId("session", sessionId)}.json`);
 	}
+	const ownerNamespace = coordinatorOwnerNamespace(config);
+
+	function ownsSessionRecord(session: Record<string, unknown>): boolean {
+		return (
+			session.coordinator_owner_kind === COORDINATOR_OWNER_KIND &&
+			session.coordinator_owner_namespace === ownerNamespace &&
+			session.coordinator_managed === true
+		);
+	}
+
+	async function stopOwnedSession(sessionId: string): Promise<Record<string, unknown>> {
+		const sessionPath = sessionFile(sessionId);
+		const session = await readJsonFile(sessionPath);
+		if (!session) return { ok: false, reason: "unknown_session", session_id: sessionId, closed: false };
+		if (!ownsSessionRecord(session)) {
+			return { ok: false, reason: "owner_unproven", session_id: sessionId, closed: false };
+		}
+		const activeTurn = await readActiveTurn(namespaceDir, sessionId);
+		if (activeTurn) {
+			return {
+				ok: false,
+				reason: "active_turn",
+				session_id: sessionId,
+				active_turn_id: activeTurn.turn_id,
+				closed: false,
+			};
+		}
+
+		let alreadyStopped = false;
+		if (services.stopSession) {
+			if (!(await services.stopSession({ sessionId, session }))) {
+				return { ok: false, reason: "stop_unconfirmed", session_id: sessionId, closed: false };
+			}
+		} else {
+			const probe = await probeTmuxSession(session);
+			if (probe.state === "unknown") {
+				return { ok: false, reason: probe.detail ?? "tmux_probe_failed", session_id: sessionId, closed: false };
+			}
+			if (probe.state === "missing") {
+				alreadyStopped = true;
+			} else {
+				if (!(await proveTmuxSessionOwner(session))) {
+					return { ok: false, reason: "owner_unproven", session_id: sessionId, closed: false };
+				}
+				const tmuxSession =
+					typeof session.tmux_session === "string" ? session.tmux_session : (session.tmuxSession as string);
+				const killed = await runCommand(["tmux", "kill-session", "-t", tmuxSession]);
+				if (killed.exitCode !== 0) {
+					return { ok: false, reason: "tmux_stop_failed", session_id: sessionId, closed: false };
+				}
+				const confirmed = await probeTmuxSession(session);
+				if (confirmed.state !== "missing") {
+					return { ok: false, reason: "stop_unconfirmed", session_id: sessionId, closed: false };
+				}
+			}
+		}
+
+		await fs.rm(sessionPath, { force: true });
+		await writeSessionState(namespaceDir, sessionId, "stale", {
+			live: false,
+			reason: alreadyStopped ? "session_already_stopped" : "session_stopped",
+		});
+		return { ok: true, session_id: sessionId, closed: true, already_stopped: alreadyStopped };
+	}
+
+	async function listReapableSessions(): Promise<ReapableSession[]> {
+		const sessions = await listJsonFiles(path.join(namespaceDir, "sessions"));
+		return await Promise.all(
+			sessions.map(async raw => {
+				const session = raw as Record<string, unknown>;
+				const sessionId = safeExternalId("session", session.session_id);
+				const activeTurn = await readActiveTurn(namespaceDir, sessionId);
+				const state = await readSessionState(namespaceDir, sessionId);
+				const timestamps = [session.updated_at, session.created_at, session.createdAt, state?.updated_at]
+					.map(value => (typeof value === "string" ? Date.parse(value) : Number.NaN))
+					.filter(Number.isFinite);
+				return {
+					sessionId,
+					ephemeral: session.ephemeral === true,
+					ownerProven: ownsSessionRecord(session),
+					lastActivityMs: timestamps.length > 0 ? Math.max(...timestamps) : Date.now(),
+					hasActiveTurn: activeTurn !== null,
+				};
+			}),
+		);
+	}
+
+	const sessionReaper = createSessionReaper(
+		{
+			listSessions: listReapableSessions,
+			reapSession: async sessionId => (await stopOwnedSession(sessionId)).ok === true,
+			now: Date.now,
+		},
+		{
+			idleTtlMs: positiveEnvMilliseconds(
+				options.env?.JWC_COORDINATOR_MCP_IDLE_TTL_MS ?? options.env?.GJC_COORDINATOR_MCP_IDLE_TTL_MS,
+				DEFAULT_SESSION_IDLE_TTL_MS,
+			),
+			sweepIntervalMs: positiveEnvMilliseconds(
+				options.env?.JWC_COORDINATOR_MCP_SWEEP_INTERVAL_MS ?? options.env?.GJC_COORDINATOR_MCP_SWEEP_INTERVAL_MS,
+				DEFAULT_SESSION_SWEEP_INTERVAL_MS,
+			),
+		},
+	);
 
 	async function readTurnPayload(
 		turnId: unknown,
@@ -919,9 +1101,15 @@ export function createCoordinatorMcpServer(options: CoordinatorMcpServerOptions 
 				const started = services.startSession
 					? await services.startSession(input)
 					: await startTmuxSession(config, input, namespaceDir);
-				const session = normalizeSession(
-					started ?? { sessionId: `gjc-coordinator-${Date.now()}`, cwd, createdAt: new Date().toISOString() },
-				);
+				const session: Record<string, unknown> = {
+					...normalizeSession(
+						started ?? { sessionId: `gjc-coordinator-${Date.now()}`, cwd, createdAt: new Date().toISOString() },
+					),
+					coordinator_managed: true,
+					ephemeral: true,
+					coordinator_owner_kind: COORDINATOR_OWNER_KIND,
+					coordinator_owner_namespace: ownerNamespace,
+				};
 				await writeJsonFile(sessionFile(session.session_id), session);
 				const live = hasTmuxIdentity(session) ? await hasTmuxSession(session) : null;
 				let turn: TurnRecord | null = null;
@@ -983,6 +1171,10 @@ export function createCoordinatorMcpServer(options: CoordinatorMcpServerOptions 
 					);
 				}
 				return { ok: true, session, session_state: sessionState, ...(turn ? { turn, turn_id: turn.turn_id } : {}) };
+			}
+			if (name === "jwc_coordinator_stop_session") {
+				requireCoordinatorMutation(config, "sessions", args);
+				return await stopOwnedSession(safeExternalId("session", args.session_id));
 			}
 			if (name === "jwc_coordinator_send_prompt") {
 				requireCoordinatorMutation(config, "sessions", args);
@@ -1235,6 +1427,9 @@ export function createCoordinatorMcpServer(options: CoordinatorMcpServerOptions 
 
 	async function handleJsonRpc(request: JsonRpcRequest): Promise<JsonRpcResponse> {
 		const id = request.id ?? null;
+		if (request.method === "ping") {
+			return { jsonrpc: "2.0", id, result: {} };
+		}
 		if (request.method === "initialize") {
 			return {
 				jsonrpc: "2.0",
@@ -1263,7 +1458,7 @@ export function createCoordinatorMcpServer(options: CoordinatorMcpServerOptions 
 		return { jsonrpc: "2.0", id, error: { code: -32601, message: `unknown_method:${request.method}` } };
 	}
 
-	return { config, callTool, handleJsonRpc, handle: handleJsonRpc };
+	return { config, callTool, handleJsonRpc, handle: handleJsonRpc, sessionReaper };
 }
 
 function legacyToolResult(payload: unknown): { content: Array<{ type: "text"; text: string }>; isError: boolean } {
@@ -1314,23 +1509,131 @@ export async function handleCoordinatorMcpRequest(
 	};
 }
 
-export async function runCoordinatorMcpStdio(options: CoordinatorMcpServerOptions = {}): Promise<void> {
-	const server = createCoordinatorMcpServer(options);
+export interface PumpCoordinatorOptions {
+	maxDataConcurrency?: number;
+	maxQueueDepth?: number;
+	drainTimeoutMs?: number;
+}
+
+export async function pumpCoordinatorMcpStream(
+	handleJsonRpc: (request: JsonRpcRequest) => Promise<JsonRpcResponse>,
+	input: AsyncIterable<string | Uint8Array>,
+	writeLine: (line: string) => void | Promise<void>,
+	options: PumpCoordinatorOptions = {},
+): Promise<void> {
+	const maxDataConcurrency = Math.max(1, options.maxDataConcurrency ?? 16);
+	const maxQueueDepth = Math.max(0, options.maxQueueDepth ?? 128);
+	const drainTimeoutMs = Math.max(1, options.drainTimeoutMs ?? 30_000);
+	const queue: JsonRpcRequest[] = [];
+	const inFlight = new Set<Promise<void>>();
+	let activeData = 0;
+	let writeChain = Promise.resolve();
+	let writeFailure: unknown;
+
+	const emit = (response: JsonRpcResponse): Promise<void> => {
+		writeChain = writeChain.then(async () => {
+			if (writeFailure !== undefined) return;
+			try {
+				await writeLine(`${JSON.stringify(response)}\n`);
+			} catch (error) {
+				writeFailure = error;
+			}
+		});
+		return writeChain;
+	};
+
+	const launch = (request: JsonRpcRequest, control: boolean): void => {
+		const task = (async () => {
+			let response: JsonRpcResponse;
+			try {
+				response = await handleJsonRpc(request);
+			} catch {
+				response = {
+					jsonrpc: "2.0",
+					id: request.id ?? null,
+					error: { code: -32603, message: "coordinator_request_failed" },
+				};
+			}
+			await emit(response);
+		})().finally(() => {
+			inFlight.delete(task);
+			if (!control) {
+				activeData--;
+				const next = queue.shift();
+				if (next) {
+					activeData++;
+					launch(next, false);
+				}
+			}
+		});
+		inFlight.add(task);
+	};
+
+	const dispatch = (request: JsonRpcRequest): void => {
+		if (request.id === undefined || request.id === null) return;
+		if (request.method === "ping") {
+			launch(request, true);
+			return;
+		}
+		if (activeData < maxDataConcurrency) {
+			activeData++;
+			launch(request, false);
+			return;
+		}
+		if (queue.length < maxQueueDepth) {
+			queue.push(request);
+			return;
+		}
+		void emit({
+			jsonrpc: "2.0",
+			id: request.id,
+			error: { code: -32000, message: "server_busy: coordinator request queue is full" },
+		});
+	};
+
+	const decoder = new TextDecoder();
 	let buffer = "";
-	for await (const chunk of process.stdin) {
-		buffer += chunk.toString();
+	for await (const chunk of input) {
+		buffer += typeof chunk === "string" ? chunk : decoder.decode(chunk, { stream: true });
 		let newline = buffer.indexOf("\n");
 		while (newline >= 0) {
 			const line = buffer.slice(0, newline).trim();
 			buffer = buffer.slice(newline + 1);
 			if (line.length > 0) {
-				const request = JSON.parse(line) as JsonRpcRequest;
-				if (request.id !== undefined && request.id !== null) {
-					const response = await server.handleJsonRpc(request);
-					process.stdout.write(`${JSON.stringify(response)}\n`);
+				try {
+					dispatch(JSON.parse(line) as JsonRpcRequest);
+				} catch {
+					// Malformed frames cannot claim a request id safely, so ignore them.
 				}
 			}
 			newline = buffer.indexOf("\n");
 		}
+	}
+
+	const deadline = Date.now() + drainTimeoutMs;
+	while ((inFlight.size > 0 || queue.length > 0) && Date.now() < deadline) {
+		const current = [...inFlight];
+		if (current.length === 0) break;
+		await Promise.race([Promise.allSettled(current), Bun.sleep(Math.max(1, deadline - Date.now()))]);
+	}
+	await Promise.race([writeChain, Bun.sleep(Math.max(1, deadline - Date.now()))]);
+	if (writeFailure !== undefined) throw writeFailure;
+}
+
+export async function runCoordinatorMcpStdio(options: CoordinatorMcpServerOptions = {}): Promise<void> {
+	const server = createCoordinatorMcpServer(options);
+	server.sessionReaper.start();
+	try {
+		await pumpCoordinatorMcpStream(
+			request => server.handleJsonRpc(request),
+			process.stdin,
+			line => {
+				const write = Promise.withResolvers<void>();
+				process.stdout.write(line, error => (error ? write.reject(error) : write.resolve()));
+				return write.promise;
+			},
+		);
+	} finally {
+		server.sessionReaper.stop();
 	}
 }
