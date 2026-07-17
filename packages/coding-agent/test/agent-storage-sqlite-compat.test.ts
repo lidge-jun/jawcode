@@ -51,7 +51,7 @@ describe("AgentStorage SQLite compatibility", () => {
 		storage.recordModelUsage("openai/gpt-5");
 
 		expect(storage.getModelUsageOrder()).toEqual(["openai/gpt-5"]);
-		expect(readSchemaVersion(dbPath)).toBe(5);
+		expect(readSchemaVersion(dbPath)).toBe(6);
 		expect(readTableSql(dbPath, "settings")).not.toContain("unixepoch(");
 		expect(readTableSql(dbPath, "settings")).toContain("strftime('%s','now')");
 		expect(readTableSql(dbPath, "model_usage")).not.toContain("unixepoch(");
@@ -85,7 +85,7 @@ describe("AgentStorage SQLite compatibility", () => {
 
 		const storage = await AgentStorage.open(dbPath);
 
-		expect(readSchemaVersion(dbPath)).toBe(5);
+		expect(readSchemaVersion(dbPath)).toBe(6);
 		expect(readTableSql(dbPath, "settings")).not.toContain("unixepoch(");
 		expect(readTableSql(dbPath, "settings")).toContain("strftime('%s','now')");
 		expect(readTableSql(dbPath, "model_usage")).not.toContain("unixepoch(");

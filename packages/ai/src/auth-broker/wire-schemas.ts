@@ -49,6 +49,7 @@ export const apiKeyCredentialSchema = z
 	.object({
 		type: z.literal("api_key"),
 		key: z.string().min(1),
+		source: z.literal("login").optional(),
 	})
 	.strict();
 

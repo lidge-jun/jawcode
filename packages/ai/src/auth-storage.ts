@@ -50,6 +50,7 @@ import type {
 export type ApiKeyCredential = {
 	type: "api_key";
 	key: string;
+	source?: "login";
 };
 
 export type OAuthCredential = {
@@ -1360,7 +1361,7 @@ export class AuthStorage {
 	): Promise<void> {
 		let credentials: OAuthCredentials;
 		const saveApiKeyCredential = async (apiKey: string): Promise<void> => {
-			const newCredential: ApiKeyCredential = { type: "api_key", key: apiKey };
+			const newCredential: ApiKeyCredential = { type: "api_key", key: apiKey, source: "login" };
 			await this.set(provider, newCredential);
 		};
 		// Local CLI token import policy: an explicit `local` request forces the
@@ -3436,9 +3437,10 @@ function normalizeStoredIdentityKey(identityKey: string | null | undefined): str
 
 function serializeCredential(provider: string, credential: AuthCredential): SerializedCredentialRecord | null {
 	if (credential.type === "api_key") {
+		const data = credential.source === "login" ? { key: credential.key, source: "login" } : { key: credential.key };
 		return {
 			credentialType: "api_key",
-			data: JSON.stringify({ key: credential.key }),
+			data: JSON.stringify(data),
 			identityKey: null,
 		};
 	}
@@ -3466,7 +3468,8 @@ function deserializeCredential(row: AuthRow): AuthCredential | null {
 	if (row.credential_type === "api_key") {
 		const data = parsed as Record<string, unknown>;
 		if (typeof data.key === "string") {
-			return { type: "api_key", key: data.key };
+			const source = data.source === "login" ? "login" : undefined;
+			return source ? { type: "api_key", key: data.key, source } : { type: "api_key", key: data.key };
 		}
 	}
 	if (row.credential_type === "oauth") {

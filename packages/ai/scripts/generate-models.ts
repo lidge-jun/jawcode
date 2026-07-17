@@ -72,7 +72,7 @@ function createOpenAIGpt56CatalogModels(): Model<"openai-responses" | "openai-co
 			baseUrl: "",
 			reasoning: true,
 			input: ["text", "image"] as const,
-			contextWindow: 1_050_000,
+			contextWindow: 373_000,
 			maxTokens: 128_000,
 			applyPatchToolType: "freeform" as const,
 		},

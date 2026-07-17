@@ -7,6 +7,16 @@ describe("isProviderRetryableError", () => {
 		expect(isProviderRetryableError(new Error("error 1302 from upstream"))).toBe(true);
 	});
 
+	it("does not retry Anthropic monthly spend limits as transient rate limits", () => {
+		expect(
+			isProviderRetryableError(
+				new Error(
+					'429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your account\'s monthly spend limit. Please try again later."}}',
+				),
+			),
+		).toBe(false);
+	});
+
 	it("retries transient stream parse errors and pre-content envelope failures", () => {
 		expect(isProviderRetryableError(new Error("JSON Parse error: Unterminated string"))).toBe(true);
 		expect(isProviderRetryableError(new Error("Unexpected end of JSON input"))).toBe(true);

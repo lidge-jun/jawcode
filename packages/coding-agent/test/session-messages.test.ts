@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { AgentMessage } from "@jawcode-dev/agent-core";
 import type { Message } from "@jawcode-dev/ai";
 import { inferCopilotInitiator } from "@jawcode-dev/ai/providers/github-copilot-headers";
-import { convertToLlm } from "@jawcode-dev/coding-agent/session/messages";
+import { convertToLlm, replaceLlmImagesWithText } from "@jawcode-dev/coding-agent/session/messages";
 
 function expectAttribution(message: Message | undefined, expected: "user" | "agent" | undefined): void {
 	expect(message).toBeDefined();
@@ -91,5 +91,32 @@ describe("convertToLlm custom message mapping", () => {
 		expect(converted[0]?.role).toBe("user");
 		expectAttribution(converted[0], "user");
 		expect(inferCopilotInitiator(converted)).toBe("user");
+	});
+});
+
+describe("replaceLlmImagesWithText", () => {
+	it("replaces replayed images without mutating persisted message content", () => {
+		const persisted: AgentMessage[] = [
+			{
+				role: "user",
+				content: [
+					{ type: "text", text: "inspect this" },
+					{ type: "image", data: "aW1hZ2U=", mimeType: "image/png" },
+				],
+				timestamp: 1,
+			},
+		];
+		const converted = convertToLlm(persisted);
+
+		const scrubbed = replaceLlmImagesWithText(converted, "[image omitted]");
+
+		expect(scrubbed[0]?.content).toEqual([
+			{ type: "text", text: "inspect this" },
+			{ type: "text", text: "[image omitted]" },
+		]);
+		expect(converted[0]?.content).toEqual([
+			{ type: "text", text: "inspect this" },
+			{ type: "image", data: "aW1hZ2U=", mimeType: "image/png" },
+		]);
 	});
 });

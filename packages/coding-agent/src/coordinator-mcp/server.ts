@@ -14,6 +14,12 @@ import {
 	JWC_COORDINATOR_SESSION_STATE_FILE_ENV,
 } from "../jwc-runtime/session-state-sidecar";
 import {
+	type CoordinatorModelProfileLoader,
+	checkCoordinatorMpresetReuse,
+	loadCoordinatorModelProfiles,
+	resolveCoordinatorMpreset,
+} from "./model-preset";
+import {
 	assertCoordinatorArtifactPath,
 	assertCoordinatorWorkdir,
 	buildCoordinatorMcpConfig,
@@ -48,6 +54,7 @@ interface JsonRpcResponse {
 interface SessionStartInput {
 	cwd: string;
 	prompt?: string;
+	mpreset?: string | null;
 	namespace: { profile: string | null; repo: string | null };
 	worktree: true;
 }
@@ -56,6 +63,7 @@ interface CoordinatorServices {
 	listSessions?: () => unknown[] | Promise<unknown[]>;
 	startSession?: (input: SessionStartInput) => unknown | Promise<unknown>;
 	stopSession?: (input: { sessionId: string; session: Record<string, unknown> }) => boolean | Promise<boolean>;
+	resolveModelProfiles?: CoordinatorModelProfileLoader;
 }
 
 interface CoordinatorMcpServerOptions {
@@ -179,6 +187,11 @@ function toolSchema(name: CoordinatorToolName): {
 	};
 	const sessionId = { type: "string", description: "jwc coordinator bridge session id." };
 	const pathField = { type: "string", description: "Artifact path inside configured safe roots." };
+	const mpreset = {
+		type: "string",
+		description:
+			"Optional JWC model profile to resolve against the merged built-in/custom registry and activate authoritatively from session spawn.",
+	};
 	const common = { type: "object", properties: {} as Record<string, unknown> };
 	if (name === "jwc_coordinator_start_session") {
 		return {
@@ -186,7 +199,7 @@ function toolSchema(name: CoordinatorToolName): {
 			description: "Start a jwc worktree/tmux oriented session through the coordinator bridge.",
 			inputSchema: {
 				type: "object",
-				properties: { cwd, prompt: { type: "string" }, allow_mutation: allowMutation },
+				properties: { cwd, prompt: { type: "string" }, mpreset, allow_mutation: allowMutation },
 				required: ["cwd", "allow_mutation"],
 			},
 		};
@@ -212,6 +225,7 @@ function toolSchema(name: CoordinatorToolName): {
 				properties: {
 					session_id: sessionId,
 					prompt: { type: "string" },
+					mpreset,
 					queue: { type: "boolean" },
 					force: { type: "boolean" },
 					allow_mutation: allowMutation,
@@ -550,6 +564,11 @@ function shellQuote(value: string): string {
 	return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
+export function buildCoordinatorSessionCommand(sessionCommand: string, mpreset: string | null | undefined): string {
+	if (!mpreset) return sessionCommand;
+	return `${sessionCommand} --mpreset ${shellQuote(mpreset)}`;
+}
+
 function makeTurnRecord(
 	config: CoordinatorMcpConfig,
 	sessionId: string,
@@ -693,7 +712,7 @@ async function startTmuxSession(
 		`${JWC_COORDINATOR_SESSION_STATE_FILE_ENV}=${shellQuote(runtimeStateFile)}`,
 		`${JWC_COORDINATOR_SESSION_ID_ENV}=${shellQuote(sessionName)}`,
 		`${JWC_COORDINATOR_SESSION_ID_ENV}=${shellQuote(sessionName)}`,
-		config.sessionCommand,
+		buildCoordinatorSessionCommand(config.sessionCommand, input.mpreset),
 	].join(" ");
 	const started = await runCommand([
 		"tmux",
@@ -721,6 +740,7 @@ async function startTmuxSession(
 		cwd: input.cwd,
 		createdAt: new Date().toISOString(),
 		sessionCommand: config.sessionCommand,
+		...(input.mpreset ? { mpreset: input.mpreset } : {}),
 		runtimeStateFile,
 		initialPromptTmuxKeysSent,
 	};
@@ -860,6 +880,7 @@ export function createCoordinatorMcpServer(options: CoordinatorMcpServerOptions 
 	const config = buildCoordinatorMcpConfig(options.env ?? process.env);
 	const services = options.services ?? {};
 	const namespaceDir = coordinatorNamespacePath(config);
+	const loadModelProfiles = services.resolveModelProfiles ?? loadCoordinatorModelProfiles;
 
 	async function listSessions(): Promise<unknown[]> {
 		if (!config.namespace.profile || !config.namespace.repo) return [];
@@ -1092,9 +1113,19 @@ export function createCoordinatorMcpServer(options: CoordinatorMcpServerOptions 
 			if (name === "jwc_coordinator_start_session") {
 				requireCoordinatorMutation(config, "sessions", args);
 				const cwd = await assertCoordinatorWorkdir(config, args.cwd);
+				const mpresetResolution = await resolveCoordinatorMpreset(args.mpreset, loadModelProfiles);
+				if (!mpresetResolution.ok) {
+					return {
+						ok: false,
+						reason: mpresetResolution.reason,
+						mpreset: mpresetResolution.mpreset,
+						available_profiles: mpresetResolution.available_profiles,
+					};
+				}
 				const input = {
 					cwd,
 					prompt: typeof args.prompt === "string" ? args.prompt : undefined,
+					mpreset: mpresetResolution.mpreset,
 					namespace: config.namespace,
 					worktree: true as const,
 				};
@@ -1109,6 +1140,7 @@ export function createCoordinatorMcpServer(options: CoordinatorMcpServerOptions 
 					ephemeral: true,
 					coordinator_owner_kind: COORDINATOR_OWNER_KIND,
 					coordinator_owner_namespace: ownerNamespace,
+					...(mpresetResolution.mpreset ? { mpreset: mpresetResolution.mpreset } : {}),
 				};
 				await writeJsonFile(sessionFile(session.session_id), session);
 				const live = hasTmuxIdentity(session) ? await hasTmuxSession(session) : null;
@@ -1181,6 +1213,17 @@ export function createCoordinatorMcpServer(options: CoordinatorMcpServerOptions 
 				const sessionId = safeExternalId("session", args.session_id);
 				const session = await readJsonFile(sessionFile(sessionId));
 				if (!session) return { ok: false, reason: "unknown_session", session_id: sessionId };
+				const mpresetResolution = await resolveCoordinatorMpreset(args.mpreset, loadModelProfiles);
+				if (!mpresetResolution.ok) {
+					return {
+						ok: false,
+						reason: mpresetResolution.reason,
+						mpreset: mpresetResolution.mpreset,
+						available_profiles: mpresetResolution.available_profiles,
+					};
+				}
+				const reuseCheck = checkCoordinatorMpresetReuse(session, mpresetResolution.mpreset);
+				if (!reuseCheck.ok) return { ...reuseCheck, session_id: sessionId };
 				if (typeof args.prompt !== "string" || args.prompt.length === 0)
 					return { ok: false, reason: "prompt_required" };
 				let activeTurn = await readActiveTurn(namespaceDir, sessionId);

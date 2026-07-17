@@ -93,6 +93,21 @@ describe("openai-codex reasoning effort validation", () => {
 });
 
 describe("openai-codex error parsing", () => {
+	it("maps invalidated OAuth token responses to an authentication status", async () => {
+		const response = new Response(
+			JSON.stringify({
+				error: {
+					code: "invalid_request_error",
+					message: "Encountered invalidated oauth token for user, failing request",
+				},
+			}),
+			{ status: 400 },
+		);
+
+		const info = await parseCodexError(response);
+		expect(info.status).toBe(401);
+	});
+
 	it("produces friendly usage-limit messages and rate limits", async () => {
 		const resetAt = Math.floor(Date.now() / 1000) + 600;
 		const response = new Response(

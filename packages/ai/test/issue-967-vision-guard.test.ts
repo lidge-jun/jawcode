@@ -112,6 +112,33 @@ function countObjectKeys(value: unknown, key: string): number {
 }
 
 describe("issue #967 vision guard", () => {
+	it("re-evaluates image capability when a session switches to a text-only model", () => {
+		const visionModel = {
+			...makeModel("openai-completions", "openrouter"),
+			input: ["text", "image"] as Array<"text" | "image">,
+		};
+		const textOnlyModel = makeModel("openai-completions", "openrouter");
+		const context: Context = {
+			messages: [
+				{
+					role: "user",
+					content: [{ type: "image", mimeType: "image/png", data: "ZmFrZQ==" }],
+					timestamp: 1,
+				},
+			],
+		};
+
+		const beforeSwitch = convertOpenAICompletionsMessages(visionModel, context, compat);
+		const afterSwitch = convertOpenAICompletionsMessages(textOnlyModel, context, compat);
+
+		expect(countTaggedValues(beforeSwitch, "image_url")).toBe(1);
+		expect(countTaggedValues(afterSwitch, "image_url")).toBe(0);
+		expect(afterSwitch).toContainEqual({
+			role: "user",
+			content: [{ type: "text", text: NON_VISION_IMAGE_PLACEHOLDER }],
+		});
+	});
+
 	it("strips non-vision images from OpenAI chat-completions user and tool-result payloads", () => {
 		const model = makeModel("openai-completions", "openrouter");
 		const context: Context = {

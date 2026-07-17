@@ -1,3 +1,4 @@
+import { isUsageLimitError } from "../rate-limit-utils";
 import type { FetchImpl } from "../types";
 import { getRetryAfterMsFromHeaders } from "../utils/retry-after";
 
@@ -14,9 +15,7 @@ export function isOpenAIUsageExhaustionResponse(
 	retryDelayCapMs: number,
 ): boolean {
 	if (retryAfterMs !== undefined && retryAfterMs > retryDelayCapMs) return true;
-	return /monthly usage limit|usage limit reached|usage_limit_reached|out_of_credits|insufficient_quota|quota[ _]?exceeded/i.test(
-		bodyText,
-	);
+	return isUsageLimitError(bodyText);
 }
 
 export function wrapOpenAIFetchForBoundedRateLimits(

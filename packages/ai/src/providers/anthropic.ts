@@ -20,6 +20,7 @@ import {
 } from "@jawcode-dev/utils";
 import { hasOpus47ApiRestrictions, mapEffortToAnthropicAdaptiveEffort } from "../model-thinking";
 import { calculateCost } from "../models";
+import { isUsageLimitError } from "../rate-limit-utils";
 import { getEnvApiKey, OUTPUT_FALLBACK_BUFFER } from "../stream";
 import type {
 	Api,
@@ -938,6 +939,10 @@ function isProviderRetryableStreamEnvelopeError(error: unknown): boolean {
 export function isProviderRetryableError(error: unknown, provider?: string): boolean {
 	if (!(error instanceof Error)) return false;
 	if (provider === "github-copilot" && isCopilotTransientModelError(error)) return true;
+	// Persistent account limits can contain generic `rate_limit_error` framing.
+	// They must reach session-level credential rotation instead of entering the
+	// provider's transient replay loop.
+	if (isUsageLimitError(error.message)) return false;
 	const msg = error.message.toLowerCase();
 	if (
 		isUnexpectedSocketCloseMessage(msg) ||

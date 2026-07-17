@@ -24,6 +24,20 @@ describe("isOpenAIUsageExhaustionResponse", () => {
 		expect(isOpenAIUsageExhaustionResponse("out_of_credits", undefined, 60_000)).toBe(true);
 	});
 
+	it("flags OpenRouter daily free-model limits", () => {
+		expect(
+			isOpenAIUsageExhaustionResponse(
+				"Rate limit exceeded: free-models-per-day. Add 10 credits to unlock more requests per day",
+				undefined,
+				60_000,
+			),
+		).toBe(true);
+	});
+
+	it("does not treat content filters as usage exhaustion", () => {
+		expect(isOpenAIUsageExhaustionResponse("Provider finish_reason: content_filter", undefined, 60_000)).toBe(false);
+	});
+
 	it("does not flag a plain transient 429 body", () => {
 		expect(isOpenAIUsageExhaustionResponse("Too Many Requests", 1_000, 60_000)).toBe(false);
 	});
