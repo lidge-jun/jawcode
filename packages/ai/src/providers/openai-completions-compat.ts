@@ -197,6 +197,9 @@ export function detectOpenAICompat(model: Model<"openai-completions">, resolvedB
 
 	return {
 		supportsStore: !isNonStandard,
+		supportsImageDetailOriginal: true,
+		supportsReasoningSummary: true,
+		includeEncryptedReasoning: true,
 		supportsDeveloperRole: !isNonStandard,
 		supportsMultipleSystemMessages: supportsMultipleSystemMessagesDefault,
 		supportsReasoningEffort: !isGrok && !isZai,
@@ -263,6 +266,9 @@ export function resolveOpenAICompat(
 
 	return {
 		supportsStore: model.compat.supportsStore ?? detected.supportsStore,
+		supportsImageDetailOriginal: model.compat.supportsImageDetailOriginal ?? detected.supportsImageDetailOriginal,
+		supportsReasoningSummary: model.compat.supportsReasoningSummary ?? detected.supportsReasoningSummary,
+		includeEncryptedReasoning: model.compat.includeEncryptedReasoning ?? detected.includeEncryptedReasoning,
 		supportsDeveloperRole: model.compat.supportsDeveloperRole ?? detected.supportsDeveloperRole,
 		supportsMultipleSystemMessages:
 			model.compat.supportsMultipleSystemMessages ?? detected.supportsMultipleSystemMessages,

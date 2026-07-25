@@ -18,7 +18,7 @@ const EXPECTED_ROLE_AGENT_PROMPT_FILES = ["architect", "critic", "executor", "pl
 const EXPECTED_CALLABLE_TASK_ROLES = ["architect", "critic", "executor", "executor_ext", "planner"] as const;
 const EXPECTED_PUBLIC_PACKAGE_VERSION_CATALOG_KEY = "@jawcode-dev/coding-agent";
 const BUNDLED_NON_WORKFLOW_SKILLS = new Set(["browse", "search"]);
-const ALLOWED_PUBLIC_PACKAGE_VERSIONS = new Map<string, string>([["jawcode", "1.0.9"], ["@jawcode-dev/natives", "1.0.6"]]);
+const ALLOWED_PUBLIC_PACKAGE_VERSIONS = new Map<string, string>([["jawcode", "1.1.2"], ["@jawcode-dev/natives", "1.1.2"]]);
 const ALLOWED_PRIVATE_PACKAGE_VERSIONS = new Map<string, string>([
 	["@jawcode-dev/orchestration-token-benchmark", "0.0.1"],
 	["@jawcode-dev/typescript-edit-benchmark", "0.0.1"],
@@ -208,12 +208,12 @@ async function verifyRebrandSurface(): Promise<GateResult> {
 
 
 async function readExpectedPublicPackageVersion(): Promise<string> {
-	const rootPackageJson = await readJson("package.json");
-	const workspaces = isRecord(rootPackageJson.workspaces) ? rootPackageJson.workspaces : null;
-	const catalog = isRecord(workspaces?.catalog) ? workspaces.catalog : null;
-	const version = catalog?.[EXPECTED_PUBLIC_PACKAGE_VERSION_CATALOG_KEY];
+	// Since c963d5f the root catalog uses `workspace:*` for internal packages, so the
+	// canonical public version sentinel is the coding-agent package version itself.
+	const codingAgentPackageJson = await readJson("packages/coding-agent/package.json");
+	const version = codingAgentPackageJson.version;
 	if (typeof version !== "string" || version.trim().length === 0) {
-		throw new Error(`Missing ${EXPECTED_PUBLIC_PACKAGE_VERSION_CATALOG_KEY} in root workspace catalog`);
+		throw new Error(`Missing version in packages/coding-agent/package.json`);
 	}
 	return version;
 }

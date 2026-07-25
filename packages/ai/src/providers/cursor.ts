@@ -131,6 +131,9 @@ import {
 } from "./cursor/gen/agent_pb";
 
 export const CURSOR_API_URL = "https://api2.cursor.sh";
+
+import { CURSOR_CLIENT_VERSION } from "./cursor/client-version";
+
 export { CURSOR_CLIENT_VERSION } from "./cursor/client-version";
 
 const conversationStateCache = new Map<string, ConversationStateStructure>();
