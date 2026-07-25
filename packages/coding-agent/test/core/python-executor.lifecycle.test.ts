@@ -198,6 +198,44 @@ describe("executePython session lifecycle", () => {
 		expect(kernel.executeCalls).toEqual(["print('one')"]);
 	});
 
+	it("bounds a hanging shared replacement startup and leaves the session retryable", async () => {
+		const deadKernel = new FakeKernel(okResult);
+		const liveKernel = new FakeKernel(okResult, { onExecute: options => options?.onChunk?.("recovered\n") });
+		let startCount = 0;
+
+		PythonKernel.start = async (options?: { deadlineMs?: number }) => {
+			startCount += 1;
+			if (startCount === 1) return deadKernel as unknown as PythonKernel;
+			if (startCount === 2) {
+				// Simulate a wedged kernel startup: hang past the replacement-owned deadline.
+				const remaining = options?.deadlineMs === undefined ? 0 : options.deadlineMs - Date.now();
+				await Bun.sleep(Math.max(0, remaining) + 200);
+				throw Object.assign(new Error("startup wedged"), { name: "TimeoutError" });
+			}
+			return liveKernel as unknown as PythonKernel;
+		};
+
+		await executePython("print('setup')", { sessionId: "session-hang-replacement" });
+		deadKernel.markDead();
+
+		const hangStartedAt = Date.now();
+		const hung = await executePython("print('hang')", {
+			sessionId: "session-hang-replacement",
+			replacementStartupTimeoutMs: 100,
+		});
+		const hangElapsedMs = Date.now() - hangStartedAt;
+
+		// The shared replacement settled bounded (not unbounded) and reported cancellation.
+		expect(hangElapsedMs).toBeLessThan(10_000);
+		expect(hung.cancelled).toBe(true);
+
+		// Session is left retryable: the next call performs a fresh replacement.
+		const recovered = await executePython("print('retry')", { sessionId: "session-hang-replacement" });
+		expect(recovered.cancelled).toBe(false);
+		expect(recovered.output).toContain("recovered");
+		expect(liveKernel.executeCalls).toEqual(["print('retry')"]);
+	});
+
 	it("uses per-call kernels when configured", async () => {
 		const kernelA = new FakeKernel(okResult);
 		const kernelB = new FakeKernel(okResult);

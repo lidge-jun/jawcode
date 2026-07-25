@@ -27,6 +27,8 @@ export interface PythonExecutorOptions {
 	onChunk?: (chunk: string) => Promise<void> | void;
 	/** AbortSignal for cancellation */
 	signal?: AbortSignal;
+	/** Bounded startup budget for a shared dead-kernel replacement (default 30_000ms) */
+	replacementStartupTimeoutMs?: number;
 	/** Session identifier for kernel reuse */
 	sessionId?: string;
 	/** Logical owner identifier for retained kernel cleanup */
@@ -324,16 +326,28 @@ async function replaceSessionKernel(
 		throw new PythonExecutionCancelledError(false);
 	}
 
+	// The replacement is shared by every caller waiting on this session, so it
+	// must always settle on its own: an individual caller may bail out via its
+	// own signal, but the shared startup gets a replacement-owned deadline
+	// (caller's deadline when present, otherwise a bounded default) instead of
+	// running unbounded and permanently blocking resetSession/dispose paths
+	// that await the shared promise without a timeout of their own.
+	const replacementOwnedDeadlineMs = Date.now() + (options.replacementStartupTimeoutMs ?? 30_000);
+	const replacementDeadlineMs =
+		options.deadlineMs === undefined
+			? replacementOwnedDeadlineMs
+			: Math.min(options.deadlineMs, replacementOwnedDeadlineMs);
+
 	const deferred = Promise.withResolvers<PythonKernel>();
 	const replacement = { generation, promise: deferred.promise };
 	session.replacement = replacement;
 	void (async () => {
 		try {
-			const remaining = getRemainingTimeoutMs(options.deadlineMs);
+			const remaining = getRemainingTimeoutMs(replacementDeadlineMs);
 			await kernel
 				.shutdown(remaining !== undefined ? { timeoutMs: Math.max(0, remaining) } : undefined)
 				.catch(() => undefined);
-			requireRemainingTimeoutMs(options.deadlineMs);
+			requireRemainingTimeoutMs(replacementDeadlineMs);
 			if (
 				sessions.get(session.sessionId) !== session ||
 				session.generation !== generation ||
@@ -341,7 +355,7 @@ async function replaceSessionKernel(
 			) {
 				throw new PythonExecutionCancelledError(false);
 			}
-			const next = await startKernel(cwd, { ...options, signal: undefined, deadlineMs: undefined });
+			const next = await startKernel(cwd, { ...options, signal: undefined, deadlineMs: replacementDeadlineMs });
 			if (
 				sessions.get(session.sessionId) !== session ||
 				session.generation !== generation ||
