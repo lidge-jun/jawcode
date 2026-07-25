@@ -1236,7 +1236,9 @@ export class ModelRegistry {
 			const normalizedProvider = customModel.provider.toLowerCase();
 			const normalizedId = customModel.id.toLowerCase();
 			const matchingIndexes = merged.flatMap((model, index) =>
-				model.provider.toLowerCase() === normalizedProvider && model.id.toLowerCase() === normalizedId ? [index] : [],
+				model.provider.toLowerCase() === normalizedProvider && model.id.toLowerCase() === normalizedId
+					? [index]
+					: [],
 			);
 			const existingIndex = matchingIndexes[0];
 			if (existingIndex !== undefined) {

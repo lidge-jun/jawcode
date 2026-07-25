@@ -153,6 +153,21 @@ export type AnthropicWebSearchHistoryBlock =
 	| z.infer<typeof webSearchServerToolUseBlockSchema>
 	| z.infer<typeof webSearchToolResultBlockSchema>;
 
+/** Prevent opaque provider history from consuming an unbounded context/session payload. */
+export const MAX_ANTHROPIC_WEB_SEARCH_HISTORY_BLOCK_BYTES = 1_048_576;
+
+function isWithinAnthropicWebSearchHistoryBlockSize(block: object): boolean {
+	try {
+		const serialized = JSON.stringify(block);
+		return (
+			serialized !== undefined &&
+			new TextEncoder().encode(serialized).byteLength <= MAX_ANTHROPIC_WEB_SEARCH_HISTORY_BLOCK_BYTES
+		);
+	} catch {
+		return false;
+	}
+}
+
 /** Narrow only the complete web-search history variants JWC can replay atomically. */
 export function isAnthropicWebSearchHistoryBlock(block: {
 	type: string;
@@ -162,10 +177,20 @@ export function isAnthropicWebSearchHistoryBlock(block: {
 	content?: unknown;
 }): block is AnthropicWebSearchHistoryBlock {
 	if (block.type === "server_tool_use") {
-		return block.name === "web_search" && typeof block.id === "string" && block.id.length > 0;
+		return (
+			block.name === "web_search" &&
+			typeof block.id === "string" &&
+			block.id.length > 0 &&
+			isWithinAnthropicWebSearchHistoryBlockSize(block)
+		);
 	}
 	if (block.type === "web_search_tool_result") {
-		return typeof block.tool_use_id === "string" && block.tool_use_id.length > 0 && Object.hasOwn(block, "content");
+		return (
+			typeof block.tool_use_id === "string" &&
+			block.tool_use_id.length > 0 &&
+			Object.hasOwn(block, "content") &&
+			isWithinAnthropicWebSearchHistoryBlockSize(block)
+		);
 	}
 	return false;
 }
