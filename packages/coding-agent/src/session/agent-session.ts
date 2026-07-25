@@ -261,6 +261,7 @@ import { parseCommandArgs } from "../utils/command-args";
 import { type EditMode, resolveEditMode } from "../utils/edit-mode";
 import { resolveFileDisplayMode } from "../utils/file-display-mode";
 import { extractFileMentions, generateFileMentionMessages } from "../utils/file-mentions";
+import { generateSessionTitle } from "../utils/title-generator";
 import { resolveModelEncoding } from "../utils/tokenizer-encoding";
 import { buildNamedToolChoice } from "../utils/tool-choice";
 import type { AuthStorage } from "./auth-storage";
@@ -987,6 +988,8 @@ export class AgentSession {
 	#todoReminderCount = 0;
 	#lastGoalReminderAssistantTimestamp: number | undefined = undefined;
 	#todoPhases: TodoPhase[] = [];
+	#titleGenerationAbortController = new AbortController();
+	#titleGeneration = 0;
 	#toolChoiceQueue = new ToolChoiceQueue();
 
 	// Bash execution state
@@ -3477,6 +3480,7 @@ export class AgentSession {
 	 */
 	async dispose(): Promise<void> {
 		this.#isDisposed = true;
+		this.#cancelTitleGeneration();
 		this.#cancelCodexPrewarmRefresh();
 		this.#pendingBackgroundExchanges = [];
 		this.yieldQueue.clear();
@@ -6009,6 +6013,7 @@ export class AgentSession {
 			}
 		}
 
+		this.#cancelTitleGeneration();
 		this.#disconnectFromAgent();
 		await this.abort();
 		this.#cancelOwnAsyncJobs();
@@ -6108,6 +6113,38 @@ export class AgentSession {
 	 */
 	setSessionName(name: string, source: "auto" | "user" = "auto"): Promise<boolean> {
 		return this.sessionManager.setSessionName(name, source);
+	}
+
+	#cancelTitleGeneration(): void {
+		this.#titleGeneration++;
+		this.#titleGenerationAbortController.abort();
+		this.#titleGenerationAbortController = new AbortController();
+	}
+
+	/** Generate a title owned by the current session generation. */
+	async generateTitle(firstMessage: string): Promise<string | null> {
+		if (this.#isDisposed) return null;
+		const generation = this.#titleGeneration;
+		const sessionId = this.sessionManager.getSessionId();
+		const signal = this.#titleGenerationAbortController.signal;
+		const title = await generateSessionTitle(
+			firstMessage,
+			this.#modelRegistry,
+			this.settings,
+			sessionId,
+			this.model,
+			provider => this.agent.metadataForProvider(provider),
+			signal,
+		);
+		if (
+			this.#isDisposed ||
+			signal.aborted ||
+			generation !== this.#titleGeneration ||
+			sessionId !== this.sessionManager.getSessionId()
+		) {
+			return null;
+		}
+		return title;
 	}
 
 	/**
@@ -9870,6 +9907,7 @@ export class AgentSession {
 			}
 		}
 
+		this.#cancelTitleGeneration();
 		this.#disconnectFromAgent();
 		await this.abort();
 
