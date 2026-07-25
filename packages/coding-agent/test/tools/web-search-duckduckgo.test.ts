@@ -46,6 +46,7 @@ function fakeAuth(opts: { oauth?: string[]; auth?: string[] } = {}): AuthStorage
 	const oauth = new Set(opts.oauth ?? []);
 	const auth = new Set([...(opts.auth ?? []), ...(opts.oauth ?? [])]);
 	return {
+		getGeneration: () => 0,
 		hasOAuth: (provider: string) => oauth.has(provider),
 		hasAuth: (provider: string) => auth.has(provider),
 	} as unknown as AuthStorage;
