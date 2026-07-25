@@ -24,7 +24,7 @@
 
 | omp | jwc |
 |---|---|
-| `b0d04e517` (`origin/main`, v17.0.1) | `0e8d9f4` (worktree, 2026-07-17) |
+| `59619623` (`origin/main`, v17.1.3) | `a446321` (dev, 2026-07-25 chase refresh) |
 
 > GJC head is intentionally not repeated here; see [10_gjc_chase_MOC.md](./10_gjc_chase_MOC.md).
 
@@ -102,13 +102,13 @@
 | 048 | [20.048_omp_chase_agent_yield_abort_ask_timeout.md](./20.048_omp_chase_agent_yield_abort_ask_timeout.md) | agent yield/abort/ask-timeout + idle-watchdog integrity | reference | ⬜ |
 | 049 | [20.049_omp_chase_oauth_refresh_serialization_mcp.md](./20.049_omp_chase_oauth_refresh_serialization_mcp.md) | OAuth refresh serialization + MCP discovery/stdio | reference | ⬜ |
 | 050 | [20.050_omp_chase_tui_grid_render_tools_natives_config.md](./20.050_omp_chase_tui_grid_render_tools_natives_config.md) | TUI grid render + tools/natives/config misc — **hub → 050a-e** (render/streaming/ACP · grep/read selectors · natives/bash/clipboard · config/extension/session/realm · providers/usage/orchestration) | reference | ⬜ split 260711 |
-| 20.051 | `omp_chase_model_hub_selector` | ⬜ | P1 | model hub, floating selection, role management, search ranking | `7aa1d581c..b0d04e517` |
-| 20.052 | `omp_chase_catalog_pricing_routing` | ⬜ | P1 | Kimi 65K, MAI routes, GLM-5.2, OpenRouter catalog | `7aa1d581c..b0d04e517` |
-| 20.053 | `omp_chase_auth_oauth_credential` | ⬜ | P1 | credential rotation, serialized refresh, org-scoped identity | `7aa1d581c..b0d04e517` |
-| 20.054 | `omp_chase_provider_transport_schema` | ⬜ | P1 | Vertex effort gating, schema coercion, endpoint and stream guards | `7aa1d581c..b0d04e517` |
-| 20.055 | `omp_chase_model_resolver_fallback` | ⬜ | P1 | hard-error fallback, retry exhaustion, thinking and vision fallback | `7aa1d581c..b0d04e517` |
-| 20.056 | `omp_chase_vibe_mode` | ⬜ | P2 | persistent workers, background agents, session lifecycle | `7aa1d581c..b0d04e517` |
-| 20.057 | `omp_chase_ask_dialog` | ⬜ | P2 | rich ask dialog, multi-select gating, notes and redirects | `7aa1d581c..b0d04e517` |
+| 20.051 | [`omp_chase_model_hub_selector`](./_fin/20/20.051_omp_chase_model_hub_selector.md) | ✅ **_fin** (evidence pending wp4) | P1 | model hub, floating selection, role management, search ranking | `7aa1d581c..b0d04e517` |
+| 20.052 | [`omp_chase_catalog_pricing_routing`](./_fin/20/20.052_omp_chase_catalog_pricing_routing.md) | ✅ **_fin** (evidence pending wp4) | P1 | Kimi 65K, MAI routes, GLM-5.2, OpenRouter catalog | `7aa1d581c..b0d04e517` |
+| 20.053 | [`omp_chase_auth_oauth_credential`](./_fin/20/20.053_omp_chase_auth_oauth_credential.md) | ✅ **_fin** (evidence pending wp4) | P1 | credential rotation, serialized refresh, org-scoped identity | `7aa1d581c..b0d04e517` |
+| 20.054 | [`omp_chase_provider_transport_schema`](./_fin/20/20.054_omp_chase_provider_transport_schema.md) | ✅ **_fin** (evidence pending wp4) | P1 | Vertex effort gating, schema coercion, endpoint and stream guards | `7aa1d581c..b0d04e517` |
+| 20.055 | [`omp_chase_model_resolver_fallback`](./_fin/20/20.055_omp_chase_model_resolver_fallback.md) | ✅ **_fin** (evidence pending wp4) | P1 | hard-error fallback, retry exhaustion, thinking and vision fallback | `7aa1d581c..b0d04e517` |
+| 20.056 | [`omp_chase_vibe_mode`](./_fin/20/20.056_omp_chase_vibe_mode.md) | ✅ **_fin** (evidence pending wp4) | P2 | persistent workers, background agents, session lifecycle | `7aa1d581c..b0d04e517` |
+| 20.057 | [`omp_chase_ask_dialog`](./_fin/20/20.057_omp_chase_ask_dialog.md) | ✅ **_fin** (evidence pending wp4) | P2 | rich ask dialog, multi-select gating, notes and redirects | `7aa1d581c..b0d04e517` |
 | 20.058 | `omp_chase_tui_render_streaming` | ⬜ | P2 | streamed tables and diffs, viewport stability, cmux routing | `7aa1d581c..b0d04e517` |
 | 20.059 | `omp_chase_advisor_steering` | ⬜ | P2 | late blocker steering, unsafe-note quarantine, terminal notes | `7aa1d581c..b0d04e517` |
 | 20.060 | `omp_chase_agent_loop_tool_stream` | ⬜ | P2 | toolUse retry, partial-call cleanup, provider error surfacing | `7aa1d581c..b0d04e517` |
@@ -118,24 +118,54 @@
 | 20.064 | `omp_chase_mnemopi_memory_eval` | ⬜ | P3 | memory trim safety, runtime recovery, isolated evals | `7aa1d581c..b0d04e517` |
 | 20.065 | `omp_chase_browser_bash_commit` | ⬜ | P3 | browser watchdogs, shell abort, commit teardown, URL resolution | `7aa1d581c..b0d04e517` |
 | 20.066 | `omp_chase_collab_web_extension` | ⬜ | P3 | markdown rendering, transcript dedup, steer queueing | `7aa1d581c..b0d04e517` |
-| 20.067 | `omp_chase_usage_quota_spend_limit` | ⬜ | P1 | spend-limit taxonomy, usage reconciliation, snapshot validation | `7aa1d581c..b0d04e517` |
+| 20.067 | [`omp_chase_usage_quota_spend_limit`](./_fin/20/20.067_omp_chase_usage_quota_spend_limit.md) | ✅ **_fin** (evidence pending wp4) | P1 | spend-limit taxonomy, usage reconciliation, snapshot validation | `7aa1d581c..b0d04e517` |
 | 20.068 | `omp_chase_tui_sixel_subagent_misc` | ⬜ | P3 | SIXEL sizing, subagent sanitization, CJK and editor edges | `7aa1d581c..b0d04e517` |
 | 20.069 | `omp_chase_centralized_prompt_small_model` | ⬜ | P2 | small-model preprocessing, task-agent resolution, thinking precedence | `7aa1d581c..b0d04e517` |
 | 20.070 | `omp_chase_ci_release_changelog` | ⬜ | P3 | release bumps, changelog dedup, stale tests, CI stabilization | `7aa1d581c..b0d04e517` |
-| 20.071 | `omp_chase_warp_event_bridge` | ⬜ | P2 | Warp TUI events, OSC emitter, permission | `b0d04e517..5394081390` |
-| 20.072 | `omp_chase_cursor_advisor_xdev` | ⬜ | P2 | cursor exec bridge, advisor tools, xdev | `b0d04e517..5394081390` |
+| 20.071 | [`omp_chase_warp_event_bridge`](./_fin/20/20.071_omp_chase_warp_event_bridge.md) | ✅ **_fin** (evidence pending wp4) | P2 | Warp TUI events, OSC emitter, permission | `b0d04e517..5394081390` |
+| 20.072 | [`omp_chase_cursor_advisor_xdev`](./_fin/20/20.072_omp_chase_cursor_advisor_xdev.md) | ✅ **_fin** (evidence pending wp4) | P2 | cursor exec bridge, advisor tools, xdev | `b0d04e517..5394081390` |
 | 20.073 | `omp_chase_tui_rendering_status` | ⬜ | P2 | TUI rendering, status bar, images, skills | `b0d04e517..5394081390` |
-| 20.074 | `omp_chase_ai_credential_redaction` | ⬜ | P1 | credential redaction, blocked retry, BigInt | `b0d04e517..5394081390` |
+| 20.074 | [`omp_chase_ai_credential_redaction`](./_fin/20/20.074_omp_chase_ai_credential_redaction.md) | ✅ **_fin** (evidence pending wp4) | P1 | credential redaction, blocked retry, BigInt | `b0d04e517..5394081390` |
 | 20.075 | [`omp_chase_coding_agent_tool_restoration`](./_fin/20/20.075_omp_chase_coding_agent_tool_restoration.md) | ✅ **_fin** | P2 | transactional MCP refresh rollback; OMP-only owners rejected/split | `b0d04e517..5394081390` |
-| 20.076 | `omp_chase_session_plan_lifecycle` | ⬜ | P2 | session dispose, plan exits, role model | `b0d04e517..5394081390` |
-| 20.077 | `omp_chase_plugins_commonjs_mcp` | ⬜ | P2 | CommonJS/ESM, plugin reload, MCP ownership | `b0d04e517..5394081390` |
+| 20.076 | [`omp_chase_session_plan_lifecycle`](./_fin/20/20.076_omp_chase_session_plan_lifecycle.md) | ✅ **_fin** (evidence pending wp4) | P2 | session dispose, plan exits, role model | `b0d04e517..5394081390` |
+| 20.077 | [`omp_chase_plugins_commonjs_mcp`](./_fin/20/20.077_omp_chase_plugins_commonjs_mcp.md) | ✅ **_fin** (evidence pending wp4) | P2 | CommonJS/ESM, plugin reload, MCP ownership | `b0d04e517..5394081390` |
 | 20.078 | `omp_chase_bash_irc_registry` | ⬜ | P3 | bash timeout, PTY shells, IRC lifecycle | `b0d04e517..5394081390` |
-| 20.079 | `omp_chase_codex_lite_telemetry` | ⬜ | P2 | Codex Lite, telemetry OTLP, generate_image | `b0d04e517..5394081390` |
+| 20.079 | [`omp_chase_codex_lite_telemetry`](./_fin/20/20.079_omp_chase_codex_lite_telemetry.md) | ✅ **_fin** (evidence pending wp4) | P2 | Codex Lite, telemetry OTLP, generate_image | `b0d04e517..5394081390` |
 | 20.080 | `omp_chase_ci_style_changelog` | ⬜ | P3 | CI, style, changelog, test fixes | `b0d04e517..5394081390` |
+| 20.081 | [`omp_chase_ai_catalog_stream_auth`](./20.081_omp_chase_ai_catalog_stream_auth.md) | ⬜ | P1 | AI catalog/stream/auth (adapt, A) | `b0d04e517..v17.0.8` |
+| 20.082 | [`omp_chase_session_context_settings_persistence`](./20.082_omp_chase_session_context_settings_persistence.md) | ⬜ | P1 | session/context/settings (adapt, A) | `b0d04e517..v17.0.8` |
+| 20.083 | [`omp_chase_tool_fs_shell_git_safety`](./20.083_omp_chase_tool_fs_shell_git_safety.md) | ⬜ | P1 | tool/fs/shell/git safety (adapt, A) | `b0d04e517..v17.0.8` |
+| 20.084 | [`omp_chase_task_subagent_advisor_launch`](./20.084_omp_chase_task_subagent_advisor_launch.md) | ⬜ | P1 | task/subagent/advisor/launch (split, C) | `b0d04e517..v17.0.8` |
+| 20.085 | [`omp_chase_tui_render_input_markdown`](./20.085_omp_chase_tui_render_input_markdown.md) | ⬜ | P2 | TUI/render/input/Markdown (track-only, B) | `b0d04e517..v17.0.8` |
+| 20.086 | [`omp_chase_extensions_mcp_lsp_dap_browser`](./20.086_omp_chase_extensions_mcp_lsp_dap_browser.md) | ⬜ | P2 | extensions/MCP/LSP/DAP/browser (split, C) | `b0d04e517..v17.0.8` |
+| 20.087 | [`omp_chase_native_diff_search_memory_perf`](./20.087_omp_chase_native_diff_search_memory_perf.md) | ⬜ | P2 | native diff/search/memory perf (adapt, A) | `b0d04e517..v17.0.8` |
+| 20.088 | [`omp_chase_release_build_platform_ci`](./20.088_omp_chase_release_build_platform_ci.md) | ⬜ | P2 | release/build/platform/CI (adapt, A) | `b0d04e517..v17.0.8` |
+| 20.089 | [`omp_chase_runtime_stats_logging_collab`](./20.089_omp_chase_runtime_stats_logging_collab.md) | ⬜ | P2 | runtime/stats/logging/collab (adapt, A) | `b0d04e517..v17.0.8` |
+| 20.090 | [`omp_chase_robomp_swarm_reference`](./20.090_omp_chase_robomp_swarm_reference.md) | ⬜ | P3 | robomp/swarm reference (track-only, B) | `b0d04e517..v17.0.8` |
+| 20.101 | [`omp_chase_secret_placeholder_redaction`](./20.101_omp_chase_secret_placeholder_redaction.md) | ⬜ | P1 | secret placeholder identity/redaction (adapt, C) | `v17.0.8..v17.1.0` |
+| 20.102 | [`omp_chase_error_notifications_terminal_title`](./20.102_omp_chase_error_notifications_terminal_title.md) | ⬜ | P2 | error notifications + terminal title (adapt, A) | `v17.0.8..v17.1.0` |
+| 20.103 | [`omp_chase_workspace_roots_session_lifecycle`](./20.103_omp_chase_workspace_roots_session_lifecycle.md) | ⬜ | P1 | workspace roots + session lifecycle (adapt, C) | `v17.0.8..v17.1.0` |
+| 20.104 | [`omp_chase_task_todo_subagent_quiescence`](./20.104_omp_chase_task_todo_subagent_quiescence.md) | ⬜ | P1 | task/todo/subagent quiescence (split, C) | `v17.0.8..v17.1.0` |
+| 20.105 | [`omp_chase_providers_oauth_usage_fallback`](./20.105_omp_chase_providers_oauth_usage_fallback.md) | ⬜ | P1 | providers/OAuth/usage/fallback (split, C) | `v17.0.8..v17.1.0` |
+| 20.106 | [`omp_chase_prompt_cache_policy_benchmark`](./20.106_omp_chase_prompt_cache_policy_benchmark.md) | ⬜ | P2 | prompt-cache policy + benchmarks (adapt, C) | `v17.0.8..v17.1.0` |
+| 20.107 | [`omp_chase_compaction_retry_history_resilience`](./20.107_omp_chase_compaction_retry_history_resilience.md) | ⬜ | P1 | compaction/history resilience (adapt, A) | `v17.0.8..v17.1.0` |
+| 20.108 | [`omp_chase_mcp_rpc_acp_protocol_hardening`](./20.108_omp_chase_mcp_rpc_acp_protocol_hardening.md) | ⬜ | P2 | MCP/RPC/ACP hardening (adapt, C) | `v17.0.8..v17.1.0` |
+| 20.109 | [`omp_chase_tools_platform_runtime_hardening`](./20.109_omp_chase_tools_platform_runtime_hardening.md) | ⬜ | P1 | tool/platform runtime hardening (import, A) | `v17.0.8..v17.1.0` |
+| 20.110 | [`omp_chase_advisor_hindsight_vibe_runtime`](./20.110_omp_chase_advisor_hindsight_vibe_runtime.md) | ⬜ | P3 | advisor/Hindsight/vibe runtime (track-only, B) | `v17.0.8..v17.1.0` |
+| 20.111 | [`omp_chase_tui_export_extensions_status`](./20.111_omp_chase_tui_export_extensions_status.md) | ⬜ | P2 | TUI/exports/extensions (adapt, C) | `v17.0.8..v17.1.0` |
+| 20.112 | [`omp_chase_misc_runtime_quality`](./20.112_omp_chase_misc_runtime_quality.md) | ⬜ | P3 | remaining runtime quality deltas (evidence-fill, B) | `v17.0.8..v17.1.0` |
+| 20.121 | [`omp_chase_native_computer_use`](./20.121_omp_chase_native_computer_use.md) | ⬜ | P1 | native computer use (split, C) | `v17.1.0..59619623` |
+| 20.122 | [`omp_chase_tui_tool_lifecycle`](./20.122_omp_chase_tui_tool_lifecycle.md) | ⬜ | P2 | TUI/tool lifecycle (adapt, A) | `v17.1.0..59619623` |
+| 20.123 | [`omp_chase_native_live_audio_attestation`](./20.123_omp_chase_native_live_audio_attestation.md) | ⬜ | P2 | native live/audio/attestation (split, C) | `v17.1.0..59619623` |
+| 20.124 | [`omp_chase_ai_provider_stream_integrity`](./20.124_omp_chase_ai_provider_stream_integrity.md) | ⬜ | P1 | AI/provider stream integrity (adapt, A) | `v17.1.0..59619623` |
+| 20.125 | [`omp_chase_task_rebuild_search_rendering`](./20.125_omp_chase_task_rebuild_search_rendering.md) | ⬜ | P1 | task/rebuild/search/rendering (split, C) | `v17.1.0..59619623` |
+| 20.126 | [`omp_chase_account_usage_launch_stats`](./20.126_omp_chase_account_usage_launch_stats.md) | ⬜ | P2 | account/usage/launch/stats (split, C) | `v17.1.0..59619623` |
+| 20.127 | [`omp_chase_shell_native_ci`](./20.127_omp_chase_shell_native_ci.md) | ⬜ | P2 | shell/native CI (evidence-fill, B) | `v17.1.0..59619623` |
 
 > **260717 delta**: +20 cards (20.051–20.070), range `7aa1d581c..b0d04e517` (v16.4.2→v17.0.1, 586 non-merge).
 
 > **260717 delta (supplement 2)**: +10 cards (20.071–20.080), range `b0d04e517..5394081390` (v17.0.1+, 175 non-merge).
+> **260725 delta**: +29 cards (20.081–20.090, 20.101–20.112, 20.121–20.127), range `b0d04e517..59619623` (v17.0.1→v17.1.3, 1301 non-merge). Superset re-cluster of the supplement-2 range (175 commits re-verified; 20.071–20.079 already archived).
 
 ## 완료
 
