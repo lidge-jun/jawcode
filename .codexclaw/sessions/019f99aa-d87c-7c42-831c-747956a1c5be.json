@@ -2,7 +2,7 @@
   "phase": "IDLE",
   "sessionId": "019f99aa-d87c-7c42-831c-747956a1c5be",
   "slug": "",
-  "updatedAt": "2026-07-25T14:35:55.527Z",
+  "updatedAt": "2026-07-25T14:53:36.878Z",
   "flags": {
     "interview": false,
     "auditPassed": false,
@@ -18,5 +18,5 @@
   "stopBlockPhase": null,
   "stopBlockCount": 0,
   "loopArmSeen": true,
-  "idleEditNudges": 4
+  "idleEditNudges": 10
 }

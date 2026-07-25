@@ -31,9 +31,13 @@ async function makeTempRoot(): Promise<string> {
 
 async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
 	const originalHome = process.env.HOME;
+	const originalCliJawHome = process.env.CLI_JAW_HOME;
 	const home = await fs.mkdtemp(path.join(os.tmpdir(), "gjc-default-home-"));
 	tempRoots.push(home);
 	process.env.HOME = home;
+	// Bun's os.homedir() ignores runtime HOME mutation, so the cli-jaw provider
+	// would still read the real ~/.cli-jaw and shadow installed native skills.
+	process.env.CLI_JAW_HOME = path.join(home, ".cli-jaw");
 	try {
 		return await fn(home);
 	} finally {
@@ -41,6 +45,11 @@ async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
 			delete process.env.HOME;
 		} else {
 			process.env.HOME = originalHome;
+		}
+		if (originalCliJawHome === undefined) {
+			delete process.env.CLI_JAW_HOME;
+		} else {
+			process.env.CLI_JAW_HOME = originalCliJawHome;
 		}
 	}
 }
