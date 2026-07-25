@@ -120,8 +120,9 @@ const createTaskSchema = (options: { isolationEnabled: boolean; simpleMode: Task
 	let schema = z.object({
 		agent: z
 			.string()
+			.optional()
 			.describe(
-				"callable task role: executor for ordinary parallel implementation/research, executor_ext for explicit external/fresh/model-diverse executor work, planner/architect/critic for specialist lenses",
+				"callable task role: executor for ordinary parallel implementation/research, executor_ext for explicit external/fresh/model-diverse executor work, planner/architect/critic for specialist lenses. Defaults to the general-purpose worker when omitted.",
 			),
 		tasks: z.array(itemSchema).describe("tasks to execute in parallel"),
 		spawnPlan: spawnPlanSchema.optional(),
@@ -179,7 +180,8 @@ export function getTaskSchema(options: { isolationEnabled: boolean; simpleMode: 
 }
 
 export interface TaskParams {
-	agent: string;
+	/** Callable task role; defaults to the general-purpose `task` worker when omitted. */
+	agent?: string;
 	context?: string;
 	schema?: string;
 	spawnPlan?: SpawnPlanReceipt;

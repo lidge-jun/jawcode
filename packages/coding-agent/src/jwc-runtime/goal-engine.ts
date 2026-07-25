@@ -34,11 +34,28 @@ export interface GoalPlan {
 	jwcObjective: string;
 	jwcObjectiveAliases?: string[];
 	goals: GoalEntry[];
+	validationBatch?: GoalValidationBatch;
 	createdAt: string;
 	updatedAt: string;
 }
 
 export type GoalReceiptKind = "per-goal" | "final-aggregate";
+
+/**
+ * Validation batch — adapted from upstream ultragoal aggregate validation concept.
+ * In JWC, validation batches allow coupled goals to defer heavyweight verification
+ * until the final aggregate goal runs, then verify all member results in one pass.
+ * This avoids redundant per-goal verification when goals are sequenced in a pipeline.
+ */
+export interface GoalValidationBatch {
+	batchId: string;
+	memberGoalIds: string[];
+	finalGoalId: string;
+	mode: "aggregate-only" | "per-goal";
+	status: "pending" | "running" | "complete" | "failed";
+	createdAt: number;
+	completedAt?: number;
+}
 
 export interface GoalCompletionVerification {
 	schemaVersion: 1;
@@ -106,9 +123,6 @@ const COVERED_STATUS = "covered";
 const ACCEPTED_PROOF_STATUSES = new Set([COVERED_STATUS, "passed", "verified"]);
 const MIN_SUBSTANTIVE_EVIDENCE_WORDS = 5;
 const MIN_SUBSTANTIVE_EVIDENCE_CHARS = 32;
-
-const GJC_GOAL_SNAPSHOT_MAX_AGE_MILLISECONDS = 10 * 60 * 1000;
-const GJC_GOAL_SNAPSHOT_MAX_FUTURE_SKEW_MILLISECONDS = 60 * 1000;
 
 const SCHEDULABLE_STATUSES = new Set<GoalStatus>(["pending", "active", "failed"]);
 
@@ -249,6 +263,37 @@ function planSnapshotForReceipt(input: {
 		jwcObjectiveAliases: input.plan.jwcObjectiveAliases,
 		createdAt: input.plan.createdAt,
 		goals,
+		validationBatch: input.plan.validationBatch,
+	};
+}
+
+function normalizeValidationBatch(value: unknown, goals: readonly GoalEntry[]): GoalValidationBatch | undefined {
+	if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
+	const row = value as Record<string, unknown>;
+	const memberGoalIds = Array.isArray(row.memberGoalIds)
+		? row.memberGoalIds.filter((id): id is string => typeof id === "string")
+		: [];
+	const goalIds = new Set(goals.map(goal => goal.id));
+	if (
+		typeof row.batchId !== "string" ||
+		typeof row.finalGoalId !== "string" ||
+		!goalIds.has(row.finalGoalId) ||
+		memberGoalIds.length === 0 ||
+		!memberGoalIds.includes(row.finalGoalId) ||
+		new Set(memberGoalIds).size !== memberGoalIds.length ||
+		memberGoalIds.some(id => !goalIds.has(id))
+	)
+		return undefined;
+	return {
+		batchId: row.batchId,
+		memberGoalIds,
+		finalGoalId: row.finalGoalId,
+		mode: row.mode === "per-goal" ? "per-goal" : "aggregate-only",
+		status: ["pending", "running", "complete", "failed"].includes(String(row.status))
+			? (row.status as GoalValidationBatch["status"])
+			: "pending",
+		createdAt: typeof row.createdAt === "number" ? row.createdAt : 0,
+		completedAt: typeof row.completedAt === "number" ? row.completedAt : undefined,
 	};
 }
 
@@ -313,7 +358,7 @@ function buildCompletionReceipt(input: {
 	receiptKind: GoalReceiptKind;
 	beforeStatus: GoalStatus;
 	qualityGateJson: JsonObject;
-	jwcGoalJson: JsonObject;
+	goalIdentity: JsonObject;
 	now: string;
 	checkpointLedgerEventId: string;
 }): GoalCompletionVerification {
@@ -336,11 +381,31 @@ function buildCompletionReceipt(input: {
 		jwcGoalMode: input.plan.jwcGoalMode,
 		jwcObjective: input.plan.jwcObjective,
 		qualityGateHash: hashStructuredValue(input.qualityGateJson),
-		jwcGoalSnapshotHash: hashStructuredValue(input.jwcGoalJson),
+		// Kept under the v1 field name for receipt compatibility. The hash now
+		// covers the durable .jwc goal identity, not a second session snapshot.
+		jwcGoalSnapshotHash: hashStructuredValue(input.goalIdentity),
 		planGeneration: generation.planGeneration,
 		basis: generation.basis,
 		checkpointLedgerEventId: input.checkpointLedgerEventId,
 	};
+}
+
+function durableGoalIdentity(plan: GoalPlan, goal: GoalEntry): JsonObject {
+	return {
+		goalId: goal.id,
+		objective: goal.objective,
+		status: goal.status,
+		updatedAt: goal.updatedAt,
+		jwcGoalMode: plan.jwcGoalMode,
+		jwcObjective: plan.jwcObjective,
+	};
+}
+
+function validateCompleteCheckpointTargetGoal(goal: GoalEntry): void {
+	if (goal.status === "active" || goal.status === "failed") return;
+	throw new Error(
+		`Cannot checkpoint ${goal.id} as complete while its durable goals.json status is ${goal.status}; only active or retryable failed goals can be completed.`,
+	);
 }
 
 function nonEmptyString(value: unknown): string | null {
@@ -421,6 +486,7 @@ function normalizePlan(raw: unknown): GoalPlan {
 		jwcObjective,
 		jwcObjectiveAliases: aliases,
 		goals,
+		validationBatch: normalizeValidationBatch(record.validationBatch, goals),
 		createdAt,
 		updatedAt,
 	};
@@ -600,10 +666,20 @@ export async function refineGoalObjective(input: { cwd: string; objective: strin
 }
 
 function chooseNextGoal(plan: GoalPlan, retryFailed: boolean): GoalEntry | undefined {
+	const batch = plan.validationBatch;
+	const finalReady =
+		!batch ||
+		batch.memberGoalIds
+			.filter(id => id !== batch.finalGoalId)
+			.every(id => {
+				const member = plan.goals.find(goal => goal.id === id);
+				return member !== undefined && TERMINAL_OR_SKIPPED_STATUSES.has(member.status);
+			});
+	const schedulable = (goal: GoalEntry): boolean => goal.id !== batch?.finalGoalId || finalReady;
 	return (
-		plan.goals.find(goal => goal.status === "active") ??
-		plan.goals.find(goal => goal.status === "pending") ??
-		(retryFailed ? plan.goals.find(goal => goal.status === "failed") : undefined)
+		plan.goals.find(goal => goal.status === "active" && schedulable(goal)) ??
+		plan.goals.find(goal => goal.status === "pending" && schedulable(goal)) ??
+		(retryFailed ? plan.goals.find(goal => goal.status === "failed" && schedulable(goal)) : undefined)
 	);
 }
 export interface GoalRunCompletionState {
@@ -1130,71 +1206,6 @@ async function readRequiredCompletionQualityGate(cwd: string, value: string | un
 	return gate;
 }
 
-function snapshotUpdatedAtMilliseconds(value: unknown): number | null {
-	if (typeof value === "number" && Number.isFinite(value)) return value;
-	if (typeof value !== "string" || value.trim().length === 0) return null;
-	const trimmed = value.trim();
-	if (/^\d+$/.test(trimmed)) {
-		const parsed = Number.parseInt(trimmed, 10);
-		return Number.isFinite(parsed) ? parsed : null;
-	}
-	const parsed = Date.parse(trimmed);
-	return Number.isFinite(parsed) ? parsed : null;
-}
-async function readJwcGoalSnapshot(input: {
-	cwd: string;
-	value: string | undefined;
-	plan: GoalPlan;
-	goal?: GoalEntry;
-	required: boolean;
-	errorPrefix: string;
-	allowCompletedLegacyBlocker?: boolean;
-}): Promise<unknown> {
-	if (!input.value?.trim()) {
-		if (!input.required) return undefined;
-		throw new Error(
-			`${input.errorPrefix} require --gjc-goal-json from a fresh active goal({"op":"get"}) snapshot; this is the GJC goal-mode receipt, not the .jwc/goal/goals.json goal record`,
-		);
-	}
-	const snapshot = await readStructuredValue(input.cwd, input.value);
-	const snapshotObject = qualityGateObject(snapshot);
-	const detailsObject = qualityGateObject(snapshotObject?.details);
-	const goalObject = qualityGateObject(snapshotObject?.goal) ?? qualityGateObject(detailsObject?.goal);
-	if (!goalObject)
-		throw new Error(
-			`${input.errorPrefix} require --gjc-goal-json with a goal object from goal({"op":"get"}); pass the active GJC goal-mode snapshot, not the .jwc/goal/goals.json goal record`,
-		);
-	const updatedAt = snapshotUpdatedAtMilliseconds(goalObject.updatedAt);
-	if (!updatedAt)
-		throw new Error(
-			`${input.errorPrefix} require --gjc-goal-json goal.updatedAt as epoch milliseconds or an ISO timestamp from goal({"op":"get"}); pass the active GJC goal-mode snapshot, not the .jwc/goal/goals.json goal record`,
-		);
-	const nowMilliseconds = Date.now();
-	if (updatedAt < nowMilliseconds - GJC_GOAL_SNAPSHOT_MAX_AGE_MILLISECONDS) {
-		throw new Error(`${input.errorPrefix} require a fresh --gjc-goal-json snapshot`);
-	}
-	if (updatedAt > nowMilliseconds + GJC_GOAL_SNAPSHOT_MAX_FUTURE_SKEW_MILLISECONDS) {
-		throw new Error(`${input.errorPrefix} require --gjc-goal-json goal.updatedAt that is not from the future`);
-	}
-	const objective = typeof goalObject.objective === "string" ? goalObject.objective : "";
-	const expectedObjectives = new Set([input.plan.jwcObjective, ...(input.plan.jwcObjectiveAliases ?? [])]);
-	if (input.plan.jwcGoalMode === "per-story" && input.goal?.objective) {
-		expectedObjectives.add(input.goal.objective);
-	}
-	if (input.allowCompletedLegacyBlocker && goalObject.status === "complete" && !expectedObjectives.has(objective)) {
-		return snapshot;
-	}
-	if (!expectedObjectives.has(objective)) {
-		throw new Error(
-			`${input.errorPrefix} require --gjc-goal-json objective to match the active GJC goal-mode objective from goal({"op":"get"}), not the .jwc/goal/goals.json goal ${input.goal?.id ?? "record"}`,
-		);
-	}
-	if (goalObject.status !== "active") {
-		throw new Error(`${input.errorPrefix} require --gjc-goal-json goal.status to be active`);
-	}
-	return snapshot;
-}
-
 export async function checkpointGoal(input: {
 	cwd: string;
 	goalId: string;
@@ -1218,6 +1229,8 @@ export async function checkpointGoal(input: {
 	const now = new Date().toISOString();
 	const ledgerBefore = await readGoalLedger(input.cwd);
 	const beforeStatus = goal.status;
+	if (input.status === "complete") validateCompleteCheckpointTargetGoal(goal);
+	const goalIdentity = durableGoalIdentity(plan, goal);
 	if (input.status === "complete") {
 		const blockedGoalId =
 			typeof goal.steering?.kind === "string" && goal.steering.kind === "review_blocker"
@@ -1231,25 +1244,6 @@ export async function checkpointGoal(input: {
 		}
 	}
 	const receiptKind = input.status === "complete" ? chooseReceiptKind(plan, goal, input.status) : null;
-	const jwcGoalJson =
-		input.status === "complete"
-			? await readJwcGoalSnapshot({
-					cwd: input.cwd,
-					value: input.jwcGoalJson,
-					plan,
-					goal,
-					required: true,
-					errorPrefix: "complete checkpoints",
-				})
-			: await readJwcGoalSnapshot({
-					cwd: input.cwd,
-					value: input.jwcGoalJson,
-					plan,
-					goal,
-					required: false,
-					errorPrefix: `${input.status} checkpoints`,
-					allowCompletedLegacyBlocker: input.status === "blocked",
-				});
 	const pendingCheckpointEventId = crypto.randomUUID();
 	if (input.status === "complete" && receiptKind && qualityGateJson && !Array.isArray(qualityGateJson)) {
 		goal.completionVerification = buildCompletionReceipt({
@@ -1259,7 +1253,7 @@ export async function checkpointGoal(input: {
 			receiptKind,
 			beforeStatus,
 			qualityGateJson: qualityGateJson as JsonObject,
-			jwcGoalJson: jwcGoalJson as JsonObject,
+			goalIdentity,
 			now,
 			checkpointLedgerEventId: pendingCheckpointEventId,
 		});
@@ -1268,6 +1262,16 @@ export async function checkpointGoal(input: {
 	goal.evidence = evidence;
 	goal.updatedAt = now;
 	if (input.status === "complete") goal.completedAt = now;
+	if (plan.validationBatch?.memberGoalIds.includes(goal.id)) {
+		if (input.status === "failed" || input.status === "blocked" || input.status === "review_blocked") {
+			plan.validationBatch.status = "failed";
+		} else if (input.status === "complete" && goal.id === plan.validationBatch.finalGoalId) {
+			plan.validationBatch.status = "complete";
+			plan.validationBatch.completedAt = Date.now();
+		} else if (input.status === "complete" && plan.validationBatch.status === "pending") {
+			plan.validationBatch.status = "running";
+		}
+	}
 	plan.updatedAt = now;
 	await writePlan(input.cwd, plan);
 	await appendLedger(input.cwd, {
@@ -1276,7 +1280,7 @@ export async function checkpointGoal(input: {
 		goalId: goal.id,
 		status: input.status,
 		evidence,
-		jwcGoalJson,
+		jwcGoalJson: goalIdentity,
 		qualityGateJson,
 		completionVerification: goal.completionVerification,
 	});
@@ -1848,15 +1852,11 @@ export async function recordGoalReviewBlockers(input: {
 }): Promise<GoalPlan> {
 	const objective = input.objective.trim();
 	if (!objective) throw new Error("record-review-blockers --objective is required");
-	if (!input.jwcGoalJson?.trim()) {
-		throw new Error('record-review-blockers require --gjc-goal-json from a fresh active goal({"op":"get"}) snapshot');
-	}
 	const plan = await checkpointGoal({
 		cwd: input.cwd,
 		goalId: input.goalId,
 		status: "review_blocked",
 		evidence: input.evidence,
-		jwcGoalJson: input.jwcGoalJson,
 	});
 	const now = new Date().toISOString();
 	const nextId = `G${String(plan.goals.length + 1).padStart(3, "0")}`;
@@ -1941,18 +1941,17 @@ function renderGoalHelp(args: readonly string[]): string | null {
 			"      --status=<value>             pending|active|complete|failed|blocked|review_blocked|superseded",
 			"      --evidence=<value>           Completion or checkpoint evidence text",
 			"      --quality-gate-json=<value>  JSON string or path for complete checkpoints",
-			'      --gjc-goal-json=<value>      JSON string or path containing the current goal({"op":"get"}) snapshot',
+			"      --gjc-goal-json=<value>      Deprecated compatibility flag; durable .jwc goal identity is authoritative",
 			"      --json                       Output a machine-readable receipt",
 			"",
 			"COMPLETE CHECKPOINT RECEIPTS",
 			"  --quality-gate-json must be an object with architectReview, executorQa, and iteration.",
 			"  executorQa.contractCoverage[] rows require an obligation field; description is not a substitute.",
-			'  --gjc-goal-json must contain the active GJC goal-mode snapshot from goal({"op":"get"}), not the .jwc/goal/goals.json goal record.',
-			"  goal.updatedAt may be epoch milliseconds or an ISO timestamp and must be fresh.",
+			"  Complete checkpoints validate the target durable .jwc/goal/goals.json record before writing a receipt.",
 			"",
 			"EXAMPLES",
 			`  $ ${APP_NAME} goal checkpoint --goal-id G001 --status blocked --evidence "waiting on review"`,
-			`  $ ${APP_NAME} goal checkpoint --goal-id G001 --status complete --evidence "tests passed" --gjc-goal-json ./goal.json --quality-gate-json ./quality-gate.json --json`,
+			`  $ ${APP_NAME} goal checkpoint --goal-id G001 --status complete --evidence "tests passed" --quality-gate-json ./quality-gate.json --json`,
 			"",
 		].join("\n");
 	}

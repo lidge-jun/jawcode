@@ -83,6 +83,12 @@ function formatReserveText(runtime: SlashCommandRuntime, contextWindow: number, 
 	return "unknown";
 }
 
+function contextUsageSourceLabel(source: "provider_anchor" | "heuristic" | "unknown"): string {
+	if (source === "provider_anchor") return "provider-reported";
+	if (source === "unknown") return "estimated; exact count unknown until next response";
+	return "estimated";
+}
+
 /**
  * Build the `/context` ACP-mode text. Tries the rich breakdown first
  * (categories + auto-compact buffer + free slack) and falls back to the
@@ -96,11 +102,21 @@ export function buildContextReportText(runtime: SlashCommandRuntime): string {
 			return "Context usage is unavailable: no model is selected for this session.";
 		}
 		const promptUsage = findLastAssistantUsage(history.activeMessages);
-		const usedPct = (breakdown.usedTokens / breakdown.contextWindow) * 100;
+		const activeContext =
+			breakdown.usedTokens === null
+				? `unknown / ${breakdown.contextWindow.toLocaleString()} tokens (${contextUsageSourceLabel(breakdown.source)})`
+				: `${breakdown.usedTokens.toLocaleString()} / ${breakdown.contextWindow.toLocaleString()} tokens (${(
+						(breakdown.usedTokens / breakdown.contextWindow) * 100
+					).toFixed(1)}% used; ${contextUsageSourceLabel(breakdown.source)})`;
 		const lines = [
 			"Context usage",
 			`Model: ${breakdown.model?.provider ?? "unknown"}/${breakdown.model?.id ?? "unknown"}`,
-			`Active context: ${breakdown.usedTokens.toLocaleString()} / ${breakdown.contextWindow.toLocaleString()} tokens (${usedPct.toFixed(1)}% used)`,
+			`Active context: ${activeContext}`,
+			...(breakdown.source === "provider_anchor" && breakdown.estimatedCategoryTotal !== breakdown.usedTokens
+				? [
+						`Estimated category total: ${breakdown.estimatedCategoryTotal.toLocaleString()} tokens (composition below is estimated)`,
+					]
+				: []),
 			`Reserve: ${formatReserveText(runtime, breakdown.contextWindow, breakdown.autoCompactBufferTokens)}`,
 			"",
 			"Active context breakdown (estimated)",
@@ -141,7 +157,7 @@ export function buildContextReportText(runtime: SlashCommandRuntime): string {
 		if (!fallback) return "Context usage is unavailable.";
 		return [
 			"Context usage",
-			`Active context: ${fallback.tokens === null || fallback.tokens === undefined ? "unknown" : fallback.tokens.toLocaleString()}`,
+			`Active context: ${fallback.tokens === null ? "unknown" : fallback.tokens.toLocaleString()} (${contextUsageSourceLabel(fallback.source)})`,
 			`Context window: ${fallback.contextWindow.toLocaleString()}`,
 			"Breakdown: unknown",
 		].join("\n");

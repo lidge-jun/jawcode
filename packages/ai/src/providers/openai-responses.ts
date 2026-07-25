@@ -52,6 +52,7 @@ import {
 	resolveGitHubCopilotBaseUrl,
 } from "./github-copilot-headers";
 import { compactGrammarDefinition } from "./grammar";
+import { wrapOpenAIFetchForBoundedRateLimits } from "./openai-bounded-rate-limits";
 import {
 	applyOpenAIRequestTransformBody,
 	applyOpenAIRequestTransformHeaders,
@@ -104,6 +105,12 @@ export interface OpenAIResponsesOptions extends StreamOptions {
 	 * Azure OpenAI and GitHub Copilot Responses paths require tool results to match prior tool calls.
 	 */
 	strictResponsesPairing?: boolean;
+	/**
+	 * Output text verbosity hint. Only mapped to the official `text.verbosity`
+	 * field when the request targets the official OpenAI endpoint; ignored for
+	 * non-official OpenAI-compatible proxies that may reject the field.
+	 */
+	textVerbosity?: "low" | "medium" | "high";
 }
 
 const OPENAI_RESPONSES_PROVIDER_SESSION_STATE_PREFIX = "openai-responses:";
@@ -128,6 +135,17 @@ function isOpenAIHostBaseUrl(baseUrl: string): boolean {
 	} catch {
 		return baseUrl.toLowerCase().startsWith(OPENAI_DEFAULT_BASE_URL);
 	}
+}
+
+/**
+ * The official OpenAI Responses endpoint accepts `text.verbosity`; third-party
+ * OpenAI-compatible proxies may reject unknown fields. Only treat
+ * `provider === "openai"` with an unset or api.openai.com base URL as official.
+ */
+function isOfficialOpenAIResponsesEndpoint(provider: string, effectiveBaseUrl: string | undefined): boolean {
+	if (provider !== "openai") return false;
+	if (!effectiveBaseUrl) return true;
+	return isOpenAIHostBaseUrl(effectiveBaseUrl);
 }
 
 function resolveOpenAIProviderBaseUrl(
@@ -255,6 +273,7 @@ export const streamOpenAIResponses: StreamFunction<"openai-responses"> = (
 				options?.fetch,
 				options?.authCredentialType,
 				options?.requestMaxRetries,
+				options?.maxRetryDelayMs,
 			);
 			const premiumRequestsTotal = copilotPremiumRequests;
 			const providerSessionState = getOpenAIResponsesProviderSessionState(model, options?.providerSessionState);
@@ -357,6 +376,7 @@ function createClient(
 	fetchOverride?: FetchImpl,
 	authCredentialType?: OpenAIResponsesOptions["authCredentialType"],
 	requestMaxRetries?: number,
+	maxRetryDelayMs?: number,
 ): {
 	client: OpenAI;
 	copilotPremiumRequests: number | undefined;
@@ -403,8 +423,9 @@ function createClient(
 		headers["x-client-request-id"] ??= sessionId;
 	}
 	const baseFetch = fetchOverride ?? fetch;
+	const boundedFetch = wrapOpenAIFetchForBoundedRateLimits(baseFetch, maxRetryDelayMs);
 	const transformedFetch = wrapFetchForOpenAIRequestTransform(
-		baseFetch,
+		boundedFetch,
 		model.requestTransform,
 		`Gajae-Code/${packageJson.version}`,
 	);
@@ -482,6 +503,9 @@ function buildParams(
 	};
 
 	applyCommonResponsesSamplingParams(params, options, model.provider);
+	if (options?.textVerbosity && isOfficialOpenAIResponsesEndpoint(model.provider, resolvedBaseUrl ?? model.baseUrl)) {
+		params.text = { ...params.text, verbosity: options.textVerbosity };
+	}
 	// TODO: openai responses has no top-level `stop`/`stop_sequences`; surface via reasoning.stop?
 	// `StreamOptions.stopSequences` is intentionally dropped for this provider.
 	// TODO: openai responses has no top-level `frequency_penalty` field as of the current SDK;
@@ -503,9 +527,16 @@ function buildParams(
 		}
 	}
 
-	applyResponsesReasoningParams(params, model, options, messages, effort =>
+	const reasoningOptions =
+		model.compat?.supportsReasoningSummary === false
+			? options?.reasoning === undefined
+				? undefined
+				: { reasoning: options.reasoning, reasoningSummary: null }
+			: options;
+	applyResponsesReasoningParams(params, model, reasoningOptions, messages, effort =>
 		mapReasoningEffort(effort as NonNullable<OpenAIResponsesOptions["reasoning"]>, model.compat?.reasoningEffortMap),
 	);
+	if (model.compat?.includeEncryptedReasoning === false) params.include = undefined;
 	applyOpenAIRequestTransformBody(params, model.requestTransform);
 
 	return { conversationMessages, params };
@@ -516,6 +547,52 @@ function mapReasoningEffort(
 	reasoningEffortMap: OpenAICompat["reasoningEffortMap"] | undefined,
 ): string {
 	return reasoningEffortMap?.[effort] ?? effort;
+}
+
+function buildCustomToolWireNameMap(tools: readonly Tool[] | undefined): ReadonlyMap<string, string> | undefined {
+	if (!tools?.length) return undefined;
+	const map = new Map<string, string>();
+	for (const tool of tools) {
+		if (tool.customWireName) map.set(tool.customWireName, tool.name);
+	}
+	return map.size > 0 ? map : undefined;
+}
+
+function resolveReplayCustomToolName(
+	wireName: string,
+	wireNameMap: ReadonlyMap<string, string> | undefined,
+): string {
+	return wireNameMap?.get(wireName) ?? (wireName === "apply_patch" ? "edit" : wireName);
+}
+
+function adaptResponsesReplayItemsForModel(
+	input: ResponseInput,
+	supportsCustomToolCalls: boolean,
+	wireNameMap: ReadonlyMap<string, string> | undefined,
+): ResponseInput {
+	if (supportsCustomToolCalls) return input;
+	let changed = false;
+	const adapted: ResponseInput = [];
+	for (const item of input) {
+		if (item.type === "custom_tool_call") {
+			changed = true;
+			adapted.push({
+				type: "function_call",
+				...(item.id ? { id: item.id } : {}),
+				call_id: item.call_id,
+				name: resolveReplayCustomToolName(item.name, wireNameMap),
+				arguments: JSON.stringify({ input: item.input }),
+			});
+			continue;
+		}
+		if (item.type === "custom_tool_call_output") {
+			changed = true;
+			adapted.push({ type: "function_call_output", call_id: item.call_id, output: item.output });
+			continue;
+		}
+		adapted.push(item);
+	}
+	return changed ? adapted : input;
 }
 
 function isAzureOpenAIBaseUrl(baseUrl: string): boolean {
@@ -557,6 +634,9 @@ function convertConversationMessages(
 	providerSessionState: OpenAIResponsesProviderSessionState | undefined,
 ): ResponseInput {
 	const messages: ResponseInput = [];
+	const supportsImageDetailOriginal = model.compat?.supportsImageDetailOriginal !== false;
+	const supportsCustomToolCalls = supportsFreeformApplyPatch(model);
+	const customToolWireNameMap = supportsCustomToolCalls ? undefined : buildCustomToolWireNameMap(context.tools);
 	let knownCallIds = new Set<string>();
 	const customCallIds = new Set<string>();
 	const shouldReplayNativeHistory = canReplayOpenAIResponsesNativeHistory(providerSessionState);
@@ -576,9 +656,14 @@ function convertConversationMessages(
 				}) ??
 					false);
 			if (historyItems && shouldReplayPayloadItems) {
-				messages.push(...sanitizeOpenAIResponsesHistoryItemsForReplay(historyItems));
+				const sanitizedItems = sanitizeOpenAIResponsesHistoryItemsForReplay(historyItems, {
+					supportsImageDetailOriginal,
+				});
+				messages.push(...adaptResponsesReplayItemsForModel(sanitizedItems, supportsCustomToolCalls, customToolWireNameMap));
 				knownCallIds = collectKnownCallIds(messages);
-				for (const id of collectCustomCallIds(messages)) customCallIds.add(id);
+				if (supportsCustomToolCalls) {
+					for (const id of collectCustomCallIds(messages)) customCallIds.add(id);
+				}
 				msgIndex++;
 				continue;
 			}
@@ -592,25 +677,38 @@ function convertConversationMessages(
 				: undefined;
 			const historyItems = providerPayload?.items;
 			if (historyItems) {
-				const sanitizedHistoryItems = sanitizeOpenAIResponsesHistoryItemsForReplay(historyItems);
+				const sanitizedItems = sanitizeOpenAIResponsesHistoryItemsForReplay(historyItems, {
+					supportsImageDetailOriginal,
+				});
+				const sanitizedHistoryItems = adaptResponsesReplayItemsForModel(
+					sanitizedItems,
+					supportsCustomToolCalls,
+					customToolWireNameMap,
+				);
 				if (providerPayload?.dt) {
 					messages.push(...sanitizedHistoryItems);
 				} else {
 					messages.splice(0, messages.length, ...sanitizedHistoryItems);
 				}
 				knownCallIds = collectKnownCallIds(messages);
-				for (const id of collectCustomCallIds(messages)) customCallIds.add(id);
+				if (supportsCustomToolCalls) {
+					for (const id of collectCustomCallIds(messages)) customCallIds.add(id);
+				}
 				msgIndex++;
 				continue;
 			}
 
-			const outputItems = convertResponsesAssistantMessage(
-				assistantMsg,
-				model,
-				msgIndex,
-				knownCallIds,
-				shouldReplayNativeHistory,
-				customCallIds,
+			const outputItems = adaptResponsesReplayItemsForModel(
+				convertResponsesAssistantMessage(
+					assistantMsg,
+					model,
+					msgIndex,
+					knownCallIds,
+					shouldReplayNativeHistory,
+					supportsCustomToolCalls ? customCallIds : undefined,
+				),
+				supportsCustomToolCalls,
+				customToolWireNameMap,
 			);
 			if (outputItems.length === 0) continue;
 			messages.push(...outputItems);

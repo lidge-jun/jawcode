@@ -155,3 +155,37 @@ describe("end-to-end via the broker", () => {
 		expect(other.status).toBe("accepted");
 	});
 });
+
+describe("questionToGate workflowGate stage override", () => {
+	it("overrides only the gate stage and keeps kind=question + question-answer schema", () => {
+		const gate = questionToGate({
+			id: "plan-approve",
+			question: "Approve this plan?",
+			options: [{ label: "Yes" }, { label: "No" }],
+			workflowGate: { stage: "plan" },
+		});
+		expect(gate.stage).toBe("plan");
+		// kind must remain "question": the ask path always emits a question-answer schema.
+		expect(gate.kind).toBe("question");
+		const schema = gate.schema as Record<string, unknown>;
+		const props = schema.properties as Record<string, unknown>;
+		expect(props.selected).toBeDefined();
+	});
+
+	it("defaults stage to jaw-interview when no workflowGate is provided", () => {
+		const gate = questionToGate(singleQ);
+		expect(gate.stage).toBe("jaw-interview");
+		expect(gate.kind).toBe("question");
+	});
+
+	it("supports the goal stage override", () => {
+		const gate = questionToGate({
+			id: "goal-scope",
+			question: "Scope the goal?",
+			options: [{ label: "A" }, { label: "B" }],
+			workflowGate: { stage: "goal" },
+		});
+		expect(gate.stage).toBe("goal");
+		expect(gate.kind).toBe("question");
+	});
+});

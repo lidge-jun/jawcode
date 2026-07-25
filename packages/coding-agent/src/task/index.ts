@@ -376,6 +376,25 @@ const FORK_CONTEXT_REQUEST_MODES = ["receipt", "last-turn", "bounded", "full"] a
 >[];
 const FORK_CONTEXT_REQUEST_MODE_SET = new Set<unknown>(FORK_CONTEXT_REQUEST_MODES);
 
+/**
+ * Agent spawned when a `task` call omits (or blanks) `agent`. The task schema marks
+ * `agent` optional; both execute entry points normalize a missing/blank value to this
+ * hidden general-purpose worker so every downstream read (lookup, progress, metadata,
+ * render, start text) sees the resolved agent. Supports direct/programmatic callers that
+ * build params without the model-facing schema. JWC-adapted from upstream OMP 9ccd83a13.
+ */
+export const DEFAULT_TASK_AGENT = "task";
+
+/**
+ * Resolve the effective agent name for a task spawn: an explicit non-blank `agent` is
+ * preserved verbatim; a missing or whitespace-only value falls back to
+ * {@link DEFAULT_TASK_AGENT}. Shared by `execute()` and `#executeSync()` so every entry
+ * normalizes identically.
+ */
+export function resolveTaskAgent(agent: string | undefined): string {
+	return typeof agent === "string" && agent.trim() !== "" ? agent : DEFAULT_TASK_AGENT;
+}
+
 function isValidForkContextMode(value: unknown): value is ForkContextMode {
 	return FORK_CONTEXT_MODE_SET.has(value);
 }
@@ -514,7 +533,11 @@ export class TaskTool implements AgentTool<TaskToolSchemaInstance, TaskToolDetai
 		signal?: AbortSignal,
 		onUpdate?: AgentToolUpdateCallback<TaskToolDetails>,
 	): Promise<AgentToolResult<TaskToolDetails>> {
-		const params = rawParams as TaskParams;
+		const rawTaskParams = rawParams as TaskParams;
+		// `agent` is schema-optional; normalize a missing/blank value to the default worker
+		// once here so all downstream reads (lookup, progress, metadata, render, start text)
+		// observe the same resolved agent.
+		const params: TaskParams & { agent: string } = { ...rawTaskParams, agent: resolveTaskAgent(rawTaskParams.agent) };
 		const requestedAgentName = params.agent;
 		const agentLookupName = requestedAgentName === "executor_ext" ? "executor" : requestedAgentName;
 		const simpleMode = this.#getTaskSimpleMode();
@@ -695,7 +718,7 @@ export class TaskTool implements AgentTool<TaskToolSchemaInstance, TaskToolDetai
 						metadata: {
 							subagent: {
 								id: descriptor.task.id,
-								agent: descriptor.params.agent,
+								agent: descriptor.params.agent ?? DEFAULT_TASK_AGENT,
 								agentSource: descriptor.agentSource,
 								description: descriptor.task.description,
 								assignment: descriptor.task.assignment.trim(),
@@ -984,7 +1007,10 @@ export class TaskTool implements AgentTool<TaskToolSchemaInstance, TaskToolDetai
 	): Promise<AgentToolResult<TaskToolDetails>> {
 		const startTime = Date.now();
 		const { agents, projectAgentsDir } = await discoverAgents(this.session.cwd);
-		const { agent: requestedAgentName, context, schema: outputSchema } = params;
+		// Internal/batch callers can build params directly; normalize a missing/blank agent
+		// to the default worker so this sync path matches the async entry contract.
+		const requestedAgentName = resolveTaskAgent(params.agent);
+		const { context, schema: outputSchema } = params;
 		const agentName = requestedAgentName === "executor_ext" ? "executor_ext" : requestedAgentName;
 		const agentLookupName = requestedAgentName === "executor_ext" ? "executor" : requestedAgentName;
 		const simpleMode = this.#getTaskSimpleMode();

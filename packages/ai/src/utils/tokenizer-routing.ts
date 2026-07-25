@@ -68,6 +68,17 @@ export function resolveTokenizerFamily(model: { provider: string; id: string }):
 		return "o200k_base";
 	}
 
+	if (model.provider === "deepinfra") {
+		// DeepInfra hosts many families on one provider id; route by model id.
+		const id = model.id.toLowerCase();
+		if (id.includes("deepseek")) return "deepseek";
+		if (id.includes("gemma")) return "gemma";
+		if (id.includes("llama")) return "llama3";
+		if (id.includes("glm")) return "glm";
+		if (id.includes("minimax")) return "glm";
+		return "o200k_base";
+	}
+
 	if (model.provider === "google-vertex") {
 		if (model.id.includes("gemini") || model.id.includes("gemma")) return "gemma";
 		if (model.id.includes("claude")) {

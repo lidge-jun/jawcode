@@ -5,6 +5,7 @@ import {
 	findInitialModel,
 	parseModelPattern,
 	parseModelString,
+	rankModelFallbackCandidates,
 	resolveAgentModelPatterns,
 	resolveCliModel,
 	resolveModelFromString,
@@ -223,6 +224,29 @@ const canonicalRegistry = {
 } as unknown as Parameters<typeof resolveCliModel>[0]["modelRegistry"];
 
 const allModels = [...mockModels, ...mockOpenRouterModels, ...mockProviderOverlapModels, ...mockCodexOverlapModels];
+
+describe("rankModelFallbackCandidates", () => {
+	test("promotes reliable measured models and demotes error-prone models", () => {
+		const candidates = ["provider/unknown", "provider/error-prone", "provider/reliable"];
+		const performance = new Map([
+			["provider/error-prone", { samples: 10, errors: 8, errorRate: 0.8, averageLatencyMs: 100 }],
+			["provider/reliable", { samples: 10, errors: 0, errorRate: 0, averageLatencyMs: 500 }],
+		]);
+
+		expect(rankModelFallbackCandidates(candidates, performance, candidate => candidate)).toEqual([
+			"provider/reliable",
+			"provider/unknown",
+			"provider/error-prone",
+		]);
+	});
+
+	test("preserves configured order until a model has enough samples", () => {
+		const candidates = ["provider/first", "provider/second"];
+		const performance = new Map([["provider/second", { samples: 1, errors: 0, errorRate: 0, averageLatencyMs: 10 }]]);
+
+		expect(rankModelFallbackCandidates(candidates, performance, candidate => candidate)).toEqual(candidates);
+	});
+});
 
 describe("parseModelPattern", () => {
 	describe("simple patterns without colons", () => {

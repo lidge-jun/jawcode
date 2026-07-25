@@ -176,6 +176,28 @@ describe("DuckDuckGo provider search", () => {
 		await expect(searchDuckDuckGo({ query: "x", signal: controller.signal })).rejects.toThrow();
 		expect(fetched).toBe(false);
 	});
+
+	it("sends native-browser-aligned headers and a blank pagination param on the html endpoint", async () => {
+		let capturedHeaders: Headers | undefined;
+		let capturedBody: string | undefined;
+		using _hook = hookFetch((input, init) => {
+			const url = input.toString();
+			if (url.startsWith("https://html.duckduckgo.com")) {
+				capturedHeaders = new Headers(init?.headers);
+				capturedBody = typeof init?.body === "string" ? init.body : (init?.body as URLSearchParams)?.toString();
+				return new Response(HTML_FIXTURE, { status: 200 });
+			}
+			return new Response("", { status: 500 });
+		});
+		await searchDuckDuckGo({ query: "alpha" });
+		expect(capturedHeaders?.get("sec-fetch-mode")).toBe("navigate");
+		expect(capturedHeaders?.get("sec-fetch-dest")).toBe("document");
+		expect(capturedHeaders?.get("sec-ch-ua-mobile")).toBe("?0");
+		expect(capturedHeaders?.get("referer")).toBe("https://html.duckduckgo.com/html/");
+		expect(capturedHeaders?.get("upgrade-insecure-requests")).toBe("1");
+		// The browser frontend posts a blank `b` pagination param on the html form.
+		expect(new URLSearchParams(capturedBody ?? "").has("b")).toBe(true);
+	});
 });
 
 describe("resolveProviderChain — active-model-gated resolution", () => {

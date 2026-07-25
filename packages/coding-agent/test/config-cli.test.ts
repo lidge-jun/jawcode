@@ -3,7 +3,7 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { getConfigRootDir, setAgentDir } from "@jawcode-dev/utils";
-import { runConfigCommand } from "../src/cli/config-cli";
+import { parseConfigArgs, runConfigCommand } from "../src/cli/config-cli";
 import { resetSettingsForTest } from "../src/config/settings";
 
 let testAgentDir = "";
@@ -126,5 +126,27 @@ describe("config CLI schema coverage", () => {
 			type: "number",
 			value: 600,
 		});
+	});
+});
+
+describe("config CLI argument parsing", () => {
+	it("treats everything after -- as positional, including dash-leading values", () => {
+		const parsed = parseConfigArgs(["config", "set", "identity.toneCustom", "--", "- bullet tone\n- second line"]);
+		expect(parsed).toMatchObject({
+			action: "set",
+			key: "identity.toneCustom",
+			value: "- bullet tone\n- second line",
+		});
+	});
+
+	it("still parses --json before the -- separator", () => {
+		const parsed = parseConfigArgs(["config", "set", "identity.toneCustom", "--json", "--", "-x"]);
+		expect(parsed).toMatchObject({ action: "set", key: "identity.toneCustom", value: "-x" });
+		expect(parsed?.flags.json).toBe(true);
+	});
+
+	it("keeps dropping unknown dash tokens without a -- separator (existing behavior)", () => {
+		const parsed = parseConfigArgs(["config", "set", "identity.toneCustom", "-x", "plain"]);
+		expect(parsed).toMatchObject({ action: "set", key: "identity.toneCustom", value: "plain" });
 	});
 });

@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { COORDINATOR_MCP_TOOL_NAMES, createCoordinatorMcpServer } from "../src/coordinator-mcp/server";
+import {
+	COORDINATOR_MCP_TOOL_NAMES,
+	createCoordinatorMcpServer,
+	tmuxCommandForCoordinatorSession,
+} from "../src/coordinator-mcp/server";
 
 const tempDirs: string[] = [];
 
@@ -17,6 +21,21 @@ afterEach(async () => {
 });
 
 describe("Coordinator MCP server protocol", () => {
+	it("routes each coordinator delegate through its recorded tmux owner socket", () => {
+		expect(
+			tmuxCommandForCoordinatorSession({ tmuxSocketKey: "jwc-owner-a" }, ["has-session", "-t", "delegate-a"]),
+		).toEqual(["tmux", "-L", "jwc-owner-a", "has-session", "-t", "delegate-a"]);
+		expect(tmuxCommandForCoordinatorSession({}, ["has-session", "-t", "legacy"])).toEqual([
+			"tmux",
+			"has-session",
+			"-t",
+			"legacy",
+		]);
+		expect(() => tmuxCommandForCoordinatorSession({ tmuxSocketKey: "--malformed owner" }, ["has-session"])).toThrow(
+			"coordinator_tmux_owner_socket_invalid",
+		);
+	});
+
 	it("initializes with JWC coordinator server identity and lists JWC-named tools", async () => {
 		const server = createCoordinatorMcpServer({ env: {} });
 
@@ -130,7 +149,13 @@ describe("Coordinator MCP server protocol", () => {
 			current_turn_id: payload.turn_id,
 		});
 		expect(calls).toEqual([
-			{ cwd: root, prompt: "hello", namespace: { profile: "local", repo: "repo" }, worktree: true },
+			{
+				cwd: root,
+				prompt: "hello",
+				mpreset: null,
+				namespace: { profile: "local", repo: "repo" },
+				worktree: true,
+			},
 		]);
 	});
 
@@ -548,6 +573,74 @@ describe("Coordinator MCP server protocol", () => {
 		expect((read.session_state as { state: string; last_turn_id: string }).state).toBe("completed");
 		expect((read.session_state as { state: string; last_turn_id: string }).last_turn_id).toBe(turnId);
 	});
+
+	it("terminalizes active turns from launch errored runtime state without current turn id", async () => {
+		const root = await tempRoot();
+		const stateRoot = path.join(root, ".jwc", "state", "hermes-launch-error");
+		const server = createCoordinatorMcpServer({
+			env: {
+				JWC_COORDINATOR_MCP_WORKDIR_ROOTS: root,
+				JWC_COORDINATOR_MCP_STATE_ROOT: stateRoot,
+				JWC_COORDINATOR_MCP_MUTATIONS: "sessions",
+				JWC_COORDINATOR_MCP_PROFILE: "local",
+				JWC_COORDINATOR_MCP_REPO: "repo",
+			},
+			services: {
+				startSession: async input => ({
+					sessionId: "jwc-launch-error",
+					cwd: input.cwd,
+					createdAt: "2026-06-07T00:00:00.000Z",
+				}),
+			},
+		});
+		await server.callTool("jwc_coordinator_start_session", { cwd: root, allow_mutation: true });
+		const turn = await server.callTool("jwc_coordinator_send_prompt", {
+			session_id: "jwc-launch-error",
+			prompt: "work",
+			allow_mutation: true,
+		});
+		const turnId = turn.turn_id as string;
+		const sessionStatesDir = path.join(stateRoot, "local", "repo", "session-states");
+		await fs.mkdir(sessionStatesDir, { recursive: true });
+		await Bun.write(
+			path.join(sessionStatesDir, "jwc-launch-error.json"),
+			JSON.stringify({
+				schema_version: 1,
+				session_id: "jwc-launch-error",
+				state: "errored",
+				ready_for_input: false,
+				current_turn_id: null,
+				last_turn_id: null,
+				updated_at: "2026-06-07T00:00:01.000Z",
+				source: "agent_session_event",
+				live: false,
+				reason: "worktree_target_mismatch:/repo/.jawcode-worktrees/main",
+				final_response: {
+					text: "worktree_target_mismatch:/repo/.jawcode-worktrees/main",
+					format: "markdown",
+					source: "runtime_state",
+					artifact_path: null,
+					truncated: false,
+				},
+			}),
+		);
+
+		const read = await server.callTool("jwc_coordinator_read_turn", {
+			session_id: "jwc-launch-error",
+			turn_id: turnId,
+		});
+
+		expect((read.turn as { status: string }).status).toBe("failed");
+		expect((read.turn as { final_response: { text: string; source: string } }).final_response.text).toContain(
+			"worktree_target_mismatch",
+		);
+		expect((read.turn as { final_response: { text: string; source: string } }).final_response.source).toBe(
+			"runtime_state",
+		);
+		expect((read.turn as { error: { message: string } }).error.message).toContain("worktree_target_mismatch");
+		expect((read.session_state as { state: string; last_turn_id: string }).last_turn_id).toBe(turnId);
+	});
+
 	it("terminalizes active turns quickly when the recorded tmux session is gone", async () => {
 		const root = await tempRoot();
 		const stateRoot = path.join(root, ".jwc", "state", "hermes-stale");

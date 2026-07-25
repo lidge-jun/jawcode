@@ -35,7 +35,7 @@ import {
 	type ToolChoice,
 	type ToolResultMessage,
 } from "../types";
-import { normalizeSystemPrompts } from "../utils";
+import { normalizeSystemPrompts, sanitizeJsonStrings } from "../utils";
 import { createAbortSourceTracker } from "../utils/abort";
 import { AssistantMessageEventStream } from "../utils/event-stream";
 import { toFirepassWireModelId, toFireworksWireModelId } from "../utils/fireworks-model-id";
@@ -67,6 +67,7 @@ import {
 	hasCopilotVisionInput,
 	resolveGitHubCopilotBaseUrl,
 } from "./github-copilot-headers";
+import { wrapOpenAIFetchForBoundedRateLimits } from "./openai-bounded-rate-limits";
 import { detectOpenAICompat, type ResolvedOpenAICompat, resolveOpenAICompat } from "./openai-completions-compat";
 import {
 	applyOpenAIRequestTransformBody,
@@ -161,7 +162,7 @@ function normalizeStreamingContentText(content: unknown): string {
 function serializeToolArguments(value: unknown): string {
 	if (value && typeof value === "object" && !Array.isArray(value)) {
 		try {
-			return JSON.stringify(value);
+			return JSON.stringify(sanitizeJsonStrings(value));
 		} catch {
 			return "{}";
 		}
@@ -173,7 +174,7 @@ function serializeToolArguments(value: unknown): string {
 		try {
 			const parsed = JSON.parse(trimmed);
 			if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-				return JSON.stringify(parsed);
+				return JSON.stringify(sanitizeJsonStrings(parsed));
 			}
 		} catch {}
 		return "{}";
@@ -327,6 +328,20 @@ function isCompiledGrammarTooLargeStrictError(
 	);
 }
 
+function hasContentFilterSafetyCode(capturedErrorResponse: CapturedHttpErrorResponse | undefined): boolean {
+	const bodyJson = capturedErrorResponse?.bodyJson;
+	if (typeof bodyJson !== "object" || bodyJson === null || Array.isArray(bodyJson)) return false;
+	if (Reflect.get(bodyJson, "code") === "content_filter") return true;
+
+	const error = Reflect.get(bodyJson, "error");
+	return (
+		typeof error === "object" &&
+		error !== null &&
+		!Array.isArray(error) &&
+		Reflect.get(error, "code") === "content_filter"
+	);
+}
+
 // LIMITATION: The think tag parser uses naive string matching for <think>/<thinking> tags.
 // If MiniMax models output these literal strings in code blocks, XML examples, or explanations,
 // they will be incorrectly consumed as thinking delimiters, truncating visible output.
@@ -448,6 +463,7 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions"> = (
 				options?.streamFirstEventTimeoutMs,
 				options?.authCredentialType,
 				options?.requestMaxRetries,
+				options?.maxRetryDelayMs,
 			);
 			const premiumRequestsTotal = copilotPremiumRequests;
 			getCapturedErrorResponse = captureErrorResponse;
@@ -528,7 +544,8 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions"> = (
 			// though tool calls are also surfaced structurally. Strip the leaked markers
 			// so users don't see raw `<｜...｜>` tokens.
 			const stripDeepseekChatTemplateTokens =
-				/deepseek/i.test(model.id) && (model.provider === "nvidia" || model.provider === "deepseek");
+				/deepseek/i.test(model.id) &&
+				(model.provider === "nvidia" || model.provider === "deepseek" || model.provider === "deepinfra");
 			type OpenAIStreamBlock = TextContent | ThinkingContent | (ToolCall & { partialArgs: string });
 			let currentBlock: OpenAIStreamBlock | undefined;
 			const blockIndex = (block: OpenAIStreamBlock | undefined): number => {
@@ -694,6 +711,13 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions"> = (
 				const calls = kimiHealer.drainCompleted();
 				for (const call of calls) emitHealedToolCall(call);
 			};
+			let providerSafetyStop = false;
+			const markProviderSafetyStop = (errorMessage?: string): void => {
+				providerSafetyStop = true;
+				output.errorKind = "provider_safety_stop";
+				output.stopReason = "error";
+				if (errorMessage) output.errorMessage = errorMessage;
+			};
 
 			for await (const chunk of iterateWithIdleTimeout(openaiStream, {
 				watchdog: firstEventWatchdog,
@@ -725,13 +749,23 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions"> = (
 
 				if (choice.finish_reason) {
 					const finishReasonResult = mapStopReason(choice.finish_reason);
-					output.stopReason = finishReasonResult.stopReason;
-					if (finishReasonResult.errorMessage) {
-						output.errorMessage = finishReasonResult.errorMessage;
+					if (choice.finish_reason === "content_filter") {
+						markProviderSafetyStop(finishReasonResult.errorMessage);
+					} else if (!providerSafetyStop) {
+						output.stopReason = finishReasonResult.stopReason;
+						if (finishReasonResult.errorMessage) {
+							output.errorMessage = finishReasonResult.errorMessage;
+						}
 					}
 				}
 
 				if (choice.delta) {
+					if (typeof choice.delta.refusal === "string" && choice.delta.refusal.length > 0) {
+						appendTextDelta(choice.delta.refusal);
+						if (!providerSafetyStop) {
+							markProviderSafetyStop("Provider returned a safety refusal");
+						}
+					}
 					const normalizedDeltaText = normalizeStreamingContentText(choice.delta.content);
 					if (normalizedDeltaText.length > 0) {
 						if (!firstTokenTime) firstTokenTime = Date.now();
@@ -890,15 +924,19 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions"> = (
 		} catch (error) {
 			for (const block of output.content) delete (block as any).index;
 			const firstEventTimeoutError = abortTracker.getLocalAbortReason();
+			const capturedErrorResponse = getCapturedErrorResponse?.();
 			output.stopReason = abortTracker.wasCallerAbort() ? "aborted" : "error";
-			output.errorStatus = extractHttpStatusFromError(error) ?? getCapturedErrorResponse?.()?.status;
+			output.errorStatus = extractHttpStatusFromError(error) ?? capturedErrorResponse?.status;
 			output.errorMessage =
 				firstEventTimeoutError?.message ??
-				(await finalizeErrorMessage(error, rawRequestDump, getCapturedErrorResponse?.()));
+				(await finalizeErrorMessage(error, rawRequestDump, capturedErrorResponse));
 			// Some providers via OpenRouter include extra details here.
 			const rawMetadata = (error as { error?: { metadata?: { raw?: string } } })?.error?.metadata?.raw;
 			if (rawMetadata) output.errorMessage += `\n${rawMetadata}`;
 			output.errorMessage = rewriteCopilotError(output.errorMessage, error, model.provider);
+			if (hasContentFilterSafetyCode(capturedErrorResponse)) {
+				output.errorKind = "provider_safety_stop";
+			}
 			output.duration = Date.now() - startTime;
 			if (firstTokenTime) output.ttft = firstTokenTime - startTime;
 			stream.push({ type: "error", reason: output.stopReason, error: output });
@@ -920,6 +958,7 @@ async function createClient(
 	streamFirstEventTimeoutOverride?: number,
 	authCredentialType?: OpenAICompletionsOptions["authCredentialType"],
 	requestMaxRetries?: number,
+	maxRetryDelayMs?: number,
 ): Promise<{
 	client: OpenAI;
 	copilotPremiumRequests: number | undefined;
@@ -1019,8 +1058,9 @@ async function createClient(
 		},
 		baseFetch.preconnect ? { preconnect: baseFetch.preconnect } : {},
 	);
+	const boundedFetch = wrapOpenAIFetchForBoundedRateLimits(wrappedFetch, maxRetryDelayMs);
 	const transformedFetch = wrapFetchForOpenAIRequestTransform(
-		wrappedFetch,
+		boundedFetch,
 		model.requestTransform,
 		`Gajae-Code/${packageJson.version}`,
 	);

@@ -1,9 +1,12 @@
 import { createHash, randomUUID } from "node:crypto";
+import type { Dirent } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { NOTIFICATION_CHILD_SESSION_ENV } from "../notifications/config";
 import type { WorkflowHudSummary } from "../skill-state/active-state";
 import { buildTeamHudSummary as buildWorkflowTeamHudSummary } from "../skill-state/workflow-hud";
 import { WORKFLOW_STATE_VERSION } from "../skill-state/workflow-state-contract";
+import type { GcPidProbe, GcRecord } from "./gc-runtime";
 
 import { applyJwcTmuxProfile } from "./launch-tmux";
 import {
@@ -17,7 +20,13 @@ import {
 	writeReport,
 	writeWorkflowEnvelopeAtomic,
 } from "./state-writer";
-import { buildJwcTmuxExactOptionTarget, GJC_TMUX_PROFILE_OPTION, GJC_TMUX_PROFILE_VALUE } from "./tmux-common";
+import {
+	buildJwcTmuxExactOptionTarget,
+	detectPsmux,
+	GJC_TMUX_PROFILE_OPTION,
+	GJC_TMUX_PROFILE_VALUE,
+	resolveJwcTmuxCommand as resolveSharedJwcTmuxCommand,
+} from "./tmux-common";
 
 export type JwcTeamPhase = "starting" | "running" | "awaiting_integration" | "complete" | "failed" | "cancelled";
 export type JwcTeamTaskStatus = "pending" | "blocked" | "in_progress" | "completed" | "failed";
@@ -580,6 +589,42 @@ function teamDir(stateRoot: string, teamName: string): string {
 function shellQuote(value: string): string {
 	return `'${value.replace(/'/g, "'\\''")}'`;
 }
+function powershellQuote(value: string): string {
+	return `'${value.replace(/'/g, "''")}'`;
+}
+function splitCommandWords(command: string): string[] {
+	const words: string[] = [];
+	let current = "";
+	let quote: "'" | '"' | null = null;
+	for (let index = 0; index < command.length; index += 1) {
+		const char = command[index] ?? "";
+		if (quote) {
+			if (char === quote) quote = null;
+			else current += char;
+			continue;
+		}
+		if (char === "'" || char === '"') {
+			quote = char;
+			continue;
+		}
+		if (/\s/.test(char)) {
+			if (current) {
+				words.push(current);
+				current = "";
+			}
+			continue;
+		}
+		current += char;
+	}
+	if (current) words.push(current);
+	return words;
+}
+function buildPowerShellInvocation(command: string, args: string[]): string {
+	const normalized = command.trim().startsWith("& ") ? command.trim().slice(2).trim() : command.trim();
+	const words = splitCommandWords(normalized);
+	const commandWords = words.length > 0 ? words : [normalized];
+	return ["&", ...commandWords.map(powershellQuote), ...args.map(powershellQuote)].join(" ");
+}
 function safePathSegment(kind: string, value: string): string {
 	assertSafeId(kind, value);
 	return value;
@@ -659,7 +704,7 @@ function workerIntegrationDedupePath(dir: string, worker: string): string {
 }
 
 export function resolveJwcTeamStateRoot(cwd = process.cwd(), env: NodeJS.ProcessEnv = process.env): string {
-	const explicit = env.GJC_TEAM_STATE_ROOT?.trim();
+	const explicit = (env.JWC_TEAM_STATE_ROOT ?? env.GJC_TEAM_STATE_ROOT)?.trim();
 	if (explicit) return path.resolve(cwd, explicit);
 	return path.join(cwd, ".jwc", "state", "team");
 }
@@ -672,6 +717,169 @@ async function readJsonFile<T>(filePath: string): Promise<T | null> {
 		throw error;
 	}
 }
+
+function isPositivePid(value: unknown): value is number {
+	return typeof value === "number" && Number.isInteger(value) && value > 0;
+}
+
+function collectTeamGcWorkerPids(
+	heartbeat: WorkerHeartbeatFile | null,
+	lifecycle: JwcTeamWorkerLifecycle | null,
+): number[] {
+	const pids: number[] = [];
+	if (isPositivePid(heartbeat?.pid)) pids.push(heartbeat.pid);
+	if (isPositivePid(lifecycle?.pid) && !pids.includes(lifecycle.pid)) pids.push(lifecycle.pid);
+	return pids;
+}
+
+interface TeamGcPidClassification {
+	removable: boolean;
+	pidStatus: "dead" | "alive" | "eperm" | "unknown" | "none";
+	pid?: number;
+}
+
+function gcProbeStatus(probe: GcPidProbe, pid: number): "dead" | "alive" | "eperm" | "unknown" {
+	const result = probe(pid);
+	if (result.status === "dead") return "dead";
+	return result.reason ?? "unknown";
+}
+
+function classifyTeamGcWorkerPids(pids: number[], probe: GcPidProbe): TeamGcPidClassification {
+	if (pids.length === 0) return { removable: false, pidStatus: "none" };
+	const statuses = pids.map(pid => ({ pid, status: gcProbeStatus(probe, pid) }));
+	const kept = statuses.find(entry => entry.status !== "dead");
+	if (kept) return { removable: false, pidStatus: kept.status, pid: kept.pid };
+	return { removable: true, pidStatus: "dead", pid: statuses[0]?.pid };
+}
+
+function teamGcRecordDetail(heartbeat: WorkerHeartbeatFile | null, lifecycle: JwcTeamWorkerLifecycle | null): string {
+	return [
+		`heartbeat=${heartbeat ? "present" : "missing"}`,
+		...(heartbeat ? [`heartbeat_alive=${heartbeat.alive}`, `last_turn_at=${heartbeat.last_turn_at}`] : []),
+		`lifecycle=${lifecycle?.lifecycle_state ?? "missing"}`,
+		...(lifecycle?.pane_id ? [`pane_id=${lifecycle.pane_id}`] : []),
+		...(lifecycle?.stop_reason ? [`stop_reason=${lifecycle.stop_reason}`] : []),
+	].join(" ");
+}
+
+/** @internal */
+export async function listTeamWorkerGcRecords(teamRoot: string, probe: GcPidProbe): Promise<GcRecord[]> {
+	const teamEntries = await fs.readdir(teamRoot, { withFileTypes: true });
+	const records: GcRecord[] = [];
+	for (const teamEntry of teamEntries) {
+		if (!teamEntry.isDirectory()) continue;
+		const teamName = teamEntry.name;
+		const teamDirPath = path.join(teamRoot, teamName);
+		let workerEntries: Dirent[];
+		try {
+			workerEntries = await fs.readdir(path.join(teamDirPath, "workers"), { withFileTypes: true });
+		} catch (error) {
+			if (isEnoent(error)) continue;
+			throw error;
+		}
+
+		for (const workerEntry of workerEntries) {
+			if (!workerEntry.isDirectory()) continue;
+			const workerId = workerEntry.name;
+			const dir = path.join(teamDirPath, "workers", workerId);
+			let heartbeat: WorkerHeartbeatFile | null = null;
+			let lifecycle: JwcTeamWorkerLifecycle | null = null;
+			try {
+				heartbeat = await readJsonFile<WorkerHeartbeatFile>(path.join(dir, "heartbeat.json"));
+				lifecycle = await readJsonFile<JwcTeamWorkerLifecycle>(path.join(dir, "lifecycle.json"));
+			} catch (error) {
+				records.push({
+					store: "team_workers",
+					id: `${teamName}/${workerId}`,
+					root: teamRoot,
+					path: dir,
+					pid_status: "none",
+					status: "malformed",
+					stale: false,
+					removable: false,
+					action: "none",
+					reason: "worker_state_malformed_kept",
+					error: error instanceof Error ? error.message : String(error),
+				});
+				continue;
+			}
+			const { removable, pidStatus, pid } = classifyTeamGcWorkerPids(
+				collectTeamGcWorkerPids(heartbeat, lifecycle),
+				probe,
+			);
+			const terminalLifecycle = lifecycle?.lifecycle_state === "failed" || lifecycle?.lifecycle_state === "stopped";
+			const status = removable
+				? "dead"
+				: pidStatus === "none" && terminalLifecycle
+					? "terminal_lifecycle"
+					: pidStatus === "none"
+						? "no_pid"
+						: pidStatus;
+			records.push({
+				store: "team_workers",
+				id: `${teamName}/${workerId}`,
+				root: teamRoot,
+				path: dir,
+				pid,
+				pid_status: pidStatus,
+				status,
+				stale: removable,
+				removable,
+				action: "none",
+				reason: removable
+					? "worker_all_pids_dead"
+					: pidStatus === "none" && terminalLifecycle
+						? "terminal_lifecycle_without_pid_kept"
+						: pidStatus === "none"
+							? "worker_pid_missing_kept"
+							: `worker_pid_${pidStatus}_kept`,
+				detail: teamGcRecordDetail(heartbeat, lifecycle),
+			});
+		}
+	}
+	return records;
+}
+
+/** @internal */
+export async function pruneTeamWorkerGcRecord(record: GcRecord, probe: GcPidProbe): Promise<boolean> {
+	if (!record.path || !record.id.includes("/")) return false;
+	const [teamName, workerId] = record.id.split("/", 2);
+	if (!teamName || !workerId) return false;
+	const teamDirPath = path.dirname(path.dirname(record.path));
+	const heartbeat = await readJsonFile<WorkerHeartbeatFile>(path.join(record.path, "heartbeat.json"));
+	const lifecycle = await readJsonFile<JwcTeamWorkerLifecycle>(path.join(record.path, "lifecycle.json"));
+	if (!classifyTeamGcWorkerPids(collectTeamGcWorkerPids(heartbeat, lifecycle), probe).removable) return false;
+
+	const claimDir = path.join(teamDirPath, "claims");
+	try {
+		for (const entry of await fs.readdir(claimDir, { withFileTypes: true })) {
+			if (!entry.isFile() || !entry.name.endsWith(".json")) continue;
+			const claimPath = path.join(claimDir, entry.name);
+			const claim = readClaimRecord(await readJsonFile<unknown>(claimPath));
+			if (claim?.owner !== workerId) continue;
+			await removeFileAudited(claimPath, stateWriterOptions(claimPath, "prune", "gc-team-worker"));
+		}
+	} catch (error) {
+		if (!isEnoent(error)) throw error;
+	}
+
+	for (const task of await readTasks(teamDirPath)) {
+		if (task.claim?.owner !== workerId && task.assignee !== workerId) continue;
+		if (task.status === "completed" || task.status === "failed") continue;
+		await writeTask(teamDirPath, {
+			...task,
+			status: "pending",
+			assignee: undefined,
+			claim: undefined,
+			version: task.version + 1,
+			updated_at: now(),
+		});
+	}
+
+	await fs.rm(record.path, { recursive: true, force: true });
+	return true;
+}
+
 function stateCategoryForJsonPath(filePath: string): "state" | "ledger" {
 	return filePath.endsWith(".jsonl") || filePath.includes(`${path.sep}telemetry${path.sep}`) ? "ledger" : "state";
 }
@@ -1623,7 +1831,7 @@ async function ensureWorkerWorktree(
 }
 
 export function resolveJwcTmuxCommand(env: NodeJS.ProcessEnv = process.env): string {
-	return env.GJC_TEAM_TMUX_COMMAND?.trim() || "tmux";
+	return resolveSharedJwcTmuxCommand(env);
 }
 function buildTeamTmuxLeaderRequirementMessage(detail?: string): string {
 	const suffix = detail?.trim() ? `:${detail.trim()}` : "";
@@ -1631,7 +1839,14 @@ function buildTeamTmuxLeaderRequirementMessage(detail?: string): string {
 }
 function readJwcTmuxProfileValue(tmuxCommand: string, sessionName: string): string {
 	const result = Bun.spawnSync(
-		[tmuxCommand, "show-options", "-qv", "-t", buildJwcTmuxExactOptionTarget(sessionName), GJC_TMUX_PROFILE_OPTION],
+		[
+			tmuxCommand,
+			"show-options",
+			"-qv",
+			"-t",
+			buildJwcTmuxExactOptionTarget(sessionName, { env: process.env }),
+			GJC_TMUX_PROFILE_OPTION,
+		],
 		{
 			stdout: "pipe",
 			stderr: "pipe",
@@ -1651,7 +1866,7 @@ function tagJwcTmuxSessionAsLeader(tmuxCommand: string, sessionName: string): bo
 			tmuxCommand,
 			"set-option",
 			"-t",
-			buildJwcTmuxExactOptionTarget(sessionName),
+			buildJwcTmuxExactOptionTarget(sessionName, { env: process.env }),
 			GJC_TMUX_PROFILE_OPTION,
 			GJC_TMUX_PROFILE_VALUE,
 		],
@@ -1689,22 +1904,47 @@ function readCurrentTmuxLeaderContext(tmuxCommand: string, env: NodeJS.ProcessEn
 	}
 	return { sessionName, windowIndex, leaderPaneId, target: `${sessionName}:${windowIndex}` };
 }
-export function resolveJwcWorkerCommand(cwd = process.cwd(), env: NodeJS.ProcessEnv = process.env): string {
+export interface JwcWorkerCommandRuntimeOptions {
+	platform?: NodeJS.Platform;
+	argv?: string[];
+	execPath?: string;
+}
+
+export function resolveJwcWorkerCommand(
+	cwd = process.cwd(),
+	env: NodeJS.ProcessEnv = process.env,
+	runtime: JwcWorkerCommandRuntimeOptions = {},
+): string {
 	const explicit = env.GJC_TEAM_WORKER_COMMAND?.trim();
 	if (explicit) return explicit;
-	const entrypoint = process.argv[1];
-	if (entrypoint?.endsWith(".ts"))
-		return `${shellQuote(process.execPath)} ${shellQuote(path.resolve(cwd, entrypoint))}`;
+	const platform = runtime.platform ?? process.platform;
+	const argv = runtime.argv ?? process.argv;
+	const execPath = runtime.execPath ?? process.execPath;
+	const entrypoint = argv[1];
+	const resolvedEntrypoint = entrypoint ? path.resolve(cwd, entrypoint) : "";
+	if (entrypoint && platform === "win32" && /\.(?:ts|js|mjs)$/i.test(entrypoint))
+		return `${powershellQuote(execPath)} ${powershellQuote(resolvedEntrypoint)}`;
+	if (entrypoint?.endsWith(".ts")) return `${shellQuote(execPath)} ${shellQuote(resolvedEntrypoint)}`;
 	const base = entrypoint ? path.basename(entrypoint) : "";
-	if (entrypoint && (base.startsWith("jwc") || base.startsWith("gjc")))
-		return shellQuote(path.resolve(cwd, entrypoint));
+	if (entrypoint && (base.startsWith("jwc") || base.startsWith("gjc"))) {
+		return platform === "win32" ? powershellQuote(resolvedEntrypoint) : shellQuote(resolvedEntrypoint);
+	}
 	return "jwc";
 }
-function buildWorkerCommand(config: JwcTeamConfig, worker: JwcTeamWorker): string {
+export function buildWorkerCommand(
+	config: JwcTeamConfig,
+	worker: JwcTeamWorker,
+	platform: NodeJS.Platform = process.platform,
+): string {
 	const workspace = worker.worktree_path
 		? `Worker worktree: ${worker.worktree_path}.`
 		: `Worker cwd: ${config.leader.cwd}.`;
-	const prompt = [
+	const normalizePrompt = (raw: string): string =>
+		raw
+			.replace(/[\uFEFF\u200B]/g, "")
+			.replace(/\r?\n+/g, " ")
+			.trim();
+	const rawPrompt = [
 		`You are ${worker.id} in gjc team ${config.team_name}.`,
 		`Team state root: ${config.state_root}.`,
 		workspace,
@@ -1713,16 +1953,34 @@ function buildWorkerCommand(config: JwcTeamConfig, worker: JwcTeamWorker): strin
 		`Before claiming work, send startup ACK: gjc team api worker-startup-ack --input '{"team_name":"${config.team_name}","worker_id":"${worker.id}","protocol_version":"1"}' --json.`,
 		`Use gjc team api update-worker-status to report task-local activity, then claim-task/transition-task-status with this worker id; keep heartbeat current during long work, record completion_evidence (summary plus a passed command or verified inspection/artifact item) before completed, and do not mutate leader-owned goal state.`,
 	].join("\n");
+	const prompt = normalizePrompt(rawPrompt) || `Worker ${worker.id} ready.`;
 	const env = [
 		`GJC_TEAM_WORKER=${shellQuote(`${config.team_name}/${worker.id}`)}`,
 		`GJC_TEAM_INTERNAL_WORKER=${shellQuote(`${config.team_name}/${worker.id}`)}`,
 		`GJC_TEAM_NAME=${shellQuote(config.team_name)}`,
 		`GJC_TEAM_WORKER_ID=${shellQuote(worker.id)}`,
+		`JWC_TEAM_STATE_ROOT=${shellQuote(config.state_root)}`,
 		`GJC_TEAM_STATE_ROOT=${shellQuote(config.state_root)}`,
 		`GJC_TEAM_LEADER_CWD=${shellQuote(config.leader.cwd)}`,
 		`GJC_TEAM_DISPLAY_NAME=${shellQuote(config.display_name)}`,
+		`${NOTIFICATION_CHILD_SESSION_ENV}=${shellQuote(config.leader.session_id.trim() || config.team_name)}`,
 		...(worker.worktree_path ? [`GJC_TEAM_WORKTREE_PATH=${shellQuote(worker.worktree_path)}`] : []),
 	];
+	if (platform === "win32") {
+		const envAssignments = [
+			["GJC_TEAM_WORKER", `${config.team_name}/${worker.id}`],
+			["GJC_TEAM_INTERNAL_WORKER", `${config.team_name}/${worker.id}`],
+			["GJC_TEAM_NAME", config.team_name],
+			["GJC_TEAM_WORKER_ID", worker.id],
+			["JWC_TEAM_STATE_ROOT", config.state_root],
+			["GJC_TEAM_STATE_ROOT", config.state_root],
+			["GJC_TEAM_LEADER_CWD", config.leader.cwd],
+			["GJC_TEAM_DISPLAY_NAME", config.display_name],
+			[NOTIFICATION_CHILD_SESSION_ENV, config.leader.session_id.trim() || config.team_name],
+			...(worker.worktree_path ? ([["GJC_TEAM_WORKTREE_PATH", worker.worktree_path]] as const) : []),
+		].map(([key, value]) => `$env:${key} = ${powershellQuote(value)}`);
+		return `${envAssignments.join("; ")}; ${buildPowerShellInvocation(config.worker_command, [prompt])}`;
+	}
 	return `${env.join(" ")} ${config.worker_command} ${shellQuote(prompt)}`;
 }
 interface JwcTeamInitialLane {
@@ -1824,32 +2082,52 @@ async function startTmuxSession(
 	try {
 		const workers: JwcTeamWorker[] = [];
 		let rightStackRootPaneId: string | null = null;
+		const tmuxCommandName = (
+			config.tmux_command.replace(/\\/g, "/").split("/").pop() ?? config.tmux_command
+		).toLowerCase();
+		const literalDispatch =
+			process.platform === "win32" ||
+			tmuxCommandName === "psmux" ||
+			tmuxCommandName === "psmux.exe" ||
+			tmuxCommandName === "pmux" ||
+			tmuxCommandName === "pmux.exe" ||
+			detectPsmux(config.tmux_command, { env });
 		for (const worker of config.workers) {
 			const splitDirection: string = worker.index === 1 ? "-h" : "-v";
 			const splitTarget: string =
 				worker.index === 1 ? config.leader.pane_id : (rightStackRootPaneId ?? config.leader.pane_id);
-			const split: Bun.SyncSubprocess<"pipe", "pipe"> = Bun.spawnSync(
-				[
-					config.tmux_command,
-					"split-window",
-					splitDirection,
-					"-t",
-					splitTarget,
-					"-d",
-					"-P",
-					"-F",
-					"#{pane_id}",
-					"-c",
-					worker.worktree_path ?? config.leader.cwd,
-					buildWorkerCommand(config, worker),
-				],
-				{ stdout: "pipe", stderr: "pipe" },
-			);
+			const splitArgs = [
+				config.tmux_command,
+				"split-window",
+				splitDirection,
+				"-t",
+				splitTarget,
+				"-d",
+				"-P",
+				"-F",
+				"#{pane_id}",
+				"-c",
+				worker.worktree_path ?? config.leader.cwd,
+			];
+			if (!literalDispatch) splitArgs.push(buildWorkerCommand(config, worker));
+			const split: Bun.SyncSubprocess<"pipe", "pipe"> = Bun.spawnSync(splitArgs, { stdout: "pipe", stderr: "pipe" });
 			if (split.exitCode !== 0)
 				throw new Error(split.stderr.toString().trim() || `tmux_split_failed:${config.tmux_target}:${worker.id}`);
 			const paneId: string = split.stdout.toString().trim().split(/\r?\n/)[0]?.trim() ?? "";
 			if (!paneId.startsWith("%")) throw new Error(`tmux_split_missing_pane:${config.tmux_target}:${worker.id}`);
 			rollbackPaneIds.push(paneId);
+			if (literalDispatch) {
+				const body = buildWorkerCommand(config, worker);
+				Bun.spawnSync([config.tmux_command, "send-keys", "-l", "-t", paneId, body], {
+					stdout: "ignore",
+					stderr: "ignore",
+				});
+				const submitted = Bun.spawnSync([config.tmux_command, "send-keys", "-t", paneId, "Enter"], {
+					stdout: "ignore",
+					stderr: "ignore",
+				});
+				void submitted.exitCode;
+			}
 			if (worker.index === 1) rightStackRootPaneId = paneId;
 			workers.push({ ...worker, pane_id: paneId });
 		}
@@ -2958,6 +3236,7 @@ async function computeLifecycleNudges(
 		}
 		const heartbeat = await readJwcWorkerHeartbeat(config.team_name, worker.id, config.leader.cwd, {
 			...env,
+			JWC_TEAM_STATE_ROOT: config.state_root,
 			GJC_TEAM_STATE_ROOT: config.state_root,
 		});
 		const heartbeatAt = Date.parse(heartbeat?.last_turn_at ?? worker.last_heartbeat);

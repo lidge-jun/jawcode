@@ -84,6 +84,34 @@ describe("ask tool unattended gate emission (G011)", () => {
 		expect(JSON.stringify(result.details)).toContain("OAuth2");
 	});
 
+	it("forwards a workflowGate stage override through to the emitted gate (kind stays question) (10.059)", async () => {
+		const emitter = new StubEmitter(() => ({ selected: ["Yes"], other: false }));
+		const tool = new AskTool(createSession(emitter));
+
+		const result = await tool.execute(
+			"call-plan-gate",
+			{
+				questions: [
+					{
+						id: "approve",
+						question: "Approve this plan?",
+						options: [{ label: "Yes" }, { label: "No" }],
+						workflowGate: { stage: "plan" },
+					},
+				],
+			},
+			undefined,
+			undefined,
+			createHeadlessContext(),
+		);
+
+		expect(emitter.received).toHaveLength(1);
+		// stage is overridden to "plan"; kind must remain "question".
+		expect(emitter.received[0].stage).toBe("plan");
+		expect(emitter.received[0].kind).toBe("question");
+		expect(result.details).toMatchObject({ selectedOptions: ["Yes"] });
+	});
+
 	it("emits and resolves over workflow_gate without a TUI context", async () => {
 		const emitter = new StubEmitter(() => ({ selected: ["JWT"], other: false }));
 		const tool = new AskTool(createSession(emitter));

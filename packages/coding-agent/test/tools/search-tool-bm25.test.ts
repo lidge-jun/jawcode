@@ -25,7 +25,7 @@ function toLegacyMCP(t: DiscoverableTool): DiscoverableMCPTool {
 
 type DiscoveryToolSession = ToolSession & {
 	isMCPDiscoveryEnabled: () => boolean;
-	getDiscoverableMCPTools: () => DiscoverableMCPTool[];
+	getDiscoverableTools: () => DiscoverableTool[];
 	getDiscoverableMCPSearchIndex?: () => DiscoverableMCPSearchIndex;
 	getSelectedMCPToolNames: () => string[];
 	activateDiscoveredMCPTools: (toolNames: string[]) => Promise<string[]>;
@@ -44,7 +44,7 @@ function createSession(
 		getSessionSpawns: () => "*",
 		settings: Settings.isolated({ "mcp.discoveryMode": true }),
 		isMCPDiscoveryEnabled: () => true,
-		getDiscoverableMCPTools: () => tools.map(toLegacyMCP),
+		getDiscoverableTools: () => tools,
 		getSelectedMCPToolNames: () => [...selected],
 		activateDiscoveredMCPTools: async (toolNames: string[]) => {
 			for (const name of toolNames) {
@@ -115,9 +115,9 @@ describe("SearchToolBm25Tool", () => {
 		// Build via the legacy helper so documents expose `tool.description` (the legacy shape).
 		const searchIndex = buildDiscoverableMCPSearchIndex(discoverableTools.map(toLegacyMCP));
 		const session = createSession(discoverableTools, {
-			getDiscoverableMCPTools: () => {
+			getDiscoverableTools: () => {
 				rawToolsCalls++;
-				return discoverableTools.map(toLegacyMCP);
+				return discoverableTools;
 			},
 			getDiscoverableMCPSearchIndex: () => {
 				searchIndexCalls++;
@@ -219,8 +219,7 @@ describe("SearchToolBm25Tool", () => {
 		const allTools = [...discoverableTools, ...builtinTools];
 		const session = createSession(discoverableTools, {
 			settings: Settings.isolated({ "tools.discoveryMode": "all" }),
-			// Override to provide all tools including built-ins (legacy MCP shape).
-			getDiscoverableMCPTools: () => allTools.map(toLegacyMCP),
+			getDiscoverableTools: () => allTools,
 		});
 		const tool = new SearchToolBm25Tool(session);
 

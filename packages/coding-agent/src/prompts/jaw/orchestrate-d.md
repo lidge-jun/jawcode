@@ -18,6 +18,11 @@ Then perform two reflections:
 - Which constraints were missing?
 - What would change if we revised the ontology?
 
+**PESSIMIST** ("Is the direction still right?" — LOOP-PESSIMIST-01, for loop/multi-pass work):
+- What did NOT improve this cycle, and which hypothesis died?
+- One sentence: what evidence would show the current direction is wrong?
+- The next P must quote this. Treat D→idle→P as a context/bias-flush boundary: the next cycle resumes from disk artifacts (loop plan MOC, receipts, devlog), not from transcript momentum. Report the honest terminal state — budget/time exhaustion is budget-exhausted with best-so-far evidence, never "complete".
+
 Closing:
 - The summary + reflections text is the user-facing artifact; the pabcd state records the closing receipt (jwc receipt convention).
 - If significant issues surfaced: suggest "Improve the spec: `orchestrate i`".
@@ -29,4 +34,4 @@ When done → run `jwc orchestrate d` yourself via the shell tool to close the o
 1. If a devlog loop plan exists with `pending` phases: mark the just-completed phase `done` in the MOC, then re-enter `jwc orchestrate p` for the next `pending` phase. When a `jwc goal` is active, proceed automatically (HOTL); otherwise confirm with the user first.
 2. If no loop plan exists but a `jwc goal` is active: check whether the goal objective is fully achieved. If work remains, re-enter planning with `jwc orchestrate p`. If the goal is complete, run `jwc goal done`.
 3. If the goal is truly impossible or needs a direction change, pause and ask the user.
-Do not treat IDLE as the end when loop phases or goal work remain.
+Do not treat IDLE as the end when loop phases or goal work remain. Work-phases chain HETEROGENEOUS units: a completely different feature that fits the goal is simply the next cycle at `jwc orchestrate p` — "needs its own cycle/PABCD" is a plan statement, never a reason to close the goal, and a list of remaining independent features is not an honest terminal state.

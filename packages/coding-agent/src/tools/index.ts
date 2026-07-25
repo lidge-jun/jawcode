@@ -46,6 +46,7 @@ import { FindTool } from "./find";
 import { GithubTool } from "./gh";
 import { InspectImageTool } from "./inspect-image";
 import { IrcTool } from "./irc";
+import { MapTool } from "./map";
 import { wrapToolWithMetaNotice } from "./output-meta";
 import { ReadTool } from "./read";
 import { RecipeTool } from "./recipe";
@@ -85,6 +86,7 @@ export * from "./gh";
 export * from "./image-gen";
 export * from "./inspect-image";
 export * from "./irc";
+export * from "./map";
 export * from "./monitor";
 export * from "./read";
 export * from "./recipe";
@@ -221,9 +223,6 @@ export interface ToolSession {
 	setTodoPhases?: (phases: TodoPhase[]) => void;
 	/** Whether MCP tool discovery is active for this session. */
 	isMCPDiscoveryEnabled?: () => boolean;
-	/** Get hidden-but-discoverable MCP tools for search_tool_bm25 prompts and fallbacks.
-	 * @deprecated Use getDiscoverableTools with source filter instead. */
-	getDiscoverableMCPTools?: () => import("../runtime-mcp/discoverable-tool-metadata").DiscoverableMCPTool[];
 	/** Get the cached discoverable MCP search index for search_tool_bm25 execution.
 	 * @deprecated Use getDiscoverableToolSearchIndex instead. */
 	getDiscoverableMCPSearchIndex?: () => import("../tool-discovery/tool-index").DiscoverableMCPSearchIndex;
@@ -343,6 +342,7 @@ export const BUILTIN_TOOLS: Record<string, ToolFactory> = {
 	edit: s => new EditTool(s),
 	ast_grep: s => new AstGrepTool(s),
 	ast_edit: s => new AstEditTool(s),
+	map: s => new MapTool(s),
 	render_mermaid: s => new RenderMermaidTool(s),
 	ask: AskTool.createIf,
 	computer_use: s => new ComputerUseTool(s),

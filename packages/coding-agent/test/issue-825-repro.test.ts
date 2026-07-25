@@ -84,7 +84,7 @@ function makeCtx(initialQueue: CompactionQueuedMessage[]) {
 	const showStatus = mock((_msg: string) => {});
 	const updatePendingMessagesDisplay = mock(() => {});
 
-	const locallySubmittedUserSignatures = new Set<string>();
+	const locallySubmittedUserSignatures = new Map<string, number>();
 	const isKnownSlashCommand = (text: string) => text.startsWith("/");
 	const ctx = {
 		session: fake.session,
@@ -95,15 +95,18 @@ function makeCtx(initialQueue: CompactionQueuedMessage[]) {
 		fileSlashCommands: new Set<string>(),
 		locallySubmittedUserSignatures,
 		isKnownSlashCommand,
+		prepareRealUserAgentPromptSubmission: () => {},
 		recordLocalSubmission(text: string, imageCount = 0) {
 			if (isKnownSlashCommand(text)) return () => {};
 			const sig = `${text}\u0000${imageCount}`;
-			locallySubmittedUserSignatures.add(sig);
+			locallySubmittedUserSignatures.set(sig, (locallySubmittedUserSignatures.get(sig) ?? 0) + 1);
 			let disposed = false;
 			return () => {
 				if (disposed) return;
 				disposed = true;
-				locallySubmittedUserSignatures.delete(sig);
+				const n = locallySubmittedUserSignatures.get(sig) ?? 0;
+				if (n <= 1) locallySubmittedUserSignatures.delete(sig);
+				else locallySubmittedUserSignatures.set(sig, n - 1);
 			};
 		},
 		async withLocalSubmission<T>(text: string, fn: () => Promise<T>, options?: { imageCount?: number }): Promise<T> {

@@ -815,10 +815,10 @@ client must first own the UI/control plane, then post the answer body to
 `X-JWC-Bridge-Owner-Token: <ownerToken>`. `Idempotency-Key` may be supplied as a
 header and the same value is also accepted in the JSON body as `idempotency_key`.
 
-`@gajae-code/bridge-client` (TypeScript):
+`@jawcode-dev/bridge-client` (TypeScript):
 
 ```ts
-import { BridgeClient } from "@gajae-code/bridge-client";
+import { BridgeClient } from "@jawcode-dev/bridge-client";
 
 const client = new BridgeClient({ baseUrl, token });
 // Headless policy: every received gate is routed to the resolver and answered.

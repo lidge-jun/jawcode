@@ -6,7 +6,12 @@ import { UserMessageComponent } from "@jawcode-dev/coding-agent/modes/components
 import { EventController } from "@jawcode-dev/coding-agent/modes/controllers/event-controller";
 import { initTheme } from "@jawcode-dev/coding-agent/modes/theme/theme";
 import type { InteractiveModeContext } from "@jawcode-dev/coding-agent/modes/types";
-import { UiHelpers } from "@jawcode-dev/coding-agent/modes/utils/ui-helpers";
+import {
+	addSignatureCredit,
+	consumeSignatureCredit,
+	takeFirstSignature,
+	UiHelpers,
+} from "@jawcode-dev/coding-agent/modes/utils/ui-helpers";
 import type { CustomMessage } from "@jawcode-dev/coding-agent/session/messages";
 import { Container } from "@jawcode-dev/tui";
 
@@ -74,8 +79,10 @@ function createContext(options: {
 						.filter((c): c is TextContent => c.type === "text")
 						.map(c => c.text)
 						.join(""),
-		optimisticUserMessageSignature: options.optimisticSignature,
-		locallySubmittedUserSignatures: new Set<string>(options.locallySubmittedSignatures ?? []),
+		optimisticUserSignatures: options.optimisticSignature !== undefined ? [options.optimisticSignature] : [],
+		locallySubmittedUserSignatures: new Map<string, number>(
+			(options.locallySubmittedSignatures ?? []).map(sig => [sig, 1]),
+		),
 	} as unknown as InteractiveModeContext;
 	return { ctx, editor, setText, addMessageToChat, updatePendingMessagesDisplay, chatContainer };
 }
@@ -169,8 +176,103 @@ describe("EventController message_start (user role)", () => {
 
 		expect(addMessageToChat).not.toHaveBeenCalled();
 		expect(setText).not.toHaveBeenCalled();
-		expect(ctx.optimisticUserMessageSignature).toBeUndefined();
+		expect(ctx.optimisticUserSignatures).toEqual([]);
 		expect(ctx.currentTurnStartIndex).toBe(0);
+	});
+
+	it("does not move the Ctrl+O boundary for a steering delivery (260703 WP3)", async () => {
+		// A steer lands MID-turn: the run's already-rendered output must stay
+		// inside the ctrl+o scope. The session flags the lane at dequeue time.
+		const { ctx, chatContainer } = createContext({ editorText: "" });
+		chatContainer.children.push({ render: () => ["assistant output"], invalidate() {} });
+		ctx.currentTurnStartIndex = 0;
+		// Identity-keyed like the real session: only the tagged message object
+		// counts as a steering delivery (ordering-race safe by construction).
+		const steerMessage = createUserMessage("steer me");
+		const tagged = new WeakSet<object>([steerMessage]);
+		(ctx as unknown as { session: { consumeSteeringUserDelivery: (m: unknown) => boolean } }).session = {
+			consumeSteeringUserDelivery: (m: unknown) => tagged.delete(m as object),
+		};
+		const controller = new EventController(ctx);
+
+		await controller.handleEvent({ type: "message_start", message: steerMessage });
+		// Steering delivery: boundary untouched (pre-steer output stays toggleable).
+		expect(ctx.currentTurnStartIndex).toBe(0);
+
+		await controller.handleEvent({ type: "message_start", message: createUserMessage("next turn") });
+		// Untagged delivery moves the boundary again.
+		expect(ctx.currentTurnStartIndex).toBe(chatContainer.children.length);
+	});
+
+	it("dedups BOTH deliveries when the same text was submitted optimistically twice (260703 WP2)", async () => {
+		// The old scalar signature was overwritten by the second submission and
+		// consumed by the first delivery — the second delivery then re-added a
+		// duplicate user box. The FIFO holds one entry per submission.
+		const signature = "spam me\u00000";
+		const { ctx, setText, addMessageToChat } = createContext({
+			editorText: "next draft",
+			optimisticSignature: signature,
+			locallySubmittedSignatures: [signature],
+		});
+		ctx.optimisticUserSignatures.push(signature);
+		ctx.locallySubmittedUserSignatures.set(signature, 2);
+		const controller = new EventController(ctx);
+
+		await controller.handleEvent({ type: "message_start", message: createUserMessage("spam me") });
+		await controller.handleEvent({ type: "message_start", message: createUserMessage("spam me") });
+
+		expect(addMessageToChat).not.toHaveBeenCalled();
+		expect(setText).not.toHaveBeenCalled();
+		expect(ctx.optimisticUserSignatures).toEqual([]);
+		expect(ctx.locallySubmittedUserSignatures.size).toBe(0);
+	});
+
+	it("keeps a queued identical submission's credit after the optimistic delivery (#783 same-text variant)", async () => {
+		// One optimistic submission + one queued-while-streaming submission with
+		// IDENTICAL text: the optimistic delivery must not eat the queued credit,
+		// or the queued delivery wipes the draft the user is typing.
+		const signature = "again\u00000";
+		const { ctx, editor, setText, addMessageToChat } = createContext({
+			editorText: "draft in progress",
+			optimisticSignature: signature,
+			locallySubmittedSignatures: [signature],
+		});
+		ctx.locallySubmittedUserSignatures.set(signature, 2);
+		const controller = new EventController(ctx);
+
+		// Optimistic delivery: skip add, consume FIFO + one refcount credit.
+		await controller.handleEvent({ type: "message_start", message: createUserMessage("again") });
+		expect(addMessageToChat).not.toHaveBeenCalled();
+		// Queued delivery: adds exactly once, still counts as local — draft survives.
+		const queued = createUserMessage("again");
+		await controller.handleEvent({ type: "message_start", message: queued });
+		expect(addMessageToChat).toHaveBeenCalledTimes(1);
+		expect(addMessageToChat).toHaveBeenCalledWith(queued);
+		expect(setText).not.toHaveBeenCalled();
+		expect(editor.getText()).toBe("draft in progress");
+		expect(ctx.locallySubmittedUserSignatures.size).toBe(0);
+	});
+});
+
+describe("signature multiset helpers (260703 WP2)", () => {
+	it("refcounts identical local submissions and disposes exactly once", () => {
+		const counts = new Map<string, number>();
+		addSignatureCredit(counts, "x\u00000");
+		addSignatureCredit(counts, "x\u00000");
+		expect(counts.get("x\u00000")).toBe(2);
+		expect(consumeSignatureCredit(counts, "x\u00000")).toBe(true);
+		expect(consumeSignatureCredit(counts, "x\u00000")).toBe(true);
+		expect(consumeSignatureCredit(counts, "x\u00000")).toBe(false);
+		expect(counts.size).toBe(0);
+	});
+
+	it("takeFirstSignature removes one occurrence per call", () => {
+		const list = ["a", "b", "a"];
+		expect(takeFirstSignature(list, "a")).toBe(true);
+		expect(list).toEqual(["b", "a"]);
+		expect(takeFirstSignature(list, "a")).toBe(true);
+		expect(takeFirstSignature(list, "a")).toBe(false);
+		expect(list).toEqual(["b"]);
 	});
 });
 

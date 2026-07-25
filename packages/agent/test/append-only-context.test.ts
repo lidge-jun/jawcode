@@ -950,3 +950,195 @@ describe("syncMessages detects tool_calls mutation", () => {
 		expect(rebuiltTc.function.arguments).toBe('{"path":"/b"}');
 	});
 });
+
+describe("syncMessages preserves byte-stable prefix on in-place rewrite (#3406)", () => {
+	it("preserves the prefix when a deep message is rewritten", () => {
+		const mgr = new AppendOnlyContextManager();
+		mgr.build(makeContext(), BUILD_OPTS);
+
+		const m0 = { role: "user", content: "q1" };
+		const m1 = { role: "assistant", content: "original long tool output" };
+		const m2 = { role: "user", content: "q2" };
+		mgr.syncMessages([m0, m1, m2] as unknown as Message[]);
+		const before = mgr.log.toMessages();
+		expect(before).toHaveLength(3);
+
+		// Rewrite m1 in place (prune); m0 must remain the exact same object.
+		const m1b = { role: "assistant", content: "[pruned]" };
+		mgr.syncMessages([m0, m1b, m2] as unknown as Message[]);
+		const after = mgr.log.toMessages();
+
+		expect(after).toHaveLength(3);
+		expect(after[0]).toBe(before[0]); // byte-stable prefix kept (not re-appended)
+		expect(after[1]!.content).toBe("[pruned]");
+		expect(after[2]!.content).toBe("q2");
+	});
+
+	it("preserves the prefix when only the tail is rewritten", () => {
+		const mgr = new AppendOnlyContextManager();
+		mgr.build(makeContext(), BUILD_OPTS);
+
+		const m0 = { role: "user", content: "q1" };
+		const m1 = { role: "assistant", content: "a1" };
+		mgr.syncMessages([m0, m1] as unknown as Message[]);
+		const before = mgr.log.toMessages();
+
+		mgr.syncMessages([m0, { role: "assistant", content: "a1-edited" }] as unknown as Message[]);
+		const after = mgr.log.toMessages();
+
+		expect(after[0]).toBe(before[0]); // prefix stable
+		expect(after[1]!.content).toBe("a1-edited");
+	});
+
+	it("re-syncs from scratch when the first message is rewritten", () => {
+		const mgr = new AppendOnlyContextManager();
+		mgr.build(makeContext(), BUILD_OPTS);
+
+		const m0 = { role: "user", content: "q1" };
+		const m1 = { role: "assistant", content: "a1" };
+		mgr.syncMessages([m0, m1] as unknown as Message[]);
+		const before = mgr.log.toMessages();
+
+		mgr.syncMessages([{ role: "user", content: "q1-edited" }, m1] as unknown as Message[]);
+		const after = mgr.log.toMessages();
+
+		expect(after).toHaveLength(2);
+		expect(after[0]).not.toBe(before[0]); // divergence at index 0 → prefix not preserved
+		expect(after[0]!.content).toBe("q1-edited");
+		expect(after[1]!.content).toBe("a1");
+	});
+
+	it("appends a new tail while keeping the stable prefix", () => {
+		const mgr = new AppendOnlyContextManager();
+		mgr.build(makeContext(), BUILD_OPTS);
+
+		const m0 = { role: "user", content: "q1" };
+		const m1 = { role: "assistant", content: "a1" };
+		mgr.syncMessages([m0, m1] as unknown as Message[]);
+		const before = mgr.log.toMessages();
+
+		const m2 = { role: "user", content: "q2" };
+		mgr.syncMessages([m0, m1, m2] as unknown as Message[]);
+		const after = mgr.log.toMessages();
+
+		expect(after).toHaveLength(3);
+		expect(after[0]).toBe(before[0]);
+		expect(after[1]).toBe(before[1]);
+		expect(after[2]!.content).toBe("q2");
+	});
+
+	it("clamps the stable prefix to the physical log length after a direct clear", () => {
+		const mgr = new AppendOnlyContextManager();
+		mgr.build(makeContext(), BUILD_OPTS);
+
+		const m0 = { role: "user", content: "q1" };
+		const m1 = { role: "assistant", content: "a1" };
+		mgr.syncMessages([m0, m1] as unknown as Message[]);
+
+		// Direct public clear leaves the sync cursor ahead of the physical log.
+		mgr.log.clear();
+		mgr.syncMessages([m0, m1] as unknown as Message[]);
+
+		// Bound by log length → no drift, log rebuilt to the 2 messages.
+		expect(mgr.log.length).toBe(2);
+		expect(mgr.log.toMessages()[1]!.content).toBe("a1");
+	});
+
+	it("allows child-local rewrites past the seed prefix in a fork", () => {
+		const seed: Message[] = [
+			{ role: "user", content: "parent-q" } as unknown as Message,
+			{ role: "assistant", content: "parent-a" } as unknown as Message,
+		];
+		const mgr = AppendOnlyContextManager.forkFromSeed({ messages: seed, options: BUILD_OPTS });
+
+		// Append a child-local turn, then rewrite ONLY that child message.
+		const childA = { role: "assistant", content: "child" };
+		mgr.syncMessages([{ role: "assistant", content: "child-original" }] as unknown as Message[]);
+		expect(() => mgr.syncMessages([childA] as unknown as Message[])).not.toThrow();
+		const msgs = mgr.log.toMessages();
+		expect(msgs[0]!.content).toBe("parent-q"); // seed prefix intact
+		expect(msgs[msgs.length - 1]!.content).toBe("child");
+	});
+
+	it("throws when the physical seed region is damaged then a divergent sync arrives", () => {
+		const seed: Message[] = [
+			{ role: "user", content: "parent-q" } as unknown as Message,
+			{ role: "assistant", content: "parent-a" } as unknown as Message,
+		];
+		const mgr = AppendOnlyContextManager.forkFromSeed({ messages: seed, options: BUILD_OPTS });
+
+		// syncMessages re-prepends the canonical seed, so a child can never
+		// clobber the inherited prefix through the normal path. The guard fires
+		// only when the physical log's seed region is damaged out-of-band (e.g.
+		// a public truncate/clear) and the next sync no longer matches the
+		// recorded seed digest — that is the unrecoverable invariant breach.
+		mgr.log.truncate(1);
+		expect(() => mgr.syncMessages([{ role: "user", content: "diverged" }] as unknown as Message[])).toThrow(
+			/seed prefix changed/,
+		);
+	});
+
+	it("detects a tool-result metadata rewrite that leaves content untouched", () => {
+		const mgr = new AppendOnlyContextManager();
+		mgr.build(makeContext(), BUILD_OPTS);
+
+		const base = {
+			role: "toolResult",
+			toolCallId: "call_1",
+			toolName: "read_file",
+			content: [{ type: "text", text: "ok" }],
+			isError: false,
+		};
+		mgr.syncMessages([{ role: "user", content: "q" }, base] as unknown as Message[]);
+		expect(mgr.log.length).toBe(2);
+
+		// Same content, but the error flag flipped — must invalidate the prefix.
+		mgr.syncMessages([
+			{ role: "user", content: "q" },
+			{ ...base, isError: true },
+		] as unknown as Message[]);
+		const msgs = mgr.build(makeContext(), BUILD_OPTS).messages;
+		expect(msgs).toHaveLength(2);
+		expect((msgs[1] as unknown as { isError: boolean }).isError).toBe(true);
+	});
+
+	it("detects a toolName rewrite on a tool-result message", () => {
+		const mgr = new AppendOnlyContextManager();
+		mgr.build(makeContext(), BUILD_OPTS);
+
+		const base = {
+			role: "toolResult",
+			toolCallId: "call_1",
+			toolName: "read_file",
+			content: [{ type: "text", text: "ok" }],
+			isError: false,
+		};
+		mgr.syncMessages([base] as unknown as Message[]);
+		mgr.syncMessages([{ ...base, toolName: "write_file" }] as unknown as Message[]);
+
+		const msgs = mgr.build(makeContext(), BUILD_OPTS).messages;
+		expect(msgs).toHaveLength(1);
+		expect((msgs[0] as unknown as { toolName: string }).toolName).toBe("write_file");
+	});
+
+	it("detects a providerPayload rewrite that leaves role and content stable", () => {
+		const mgr = new AppendOnlyContextManager();
+		mgr.build(makeContext(), BUILD_OPTS);
+
+		const base = {
+			role: "assistant",
+			content: [{ type: "text", text: "hi" }],
+			providerPayload: { type: "openaiResponsesHistory", items: [{ a: 1 }] },
+		};
+		mgr.syncMessages([base] as unknown as Message[]);
+		mgr.syncMessages([
+			{ ...base, providerPayload: { type: "openaiResponsesHistory", items: [{ a: 2 }] } },
+		] as unknown as Message[]);
+
+		const msgs = mgr.build(makeContext(), BUILD_OPTS).messages;
+		expect(msgs).toHaveLength(1);
+		expect(
+			(msgs[0] as unknown as { providerPayload: { items: Array<{ a: number }> } }).providerPayload.items[0]!.a,
+		).toBe(2);
+	});
+});

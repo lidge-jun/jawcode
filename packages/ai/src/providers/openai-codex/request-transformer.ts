@@ -12,6 +12,8 @@ export interface CodexRequestOptions {
 	reasoningSummary?: ReasoningConfig["summary"] | null;
 	textVerbosity?: "low" | "medium" | "high";
 	include?: string[];
+	/** Use the Responses Lite request shape for this request. */
+	responsesLite?: boolean;
 }
 
 export interface InputItem {
@@ -24,6 +26,8 @@ export interface InputItem {
 	output?: unknown;
 	arguments?: unknown;
 	encrypted_content?: unknown;
+	/** Responses Lite `additional_tools` developer item payload. */
+	tools?: unknown;
 }
 
 export interface RequestBody {
@@ -34,6 +38,7 @@ export interface RequestBody {
 	input?: InputItem[];
 	tools?: unknown;
 	tool_choice?: unknown;
+	parallel_tool_calls?: boolean;
 	temperature?: number;
 	top_p?: number;
 	top_k?: number;
@@ -101,6 +106,59 @@ function normalizeEncryptedContent(item: InputItem): InputItem {
 	return next as InputItem;
 }
 
+/** Responses Lite lets the server choose image detail instead of pinning it. */
+function stripImageDetails(input: unknown[]): void {
+	for (const item of input) {
+		if (!item || typeof item !== "object") continue;
+		const content = "content" in item ? item.content : undefined;
+		const output = "output" in item ? item.output : undefined;
+		for (const collection of [content, output]) {
+			if (!Array.isArray(collection)) continue;
+			for (const part of collection) {
+				if (!part || typeof part !== "object") continue;
+				if (!("type" in part) || part.type !== "input_image") continue;
+				if ("detail" in part) part.detail = undefined;
+			}
+		}
+	}
+}
+
+/** Structural request view shared by the normal Codex transformer and tests. */
+export interface CodexLiteShapedBody {
+	instructions?: unknown;
+	tools?: unknown;
+	tool_choice?: unknown;
+	input?: unknown;
+	parallel_tool_calls?: unknown;
+}
+
+/** Apply the Responses Lite wire contract in place. */
+export function applyCodexResponsesLiteShape(body: CodexLiteShapedBody): void {
+	const input = Array.isArray(body.input) ? body.input : [];
+	stripImageDetails(input);
+	body.parallel_tool_calls = false;
+
+	const prefix: InputItem[] = [
+		{ type: "additional_tools", role: "developer", tools: Array.isArray(body.tools) ? body.tools : [] },
+	];
+	if (typeof body.instructions === "string" && body.instructions.length > 0) {
+		prefix.push({
+			type: "message",
+			role: "developer",
+			content: [{ type: "input_text", text: body.instructions }],
+		});
+	}
+	body.input = [...prefix, ...input];
+
+	// Hosted-object choices cannot be validated after Lite removes top-level
+	// tools. Explicit string constraints remain valid and must survive.
+	if (body.tool_choice !== "none" && body.tool_choice !== "required") {
+		body.tool_choice = "auto";
+	}
+	delete body.instructions;
+	delete body.tools;
+}
+
 export async function transformRequestBody(
 	body: RequestBody,
 	model: Model<Api>,
@@ -158,6 +216,10 @@ export async function transformRequestBody(
 				}) as InputItem,
 		);
 		body.input = [...developerMessages, ...body.input];
+	}
+
+	if (options.responsesLite) {
+		applyCodexResponsesLiteShape(body);
 	}
 
 	// gpt-5.3-codex-spark rejects `reasoning.*` parameters with 400

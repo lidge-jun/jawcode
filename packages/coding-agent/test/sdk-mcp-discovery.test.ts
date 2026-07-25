@@ -254,7 +254,7 @@ describe("createAgentSession MCP discovery prompt gating", () => {
 				expect.arrayContaining(["read", "search_tool_bm25", "mcp__local_inline_tool", "mcp__github_create_issue"]),
 			);
 			expect(session.getSelectedMCPToolNames()).toEqual(["mcp__github_create_issue"]);
-			expect(session.getDiscoverableMCPTools().map(tool => tool.name)).toEqual(["mcp__github_create_issue"]);
+			expect(session.getDiscoverableTools({ source: "mcp" })).toEqual([]);
 		} finally {
 			await session.dispose();
 		}

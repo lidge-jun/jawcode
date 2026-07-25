@@ -47,6 +47,24 @@ export type SubmittedUserInput = {
 	started: boolean;
 };
 
+export interface CommandPaletteAction {
+	id: string;
+	label: string;
+	handler: () => void | Promise<void>;
+}
+
+export interface ComposerOwnership {
+	readonly editor: CustomEditor;
+	readonly generation: number;
+}
+
+export function canApplyComposerOwnership(ownership: ComposerOwnership | undefined, editor: CustomEditor): boolean {
+	return (
+		ownership === undefined ||
+		(ownership.editor === editor && ownership.generation === editor.getComposerGeneration())
+	);
+}
+
 export type TodoStatus = "pending" | "in_progress" | "completed" | "abandoned";
 
 export type TodoItem = {
@@ -127,10 +145,18 @@ export interface InteractiveModeContext {
 	retryCountdownTimer?: ReturnType<typeof setInterval>;
 	unsubscribe?: () => void;
 	onInputCallback?: (input: SubmittedUserInput) => void;
-	optimisticUserMessageSignature: string | undefined;
-	locallySubmittedUserSignatures: Set<string>;
+	/**
+	 * FIFO of signatures for user messages already rendered optimistically at
+	 * submit time (260703 WP2 — duplicates allowed; one entry is consumed per
+	 * matching user `message_start`, so identical rapid submissions no longer
+	 * collapse into a single credit and re-add duplicate chat components).
+	 */
+	optimisticUserSignatures: string[];
+	/** Refcounted signatures of locally submitted texts (multiset — see above). */
+	locallySubmittedUserSignatures: Map<string, number>;
 	lastSigintTime: number;
 	lastEscapeTime: number;
+	lastComposerClearEscapeTime: number;
 	shutdownRequested: boolean;
 	hookSelector: HookSelectorComponent | undefined;
 	hookInput: HookInputComponent | undefined;
@@ -169,19 +195,22 @@ export interface InteractiveModeContext {
 	showNewVersionNotification(newVersion: string): void;
 	clearEditor(): void;
 	updatePendingMessagesDisplay(): void;
-	queueCompactionMessage(text: string, mode: "steer" | "followUp"): void;
+	queueCompactionMessage(text: string, mode: "steer" | "followUp", ownership?: ComposerOwnership): void;
 	flushCompactionQueue(options?: { willRetry?: boolean }): Promise<void>;
 	flushPendingBashComponents(): void;
 	flushPendingModelSwitch(): Promise<void>;
 	setWorkingMessage(message?: string): void;
 	applyPendingWorkingMessage(): void;
 	ensureLoadingAnimation(): void;
-	startPendingSubmission(input: {
-		text: string;
-		images?: ImageContent[];
-		customType?: string;
-		display?: boolean;
-	}): SubmittedUserInput;
+	startPendingSubmission(
+		input: {
+			text: string;
+			images?: ImageContent[];
+			customType?: string;
+			display?: boolean;
+		},
+		ownership?: ComposerOwnership,
+	): SubmittedUserInput;
 	cancelPendingSubmission(): boolean;
 	markPendingSubmissionStarted(input: SubmittedUserInput): boolean;
 	finishPendingSubmission(input: SubmittedUserInput): void;
@@ -253,6 +282,11 @@ export interface InteractiveModeContext {
 	refreshSlashCommandState(cwd?: string): Promise<void>;
 
 	// Selector handling
+	showCommandPalette(
+		commands: SlashCommand[],
+		actions: CommandPaletteAction[],
+		executeSlashCommand: (name: string) => Promise<void>,
+	): void;
 	showSettingsSelector(): void;
 	showThemeSelector(): void;
 	showHistorySearch(): void;

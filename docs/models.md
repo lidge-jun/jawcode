@@ -120,7 +120,19 @@ modelBindings:
 - `cursor-agent`
 
 
-### First-class Azure OpenAI and Amazon Bedrock examples
+### First-class DeepInfra, Azure OpenAI, and Amazon Bedrock examples
+
+DeepInfra is available as the first-class `deepinfra` provider. It uses DeepInfra's OpenAI-compatible Chat Completions endpoint and reads `DEEPINFRA_API_KEY` when no explicit config key is provided. Set `serviceTier: priority` in JWC config or use the runtime service-tier controls to send DeepInfra's `service_tier: "priority"` request field for supported models:
+
+```yaml
+providers:
+  deepinfra:
+    baseUrl: https://api.deepinfra.com/v1/openai
+    apiKeyEnv: DEEPINFRA_API_KEY
+    api: openai-completions
+    models:
+      - id: deepseek-ai/DeepSeek-V3.2
+```
 
 Azure OpenAI uses canonical OpenAI model IDs in JWC and resolves those IDs to Azure deployment names at request time. Set `AZURE_OPENAI_DEPLOYMENT_NAME_MAP` to avoid assuming model id equals deployment name:
 
@@ -204,6 +216,26 @@ Use `jwc --mpreset <name>` to activate a profile for the current session only. A
 ```sh
 jwc --mpreset codex-standard
 jwc --mpreset opencode-go-pro --default
+```
+
+Coordinator-created sessions use the same merged built-in/custom profile registry. `jwc_coordinator_start_session` resolves an optional `mpreset` before spawning the child, launches it as `jwc ... --mpreset <resolved-name>`, and records the resolved name in the durable session record. Unknown names fail before spawn with `unknown_model_profile` and a sorted `available_profiles` receipt; an unreadable or invalid profile registry fails closed with `model_profile_registry_error`.
+
+Continuing an existing coordinator session through `jwc_coordinator_send_prompt` may also include `mpreset` as a reuse assertion. When supplied, it must exactly match the session's spawn-time profile; changing a profile or adding one to a profile-less session returns `mpreset_conflict`. Omitting it preserves the existing session selection.
+
+### Benchmark receipts for role and effort constants
+
+A built-in role selector is a product decision, not a self-explanatory constant. Any change to a model family or effort suffix should carry a bounded receipt that records the date, provider/endpoint, exact model and effort, task corpus, number of attempts, verification rule, aggregate result, raw-artifact location, and limitations. The receipt must then state which part of the result informed the constant and which part remains judgment.
+
+For example, `codex-standard.architect = openai-codex/gpt-5.6-terra:xhigh` uses the higher effort because architecture errors have a wider downstream blast radius than bounded execution edits. GJC commit `cc661b43a` recorded Terra xhigh at 9/12 verified edits on a repeated four-task exact-edit sample, but that benchmark did not measure architecture work. The edit result supports keeping Terra xhigh in the candidate set; the architect-role assignment itself is explicitly a risk-weighted product judgment, not a benchmark finding.
+
+Use this compact receipt shape beside future preset changes:
+
+```text
+Decision: <profile>.<role> = <provider>/<model>:<effort>
+Why: <role risk/cost/latency trade-off>
+Evidence: <benchmark, task set, attempts, verification, aggregate result>
+Boundary: <what the benchmark did not measure>
+Artifacts: <committed report and raw receipt path, or an explicit retention note>
 ```
 
 The `/model` command shows the current preset, a `View preset configuration` action, and grouped `Browse presets` above the filtered model list. In `/login`, `Add custom provider` is the first option for configuring credentials needed by custom or profile-required providers.

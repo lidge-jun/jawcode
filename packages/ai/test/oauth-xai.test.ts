@@ -8,40 +8,51 @@ import { getOAuthProviders, refreshOAuthToken } from "../src/utils/oauth";
 import type { OAuthCredentials } from "../src/utils/oauth/types";
 import {
 	discoverXaiOAuthEndpoints,
+	loginXaiDeviceFlow,
 	XAI_OAUTH_CLIENT_ID,
+	XAI_OAUTH_DEVICE_CODE_URL,
 	XAI_OAUTH_DISCOVERY_URL,
 	XAI_OAUTH_SCOPE,
-	XaiOAuthFlow,
 } from "../src/utils/oauth/xai";
 import { withEnv } from "./helpers";
 
 const originalFetch = global.fetch;
 const SUPPRESS_XAI_ENV = { XAI_API_KEY: undefined } as const;
-const AUTHORIZATION_ENDPOINT = "https://auth.x.ai/oauth2/authorize";
+const DEVICE_AUTHORIZATION_ENDPOINT = "https://auth.x.ai/oauth2/device/code";
 const TOKEN_ENDPOINT = "https://auth.x.ai/oauth2/token";
+const DEVICE_AUTHORIZATION = {
+	device_code: "device-code-123",
+	user_code: "ABCD-EFGH",
+	verification_uri: "https://auth.x.ai/activate",
+	verification_uri_complete: "https://auth.x.ai/activate?user_code=ABCD-EFGH",
+	expires_in: 600,
+	interval: 1,
+} as const;
 
-function discoveryResponse(): Response {
-	return new Response(
-		JSON.stringify({
-			issuer: "https://auth.x.ai",
-			authorization_endpoint: AUTHORIZATION_ENDPOINT,
-			token_endpoint: TOKEN_ENDPOINT,
-		}),
-		{ status: 200, headers: { "Content-Type": "application/json" } },
-	);
+function jsonResponse(body: unknown, status = 200): Response {
+	return new Response(JSON.stringify(body), {
+		status,
+		headers: { "Content-Type": "application/json" },
+	});
+}
+
+function discoveryResponse(overrides: Record<string, unknown> = {}): Response {
+	return jsonResponse({
+		issuer: "https://auth.x.ai",
+		device_authorization_endpoint: DEVICE_AUTHORIZATION_ENDPOINT,
+		token_endpoint: TOKEN_ENDPOINT,
+		...overrides,
+	});
 }
 
 function tokenResponse(accessToken: string, refreshToken: string, accountId: string, email: string): Response {
-	return new Response(
-		JSON.stringify({
-			access_token: accessToken,
-			refresh_token: refreshToken,
-			id_token: jwt({ sub: accountId, email }),
-			expires_in: 3600,
-			token_type: "Bearer",
-		}),
-		{ status: 200, headers: { "Content-Type": "application/json" } },
-	);
+	return jsonResponse({
+		access_token: accessToken,
+		refresh_token: refreshToken,
+		id_token: jwt({ sub: accountId, email }),
+		expires_in: 3600,
+		token_type: "Bearer",
+	});
 }
 
 function jwt(payload: Record<string, unknown>): string {
@@ -49,19 +60,14 @@ function jwt(payload: Record<string, unknown>): string {
 	return `${encode({ alg: "none", typ: "JWT" })}.${encode(payload)}.`;
 }
 
-async function dispatchLocalCallback(callbackUrl: string): Promise<void> {
-	const url = new URL(callbackUrl);
-	let lastError: unknown;
-	for (let attempt = 0; attempt < 20; attempt++) {
-		try {
-			await originalFetch(url.toString());
-			return;
-		} catch (error) {
-			lastError = error;
-			await Bun.sleep(10);
-		}
-	}
-	throw lastError instanceof Error ? lastError : new Error(String(lastError));
+function requestUrl(input: string | URL | Request): string {
+	return typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+}
+
+function requestForm(init: RequestInit | undefined): URLSearchParams {
+	const body = init?.body;
+	if (!(body instanceof URLSearchParams)) throw new Error("Expected URLSearchParams request body");
+	return body;
 }
 
 describe("xAI OAuth login provider", () => {
@@ -95,111 +101,105 @@ describe("xAI OAuth login provider", () => {
 		});
 	});
 
-	it("discovers xAI OAuth endpoints from the official issuer", async () => {
+	it("discovers and pins xAI device/token endpoints to x.ai", async () => {
 		const fetchMock = vi.fn(async () => discoveryResponse());
 		global.fetch = fetchMock as unknown as typeof fetch;
 
 		await expect(discoverXaiOAuthEndpoints()).resolves.toEqual({
-			authorizationEndpoint: AUTHORIZATION_ENDPOINT,
+			deviceAuthorizationEndpoint: DEVICE_AUTHORIZATION_ENDPOINT,
 			tokenEndpoint: TOKEN_ENDPOINT,
 		});
 		expect(fetchMock).toHaveBeenCalledWith(XAI_OAUTH_DISCOVERY_URL, expect.any(Object));
 	});
 
 	it("rejects OAuth discovery endpoints outside x.ai", async () => {
-		const fetchMock = vi.fn(
-			async () =>
-				new Response(
-					JSON.stringify({
-						authorization_endpoint: "https://evil.example/oauth2/authorize",
-						token_endpoint: TOKEN_ENDPOINT,
-					}),
-					{ status: 200, headers: { "Content-Type": "application/json" } },
-				),
-		);
-		global.fetch = fetchMock as unknown as typeof fetch;
+		global.fetch = vi.fn(async () => discoveryResponse({ token_endpoint: "https://evil.example/oauth2/token" })) as unknown as typeof fetch;
 
 		await expect(discoverXaiOAuthEndpoints()).rejects.toThrow(/unexpected endpoint/i);
 	});
 
-	it("builds a PKCE browser authorization URL", async () => {
-		const fetchMock = vi.fn(async () => discoveryResponse());
-		global.fetch = fetchMock as unknown as typeof fetch;
-		const flow = new XaiOAuthFlow({ onAuth: () => {}, onPrompt: async () => "" });
-		expect(flow.redirectUri).toBe("http://127.0.0.1:56121/callback");
-
-		const { url } = await flow.generateAuthUrl("state-123", "http://127.0.0.1:56121/callback");
-		const authUrl = new URL(url);
-
-		expect(authUrl.origin + authUrl.pathname).toBe(AUTHORIZATION_ENDPOINT);
-		expect(authUrl.searchParams.get("response_type")).toBe("code");
-		expect(authUrl.searchParams.get("client_id")).toBe(XAI_OAUTH_CLIENT_ID);
-		expect(authUrl.searchParams.get("redirect_uri")).toBe("http://127.0.0.1:56121/callback");
-		expect(authUrl.searchParams.get("scope")).toBe(XAI_OAUTH_SCOPE);
-		expect(authUrl.searchParams.get("code_challenge_method")).toBe("S256");
-		expect(authUrl.searchParams.get("code_challenge")?.length).toBeGreaterThan(20);
-		expect(authUrl.searchParams.get("state")).toBe("state-123");
-		expect(authUrl.searchParams.get("nonce")?.length).toBeGreaterThan(20);
-	});
-
-	it("exchanges an authorization code for refreshable OAuth credentials", async () => {
-		let tokenBody = "";
+	it("performs device login without callback or pasted-code stages", async () => {
+		const sleepSpy = vi.spyOn(Bun, "sleep").mockResolvedValue(undefined);
+		const serveSpy = vi.spyOn(Bun, "serve");
+		const tokenResponses = [
+			jsonResponse({ error: "authorization_pending" }, 400),
+			jsonResponse({ error: "slow_down" }, 400),
+			tokenResponse("access-device", "refresh-device", "account-device", "Device@Example.com"),
+		];
+		const requests: Array<{ url: string; init?: RequestInit }> = [];
 		const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
-			const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+			const url = requestUrl(input);
+			requests.push({ url, init });
 			if (url === XAI_OAUTH_DISCOVERY_URL) return discoveryResponse();
+			if (url === DEVICE_AUTHORIZATION_ENDPOINT) return jsonResponse(DEVICE_AUTHORIZATION);
 			if (url === TOKEN_ENDPOINT) {
-				tokenBody = String(init?.body ?? "");
-				return tokenResponse("access-token", "refresh-token", "account-123", "User@Example.com");
+				const response = tokenResponses.shift();
+				if (!response) throw new Error("Unexpected token poll");
+				return response;
 			}
 			throw new Error(`Unexpected fetch: ${url}`);
 		});
 		global.fetch = fetchMock as unknown as typeof fetch;
-		const flow = new XaiOAuthFlow({ onAuth: () => {}, onPrompt: async () => "" });
-		await flow.generateAuthUrl("state-123", "http://127.0.0.1:56121/callback");
+		const authEvents: Array<{ url: string; instructions?: string }> = [];
+		const progress: string[] = [];
+		const onManualCodeInput = vi.fn(async () => "legacy-code");
 
-		const credentials = await flow.exchangeToken("auth-code", "state-123", "http://127.0.0.1:56121/callback");
-		const tokenParams = new URLSearchParams(tokenBody);
-
-		expect(tokenParams.get("grant_type")).toBe("authorization_code");
-		expect(tokenParams.get("client_id")).toBe(XAI_OAUTH_CLIENT_ID);
-		expect(tokenParams.get("code")).toBe("auth-code");
-		expect(tokenParams.get("redirect_uri")).toBe("http://127.0.0.1:56121/callback");
-		expect(tokenParams.get("code_verifier")?.length).toBeGreaterThan(20);
-		expect(credentials).toMatchObject({
-			access: "access-token",
-			refresh: "refresh-token",
-			accountId: "account-123",
-			email: "user@example.com",
+		const credentials = await loginXaiDeviceFlow({
+			onAuth: info => authEvents.push(info),
+			onProgress: message => progress.push(message),
+			onManualCodeInput,
 		});
-		expect(credentials.expires).toBeGreaterThan(Date.now());
+
+		expect(serveSpy).not.toHaveBeenCalled();
+		expect(onManualCodeInput).not.toHaveBeenCalled();
+		expect(authEvents).toEqual([
+			{
+				url: DEVICE_AUTHORIZATION.verification_uri_complete,
+				instructions: `Enter code: ${DEVICE_AUTHORIZATION.user_code}`,
+			},
+		]);
+		expect(progress).toEqual(["Waiting for xAI device authorization..."]);
+		expect(sleepSpy.mock.calls).toEqual([[1000], [6000]]);
+		expect(credentials).toMatchObject({
+			access: "access-device",
+			refresh: "refresh-device",
+			accountId: "account-device",
+			email: "device@example.com",
+		});
+
+		const deviceRequest = requests.find(request => request.url === DEVICE_AUTHORIZATION_ENDPOINT);
+		expect(Object.fromEntries(requestForm(deviceRequest?.init))).toEqual({
+			client_id: XAI_OAUTH_CLIENT_ID,
+			scope: XAI_OAUTH_SCOPE,
+		});
+		const tokenRequests = requests.filter(request => request.url === TOKEN_ENDPOINT);
+		expect(tokenRequests).toHaveLength(3);
+		expect(Object.fromEntries(requestForm(tokenRequests[0]?.init))).toEqual({
+			grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+			client_id: XAI_OAUTH_CLIENT_ID,
+			device_code: DEVICE_AUTHORIZATION.device_code,
+		});
 	});
 
-	it("stores xAI login credentials as refreshable OAuth credentials", async () => {
+	it("stores device-flow credentials as refreshable OAuth credentials", async () => {
 		if (!store || !authStorage) throw new Error("test setup failed");
-		const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
-			const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+		global.fetch = vi.fn(async (input: string | URL | Request) => {
+			const url = requestUrl(input);
 			if (url === XAI_OAUTH_DISCOVERY_URL) return discoveryResponse();
+			if (url === DEVICE_AUTHORIZATION_ENDPOINT) return jsonResponse(DEVICE_AUTHORIZATION);
 			if (url === TOKEN_ENDPOINT) {
-				expect(String(init?.body ?? "")).toContain("grant_type=authorization_code");
 				return tokenResponse("access-login", "refresh-login", "account-login", "login@example.com");
 			}
 			throw new Error(`Unexpected fetch: ${url}`);
-		});
-		global.fetch = fetchMock as unknown as typeof fetch;
+		}) as unknown as typeof fetch;
 		await authStorage.set("xai", { type: "api_key", key: "legacy-api-key" });
 
 		await authStorage.login("xai", {
-			onAuth: info => {
-				const authUrl = new URL(info.url);
-				const redirectUri = authUrl.searchParams.get("redirect_uri");
-				const state = authUrl.searchParams.get("state");
-				if (!redirectUri || !state) throw new Error("missing redirect_uri/state");
-				queueMicrotask(() => {
-					void dispatchLocalCallback(`${redirectUri}?code=login-code&state=${state}`);
-				});
-			},
+			onAuth: () => {},
 			onPrompt: async () => "",
-			onManualCodeInput: () => new Promise<string>(() => {}),
+			onManualCodeInput: async () => {
+				throw new Error("manual code input must not be requested");
+			},
 		});
 
 		const credentials = store.listAuthCredentials("xai");
@@ -217,17 +217,16 @@ describe("xAI OAuth login provider", () => {
 	});
 
 	it("refreshes expired xAI OAuth credentials with the refresh token", async () => {
-		let tokenBody = "";
-		const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
-			const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+		let tokenBody: URLSearchParams | undefined;
+		global.fetch = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+			const url = requestUrl(input);
 			if (url === XAI_OAUTH_DISCOVERY_URL) return discoveryResponse();
 			if (url === TOKEN_ENDPOINT) {
-				tokenBody = String(init?.body ?? "");
+				tokenBody = requestForm(init);
 				return tokenResponse("access-rotated", "refresh-rotated", "account-rotated", "rotated@example.com");
 			}
 			throw new Error(`Unexpected fetch: ${url}`);
-		});
-		global.fetch = fetchMock as unknown as typeof fetch;
+		}) as unknown as typeof fetch;
 		const credentials: OAuthCredentials = {
 			access: "access-old",
 			refresh: "refresh-old",
@@ -235,16 +234,25 @@ describe("xAI OAuth login provider", () => {
 		};
 
 		const refreshed = await refreshOAuthToken("xai", credentials);
-		const tokenParams = new URLSearchParams(tokenBody);
 
-		expect(tokenParams.get("grant_type")).toBe("refresh_token");
-		expect(tokenParams.get("client_id")).toBe(XAI_OAUTH_CLIENT_ID);
-		expect(tokenParams.get("refresh_token")).toBe("refresh-old");
+		expect(tokenBody?.get("grant_type")).toBe("refresh_token");
+		expect(tokenBody?.get("client_id")).toBe(XAI_OAUTH_CLIENT_ID);
+		expect(tokenBody?.get("refresh_token")).toBe("refresh-old");
 		expect(refreshed).toMatchObject({
 			access: "access-rotated",
 			refresh: "refresh-rotated",
 			accountId: "account-rotated",
 			email: "rotated@example.com",
+		});
+	});
+
+	it("uses the official device endpoint when discovery omits it", async () => {
+		global.fetch = vi.fn(async () =>
+			discoveryResponse({ device_authorization_endpoint: undefined }),
+		) as unknown as typeof fetch;
+
+		await expect(discoverXaiOAuthEndpoints()).resolves.toMatchObject({
+			deviceAuthorizationEndpoint: XAI_OAUTH_DEVICE_CODE_URL,
 		});
 	});
 });

@@ -100,3 +100,41 @@ export function isJTDDiscriminator(schema: unknown): schema is JTDDiscriminator 
 export function isJTDRef(schema: unknown): schema is JTDRef {
 	return typeof schema === "object" && schema !== null && "ref" in schema;
 }
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function requireRecordToolArgs(value: unknown, toolName: string): Record<string, unknown> {
+	if (isRecord(value)) return value;
+	throw new Error(`Tool '${toolName}' arguments must be an object`);
+}
+
+export function rejectUnknownToolArgs(
+	args: Record<string, unknown>,
+	allowed: ReadonlySet<string>,
+	toolName: string,
+): void {
+	const unknown = Object.keys(args)
+		.filter(key => !allowed.has(key))
+		.sort();
+	if (unknown.length > 0) {
+		throw new Error(`Tool '${toolName}' received unknown argument(s): ${unknown.join(", ")}`);
+	}
+}
+
+export function allowedToolArgKeysFromWireSchema(schema: Record<string, unknown>): ReadonlySet<string> | null {
+	if (schema.type !== "object") return null;
+	if (!isRecord(schema.properties)) return null;
+	if (
+		"anyOf" in schema ||
+		"oneOf" in schema ||
+		"allOf" in schema ||
+		"patternProperties" in schema ||
+		"dependentSchemas" in schema
+	) {
+		return null;
+	}
+	if (schema.additionalProperties !== false && schema.unevaluatedProperties !== false) return null;
+	return new Set(Object.keys(schema.properties));
+}

@@ -11,6 +11,25 @@ Package-specific references:
 - [DEVELOPMENT](./DEVELOPMENT.md)
 - [RenderMermaid guide](../../docs/render-mermaid.md)
 
+## Local completion notifications
+
+For simple local side effects that do not need a full extension, set the user-level
+`completion.notifyCommand`. JWC runs it on completed agent turns with `JWC_NOTIFICATION_*`
+environment variables (`JWC_NOTIFICATION_TITLE`, `JWC_NOTIFICATION_BODY`,
+`JWC_NOTIFICATION_JSON`, and related fields). Project settings cannot activate this command hook.
+
+```sh
+jwc config set completion.notifyCommand 'cmux notify --title "$JWC_NOTIFICATION_TITLE" --body "$JWC_NOTIFICATION_BODY"'
+```
+
+Windows Terminal may keep BEL (`[Console]::Write([char]7)`) silent depending on profile and
+system sound settings even when `notifications.terminalBell` is enabled. For an audible Windows
+completion beep, configure a user-level PowerShell command hook instead:
+
+```powershell
+jwc config set completion.notifyCommand 'powershell.exe -NoProfile -Command "[Console]::Beep(880, 300)"'
+```
+
 ## Memory backends
 
 The agent supports three mutually-exclusive memory backends, selected via the `memory.backend` setting (Settings → Memory tab, or `~/.jwc/config.yml`):

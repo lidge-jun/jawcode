@@ -40,6 +40,7 @@ export async function runManagedDaemon(options: RunManagedDaemonOptions): Promis
 	let pollState: DaemonPollState = { attempt: 0 };
 
 	return runDaemonLoop({
+		ownerId: options.ownerId,
 		baseIntervalMs: options.baseIntervalMs,
 		maxTicks: options.maxTicks,
 		sleep: options.sleep ?? defaultSleep,

@@ -2,7 +2,7 @@
 
 완료된 `10.NNN` / `20.NNN` — 본문은 `_fin/10/` · `_fin/20/`.
 
-> Inventory refreshed 2026-06-28 against actual files: GJC `_fin/10` = 41, OMP `_fin/20` = 12. Duplicate NNNs are intentionally file-level rows.
+> Inventory refreshed 2026-07-02 against actual files: GJC `_fin/10` = 56, OMP `_fin/20` = 21. Duplicate NNNs are intentionally file-level rows.
 
 ## GJC `_fin/10`
 
@@ -46,8 +46,22 @@
 | 10.038 | 10.038 — gjc chase: RPC control plane v2 | [10/10.038_gjc_chase_rpc_control_plane_v2](./10/10.038_gjc_chase_rpc_control_plane_v2.md) |
 | 10.051 | 10.051 — gjc chase: agent composer toolcall integrity | [10/10.051_gjc_chase_agent_composer_toolcall_integrity](./10/10.051_gjc_chase_agent_composer_toolcall_integrity.md) |
 | 10.040 | 10.040 — gjc chase: compaction pruning and resident memory | [10/10.040_gjc_chase_compaction_pruning_resident_memory](./10/10.040_gjc_chase_compaction_pruning_resident_memory.md) |
+| 10.041 | 10.041 — gjc chase: TUI input render Windows psmux — ADAPT inline/list-slot autocomplete | [10/10.041_gjc_chase_tui_input_render_windows_psmux](./10/10.041_gjc_chase_tui_input_render_windows_psmux.md) |
 | 10.043 | 10.043 — gjc chase: web search and public URL hardening | [10/10.043_gjc_chase_web_search_insane_security](./10/10.043_gjc_chase_web_search_insane_security.md) |
 | 10.047 | 10.047 — gjc chase: security/privacy guardrails | [10/10.047_gjc_chase_security_privacy_guardrails](./10/10.047_gjc_chase_security_privacy_guardrails.md) |
+| 10.048 | 10.048 — gjc chase: dev CI release packaging — ADAPT affected-path false-green guard | [10/10.048_gjc_chase_dev_ci_release_packaging](./10/10.048_gjc_chase_dev_ci_release_packaging.md) |
+| 10.052 | 10.052 — gjc chase: docs external integrations — ADAPT conservative integration matrix | [10/10.052_gjc_chase_docs_external_integrations](./10/10.052_gjc_chase_docs_external_integrations.md) |
+| 10.054 | 10.054 — gjc chase: local OpenAI-compatible provider discovery + fallback | [10/10.054_gjc_chase_local_provider_discovery](./10/10.054_gjc_chase_local_provider_discovery.md) |
+| 10.056 | 10.056 — gjc chase: terminal bell notifications + completion hook — ADAPT global-only command hook | [10/10.056_gjc_chase_terminal_bell_notifications](./10/10.056_gjc_chase_terminal_bell_notifications.md) |
+| 10.059 | 10.059 — gjc chase: deep-interview wording · ask gate · render guard — ADAPT+IMPORT 4 slices | [10/10.059_gjc_chase_deep_interview_ask_ralplan_gate](./10/10.059_gjc_chase_deep_interview_ask_ralplan_gate.md) |
+| 10.060 | 10.060 — gjc chase: TUI render resilience · Ctrl+Enter submit · status-line UX | [10/10.060_gjc_chase_tui_render_resilience_editor_submit](./10/10.060_gjc_chase_tui_render_resilience_editor_submit.md) |
+| 10.061 | 10.061 — gjc chase: tmux workspace titles · Windows/psmux team spawn reliability | [10/10.061_gjc_chase_tmux_team_windows_psmux_titles](./10/10.061_gjc_chase_tmux_team_windows_psmux_titles.md) |
+| 10.042 | 10.042 — gjc chase: deep-interview ask + goal state — ADAPT 1 slice (round-shape write guard) | [10/10.042_gjc_chase_deep_interview_ask_goal_state](./10/10.042_gjc_chase_deep_interview_ask_goal_state.md) |
+| 10.065 | 10.065 — gjc chase: system prompt self-awareness source grounding — ADAPT 1 slice (JWC-authored, identity-safe) | [10/10.065_gjc_chase_prompt_self_awareness_grounding](./10/10.065_gjc_chase_prompt_self_awareness_grounding.md) |
+| 10.062 | 10.062 — gjc chase: DeepInfra provider + service-tier · Gemini CLI user-agent alignment | [10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua](./10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md) |
+| 10.064 | 10.064 — gjc chase: compiled Telegram daemon entrypoint · Windows Terminal bell workaround | [10/10.064_gjc_chase_telegram_daemon_entrypoint_notify](./10/10.064_gjc_chase_telegram_daemon_entrypoint_notify.md) |
+| 10.057 | 10.057 — gjc chase: Windows hardening — ADAPT npm shims · worker PowerShell · error preservation | [10/10.057_gjc_chase_windows_hardening](./10/10.057_gjc_chase_windows_hardening.md) |
+| 10.069 | 10.069 — gjc chase: provider/search/docs/model support — evidence-close Tavily + Claude retry, reject reverted Aside | [10/10.069_gjc_chase_provider_search_docs_model_support](./10/10.069_gjc_chase_provider_search_docs_model_support.md) |
 
 ## OMP `_fin/20`
 
@@ -59,11 +73,20 @@
 | 20.006 | 20.006 — omp chase: TUI 입력/표시 마이크로 수정 묶음 | [20/20.006_omp_chase_tui_input_micro_fixes](./20/20.006_omp_chase_tui_input_micro_fixes.md) |
 | 20.007 | 20.007 — omp chase: session layer modularization (reference) | [20/20.007_omp_chase_session_modularization](./20/20.007_omp_chase_session_modularization.md) |
 | 20.008 | 20.008 — omp chase: 15.12.3 → 15.13.0 pull delta index | [20/20.008_omp_chase_pull_15_13_delta](./20/20.008_omp_chase_pull_15_13_delta.md) |
+| 20.009 | 20.009 — omp chase: append-only context integrity — IMPORT 3 slices | [20/20.009_omp_chase_append_only_context_integrity](./20/20.009_omp_chase_append_only_context_integrity.md) |
 | 20.010 | 20.010 — omp chase: AI OAuth and reasoning replay (reference audit) | [20/20.010_omp_chase_ai_oauth_reasoning_replay](./20/20.010_omp_chase_ai_oauth_reasoning_replay.md) |
 | 20.011 | 20.011 — omp chase: TUI image drafts and terminal edges (reference audit) | [20/20.011_omp_chase_tui_image_drafts_terminal_edges](./20/20.011_omp_chase_tui_image_drafts_terminal_edges.md) |
 | 20.012 | 20.012 — omp chase: bash snapshot and env security (reference audit) | [20/20.012_omp_chase_bash_snapshot_env_security](./20/20.012_omp_chase_bash_snapshot_env_security.md) |
 | 20.013 | 20.013 — omp chase: plugin virtual registry bundle (reference audit) | [20/20.013_omp_chase_plugin_virtual_registry_bundle](./20/20.013_omp_chase_plugin_virtual_registry_bundle.md) |
+| 20.015 | 20.015 — omp chase: release/test leak hardening (track-only reference closure) | [20/20.015_omp_chase_release_test_leak_hardening](./20/20.015_omp_chase_release_test_leak_hardening.md) |
+| 20.019 | 20.019 — omp chase: codex/AI config (base URL · reasoning · verbosity · tiny role) — ADAPT 2 slices | [20/20.019_omp_chase_codex_ai_config](./20/20.019_omp_chase_codex_ai_config.md) |
+| 20.021 | 20.021 — omp chase: v2 streaming integrity — IMPORT 1 slice (partialJson terminal scrub) | [20/20.021_omp_chase_v2_streaming_integrity](./20/20.021_omp_chase_v2_streaming_integrity.md) |
+| 20.025 | 20.025 — omp chase: compaction/snapcompact caps + session-scope — IMPORT 1 slice (bounded edit snapshots) | [20/20.025_omp_chase_compaction_snapcompact_session_scope](./20/20.025_omp_chase_compaction_snapcompact_session_scope.md) |
+| 20.020 | 20.020 — omp chase: session title + LLM idle recap — ADAPT 1 slice (title casing reconciliation) | [20/20.020_omp_chase_session_title_idle_recap](./20/20.020_omp_chase_session_title_idle_recap.md) |
+| 20.023 | 20.023 — omp chase: AI providers · model catalog · per-family service-tier (reference-triage) | [20/20.023_omp_chase_ai_providers_catalog_service_tier](./20/20.023_omp_chase_ai_providers_catalog_service_tier.md) |
 | 20.014 | 20.014 — omp chase: goal compaction and provider concurrency (reference audit) | [20/20.014_omp_chase_goal_compaction_provider_concurrency](./20/20.014_omp_chase_goal_compaction_provider_concurrency.md) |
+| 20.027 | 20.027 — omp chase: system prompt · tester/sonic subagent · discovery rules — ADAPT 1 ADOPT (agent param optional+default), 5 defer/reject | [20/20.027_omp_chase_prompts_subagent_discovery_rules](./20/20.027_omp_chase_prompts_subagent_discovery_rules.md) |
+| 20.035 | 20.035 — omp chase: tool schema/task/TTS/stats — reference-triage, public schema change rejected | [20/20.035_omp_chase_tool_schema_task_tts_stats](./20/20.035_omp_chase_tool_schema_task_tts_stats.md) |
 
 ## superseded (devlog)
 

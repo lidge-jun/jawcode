@@ -1,6 +1,6 @@
 # struct_har/ — gjc_origin ↔ jwc_patched 계층 대조
 
-> **스냅샷 (2026-06-26)**: `resolve-heads.ts` + 재생성 스크립트로 worktree/클론 HEAD 자동 반영. **99.03** discovery·stage-context ✅ ([structure/50_status.md](../structure/50_status.md)).
+> **스냅샷 (2026-07-03)**: chase clone fast-forward refresh. GJC `db7938e1`, OMP `d0c1890a6`, JWC worktree `89371141` (dirty local edits respected). **99.03** discovery·stage-context ✅ ([structure/50_status.md](../structure/50_status.md)).
 
 > **목적**: 업스트림 gajae-code(`gjc_origin`)과 jawcode 포크(`jwc_patched`)의 **현재 형태**를 devlog MOC 밴드별로 병렬 기록한다.
 > `structure/`가 patched 단일 SoT라면, `struct_har/`는 **양쪽 스냅샷 대조용**이다.
@@ -9,9 +9,9 @@
 
 | 쪽 | 코드 소스 | HEAD (reviewed through) |
 |---|---|---|
-| **gjc_origin** | [`devlog/_gjc_chase/gajae-code/`](../devlog/_gjc_chase/gajae-code/) — Yeachan-Heo/gajae-code upstream `dev` tracking clone (gitignored) | `f0a8a3eb6e619392af4965273c3cf95c3faf4345` (재생성 시 `git -C devlog/_gjc_chase/gajae-code rev-parse HEAD`) |
-| **jwc_patched** | jawcode worktree (포크 패치 반영; dirty local edits respected) | `da23db8f217637412552c7a7b1e411a180c5ecc8` (재생성 시 `git rev-parse HEAD`) |
-| **omp_origin** | [`devlog/_omp_chase/oh-my-pi/`](../devlog/_omp_chase/oh-my-pi/) | `0fc6d136c34a279a711a2d3f2df9d64e0fa06cee` (재생성 시 클론 HEAD) |
+| **gjc_origin** | [`devlog/_gjc_chase/gajae-code/`](../devlog/_gjc_chase/gajae-code/) — Yeachan-Heo/gajae-code upstream `dev` tracking clone (gitignored) | `db7938e1f81477cda8823269f0ca392be91f538b` (재생성 시 `git -C devlog/_gjc_chase/gajae-code rev-parse HEAD`) |
+| **jwc_patched** | jawcode worktree (포크 패치 반영; dirty local edits respected) | `89371141df169d667da2c98ab698bfc1186513d7` (재생성 시 `git rev-parse HEAD`) |
+| **omp_origin** | [`devlog/_omp_chase/oh-my-pi/`](../devlog/_omp_chase/oh-my-pi/) | `d0c1890a6c0809507d534840f0e31a6b31a76619` (재생성 시 클론 HEAD) |
 - 업스트림 remote: `https://github.com/Yeachan-Heo/gajae-code`
 - chase reviewed-through 정본: GJC MOC는 GJC+JWC, OMP MOC는 OMP+JWC를 기록하고, 횡단 인벤토리/INDEX/README는 세 축을 모두 기록한다.
 - **gjc_origin 문서의 code facts는 `devlog/_gjc_chase/gajae-code/` 아래 파일을 정본으로 cite** (절대경로 `/Users/jun/Developer/new/700_projects/jawcode/devlog/_gjc_chase/gajae-code/…`).
@@ -123,6 +123,7 @@ diff -u devlog/_gjc_chase/gajae-code/packages/coding-agent/src/cli.ts packages/c
 
 | 날짜 | 변경 |
 |---|---|
+| 2026-07-02 | chase clone fast-forward: gjc `79b42377` (`upstream/dev`, v0.7.8-73-g79b42377) · omp `0ea6ea630` (`origin/main`, v16.2.9-433-g0ea6ea630) · jwc `5c375b1`; 신규 chase cards `10.066`-`10.069`, `20.031`-`20.035`; evidence: [devlog/_plan/260702_parity_docs_refresh](../devlog/_plan/260702_parity_docs_refresh/) |
 | 2026-06-26 | jwc `da23db8` · gjc `f0a8a3eb` · omp `0fc6d136` · actual chase clone 경로(`devlog/_gjc_chase/gajae-code`, `devlog/_omp_chase/oh-my-pi`) 우선 · GJC `upstream/dev` 기준 재생성 |
 | 2026-06-14 | jwc `d60b7822` · gjc `269387ba` · HEAD 동적 `resolve-heads.ts` · 밴드 앵커 `jwc-runtime`/`jwc-defaults` 정정 · structure executor 동기화 · **chase/ 미포함** |
 | 2026-06-13 (3차) | 기준선 전진: gjc `75d103f45145` (+2: receipt spool exporter, model-profiles UX), jwc `dc4f22672581`. **10.009·10.010 채택 완료** (99.11.01/02 구현 랜딩) → `_legacy/10/` 이동. 신규 chase: [10.011 receipt spool](./chase/10.011_gjc_chase_receipt_spool.md) (가치 60, owner/storage clean 실측); `a12a751` model-profiles는 **사용자 직접 패치 중** (카드 미발급). chase 공유 문서 `0NN` 3자리 리네임 (`001_overview`…`006_jwc_own_backlog`). |

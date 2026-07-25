@@ -1,5 +1,5 @@
 import { readNotificationDiscoveryRecord } from "./discovery";
-import type { NotificationServerFrame } from "./protocol";
+import { ASK_CONTROLS_CAPABILITY, NOTIFICATION_PROTOCOL_VERSION, type NotificationServerFrame } from "./protocol";
 
 export interface ForwardReplyResult {
 	ok: boolean;
@@ -61,6 +61,15 @@ export async function forwardTelegramReplyToSession(opts: {
 		}
 
 		socket.addEventListener("error", () => finish({ ok: false, actionId, reason: "ws-error" }));
+		socket.addEventListener("open", () => {
+			socket?.send(
+				JSON.stringify({
+					type: "hello",
+					version: NOTIFICATION_PROTOCOL_VERSION,
+					capabilities: [ASK_CONTROLS_CAPABILITY],
+				}),
+			);
+		});
 		socket.addEventListener("message", (event: MessageEvent) => {
 			let frame: NotificationServerFrame;
 			try {

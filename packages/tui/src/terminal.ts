@@ -1,5 +1,6 @@
 import { dlopen, FFIType, ptr } from "bun:ffi";
 import * as fs from "node:fs";
+import { getTtyWinsize } from "@jawcode-dev/natives";
 import { $env } from "@jawcode-dev/utils";
 import { setKittyProtocolActive } from "./keys";
 import { StdinBuffer } from "./stdin-buffer";
@@ -19,6 +20,15 @@ let terminalEverStarted = false;
 
 const STD_INPUT_HANDLE = -10;
 const ENABLE_VIRTUAL_TERMINAL_INPUT = 0x0200;
+const BLIND_RESTORE_SEQUENCE =
+	"\x1b[?2004l" + // Disable bracketed paste
+	"\x1b[?1000l" + // Disable normal mouse reporting
+	"\x1b[?1006l" + // Disable SGR extended mouse reporting
+	"\x1b[?2031l" + // Disable Mode 2031 appearance notifications
+	"\x1b[<u" + // Pop kitty keyboard protocol
+	"\x1b[>4;0m" + // Disable modifyOtherKeys fallback
+	"\x1b[?7h" + // Restore autowrap (session runs with DECAWM off, 260703 WP2)
+	"\x1b[?25h"; // Show cursor
 /**
  * Emergency terminal restore - call this from signal/crash handlers
  * Resets terminal state without requiring access to the ProcessTerminal instance
@@ -29,18 +39,15 @@ export function emergencyTerminalRestore(): void {
 		if (terminal) {
 			terminal.stop();
 			terminal.showCursor();
-		} else if (terminalEverStarted) {
-			// Blind restore only if we know a terminal was started but lost track of it
-			// This avoids writing escape sequences for non-TUI commands (grep, commit, etc.)
-			process.stdout.write(
-				"\x1b[?2004l" + // Disable bracketed paste
-					"\x1b[?1000l" + // Disable normal mouse reporting
-					"\x1b[?1006l" + // Disable SGR extended mouse reporting
-					"\x1b[?2031l" + // Disable Mode 2031 appearance notifications
-					"\x1b[<u" + // Pop kitty keyboard protocol
-					"\x1b[>4;0m" + // Disable modifyOtherKeys fallback
-					"\x1b[?25h", // Show cursor
-			);
+		}
+		// Blind restore whenever a terminal was ever started. Also runs after the
+		// tracked stop() above: a ProcessTerminal that already marked itself dead
+		// no-ops every #safeWrite, so its stop() may restore NOTHING while the fd
+		// is still writable enough for a raw write — the crash path must not
+		// depend on the instance's liveness bookkeeping. Double-restoring modes
+		// is harmless. Never fires for non-TUI commands (terminalEverStarted).
+		if (terminalEverStarted && process.stdout.isTTY) {
+			process.stdout.write(BLIND_RESTORE_SEQUENCE);
 			if (process.stdin.setRawMode) {
 				process.stdin.setRawMode(false);
 			}
@@ -178,6 +185,16 @@ export class ProcessTerminal implements Terminal {
 
 		// Enable bracketed paste mode - terminal will wrap pastes in \x1b[200~ ... \x1b[201~
 		this.#safeWrite("\x1b[?2004h");
+
+		// 260703 WP2: disable autowrap (DECRST 7) for the TUI session. The
+		// renderer pre-wraps every line and separates rows with explicit \r\n,
+		// so it never needs terminal autowrap — but with DECAWM on, any
+		// physically overwide write (stale width during a resize race, or
+		// ambiguous/emoji width the measurer undercounts) silently inserts a
+		// wrapped row and permanently desyncs the diff renderer's relative
+		// cursor model. With DECAWM off the same mistake clips at the right
+		// edge instead: visually imperfect, row-model-safe.
+		this.#safeWrite("\x1b[?7l");
 
 		// Set up resize handler immediately
 		process.stdout.on("resize", this.#resizeHandler);
@@ -584,6 +601,8 @@ export class ProcessTerminal implements Terminal {
 		this.#safeWrite("\x1b[?2004l");
 		this.#safeWrite("\x1b[?1000l");
 		this.#safeWrite("\x1b[?1006l");
+		// Restore autowrap (260703 WP2 — session runs with DECAWM off)
+		this.#safeWrite("\x1b[?7h");
 
 		// Disable Mode 2031 appearance change notifications
 		this.#safeWrite("\x1b[?2031l");
@@ -719,12 +738,29 @@ export class ProcessTerminal implements Terminal {
 		return !this.#dead;
 	}
 
+	/**
+	 * 260703 WP4 — kernel-truth size. process.stdout.columns only updates
+	 * after the runtime processes SIGWINCH; a render firing inside that gap
+	 * sizes lines for the OLD width (the resize-race corruption class).
+	 * Reading ioctl(TIOCGWINSZ) at call time closes the race: #doRender sees
+	 * the true PTY size, so widthChanged trips on the very first post-resize
+	 * render. Falls back to the runtime/env values when the native addon is
+	 * unavailable or fd 1 is not a TTY.
+	 */
+	#kernelSize(): { rows: number; cols: number } | null {
+		try {
+			return getTtyWinsize(1);
+		} catch {
+			return null; // native addon unavailable (loader stub throws)
+		}
+	}
+
 	get columns(): number {
-		return process.stdout.columns || Number(process.env.COLUMNS) || 80;
+		return this.#kernelSize()?.cols || process.stdout.columns || Number(process.env.COLUMNS) || 80;
 	}
 
 	get rows(): number {
-		return process.stdout.rows || Number(process.env.LINES) || 24;
+		return this.#kernelSize()?.rows || process.stdout.rows || Number(process.env.LINES) || 24;
 	}
 
 	moveBy(lines: number): void {

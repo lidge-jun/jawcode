@@ -3,6 +3,22 @@ import type { Settings } from "../config/settings";
 
 export type NotificationVerbosity = "lean" | "verbose";
 
+/** Per-spawn marker set by JWC-owned separate-process child launchers. */
+export const NOTIFICATION_CHILD_SESSION_ENV = "JWC_SPAWNED_BY_SESSION";
+const LEGACY_NOTIFICATION_CHILD_SESSION_ENV = "GJC_SPAWNED_BY_SESSION";
+
+/**
+ * Consume the one-generation child marker. Deleting it prevents a marked child from implicitly
+ * marking its own descendants; each JWC spawn site must set provenance for the child it creates.
+ */
+export function consumeNotificationChildSessionMarker(env: NodeJS.ProcessEnv = process.env): boolean {
+	const marked =
+		Object.hasOwn(env, NOTIFICATION_CHILD_SESSION_ENV) || Object.hasOwn(env, LEGACY_NOTIFICATION_CHILD_SESSION_ENV);
+	delete env[NOTIFICATION_CHILD_SESSION_ENV];
+	delete env[LEGACY_NOTIFICATION_CHILD_SESSION_ENV];
+	return marked;
+}
+
 export interface NotificationSettingsSnapshot {
 	enabled: boolean;
 	botToken: string | undefined;
@@ -20,6 +36,7 @@ export interface ResolvedNotificationConfig extends NotificationSettingsSnapshot
 
 export interface NotificationEnvSnapshot {
 	notifications: string | undefined;
+	notify: string | undefined;
 	token: string | undefined;
 	chatId: string | undefined;
 }
@@ -39,6 +56,7 @@ export function maskChatId(chatId: string | undefined): string | null {
 export function resolveNotificationEnv(): NotificationEnvSnapshot {
 	return {
 		notifications: $resolveEnv("GJC_NOTIFICATIONS")?.trim(),
+		notify: ($resolveEnv("JWC_NOTIFY") ?? $resolveEnv("GJC_NOTIFY"))?.trim(),
 		token: $resolveEnv("GJC_NOTIFICATIONS_TOKEN")?.trim() || undefined,
 		chatId: $resolveEnv("GJC_NOTIFICATIONS_CHAT_ID")?.trim() || undefined,
 	};
@@ -58,7 +76,7 @@ export function isNotificationConnectTokenAccepted(expectedToken: string, presen
 
 export function getNotificationConfig(settings: Settings): ResolvedNotificationConfig {
 	const env = resolveNotificationEnv();
-	const hardDisabled = env.notifications === "0";
+	const hardDisabled = env.notifications === "0" || env.notify?.toLowerCase() === "off";
 	const envRequested = env.notifications === "1";
 	const botToken = env.token ?? settings.get("notifications.telegram.botToken");
 	const chatId = env.chatId ?? settings.get("notifications.telegram.chatId");

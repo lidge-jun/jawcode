@@ -7,8 +7,9 @@ import {
 	toNotificationStatusJson,
 	verifyTelegramPairing,
 } from "../notifications";
+import { runDaemonInternal } from "../notifications/daemon-cli";
 
-export type NotifyAction = "status" | "setup" | "verify";
+export type NotifyAction = "status" | "setup" | "verify" | "daemon-internal";
 
 export interface NotifyCommandArgs {
 	action: NotifyAction;
@@ -16,6 +17,7 @@ export interface NotifyCommandArgs {
 	chatId?: string;
 	redact?: boolean;
 	verbosity?: NotificationVerbosity;
+	rawArgs?: string[];
 	flags: {
 		json?: boolean;
 	};
@@ -76,6 +78,11 @@ function formatStatus(config: ReturnType<typeof getNotificationConfig>): string 
 }
 
 export async function runNotifyCommand(cmd: NotifyCommandArgs): Promise<void> {
+	if (cmd.action === "daemon-internal") {
+		await runDaemonInternal({ argv: cmd.rawArgs ?? [] });
+		return;
+	}
+
 	const settings = await Settings.init();
 
 	if (cmd.action === "verify") {

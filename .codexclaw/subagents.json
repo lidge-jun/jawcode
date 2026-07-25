@@ -1,0 +1,19 @@
+{
+  "roles": {
+    "explorer": {
+      "mode": "model",
+      "model": "gpt-5.5",
+      "promptOverride": null
+    },
+    "reviewer": {
+      "mode": "model",
+      "model": "gpt-5.5",
+      "promptOverride": null
+    },
+    "executor": {
+      "mode": "model",
+      "model": "gpt-5.5",
+      "promptOverride": null
+    }
+  }
+}

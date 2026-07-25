@@ -1,0 +1,19 @@
+{"ts":"2026-07-10T23:02:51.376Z","slug":"produce-the-2026-07-11-chase-catch-up-card-set-f","event":"created","detail":"init objective=\"Produce the 2026-07-11 chase catch-up card set for jawcode covering both upstream axes at existing-card diff-plan quality, using parallel gpt-5.6-sol workers with disjoint write scopes. GJC cards 10.082-10.086 for b3b5b8a9..4a80bac9 (upstream/dev v0.9.1->v0.9.6, 80 non-merge commits). OMP cards 20.045-20.050 for f25ab54c5..7aa1d581c (origin/main v16.3.12->v16.4.2, 169 non-merge commits). Card quality bar per 10.081: MOC/status/priority header, Reviewed-source range, Chase Scope, import/adapt/reject/split classification, Upstream Commit Anchors table with file anchors, Evidence Commands Run, JWC Worktree Verification; gjc->jwc naming per 008; OMP lane reference-only (G2), GJC lane absorb (G1). MOC rows added for every new card; Reviewed-through pins advanced to GJC 4a80bac9 and OMP 7aa1d581c. Write scope: struct_har/chase/ new cards + MOC/README/002 + .codexclaw state. Out of scope: packages/ implementation, chase clones (read-only), git commit/push, _fin moves. DONE when all cards exist with valid hashes (git cat-file -e per cited hash), convention-passing names, MOC rows, updated pins, A-phase sol reviewer PASS/GO-WITH-FIXES, C-phase hash verification. One PABCD work-phase: chase card cycle 260711.\" criteria=0"}
+{"type":"workphase_started","id":"wp1","at":"2026-07-10T23:16:43.598Z"}
+{"type":"task_done","id":"t1","note":"P plan doc written + amended after audit"}
+{"type":"task_done","id":"t2","note":"sol reviewer GO-WITH-FIXES(3), all folded; A>B attested"}
+{"type":"task_done","id":"t3","note":"W1 Aristotle: 10.082 (9 anchors), 10.083 (11 anchors), both P1"}
+{"type":"task_done","id":"t5","note":"W3 Arendt: 20.045 (15), 20.046 (19), 20.047 (10 anchors)"}
+{"type":"task_done","id":"t4","note":"W2 Curie: 10.084 (17), 10.085 (6), 10.086 (16 anchors)"}
+{"type":"task_done","note":"t6:W4 Locke 20.048(16)/20.049(10)/20.050(43 anchors)"}
+{"type":"task_done","note":"t7:hash+convention verification all green"}
+{"type":"task_done","note":"t8:MOC rows+pins+README done by main"}
+{"type":"criterion_met","id":"c1","evidence":"ls struct_har/chase: 11 new files present (10.082-10.086, 20.045-20.050), sizes 5.6-12.8KB, mtime 2026-07-11 08:16-08:18"}
+{"type":"criterion_met","id":"c2","evidence":"convention sweep: all 11 cards hdr=1 moc=1 rev=1 anchors=1 evidence=1 verify=1 (grep of # NN.0NN title, > MOC:, > Reviewed source:, ## Upstream Commit Anchors, ## Evidence Commands, ## JWC Worktree Verification)"}
+{"type":"criterion_met","id":"c3","evidence":"hash existence loop: 197 unique cited hashes (gjc 59, omp 138) all pass git cat-file -e against their clone, 0 missing"}
+{"type":"criterion_met","id":"c4","evidence":"grep 10_gjc_chase_MOC.md: 5 new rows 082-086 + Reviewed-through 4a80bac9 v0.9.6 (line 29) + delta row (line 42); 20_omp_chase_MOC.md: 6 new rows 045-050 + Reviewed-through 7aa1d581c v16.4.2 (line 27) + cluster row (line 49); README SoT pins updated (lines 24,26)"}
+{"type":"criterion_met","id":"c5","evidence":"sol reviewer agent 019f4e48 verdict: GO-WITH-FIXES (blockers=3); all 3 folded into plan before B (unallocated OMP commits, counts 68/140, 9342de55 moved to 10.086); recorded in A>B attest auditOutput"}
+{"ts":"2026-07-10T23:21:12.831Z","slug":"produce-the-2026-07-11-chase-catch-up-card-set-f","event":"workphase_done","detail":"closed wp1"}
+{"type":"task_done","id":"t9","note":"D closed, outcome DONE"}
+{"type":"workphase_done","id":"wp1","at":"2026-07-10T23:21:12.891Z"}
+{"type":"followup","note":"HITL follow-up 260711: 20.050 split into hub + 20.050a-e (12/4/4/10/13 commits, 10.074a-d pattern) by 2 sol-high workers; main verified 43/43 commit-set identity, hash validity, convention sweep, and spot-read 20.050a","at":"2026-07-10T23:31:20.422Z"}

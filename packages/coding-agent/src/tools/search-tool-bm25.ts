@@ -82,21 +82,7 @@ function buildSearchToolBm25Content(details: SearchToolBm25Details): string {
 /** Get discoverable tools for description rendering. Falls back to empty array on error. */
 function getDiscoverableToolsForDescription(session: ToolSession): DiscoverableTool[] {
 	try {
-		// Prefer generic method; fall back to legacy MCP-only
-		if (session.getDiscoverableTools) {
-			return session.getDiscoverableTools();
-		}
-		// Legacy MCP path — adapt DiscoverableMCPTool (with `description`) → DiscoverableTool.
-		const legacy = session.getDiscoverableMCPTools?.() ?? [];
-		return legacy.map(t => ({
-			name: t.name,
-			label: t.label,
-			summary: t.description,
-			source: "mcp" as const,
-			serverName: t.serverName,
-			mcpToolName: t.mcpToolName,
-			schemaKeys: t.schemaKeys,
-		}));
+		return session.getDiscoverableTools?.() ?? [];
 	} catch {
 		return [];
 	}

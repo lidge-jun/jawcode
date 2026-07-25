@@ -117,6 +117,7 @@ export type KnownProvider =
 	| "firepass"
 	| "gitlab-duo"
 	| "cursor"
+	| "deepinfra"
 	| "deepseek"
 	| "xai"
 	| "groq"
@@ -229,8 +230,10 @@ export function shouldSendServiceTier(
 	serviceTier: ServiceTier | null | undefined,
 	provider: Provider | undefined,
 ): boolean {
-	if (provider !== "openai" && provider !== "openai-codex") return false;
 	const resolved = resolveServiceTier(serviceTier, provider);
+	// DeepInfra realizes only `priority` on the wire; all other tiers are dropped.
+	if (provider === "deepinfra") return resolved === "priority";
+	if (provider !== "openai" && provider !== "openai-codex") return false;
 	return resolved === "default" || resolved === "flex" || resolved === "scale" || resolved === "priority";
 }
 
@@ -249,7 +252,9 @@ export function getPriorityPremiumRequests(
 	if (resolveServiceTier(serviceTier, provider) !== "priority") return 0;
 	// Only providers that realize `priority` on the wire bill the user.
 	// Everywhere else, the field is silently dropped and nothing is charged.
-	return provider === "openai" || provider === "openai-codex" || provider === "anthropic" ? 1 : 0;
+	return provider === "openai" || provider === "openai-codex" || provider === "anthropic" || provider === "deepinfra"
+		? 1
+		: 0;
 }
 
 export interface ProviderSessionState {
@@ -434,6 +439,12 @@ export interface SimpleStreamOptions extends StreamOptions {
 	syntheticApiFormat?: "openai" | "anthropic";
 	/** Hint that websocket transport should be preferred when supported by the provider implementation. */
 	preferWebsockets?: boolean;
+	/**
+	 * Output text verbosity hint for OpenAI Responses-format providers.
+	 * Mapped to the official OpenAI `text.verbosity` field; ignored by other
+	 * providers and by non-official OpenAI-compatible endpoints.
+	 */
+	textVerbosity?: "low" | "medium" | "high";
 }
 
 // Generic StreamFunction with typed options
@@ -544,6 +555,7 @@ export interface Usage {
 }
 
 export type StopReason = "stop" | "length" | "toolUse" | "error" | "aborted";
+export type AssistantErrorKind = "provider_safety_stop";
 
 export interface OpenAIResponsesHistoryPayload {
 	type: "openaiResponsesHistory";
@@ -586,6 +598,8 @@ export interface AssistantMessage {
 	usage: Usage;
 	stopReason: StopReason;
 	errorMessage?: string;
+	/** Typed provider classification used by retry/session policy without scraping display text. */
+	errorKind?: AssistantErrorKind;
 	/** HTTP status surfaced by the provider when the request failed. Populated by every provider's catch block alongside `errorMessage` so consumers (auth retry, telemetry, UI) can branch without regex-scraping the message. */
 	errorStatus?: number;
 	/**
@@ -745,6 +759,12 @@ export type AssistantMessageEvent =
 export interface OpenAICompat extends ToolChoiceCompat {
 	/** Whether the provider supports the `store` field. Default: auto-detected from URL. */
 	supportsStore?: boolean;
+	/** Whether Responses replay accepts `input_image.detail: "original"`. Default: true. */
+	supportsImageDetailOriginal?: boolean;
+	/** Whether Responses requests accept `reasoning.summary`. Default: true. */
+	supportsReasoningSummary?: boolean;
+	/** Whether Responses requests accept `reasoning.encrypted_content` in `include`. Default: true. */
+	includeEncryptedReasoning?: boolean;
 	/** Whether the provider supports the `developer` role (vs `system`). Default: auto-detected from URL. */
 	supportsDeveloperRole?: boolean;
 	/**

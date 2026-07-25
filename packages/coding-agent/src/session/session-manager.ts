@@ -40,6 +40,7 @@ import {
 	isBlobRef,
 	isImageDataUrl,
 	MemoryBlobStore,
+	ResidentBlobMissingError,
 	resolveImageData,
 	resolveImageDataUrl,
 	resolveResidentImageDataSync,
@@ -1217,6 +1218,45 @@ function isImageBlock(value: unknown): value is { type: "image"; data: string; m
 	);
 }
 
+function stripUndefinedPlainObjectFields(value: unknown, path = "entry"): unknown {
+	if (value === undefined) return undefined;
+	if (value === null || typeof value !== "object") return value;
+	if (Array.isArray(value)) {
+		let changed = false;
+		const result: unknown[] = new Array(value.length);
+		for (let index = 0; index < value.length; index++) {
+			const item = value[index];
+			if (item === undefined) {
+				throw new Error(`Session entry contains undefined array item at ${path}[${index}]`);
+			}
+			const next = stripUndefinedPlainObjectFields(item, `${path}[${index}]`);
+			if (next !== item) changed = true;
+			result[index] = next;
+		}
+		return changed ? result : value;
+	}
+
+	const prototype = Object.getPrototypeOf(value);
+	if (prototype !== Object.prototype && prototype !== null) return value;
+
+	let changed = false;
+	const entries: Array<readonly [string, unknown]> = [];
+	for (const [key, item] of Object.entries(value)) {
+		if (item === undefined) {
+			changed = true;
+			continue;
+		}
+		const next = stripUndefinedPlainObjectFields(item, `${path}.${key}`);
+		if (next !== item) changed = true;
+		entries.push([key, next]);
+	}
+	return changed ? Object.fromEntries(entries) : value;
+}
+
+function normalizeSessionEntryForStorage(entry: SessionEntry): SessionEntry {
+	return stripUndefinedPlainObjectFields(entry) as SessionEntry;
+}
+
 const RESIDENT_EXTERNALIZE_STRING_EXCLUDED_KEYS = new Set([
 	"id",
 	"type",
@@ -1247,6 +1287,10 @@ interface ResidentBlobStores {
 interface ResidentMaterializeContext {
 	sessionId?: string;
 	sessionFile?: string;
+}
+
+function residentBlobMissingPlaceholder(error: ResidentBlobMissingError): string {
+	return `[Session resident ${error.kind} blob missing: sha256:${error.hash}; original content unavailable]`;
 }
 
 function cloneJsonSemantic<T>(value: T): T {
@@ -1316,12 +1360,18 @@ function materializeResidentValueSync(
 		const cacheKey = `${obj.kind}:${obj.ref}`;
 		const cached = cache.get(cacheKey);
 		if (cached !== undefined) return cached;
-		const resolved =
-			obj.kind === "imageUrl"
-				? resolveResidentImageDataUrlSync(stores.image, obj.ref, { ...context, kind: "imageUrl" })
-				: obj.kind === "imageData"
-					? resolveResidentImageDataSync(stores.image, obj.ref, { ...context, kind: "imageData" })
-					: resolveTextBlobSync(stores.text, obj.ref, { ...context, kind: "text" });
+		let resolved: string;
+		try {
+			resolved =
+				obj.kind === "imageUrl"
+					? resolveResidentImageDataUrlSync(stores.image, obj.ref, { ...context, kind: "imageUrl" })
+					: obj.kind === "imageData"
+						? resolveResidentImageDataSync(stores.image, obj.ref, { ...context, kind: "imageData" })
+						: resolveTextBlobSync(stores.text, obj.ref, { ...context, kind: "text" });
+		} catch (error) {
+			if (!(error instanceof ResidentBlobMissingError)) throw error;
+			resolved = residentBlobMissingPlaceholder(error);
+		}
 		cache.set(cacheKey, resolved);
 		return resolved;
 	}
@@ -3117,7 +3167,8 @@ export class SessionManager {
 	}
 
 	#appendEntry(entry: SessionEntry): void {
-		const residentEntry = prepareEntryForResidentSync(entry, this.#residentStores()) as SessionEntry;
+		const normalizedEntry = normalizeSessionEntryForStorage(entry);
+		const residentEntry = prepareEntryForResidentSync(normalizedEntry, this.#residentStores()) as SessionEntry;
 		this.#fileEntries.push(residentEntry);
 		this.#byId.set(residentEntry.id, residentEntry);
 		this.#leafId = residentEntry.id;
@@ -3319,6 +3370,18 @@ export class SessionManager {
 				this.#residentStores(),
 			) as SessionMessageEntry;
 			current.message = prepared.message;
+			updated++;
+		}
+		return updated;
+	}
+
+	/** Apply bounded maintenance rewrites to custom-message entries before a full session rewrite. */
+	applyCustomMessageEntryUpdates(entries: CustomMessageEntry[]): number {
+		let updated = 0;
+		for (const update of entries) {
+			const current = this.#byId.get(update.id);
+			if (current?.type !== "custom_message") continue;
+			current.content = update.content;
 			updated++;
 		}
 		return updated;

@@ -65,14 +65,14 @@ export interface SearchParams {
 	sessionModelProvider?: string | undefined;
 
 	/**
-	 * Search depth tier. `"fast"` (default) = synchronous 60s, `"deep"` = async
-	 * 180s with heavier models. The caller (WebSearchTool) handles the async job
-	 * wrapper; providers just see an extended timeout + possibly a different model.
+	 * Search depth tier. `"fast"` (default) uses provider-class timeouts:
+	 * short direct APIs and longer LLM search; `"deep"` = async 180s with
+	 * heavier models. The caller (WebSearchTool) handles the async job wrapper.
 	 */
 	depth?: "fast" | "deep" | undefined;
 
-	/** Override the hard timeout (ms). Deep tier passes 180_000; fast uses the
-	 *  provider default (SEARCH_HARD_TIMEOUT_MS = 60_000). */
+	/** Override the hard timeout (ms). Deep tier passes 180_000; fast uses
+	 *  provider-class defaults unless the user explicitly configures web_search.timeout. */
 	timeoutMs?: number | undefined;
 
 	/** Reasoning effort from settings (080). Providers apply floor logic per tier

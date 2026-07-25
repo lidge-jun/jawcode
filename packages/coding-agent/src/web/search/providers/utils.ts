@@ -44,16 +44,24 @@ export function findCredential(
 }
 
 /**
- * Default hard ceiling for a single web-search round-trip. 60s tolerates
- * legitimate slow LLM-mediated responses (anthropic web_search_20250305,
- * perplexity, gemini, OpenAI code backend) while still guaranteeing the session unfreezes
- * within a minute if Bun's `AbortSignal` fails to propagate on Windows.
- *
- * Pure search APIs (brave, exa, jina, tavily, searxng, synthetic, zai)
- * settle far faster in practice; reusing the same ceiling keeps the wiring
- * uniform without compromising correctness.
+ * Default hard ceiling for an unclassified web-search round-trip. 60s keeps
+ * legacy no-argument call sites bounded while provider-specific classes can opt
+ * into shorter API or longer LLM transport ceilings.
  */
 export const SEARCH_HARD_TIMEOUT_MS = 60_000;
+
+/** Default hard ceiling for direct search APIs. */
+export const SEARCH_API_TIMEOUT_MS = 15_000;
+
+/** Default hard ceiling for LLM-mediated search providers. */
+export const SEARCH_LLM_TIMEOUT_MS = 120_000;
+
+export type SearchTimeoutClass = "api" | "llm";
+
+const TIMEOUT_CLASS_MS: Record<SearchTimeoutClass, number> = {
+	api: SEARCH_API_TIMEOUT_MS,
+	llm: SEARCH_LLM_TIMEOUT_MS,
+};
 
 /** Lower bound for the configurable hard timeout (5s) — guards against a
  *  near-zero setting that would abort every request before it can settle. */
@@ -62,31 +70,44 @@ export const MIN_SEARCH_HARD_TIMEOUT_MS = 5_000;
  *  request from holding the session open indefinitely. */
 export const MAX_SEARCH_HARD_TIMEOUT_MS = 600_000;
 
-/**
- * Runtime-configurable hard timeout, seeded from the compile-time default.
- *
- * No-argument {@link withHardTimeout} call sites (duckduckgo, parallel, kimi,
- * zai, jina, perplexity) read this through {@link getSearchHardTimeoutMs} so a
- * `web_search.timeout` setting change reaches every provider, not just those
- * that thread an explicit `timeoutMs`.
- */
-let searchHardTimeoutMs = SEARCH_HARD_TIMEOUT_MS;
+let configuredHardTimeoutMs: number | undefined;
+
+export interface SearchTimeoutSettingSource {
+	get(key: "web_search.timeout"): unknown;
+	has?(key: "web_search.timeout"): boolean;
+}
 
 /** Current effective hard timeout in milliseconds. */
-export function getSearchHardTimeoutMs(): number {
-	return searchHardTimeoutMs;
+export function getSearchHardTimeoutMs(timeoutClass?: SearchTimeoutClass): number {
+	return configuredHardTimeoutMs ?? (timeoutClass ? TIMEOUT_CLASS_MS[timeoutClass] : SEARCH_HARD_TIMEOUT_MS);
 }
 
 /**
  * Override the global web-search hard timeout. The value is clamped to
- * [{@link MIN_SEARCH_HARD_TIMEOUT_MS}, {@link MAX_SEARCH_HARD_TIMEOUT_MS}];
- * a non-finite input is ignored so a malformed setting cannot disable the
- * safety net. Returns the value actually applied.
+ * [{@link MIN_SEARCH_HARD_TIMEOUT_MS}, {@link MAX_SEARCH_HARD_TIMEOUT_MS}].
+ * Passing undefined, non-finite, or non-positive values clears the override.
  */
-export function setSearchHardTimeoutMs(ms: number): number {
-	if (!Number.isFinite(ms)) return searchHardTimeoutMs;
-	searchHardTimeoutMs = Math.min(MAX_SEARCH_HARD_TIMEOUT_MS, Math.max(MIN_SEARCH_HARD_TIMEOUT_MS, ms));
-	return searchHardTimeoutMs;
+export function setSearchHardTimeoutMs(ms: number | undefined): number {
+	if (typeof ms !== "number" || !Number.isFinite(ms) || ms <= 0) {
+		configuredHardTimeoutMs = undefined;
+		return SEARCH_HARD_TIMEOUT_MS;
+	}
+	configuredHardTimeoutMs = Math.min(MAX_SEARCH_HARD_TIMEOUT_MS, Math.max(MIN_SEARCH_HARD_TIMEOUT_MS, ms));
+	return configuredHardTimeoutMs;
+}
+
+/**
+ * Apply the user-configured timeout only when the setting source explicitly
+ * contains `web_search.timeout`; schema/default values must not collapse API and
+ * LLM class defaults back into one uniform ceiling.
+ */
+export function applyConfiguredSearchTimeout(settings: SearchTimeoutSettingSource | null | undefined): void {
+	if (!settings?.has?.("web_search.timeout")) {
+		setSearchHardTimeoutMs(undefined);
+		return;
+	}
+	const seconds = settings.get("web_search.timeout");
+	setSearchHardTimeoutMs(typeof seconds === "number" ? seconds * 1000 : undefined);
 }
 
 /**
@@ -98,12 +119,9 @@ export function setSearchHardTimeoutMs(ms: number): number {
  * TCP/TLS connection stalls (oven-sh/bun#15275, oven-sh/bun#18536); without
  * this safety net a stalled web-search request freezes the entire session
  * because the user's Esc is never delivered to the native layer.
- *
- * @param signal - Caller cancellation signal, if any.
- * @param ms - Hard timeout in milliseconds. Defaults to the runtime-configured
- *   value from {@link getSearchHardTimeoutMs} (initially {@link SEARCH_HARD_TIMEOUT_MS}).
  */
-export function withHardTimeout(signal: AbortSignal | undefined, ms: number = getSearchHardTimeoutMs()): AbortSignal {
+export function withHardTimeout(signal: AbortSignal | undefined, msOrClass?: number | SearchTimeoutClass): AbortSignal {
+	const ms = typeof msOrClass === "number" ? msOrClass : getSearchHardTimeoutMs(msOrClass);
 	const timeout = AbortSignal.timeout(ms);
 	return signal ? AbortSignal.any([signal, timeout]) : timeout;
 }

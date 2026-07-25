@@ -3,8 +3,8 @@ import { calculatePromptTokens } from "@jawcode-dev/agent-core/compaction/compac
 import type { AssistantMessage, ImageContent } from "@jawcode-dev/ai";
 import { parseRateLimitReason } from "@jawcode-dev/ai";
 import { type Component, Loader, TERMINAL, Text } from "@jawcode-dev/tui";
+import { logger } from "@jawcode-dev/utils";
 import { settings } from "../../config/settings";
-import { isJawBrand } from "../../discovery/helpers";
 import { AssistantMessageComponent } from "../../modes/components/assistant-message";
 import {
 	ReadToolGroupComponent,
@@ -17,16 +17,74 @@ import { TtsrNotificationComponent } from "../../modes/components/ttsr-notificat
 import { getSymbolTheme, theme } from "../../modes/theme/theme";
 import type { InteractiveModeContext, TodoPhase } from "../../modes/types";
 import { CompactionProgressPresenter } from "../../modes/utils/compaction-progress";
-import { commitLaneEnabled, markLiveToggleEligible } from "../../modes/utils/ui-helpers";
+import {
+	commitFinalizedBacklogMidTurn,
+	commitLaneEnabled,
+	commitPreamble,
+	consumeSignatureCredit,
+	markLiveToggleEligible,
+	takeFirstSignature,
+	toolRenderModeIsCommit,
+} from "../../modes/utils/ui-helpers";
 import type { PlanApprovalDetails } from "../../plan-mode/approved-plan";
 import type { AgentSessionEvent } from "../../session/agent-session";
 import { isSilentAbort, readPendingDisplayTag } from "../../session/messages";
 import type { ResolveToolDetails } from "../../tools/resolve";
 import { interruptHint } from "../shared";
+import { ringTerminalBell } from "../utils/terminal-bell";
 
 type AgentSessionEventKind = AgentSessionEvent["type"];
 
 const IRC_MESSAGE_VISIBLE_TTL_MS = 10_000;
+const COMPLETION_NOTIFY_COMMAND_TIMEOUT_MS = 10_000;
+
+interface CompletionNotifyPayload {
+	type: "agent-turn-complete";
+	title: string;
+	body: string;
+	cwd: string;
+	sessionId?: string;
+	sessionName?: string;
+	lastAssistantMessage?: string;
+	stopReason?: string;
+}
+
+function completionNotifyShellCommand(command: string): string[] {
+	if (process.platform === "win32") {
+		return ["cmd.exe", "/d", "/s", "/c", command];
+	}
+	return ["/bin/sh", "-c", command];
+}
+
+function cleanNotificationEnvValue(value: string | undefined, max = 4000): string {
+	if (!value) return "";
+	return value.replaceAll("\0", "").slice(0, max);
+}
+
+function buildCompletionNotifyEnv(payload: CompletionNotifyPayload): Record<string, string> {
+	return {
+		JWC_NOTIFICATION_TYPE: payload.type,
+		JWC_NOTIFICATION_TITLE: cleanNotificationEnvValue(payload.title, 500),
+		JWC_NOTIFICATION_BODY: cleanNotificationEnvValue(payload.body),
+		JWC_NOTIFICATION_CWD: cleanNotificationEnvValue(payload.cwd, 2000),
+		JWC_NOTIFICATION_SESSION_ID: cleanNotificationEnvValue(payload.sessionId, 500),
+		JWC_NOTIFICATION_SESSION_NAME: cleanNotificationEnvValue(payload.sessionName, 500),
+		JWC_NOTIFICATION_LAST_ASSISTANT_MESSAGE: cleanNotificationEnvValue(payload.lastAssistantMessage),
+		JWC_NOTIFICATION_STOP_REASON: cleanNotificationEnvValue(payload.stopReason, 100),
+		JWC_NOTIFICATION_JSON: cleanNotificationEnvValue(JSON.stringify(payload), 8000),
+	};
+}
+
+function assistantMessageTextSummary(message: AssistantMessage | undefined, max = 1000): string | undefined {
+	if (!message) return undefined;
+	const text = message.content
+		.filter(block => block.type === "text")
+		.map(block => block.text)
+		.join("\n")
+		.trim();
+	if (!text) return undefined;
+	return text.slice(0, max);
+}
 
 function friendlyRetryReason(errorMessage: string | undefined): string {
 	if (!errorMessage) return "";
@@ -119,8 +177,7 @@ export class EventController {
 
 	/** 99.20.04 — unset setting falls back to the brand default (jwc: commit). */
 	#commitFoldingEnabled(): boolean {
-		const mode = settings.get("tool.renderMode");
-		return (mode ?? (isJawBrand() ? "commit" : "verbose")) === "commit";
+		return toolRenderModeIsCommit();
 	}
 
 	/**
@@ -134,9 +191,13 @@ export class EventController {
 		this.ctx.liveToolContainer.removeChild(component);
 		component.setMinimized?.(true);
 		markLiveToggleEligible(component, true);
-		// 083.9 P4: stays interactive in the chat until the next prompt submit —
-		// the turn-boundary backlog sweep (commitFinalizedBacklog) commits it.
 		this.ctx.chatContainer.addChild(component);
+		// 260703 WP6b — commit-on-completion: the finalized prefix (previous
+		// settled segments + this collapsed tool) reaches the scrollback NOW;
+		// any refusal (overflow, overlay, off-bottom gate) leaves it in the
+		// virtual lane for the turn-boundary sweep exactly as before. Committed
+		// blocks are immutable — ctrl+o keeps toggling the still-live remainder.
+		commitFinalizedBacklogMidTurn(this.ctx);
 	}
 
 	#getReadGroup(): ReadToolGroupComponent {
@@ -215,6 +276,16 @@ export class EventController {
 	}
 
 	async #handleAgentStart(_event: Extract<AgentSessionEvent, { type: "agent_start" }>): Promise<void> {
+		// 260704: preamble first — chat rows must never commit above an
+		// in-frame banner (reading order), and committing it moves the banner
+		// to the scrollback seam (top-flow layout, no banner-vs-chat gap).
+		commitPreamble(this.ctx);
+		// 260703 WP3b-min: flush parked committed rows BEFORE marking the
+		// streaming phase (the flush itself must not be gated), so streaming
+		// never starts with parked rows that would force scroll-fighting
+		// mid-stream drains while the user reads history.
+		this.ctx.ui.flushHistoryLane?.();
+		this.ctx.ui.setStreamingActive?.(true);
 		this.#lastIntent = undefined;
 		this.#readToolCallArgs.clear();
 		this.#readToolCallAssistantComponents.clear();
@@ -264,13 +335,17 @@ export class EventController {
 			const signature = `${textContent}\u0000${imageCount}`;
 
 			this.#resetReadGroup();
-			const wasOptimistic = this.ctx.optimisticUserMessageSignature === signature;
-			const wasLocallySubmitted = this.ctx.locallySubmittedUserSignatures.delete(signature) || wasOptimistic;
+			// 260703 WP2: consume at most ONE credit of each kind per delivery.
+			// The FIFO holds one entry per optimistically rendered submission
+			// (identical texts keep independent entries) and the refcount holds
+			// one credit per local submission — a queued identical message's
+			// credit survives the optimistic delivery, so its own delivery still
+			// counts as local and leaves the editor draft alone (#783).
+			const wasOptimistic = takeFirstSignature(this.ctx.optimisticUserSignatures, signature);
+			const wasLocallySubmitted =
+				consumeSignatureCredit(this.ctx.locallySubmittedUserSignatures, signature) || wasOptimistic;
 			if (!wasOptimistic) {
 				this.ctx.addMessageToChat(event.message);
-			}
-			if (wasOptimistic) {
-				this.ctx.optimisticUserMessageSignature = undefined;
 			}
 
 			// Clear the editor only when the submission did not originate from a
@@ -279,7 +354,14 @@ export class EventController {
 			// would race with the user typing the next prompt while the previous
 			// large redraw lands and erase their in-progress draft (#783).
 			if (!event.message.synthetic) {
-				this.ctx.currentTurnStartIndex = this.ctx.chatContainer.children.length;
+				// 260703 WP3: a steering delivery lands MID-turn — moving the
+				// ctrl+o boundary past the run's already-rendered output would
+				// silently exclude exactly what the user is looking at. The
+				// session tagged the message object at dequeue time; consume here.
+				const wasSteeringDelivery = this.ctx.session?.consumeSteeringUserDelivery?.(event.message) === true;
+				if (!wasSteeringDelivery) {
+					this.ctx.currentTurnStartIndex = this.ctx.chatContainer.children.length;
+				}
 				if (!wasLocallySubmitted) {
 					this.ctx.editor.setText("");
 				}
@@ -295,13 +377,16 @@ export class EventController {
 			this.#segmentStartIndex = 0;
 			this.#resetReadGroup();
 			// 083.1: a new assistant message means the previous tool batch is done —
-			// collapse its last tool too (new tools in this message start a new chain).
-			this.ctx.lastToolComponent?.setMinimized?.(true);
+			// collapse its last tool too (new tools in this message start a new
+			// chain). 260703 WP6a-B: verbose mode never minimizes (gjc parity).
+			if (this.#commitFoldingEnabled()) this.ctx.lastToolComponent?.setMinimized?.(true);
 			this.ctx.lastToolComponent = undefined;
 			this.ctx.streamingComponent = new AssistantMessageComponent(undefined, this.ctx.hideThinkingBlock, () =>
 				this.ctx.ui.requestRender(),
 			);
-			this.ctx.streamingComponent.setThinkingExpanded(this.ctx.thinkingExpanded);
+			this.ctx.streamingComponent.setThinkingExpanded(
+				this.#commitFoldingEnabled() ? this.ctx.thinkingExpanded : true,
+			);
 			this.ctx.streamingComponent.setStreaming(true);
 			markLiveToggleEligible(this.ctx.streamingComponent, true);
 			this.ctx.streamingMessage = event.message;
@@ -380,15 +465,18 @@ export class EventController {
 					.some(c => (c.type === "text" && c.text.trim()) || (c.type === "thinking" && c.thinking.trim()));
 				if (hasPostToolContent) {
 					this.#segmentStartIndex = lastToolIndex + 1;
-					// The tools above this segment are done — collapse the last one (083.1).
-					this.ctx.lastToolComponent?.setMinimized?.(true);
+					// The tools above this segment are done — collapse the last one
+					// (083.1). 260703 WP6a-B: verbose never minimizes (gjc parity).
+					if (this.#commitFoldingEnabled()) this.ctx.lastToolComponent?.setMinimized?.(true);
 					this.ctx.lastToolComponent = undefined;
 					// The previous segment is settled — its trailing thinking collapses (083.5).
 					this.ctx.streamingComponent.setStreaming(false);
 					this.ctx.streamingComponent = new AssistantMessageComponent(undefined, this.ctx.hideThinkingBlock, () =>
 						this.ctx.ui.requestRender(),
 					);
-					this.ctx.streamingComponent.setThinkingExpanded(this.ctx.thinkingExpanded);
+					this.ctx.streamingComponent.setThinkingExpanded(
+						this.#commitFoldingEnabled() ? this.ctx.thinkingExpanded : true,
+					);
 					this.ctx.streamingComponent.setStreaming(true);
 					markLiveToggleEligible(this.ctx.streamingComponent, true);
 					this.ctx.chatContainer.addChild(this.ctx.streamingComponent);
@@ -492,9 +580,9 @@ export class EventController {
 						this.ctx.sessionManager.getCwd(),
 						content.id,
 					);
-					component.setExpanded(this.ctx.toolOutputExpanded);
 					markLiveToggleEligible(component, true);
 					if (this.#commitFoldingEnabled()) {
+						component.setExpanded(this.ctx.toolOutputExpanded);
 						// Provider-streamed tool calls can arrive through message_update before a
 						// tool_execution_start event. Keep them in the same live zone used by
 						// tool_execution_start so active previews do not mutate chat history
@@ -502,9 +590,10 @@ export class EventController {
 						this.#liveToolComponents.add(component);
 						this.ctx.liveToolContainer.addChild(component);
 					} else {
+						// 260703 WP6a-B (gjc parity): verbose renders everything fully
+						// expanded, permanently — no minimize on the next tool.
+						component.setExpanded(true);
 						this.ctx.chatContainer.addChild(new Text("", 0, 0));
-						// 083.1: a new tool starting collapses the previous one to a one-line summary
-						this.ctx.lastToolComponent?.setMinimized?.(true);
 						this.ctx.chatContainer.addChild(component);
 					}
 					this.ctx.lastToolComponent = component;
@@ -634,18 +723,18 @@ export class EventController {
 				this.ctx.sessionManager.getCwd(),
 				event.toolCallId,
 			);
-			component.setExpanded(this.ctx.toolOutputExpanded);
 			markLiveToggleEligible(component, true);
 			if (this.#commitFoldingEnabled()) {
+				component.setExpanded(this.ctx.toolOutputExpanded);
 				// 99.20.04 commit-time folding: the active preview lives in the
 				// live zone only — history stays untouched until completion, so
 				// it grows monotonically (no retroactive shrink).
 				this.#liveToolComponents.add(component);
 				this.ctx.liveToolContainer.addChild(component);
 			} else {
-				// 083.1 (verbose mode): a new tool starting collapses the previous
-				// one to a one-line summary.
-				this.ctx.lastToolComponent?.setMinimized?.(true);
+				// 260703 WP6a-B (gjc parity): verbose renders everything fully
+				// expanded, permanently — no minimize on the next tool.
+				component.setExpanded(true);
 				this.ctx.chatContainer.addChild(component);
 			}
 			this.ctx.lastToolComponent = component;
@@ -761,6 +850,10 @@ export class EventController {
 	}
 
 	async #handleAgentEnd(_event: Extract<AgentSessionEvent, { type: "agent_end" }>): Promise<void> {
+		// 260703 WP3b-min: streaming off FIRST (unknown-mux no longer blocks),
+		// then one discrete flush moves deferred history into the scrollback.
+		this.ctx.ui.setStreamingActive?.(false);
+		this.ctx.ui.flushHistoryLane?.();
 		if (this.ctx.loadingAnimation) {
 			this.ctx.loadingAnimation.stop();
 			this.ctx.loadingAnimation = undefined;
@@ -966,7 +1059,7 @@ export class EventController {
 
 	async #handleTtsrTriggered(event: Extract<AgentSessionEvent, { type: "ttsr_triggered" }>): Promise<void> {
 		const component = new TtsrNotificationComponent(event.rules);
-		component.setExpanded(this.ctx.toolOutputExpanded);
+		component.setExpanded(this.#commitFoldingEnabled() ? this.ctx.toolOutputExpanded : true);
 		markLiveToggleEligible(component, true);
 		this.ctx.chatContainer.addChild(component);
 		this.ctx.ui.requestRender();
@@ -1027,8 +1120,48 @@ export class EventController {
 		return lastAssistant?.usage ? calculatePromptTokens(lastAssistant.usage) : 0;
 	}
 
+	#runCompletionNotifyCommand(payload: CompletionNotifyPayload): void {
+		const command = settings.getGlobal("completion.notifyCommand")?.trim();
+		if (!command) return;
+
+		try {
+			const proc = Bun.spawn(completionNotifyShellCommand(command), {
+				cwd: payload.cwd,
+				detached: true,
+				env: {
+					...process.env,
+					...buildCompletionNotifyEnv(payload),
+				},
+				stdin: "ignore",
+				stdout: "ignore",
+				stderr: "ignore",
+				windowsHide: true,
+			});
+			proc.unref();
+			const timer = setTimeout(() => {
+				try {
+					proc.kill();
+				} catch {}
+			}, COMPLETION_NOTIFY_COMMAND_TIMEOUT_MS);
+			timer.unref?.();
+			void proc.exited
+				.then(exitCode => {
+					clearTimeout(timer);
+					if (exitCode !== 0) {
+						logger.warn("completion notify command exited non-zero", { exitCode });
+					}
+				})
+				.catch(error => {
+					clearTimeout(timer);
+					logger.warn("completion notify command failed", { error: String(error) });
+				});
+		} catch (error) {
+			logger.warn("completion notify command failed to start", { error: String(error) });
+		}
+	}
+
 	sendCompletionNotification(): void {
-		if (this.ctx.isBackgrounded === false) return;
+		const isBackgrounded = this.ctx.isBackgrounded !== false;
 		const notify = settings.get("completion.notify");
 		if (notify === "off") return;
 
@@ -1039,9 +1172,23 @@ export class EventController {
 		const last = this.ctx.session.getLastAssistantMessage?.();
 		if (last?.stopReason === "aborted" || last?.stopReason === "error") return;
 
-		const title = this.ctx.sessionManager.getSessionName();
-		const message = title ? `${title}: Complete` : "Complete";
-		TERMINAL.sendNotification(message);
+		const sessionName = this.ctx.sessionManager.getSessionName();
+		const title = sessionName ? `${sessionName}: Complete` : "Complete";
+		const summary = assistantMessageTextSummary(last);
+		const body = summary ?? "Complete";
+		const payload: CompletionNotifyPayload = {
+			type: "agent-turn-complete",
+			title,
+			body,
+			cwd: this.ctx.sessionManager.getCwd(),
+			sessionId: this.ctx.sessionManager.getSessionId(),
+			sessionName: sessionName || undefined,
+			lastAssistantMessage: summary,
+			stopReason: last?.stopReason,
+		};
+		ringTerminalBell("complete");
+		if (isBackgrounded) TERMINAL.sendNotification(title);
+		this.#runCompletionNotifyCommand(payload);
 	}
 
 	async handleBackgroundEvent(event: AgentSessionEvent): Promise<void> {

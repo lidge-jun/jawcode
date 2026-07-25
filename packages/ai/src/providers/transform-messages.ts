@@ -17,6 +17,152 @@ const enum ToolCallStatus {
 	Aborted = 2,
 }
 
+const SENSITIVE_TOKEN_RE =
+	/(?<![a-zA-Z0-9_*-])(gh[opusr]_[a-zA-Z0-9_*]{36,}|github_pat_[a-zA-Z0-9_*]{36,}|glpat-[a-zA-Z0-9_*-]{20,}|sk-proj-[a-zA-Z0-9_*-]{36,}|sk-ant-[a-zA-Z0-9_*-]{36,}|sk-[a-zA-Z0-9_*-]{48,})(?![a-zA-Z0-9_*-])/gi;
+
+export interface SensitiveRedactionResult {
+	result: unknown;
+	changed: boolean;
+}
+
+function hasPlausibleCredentialEntropy(token: string): boolean {
+	const lower = token.toLowerCase();
+	const prefixLength = lower.startsWith("github_pat_")
+		? "github_pat_".length
+		: lower.startsWith("glpat-")
+			? "glpat-".length
+			: lower.startsWith("sk-proj-")
+				? "sk-proj-".length
+				: lower.startsWith("sk-ant-")
+					? "sk-ant-".length
+					: lower.startsWith("gh")
+						? 4
+						: 3;
+	const secret = token.slice(prefixLength);
+	if (/^\*+$/.test(secret)) return true;
+	return [/[a-z]/, /[A-Z]/, /\d/, /[_-]/].filter(pattern => pattern.test(secret)).length >= 2;
+}
+
+export function redactSensitiveCredentials(text: string): string {
+	return text.replace(SENSITIVE_TOKEN_RE, match => {
+		if (!hasPlausibleCredentialEntropy(match)) return match;
+		const lower = match.toLowerCase();
+		if (lower.startsWith("gh")) return "[github_token_redacted]";
+		if (lower.startsWith("gl")) return "[gitlab_token_redacted]";
+		if (lower.startsWith("sk-ant-")) return "[anthropic_token_redacted]";
+		if (lower.startsWith("sk")) return "[openai_token_redacted]";
+		return "[token_redacted]";
+	});
+}
+
+export function redactSensitiveInObject(value: unknown): SensitiveRedactionResult {
+	return redactSensitiveInObjectInner(value, new WeakMap<object, SensitiveRedactionResult>());
+}
+
+function redactSensitiveInObjectInner(
+	value: unknown,
+	seen: WeakMap<object, SensitiveRedactionResult>,
+): SensitiveRedactionResult {
+	if (typeof value === "string") {
+		const result = redactSensitiveCredentials(value);
+		return { result, changed: result !== value };
+	}
+	if (value === null || typeof value !== "object") return { result: value, changed: false };
+
+	const cached = seen.get(value);
+	if (cached) return cached;
+
+	if (Array.isArray(value)) {
+		const result: unknown[] = [];
+		const state: SensitiveRedactionResult = { result, changed: false };
+		seen.set(value, state);
+		for (const item of value) {
+			const redacted = redactSensitiveInObjectInner(item, seen);
+			result.push(redacted.result);
+			state.changed ||= redacted.changed;
+		}
+		return state;
+	}
+
+	const prototype = Object.getPrototypeOf(value);
+	if (prototype !== Object.prototype && prototype !== null) return { result: value, changed: false };
+
+	const result: Record<string, unknown> = {};
+	const state: SensitiveRedactionResult = { result, changed: false };
+	seen.set(value, state);
+	for (const [key, item] of Object.entries(value)) {
+		const redacted = redactSensitiveInObjectInner(item, seen);
+		result[key] = redacted.result;
+		state.changed ||= redacted.changed;
+	}
+	return state;
+}
+
+function redactSensitiveCredentialsInMessages(messages: Message[]): Message[] {
+	return messages.map((message): Message => {
+		if (message.role === "user" || message.role === "developer") {
+			const content = message.content;
+			if (typeof content === "string") {
+				const redacted = redactSensitiveCredentials(content);
+				return redacted === content ? message : { ...message, content: redacted };
+			}
+			let changed = false;
+			const redactedContent = content.map(block => {
+				if (block.type !== "text") return block;
+				const text = redactSensitiveCredentials(block.text);
+				if (text === block.text) return block;
+				changed = true;
+				return { ...block, text };
+			});
+			return changed ? { ...message, content: redactedContent } : message;
+		}
+
+		if (message.role === "toolResult") {
+			let changed = false;
+			const content = message.content.map(block => {
+				if (block.type !== "text") return block;
+				const text = redactSensitiveCredentials(block.text);
+				if (text === block.text) return block;
+				changed = true;
+				return { ...block, text };
+			});
+			return changed ? { ...message, content } : message;
+		}
+
+		if (message.role === "assistant") {
+			let changed = false;
+			const content = message.content.map(block => {
+				if (block.type === "text") {
+					const text = redactSensitiveCredentials(block.text);
+					if (text === block.text) return block;
+					changed = true;
+					return { ...block, text };
+				}
+				if (block.type === "thinking") {
+					const thinking = redactSensitiveCredentials(block.thinking);
+					if (thinking === block.thinking) return block;
+					changed = true;
+					return { ...block, thinking, thinkingSignature: undefined };
+				}
+				if (block.type === "toolCall") {
+					const redacted = redactSensitiveInObject(block.arguments);
+					if (!redacted.changed) return block;
+					changed = true;
+					return {
+						...block,
+						arguments: redacted.result as Record<string, unknown>,
+						thoughtSignature: undefined,
+					};
+				}
+				return block;
+			});
+			return changed ? { ...message, content } : message;
+		}
+
+		return message;
+	});
+}
+
 /**
  * Normalize tool call ID for cross-provider compatibility.
  * OpenAI Responses API generates IDs that are 450+ chars with special characters like `|`.
@@ -27,12 +173,102 @@ const enum ToolCallStatus {
  * - Injects synthetic "aborted" tool results
  * - Adds a <turn-aborted> guidance marker for the model
  */
+/**
+ * True when a tool-call name is missing or whitespace-only. Models very
+ * occasionally emit `{ "name": "", "arguments": "{}" }` (observed on some
+ * thinking-heavy turns). The agent loop rejects the call at execution time
+ * with `Tool  not found`, but the malformed block plus its error `toolResult`
+ * otherwise stay in the replayed history and 400 every provider on
+ * `tool_use.name` / `tool_calls[i].function.name` validation — wedging the
+ * session in an unrecoverable loop until a manual clear.
+ */
+function isMalformedToolCallName(name: string | undefined): boolean {
+	return !name || name.trim().length === 0;
+}
+
+/**
+ * Strip malformed (empty-name) tool calls and their paired results from the
+ * replayed history. `transformMessages` is the canonical sanitize boundary
+ * every provider funnels through, so the defensive filter lives here.
+ *
+ * Run before any other transform so the rest of the pipeline never sees a
+ * malformed call. Idempotent: a re-run on an already-sanitized list returns
+ * the input untouched. Provider-agnostic — any wire model could surface this.
+ */
+function sanitizeMalformedToolCalls(messages: Message[]): Message[] {
+	// Fast path: skip the rewrite entirely when nothing is malformed.
+	let hasMalformed = false;
+	outer: for (const msg of messages) {
+		if (msg.role !== "assistant") continue;
+		for (const block of msg.content) {
+			if (block.type === "toolCall" && isMalformedToolCallName(block.name)) {
+				hasMalformed = true;
+				break outer;
+			}
+		}
+	}
+	if (!hasMalformed) return messages;
+
+	// Positional FIFO pairing within one assistant->tool-result window: a
+	// tool-call id can repeat across history when an OpenAI-Responses composite
+	// id (`callId|itemId`) collapses on the wire to the same `callId`. A
+	// set-based "drop every result for this id" loses the real output for the
+	// surviving valid occurrence whenever one duplicate is malformed. Track each
+	// `toolCall` occurrence's malformed-ness on a per-id queue and pop on the
+	// matching `toolResult`, but clear the queues at every non-result boundary
+	// so a malformed call whose rejection result never arrived cannot consume a
+	// later valid call's real result when the id is reused.
+	const dropQueues = new Map<string, boolean[]>();
+	const result: Message[] = [];
+	for (const msg of messages) {
+		if (msg.role === "assistant") {
+			dropQueues.clear();
+			const filtered: AssistantMessage["content"] = [];
+			for (const block of msg.content) {
+				if (block.type === "toolCall") {
+					const malformed = isMalformedToolCallName(block.name);
+					const queue = dropQueues.get(block.id);
+					if (queue) queue.push(malformed);
+					else dropQueues.set(block.id, [malformed]);
+					if (malformed) continue;
+				}
+				filtered.push(block);
+			}
+			if (filtered.length === 0) continue;
+			result.push(filtered.length === msg.content.length ? msg : { ...msg, content: filtered });
+			continue;
+		}
+		if (msg.role === "toolResult") {
+			const queue = dropQueues.get(msg.toolCallId);
+			if (queue && queue.length > 0) {
+				const drop = queue.shift() === true;
+				if (queue.length === 0) dropQueues.delete(msg.toolCallId);
+				if (drop) continue;
+			}
+			result.push(msg);
+			continue;
+		}
+		dropQueues.clear();
+		result.push(msg);
+	}
+	return result;
+}
+
 export function transformMessages<TApi extends Api>(
 	messages: Message[],
 	model: Model<TApi>,
 	normalizeToolCallId?: (id: string, model: Model<TApi>, source: AssistantMessage) => string,
 	options?: { repairLatestAssistantThinking?: boolean },
 ): Message[] {
+	// Provider request builders share this boundary, so redact before any
+	// provider-specific replay normalization or serialization occurs.
+	messages = redactSensitiveCredentialsInMessages(messages);
+
+	// Drop malformed (empty-name) tool calls and their paired results before any
+	// other transform — replays of these 400 every provider on tool-name
+	// validation and wedge the session in an unrecoverable loop.
+	messages = sanitizeMalformedToolCalls(messages);
+
 	// Build a map of original tool call IDs to normalized IDs
 	const toolCallIdMap = new Map<string, string>();
 

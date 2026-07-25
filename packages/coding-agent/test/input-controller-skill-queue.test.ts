@@ -54,6 +54,7 @@ function writeSkillFile(dir: string, skillName: string, body: string): string {
 type StubEditor = {
 	setText: (text: string) => void;
 	getText: () => string;
+	getComposerGeneration: () => number;
 	addToHistory: ReturnType<typeof vi.fn>;
 	onSubmit?: (text: string) => Promise<void>;
 };
@@ -64,12 +65,17 @@ function createStubInputControllerContext(opts: {
 	busyPromptMode?: "steer" | "queue";
 }) {
 	let editorText = "";
+	let composerGeneration = 0;
 	const editor: StubEditor = {
 		setText(text) {
+			if (text !== editorText) composerGeneration += 1;
 			editorText = text;
 		},
 		getText() {
 			return editorText;
+		},
+		getComposerGeneration() {
+			return composerGeneration;
 		},
 		addToHistory: vi.fn(),
 	};
@@ -115,7 +121,7 @@ function createStubInputControllerContext(opts: {
 		pendingImages: [],
 		isBackgrounded: false,
 		compactionQueuedMessages: [],
-		locallySubmittedUserSignatures: new Set<string>(),
+		locallySubmittedUserSignatures: new Map<string, number>(),
 		withLocalSubmission: async (_text: string, fn: () => unknown) => fn(),
 	} as unknown as InteractiveModeContext;
 
@@ -240,6 +246,22 @@ describe("InputController #invokeSkillCommand (E1-E3)", () => {
 		}
 		const messageArg = firstCall[0];
 		expect(messageArg.details.__pendingDisplayTag).toBeUndefined();
+	});
+
+	it("dispatches inline canonical skill commands with surrounding prompt text as args", async () => {
+		const { ctx, editor, promptCustomMessage } = createStubInputControllerContext({
+			skillCommands,
+			isStreaming: false,
+		});
+
+		const controller = new InputController(ctx);
+		controller.setupEditorSubmitHandler();
+		editor.setText("please use /skill:test-skill for this plan");
+		await editor.onSubmit?.("please use /skill:test-skill for this plan");
+
+		expect(promptCustomMessage).toHaveBeenCalledTimes(1);
+		expect(promptCustomMessage.mock.calls[0]?.[0].content).toContain("Do the thing.");
+		expect(promptCustomMessage.mock.calls[0]?.[0].content).toContain("User: please use for this plan");
 	});
 
 	it("dispatches chained canonical skill commands in order while idle", async () => {
@@ -489,12 +511,17 @@ describe("AgentSession custom-role tag dequeue (E4-E7)", () => {
 
 function createStubInteractiveModeContextForUiHelpers(session: AgentSession) {
 	let editorText = "";
+	let composerGeneration = 0;
 	const editor: StubEditor = {
 		setText(text) {
+			if (text !== editorText) composerGeneration += 1;
 			editorText = text;
 		},
 		getText() {
 			return editorText;
+		},
+		getComposerGeneration() {
+			return composerGeneration;
 		},
 		addToHistory: vi.fn(),
 	};
@@ -512,7 +539,7 @@ function createStubInteractiveModeContextForUiHelpers(session: AgentSession) {
 			getDisplayString: (_action: string) => "Alt+Up",
 		},
 		updatePendingMessagesDisplay,
-		locallySubmittedUserSignatures: new Set<string>(),
+		locallySubmittedUserSignatures: new Map<string, number>(),
 	} as unknown as InteractiveModeContext;
 
 	return { ctx, editor, pendingMessagesContainer };

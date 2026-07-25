@@ -10,6 +10,8 @@ import {
 	type SkillDiscoverySettings,
 } from "./skill-settings-defaults";
 
+const DEFAULT_THINKING_LEVELS = ["off", ...THINKING_EFFORTS] as const;
+
 /** Unified settings schema - single source of truth for all settings.
  *
  * Each setting is defined once here with:
@@ -284,7 +286,7 @@ export const SETTINGS_SCHEMA = {
 		ui: {
 			tab: "identity",
 			label: "Vibe",
-			description: "Tone and personality lines (separate with ; or newlines)",
+			description: "Free-form personality lines, distinct from the /tone preset (separate with ; or newlines)",
 		},
 	},
 	"identity.language": {
@@ -294,6 +296,25 @@ export const SETTINGS_SCHEMA = {
 			tab: "identity",
 			label: "Language",
 			description: "Preferred response language (e.g. Korean, English)",
+		},
+	},
+	"identity.tone": {
+		type: "enum",
+		values: ["sarcastic", "savage", "deadpan", "hype", "uhehe", "custom"] as const,
+		default: undefined, // precedent: tool.renderMode (enum + default undefined)
+		ui: {
+			tab: "identity",
+			label: "Tone",
+			description: "Persona tone preset rendered as ## Tone (set via /tone)",
+		},
+	},
+	"identity.toneCustom": {
+		type: "string",
+		default: undefined,
+		ui: {
+			tab: "identity",
+			label: "Custom Tone",
+			description: "Free-form tone text used when identity.tone = custom",
 		},
 	},
 
@@ -402,6 +423,43 @@ export const SETTINGS_SCHEMA = {
 		type: "number",
 		default: 300000,
 		validate: (value: number) => Number.isFinite(value) && value > 0,
+	},
+	"notifications.terminalBell": {
+		type: "boolean",
+		default: false,
+		ui: {
+			tab: "interaction",
+			label: "Terminal Bell",
+			description:
+				"Emit a BEL character for local terminal notifications. Windows Terminal may keep BEL silent depending on profile/system sound settings; use completion.notifyCommand for a PowerShell Console.Beep workaround.",
+		},
+	},
+	"notifications.bellOnComplete": {
+		type: "boolean",
+		default: true,
+		ui: {
+			tab: "interaction",
+			label: "Bell on Completion",
+			description: "Ring the terminal bell when an agent turn completes",
+		},
+	},
+	"notifications.bellOnApproval": {
+		type: "boolean",
+		default: true,
+		ui: {
+			tab: "interaction",
+			label: "Bell on Approval",
+			description: "Ring the terminal bell when a plan or approval prompt needs attention",
+		},
+	},
+	"notifications.bellOnAsk": {
+		type: "boolean",
+		default: true,
+		ui: {
+			tab: "interaction",
+			label: "Bell on Ask",
+			description: "Ring the terminal bell when an ask/user-input prompt needs attention",
+		},
 	},
 
 	/** @deprecated legacy key — migrated to `jwc.interview.ambiguityThreshold` on load (042 D041-D). */
@@ -774,13 +832,13 @@ export const SETTINGS_SCHEMA = {
 	// Reasoning and prompts
 	defaultThinkingLevel: {
 		type: "enum",
-		values: THINKING_EFFORTS,
+		values: DEFAULT_THINKING_LEVELS,
 		default: "high",
 		ui: {
 			tab: "model",
 			label: "Thinking Level",
 			description: "Reasoning depth for thinking-capable models",
-			options: [...THINKING_EFFORTS.map(getThinkingLevelMetadata)],
+			options: [...DEFAULT_THINKING_LEVELS.map(getThinkingLevelMetadata)],
 		},
 	},
 
@@ -1153,6 +1211,16 @@ export const SETTINGS_SCHEMA = {
 		values: ["on", "off"] as const,
 		default: "on",
 		ui: { tab: "interaction", label: "Completion Notification", description: "Notify when the agent completes" },
+	},
+	"completion.notifyCommand": {
+		type: "string",
+		default: "",
+		ui: {
+			tab: "interaction",
+			label: "Completion Notification Command",
+			description:
+				"Optional user-level shell command to run when an agent turn completes; receives JWC_NOTIFICATION_* environment variables. On Windows, this can call PowerShell [Console]::Beep when terminal BEL is silent.",
+		},
 	},
 
 	"ask.timeout": {
@@ -2239,7 +2307,7 @@ export const SETTINGS_SCHEMA = {
 		ui: {
 			tab: "tools",
 			label: "Search Depth",
-			description: "fast = 60s sync, deep = 180s async with heavier models",
+			description: "fast = provider-class sync timeouts, deep = 180s async with heavier models",
 		},
 	},
 	"web_search.reasoningEffort": {
@@ -2269,12 +2337,13 @@ export const SETTINGS_SCHEMA = {
 		ui: {
 			tab: "tools",
 			label: "Search Timeout",
-			description: "Hard timeout (seconds) for a single web-search round-trip. Clamped 5-600s.",
+			description:
+				"Optional explicit hard timeout (seconds) overriding provider-class web-search defaults. Clamped 5-600s.",
 			options: [
 				{ value: "30", label: "30s", description: "Aggressive — fast APIs only" },
 				{ value: "60", label: "60s", description: "Legacy default" },
 				{ value: "120", label: "120s", description: "Tolerant of slower LLM-mediated search" },
-				{ value: "300", label: "300s", description: "Default; slow Responses-API endpoints" },
+				{ value: "300", label: "300s", description: "Slow Responses-API endpoints" },
 				{ value: "600", label: "600s", description: "Maximum" },
 			],
 		},
@@ -2860,7 +2929,7 @@ export const SETTINGS_SCHEMA = {
 	},
 	"providers.image": {
 		type: "enum",
-		values: ["auto", "openai", "gemini", "openrouter", "antigravity"] as const,
+		values: ["auto", "openai", "openai-codex", "gemini", "openrouter", "antigravity"] as const,
 		default: "auto",
 		ui: {
 			tab: "providers",
@@ -2870,9 +2939,14 @@ export const SETTINGS_SCHEMA = {
 				{
 					value: "auto",
 					label: "Auto",
-					description: "Priority: GPT model image tool > Antigravity > OpenRouter > Gemini",
+					description: "Priority: active model > Codex subscription > Antigravity > OpenRouter > Gemini",
 				},
 				{ value: "openai", label: "OpenAI", description: "Uses the active GPT Responses/Codex model" },
+				{
+					value: "openai-codex",
+					label: "OpenAI Codex (ChatGPT)",
+					description: "Uses a connected Codex / ChatGPT subscription",
+				},
 				{ value: "gemini", label: "Gemini", description: "Requires GEMINI_API_KEY" },
 				{ value: "openrouter", label: "OpenRouter", description: "Requires OPENROUTER_API_KEY" },
 				{ value: "antigravity", label: "Antigravity", description: "Requires login with google-antigravity" },
@@ -3039,15 +3113,19 @@ export type SettingValue<P extends SettingPath> = Schema[P] extends { type: "boo
 		? string | undefined
 		: Schema[P] extends { type: "number" }
 			? number
-			: Schema[P] extends { type: "enum"; values: infer V }
+			: Schema[P] extends { type: "enum"; values: infer V; default: undefined }
 				? V extends readonly string[]
-					? V[number]
+					? V[number] | undefined
 					: never
-				: Schema[P] extends { type: "array"; default: infer D }
-					? D
-					: Schema[P] extends { type: "record"; default: infer D }
+				: Schema[P] extends { type: "enum"; values: infer V }
+					? V extends readonly string[]
+						? V[number]
+						: never
+					: Schema[P] extends { type: "array"; default: infer D }
 						? D
-						: never;
+						: Schema[P] extends { type: "record"; default: infer D }
+							? D
+							: never;
 
 /** Get the default value for a setting path */
 export function getDefault<P extends SettingPath>(path: P): SettingValue<P> {

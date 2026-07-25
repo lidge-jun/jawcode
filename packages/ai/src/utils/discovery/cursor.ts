@@ -6,7 +6,8 @@ import { GetUsableModelsRequestSchema, GetUsableModelsResponseSchema } from "../
 import type { Model } from "../../types";
 
 const CURSOR_DEFAULT_BASE_URL = "https://api2.cursor.sh";
-const CURSOR_DEFAULT_CLIENT_VERSION = "cli-2026.02.13-41ac335";
+import { CURSOR_CLIENT_VERSION } from "../../providers/cursor/client-version";
+const CURSOR_DEFAULT_CLIENT_VERSION = CURSOR_CLIENT_VERSION;
 const CURSOR_GET_USABLE_MODELS_PATH = "/agent.v1.AgentService/GetUsableModels";
 
 const DEFAULT_CONTEXT_WINDOW = 200_000;

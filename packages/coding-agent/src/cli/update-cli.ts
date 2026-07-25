@@ -25,6 +25,7 @@ export interface InstalledVersionVerification {
 	ok: boolean;
 	actual?: string;
 	path?: string;
+	cleanupWarning?: string;
 }
 
 /** Paths and verifier used while replacing a downloaded binary update. */
@@ -34,6 +35,7 @@ export interface BinaryReplacementOptions {
 	backupPath: string;
 	expectedVersion: string;
 	verifyInstalledVersion: (expectedVersion: string) => Promise<InstalledVersionVerification>;
+	removeBackupPath?: (backupPath: string) => Promise<void>;
 }
 
 /**
@@ -100,7 +102,7 @@ function isPathInDirectory(filePath: string, directoryPath: string): boolean {
 	return isPathInDirectoryLexical(resolvedFile, dirReal);
 }
 
-type UpdateTarget = { method: "bun" } | { method: "binary"; path: string };
+type UpdateTarget = { method: "bun" } | { method: "npm" } | { method: "binary"; path: string };
 
 function resolveUpdateMethod(ompPath: string, bunBinDir: string | undefined): "bun" | "binary" {
 	if (!bunBinDir) return "binary";
@@ -110,11 +112,40 @@ function resolveUpdateMethod(ompPath: string, bunBinDir: string | undefined): "b
 export function resolveUpdateMethodForTest(ompPath: string, bunBinDir: string | undefined): "bun" | "binary" {
 	return resolveUpdateMethod(ompPath, bunBinDir);
 }
+
+function isWindowsNpmShimPath(jwcPath: string, platform: NodeJS.Platform = process.platform): boolean {
+	if (platform !== "win32") return false;
+	const extension = path.extname(jwcPath).toLowerCase();
+	return extension === ".cmd" || extension === ".ps1";
+}
+
+async function isNpmManagedWindowsShim(
+	jwcPath: string,
+	platform: NodeJS.Platform = process.platform,
+): Promise<boolean> {
+	if (!isWindowsNpmShimPath(jwcPath, platform)) return false;
+	try {
+		const shim = await Bun.file(jwcPath).text();
+		const normalized = shim.replace(/\\/g, "/").toLowerCase();
+		return normalized.includes("node_modules") && normalized.includes(`/${PACKAGE}/`);
+	} catch {
+		return false;
+	}
+}
+
+export async function isNpmManagedWindowsShimForTest(
+	jwcPath: string,
+	platform: NodeJS.Platform = process.platform,
+): Promise<boolean> {
+	return isNpmManagedWindowsShim(jwcPath, platform);
+}
+
 async function resolveUpdateTarget(): Promise<UpdateTarget> {
 	const bunBinDir = await getBunGlobalBinDir();
 	const ompPath = resolveJwcPath();
 
 	if (ompPath) {
+		if (await isNpmManagedWindowsShim(ompPath)) return { method: "npm" };
 		const method = resolveUpdateMethod(ompPath, bunBinDir);
 		if (method === "bun") return { method };
 		return { method, path: ompPath };
@@ -296,19 +327,6 @@ function formatVerificationFailure(result: InstalledVersionVerification, expecte
 	return `could not verify updated version${result.path ? ` at ${result.path}` : ""}`;
 }
 
-/**
- * Print post-update verification result.
- */
-async function printVerification(expectedVersion: string): Promise<void> {
-	const result = await verifyInstalledVersion(expectedVersion);
-	if (result.ok) {
-		printVerifiedVersion(expectedVersion);
-		return;
-	}
-	console.log(chalk.yellow(`\nWarning: ${formatVerificationFailure(result, expectedVersion)}`));
-	console.log(chalk.yellow(formatManualUpdateInstructions()));
-}
-
 async function unlinkIfExists(filePath: string): Promise<void> {
 	try {
 		await fs.promises.unlink(filePath);
@@ -321,6 +339,7 @@ async function unlinkIfExists(filePath: string): Promise<void> {
  * Atomically replace the installed binary and roll back if version verification fails.
  */
 export async function replaceBinaryForUpdate(options: BinaryReplacementOptions): Promise<InstalledVersionVerification> {
+	const removeBackupPath = options.removeBackupPath ?? unlinkIfExists;
 	let backupReady = false;
 	try {
 		await unlinkIfExists(options.backupPath);
@@ -336,7 +355,14 @@ export async function replaceBinaryForUpdate(options: BinaryReplacementOptions):
 		}
 
 		backupReady = false;
-		await unlinkIfExists(options.backupPath);
+		try {
+			await removeBackupPath(options.backupPath);
+		} catch (cleanupError) {
+			return {
+				...verification,
+				cleanupWarning: `backup_cleanup_failed:${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`,
+			};
+		}
 		return verification;
 	} catch (err) {
 		if (backupReady) {
@@ -348,17 +374,62 @@ export async function replaceBinaryForUpdate(options: BinaryReplacementOptions):
 	}
 }
 
+export interface PackageManagerUpdateOptions {
+	manager: "bun" | "npm";
+	expectedVersion: string;
+	runInstall: () => Promise<{ exitCode: number }>;
+	verifyInstalledVersion: (expectedVersion: string) => Promise<InstalledVersionVerification>;
+}
+
+async function runPackageManagerUpdate(options: PackageManagerUpdateOptions): Promise<InstalledVersionVerification> {
+	const result = await options.runInstall();
+	const verification = await options.verifyInstalledVersion(options.expectedVersion);
+	if (verification.ok) return verification;
+	if (result.exitCode !== 0) {
+		throw new Error(
+			`${options.manager} install failed with exit code ${result.exitCode}; ${formatVerificationFailure(verification, options.expectedVersion)}`,
+		);
+	}
+	throw new Error(formatVerificationFailure(verification, options.expectedVersion));
+}
+
+export async function runPackageManagerUpdateForTest(
+	options: PackageManagerUpdateOptions,
+): Promise<InstalledVersionVerification> {
+	return runPackageManagerUpdate(options);
+}
+
 /**
  * Update via bun package manager.
  */
 async function updateViaBun(expectedVersion: string): Promise<void> {
 	console.log(chalk.dim("Updating via bun..."));
-	const result = await $`bun install -g ${PACKAGE}@${expectedVersion}`.nothrow();
-	if (result.exitCode !== 0) {
-		throw new Error(`bun install failed with exit code ${result.exitCode}`);
-	}
+	await runPackageManagerUpdate({
+		manager: "bun",
+		expectedVersion,
+		runInstall: async () => {
+			const result = await $`bun install -g ${PACKAGE}@${expectedVersion}`.nothrow();
+			return { exitCode: result.exitCode };
+		},
+		verifyInstalledVersion,
+	});
 
-	await printVerification(expectedVersion);
+	printVerifiedVersion(expectedVersion);
+}
+
+async function updateViaNpm(expectedVersion: string): Promise<void> {
+	console.log(chalk.dim("Updating via npm..."));
+	await runPackageManagerUpdate({
+		manager: "npm",
+		expectedVersion,
+		runInstall: async () => {
+			const result = await $`npm install -g ${PACKAGE}@${expectedVersion}`.nothrow();
+			return { exitCode: result.exitCode };
+		},
+		verifyInstalledVersion,
+	});
+
+	printVerifiedVersion(expectedVersion);
 }
 
 /**
@@ -429,6 +500,8 @@ export async function runUpdateCommand(opts: { force: boolean; check: boolean })
 		const target = await resolveUpdateTarget();
 		if (target.method === "bun") {
 			await updateViaBun(release.version);
+		} else if (target.method === "npm") {
+			await updateViaNpm(release.version);
 		} else {
 			await updateViaBinaryAt(target.path, release.version);
 		}

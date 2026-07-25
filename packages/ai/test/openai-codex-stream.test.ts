@@ -927,6 +927,37 @@ describe("openai-codex streaming", () => {
 		expect(result.errorMessage).toContain("model_error");
 	});
 
+	it("classifies invalidated OAuth token SSE failures as authentication errors", async () => {
+		const tempDir = TempDir.createSync("@pi-codex-stream-");
+		setAgentDir(tempDir.path());
+
+		const errorSse = `data: ${JSON.stringify({
+			type: "error",
+			code: "invalid_request_error",
+			message: "Encountered invalidated oauth token for user, failing request",
+		})}\n\n`;
+		global.fetch = vi.fn(
+			async () =>
+				new Response(errorSse, {
+					status: 200,
+					headers: { "content-type": "text/event-stream" },
+				}),
+		) as unknown as typeof fetch;
+
+		const model = {
+			...createCodexTestModel("https://chatgpt.com/backend-api"),
+			preferWebsockets: false,
+		};
+		const result = await streamOpenAICodexResponses(model, createCodexTestContext(), {
+			apiKey: createCodexTestToken(),
+			streamMaxRetries: 0,
+		}).result();
+
+		expect(result.stopReason).toBe("error");
+		expect(result.errorStatus).toBe(401);
+		expect(result.errorMessage).toContain("invalidated oauth token");
+	});
+
 	it("sets conversation_id/session_id headers and prompt_cache_key when sessionId is provided", async () => {
 		const tempDir = TempDir.createSync("@pi-codex-stream-");
 		setAgentDir(tempDir.path());

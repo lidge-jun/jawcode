@@ -326,7 +326,7 @@ describe("AgentSession auto-compaction queue resume", () => {
 		expect(sessionManager.getBranch().some(entry => entry.type === "compaction")).toBe(true);
 	});
 
-	it("keeps display context usage on cheap heuristic estimation for custom messages", () => {
+	it("anchors display context usage on provider totals plus trailing custom messages", () => {
 		const assistantMsg: AssistantMessage = {
 			role: "assistant",
 			content: [{ type: "text", text: "Ready for custom context" }],
@@ -374,7 +374,8 @@ describe("AgentSession auto-compaction queue resume", () => {
 			throw new Error("Expected custom message to convert to an LLM message");
 		}
 
-		expect(usage.tokens).toBe(100 + estimateMessageTokensHeuristic(llmCustomMessage));
+		expect(usage.tokens).toBe(110 + estimateMessageTokensHeuristic(llmCustomMessage));
+		expect(usage.source).toBe("provider_anchor");
 	});
 
 	it("forwards todo reminder lifecycle signals to extensions", async () => {

@@ -11,7 +11,7 @@
  * the interactive select/editor UI) when an unattended controller + gate broker
  * are attached is wired with the transport in #321 and exercised by #323.
  */
-import type { RpcJsonSchema } from "../../rpc/rpc-types";
+import type { RpcJsonSchema, RpcWorkflowStage } from "../../rpc/rpc-types";
 import type { OpenGateInput } from "./workflow-gate-broker";
 
 /** "Other (type your own)" sentinel, mirroring the interactive ask tool. */
@@ -28,6 +28,11 @@ export interface AskGateQuestionMeta {
 	mode?: string;
 }
 
+/** Override the emitted workflow gate stage for non-jaw-interview ask prompts. */
+export interface AskGateWorkflowGateMeta {
+	stage: RpcWorkflowStage;
+}
+
 export interface AskGateQuestion {
 	id: string;
 	question: string;
@@ -35,6 +40,13 @@ export interface AskGateQuestion {
 	multi?: boolean;
 	recommended?: number;
 	meta?: AskGateQuestionMeta;
+	/**
+	 * Optional workflow gate stage override. The gate `kind` stays `"question"`
+	 * because `questionToGate` always emits a question-answer schema
+	 * (`selected`/`custom`); approval/execution gates use a different decision
+	 * contract and must not be addressed through the ask question path.
+	 */
+	workflowGate?: AskGateWorkflowGateMeta;
 }
 
 export interface AskGateResult {
@@ -166,7 +178,7 @@ export function questionToGate(question: AskGateQuestion): OpenGateInput {
 	const labels = question.options.map(o => o.label);
 	const schema = questionAnswerSchema(question, labels);
 	return {
-		stage: "jaw-interview",
+		stage: question.workflowGate?.stage ?? "jaw-interview",
 		kind: "question",
 		schema,
 		options: question.options.map((o, i) => ({

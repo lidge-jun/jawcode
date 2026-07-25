@@ -39,11 +39,27 @@
 				},
 				"vibe": {
 					"type": "string",
-					"description": "Tone and personality lines (separate with ; or newlines)"
+					"description": "Free-form personality lines, distinct from the /tone preset (separate with ; or newlines)"
 				},
 				"language": {
 					"type": "string",
 					"description": "Preferred response language (e.g. Korean, English)"
+				},
+				"tone": {
+					"type": "string",
+					"enum": [
+						"sarcastic",
+						"savage",
+						"deadpan",
+						"hype",
+						"uhehe",
+						"custom"
+					],
+					"description": "Persona tone preset rendered as ## Tone (set via /tone)"
+				},
+				"toneCustom": {
+					"type": "string",
+					"description": "Free-form tone text used when identity.tone = custom"
 				}
 			},
 			"additionalProperties": false
@@ -222,6 +238,26 @@
 						}
 					},
 					"additionalProperties": false
+				},
+				"terminalBell": {
+					"type": "boolean",
+					"description": "Emit a BEL character for local terminal notifications. Windows Terminal may keep BEL silent depending on profile/system sound settings; use completion.notifyCommand for a PowerShell Console.Beep workaround.",
+					"default": false
+				},
+				"bellOnComplete": {
+					"type": "boolean",
+					"description": "Ring the terminal bell when an agent turn completes",
+					"default": true
+				},
+				"bellOnApproval": {
+					"type": "boolean",
+					"description": "Ring the terminal bell when a plan or approval prompt needs attention",
+					"default": true
+				},
+				"bellOnAsk": {
+					"type": "boolean",
+					"description": "Ring the terminal bell when an ask/user-input prompt needs attention",
+					"default": true
 				}
 			},
 			"additionalProperties": false
@@ -730,6 +766,11 @@
 					],
 					"description": "Notify when the agent completes",
 					"default": "on"
+				},
+				"notifyCommand": {
+					"type": "string",
+					"description": "Optional user-level shell command to run when an agent turn completes; receives JWC_NOTIFICATION_* environment variables. On Windows, this can call PowerShell [Console]::Beep when terminal BEL is silent.",
+					"default": ""
 				}
 			},
 			"additionalProperties": false
@@ -1729,7 +1770,7 @@
 				},
 				"depth": {
 					"type": "string",
-					"description": "fast = 60s sync, deep = 180s async with heavier models",
+					"description": "fast = provider-class sync timeouts, deep = 180s async with heavier models",
 					"default": "fast"
 				},
 				"reasoningEffort": {
@@ -1744,7 +1785,7 @@
 				},
 				"timeout": {
 					"type": "number",
-					"description": "Hard timeout (seconds) for a single web-search round-trip. Clamped 5-600s.",
+					"description": "Optional explicit hard timeout (seconds) overriding provider-class web-search defaults. Clamped 5-600s.",
 					"default": 300
 				}
 			},

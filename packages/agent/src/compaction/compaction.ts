@@ -7,6 +7,7 @@
 
 import {
 	type AssistantMessage,
+	clampThinkingLevelForModel,
 	Effort,
 	type Message,
 	type MessageAttribution,
@@ -18,7 +19,16 @@ import { logger, prompt } from "@jawcode-dev/utils";
 import { type AgentTelemetry, instrumentedCompleteSimple } from "../telemetry";
 import type { AgentMessage, AgentTool } from "../types";
 import type { CompactionEntry, SessionEntry } from "./entries";
-import { type ConvertToLlm, convertToLlm, createBranchSummaryMessage, createCustomMessage } from "./messages";
+import {
+	type BranchSummaryMessage,
+	type CompactionSummaryMessage,
+	type ConvertToLlm,
+	type CustomMessage,
+	convertToLlm,
+	createBranchSummaryMessage,
+	createCustomMessage,
+	type HookMessage,
+} from "./messages";
 import {
 	buildOpenAiNativeHistory,
 	getPreservedOpenAiRemoteCompactionData,
@@ -217,6 +227,13 @@ export const DEFAULT_COMPACTION_SETTINGS: CompactionSettings = {
 	autoContinue: true,
 	remoteEnabled: true,
 };
+
+/**
+ * Minimum trimmed length for a remote `compaction_summary` plaintext to replace
+ * local summarization. Guards against degenerate/empty server summaries; anything
+ * below the floor falls through to the local summary path unchanged.
+ */
+export const MIN_REMOTE_SUMMARY_CHARS = 80;
 
 // ============================================================================
 // Token calculation
@@ -681,6 +698,48 @@ function formatAdditionalContext(context: string[] | undefined): string {
  * Generate a summary of the conversation using the LLM.
  * If previousSummary is provided, uses the update prompt to merge.
  */
+
+/**
+ * Cap the serialized conversation fed to a summarization request so the request
+ * itself fits inside the model's context window.
+ *
+ * Without this, summarizing a near-full context serializes (nearly) the entire
+ * history back into a single summary request; on strict backends (e.g.
+ * OpenAI-code/Codex `context_length_exceeded`) that request itself overflows and
+ * throws, so context-overflow recovery cannot produce a summary and the agent
+ * fails to compact-and-continue.
+ *
+ * The budget reserves the summary's own output tokens plus prompt/system/template
+ * overhead, and applies a conservative safety factor because the chars/4 heuristic
+ * undercounts dense or CJK text. Truncation keeps the head (origin/goals) and the
+ * tail (most recent state) and elides the middle; it is a last resort that only
+ * triggers when the input would otherwise not fit.
+ */
+export function boundConversationTextForSummary(
+	conversationText: string,
+	model: Model,
+	outputMaxTokens: number,
+): string {
+	const contextWindow = model.contextWindow;
+	if (!Number.isFinite(contextWindow) || contextWindow <= 0) return conversationText;
+
+	const OVERHEAD_TOKENS = 4096;
+	const SAFETY_FACTOR = 0.6;
+	const inputBudgetTokens = Math.floor(
+		(contextWindow - Math.max(0, outputMaxTokens) - OVERHEAD_TOKENS) * SAFETY_FACTOR,
+	);
+	if (inputBudgetTokens <= 0) return conversationText;
+	if (estimateTextTokensHeuristic(conversationText) <= inputBudgetTokens) return conversationText;
+
+	const budgetChars = inputBudgetTokens * HEURISTIC_BYTES_PER_TOKEN;
+	const headChars = Math.floor(budgetChars * 0.35);
+	const tailChars = Math.max(0, budgetChars - headChars);
+	const head = conversationText.slice(0, headChars);
+	const tail = tailChars > 0 ? conversationText.slice(conversationText.length - tailChars) : "";
+	const elided = conversationText.length - head.length - tail.length;
+	return `${head}\n\n[... ${elided} characters of older conversation elided so this summarization request fits within the model context window ...]\n\n${tail}`;
+}
+
 export interface SummaryOptions {
 	promptOverride?: string;
 	extraContext?: string[];
@@ -698,6 +757,71 @@ export interface SummaryOptions {
 	telemetry?: AgentTelemetry;
 	authCredentialType?: "api_key" | "oauth";
 	onProgress?: CompactionProgressBoundaryCallback;
+	/**
+	 * Live-session prefix for cache-friendly summarization. When set and the
+	 * candidate model matches `modelKey`, generateSummary replays this exact
+	 * prefix (system prompt, tools, message head) with the summarization
+	 * instruction appended as a trailing user message, so providers hit the
+	 * prompt cache instead of prefilling a serialized transcript. The serialized
+	 * `<conversation>` path remains the fallback.
+	 */
+	cachePrefix?: {
+		/** Endpoint-inclusive key of the live session model (`summaryModelKey`). */
+		modelKey: string;
+		/** Live agent system prompt, verbatim (agent.state.systemPrompt). */
+		systemPrompt: string[];
+		/** Live agent tools, verbatim; the request forces `toolChoice: "none"`. */
+		tools?: AgentTool<any>[];
+		/** Exact live-context head: everything before turnPrefix/recent messages. */
+		messages: AgentMessage[];
+	};
+}
+
+/**
+ * Endpoint-inclusive model identity for cache-prefix gating. `baseUrl` is part
+ * of the key: a same-id model behind a different endpoint is a different cache.
+ */
+export function summaryModelKey(model: Model): string {
+	return `${model.provider}|${model.api}|${model.id}|${model.baseUrl ?? ""}`;
+}
+
+/** Provider APIs with repo-visible prompt-cache support for prefix replay. */
+const CACHE_PREFIX_APIS = new Set<string>(["anthropic-messages", "openai-responses", "openai-codex-responses"]);
+
+/**
+ * Boundary identity check for the cache-prefix slice gate. Ordinary LLM roles
+ * must be reference-equal (both context builds share the persisted
+ * `entry.message` object); synthesized roles are rebuilt per consumer, so they
+ * match on role + timestamp + role-specific content identity. A false positive
+ * therefore requires an identical-content twin at the boundary index, whose
+ * worst case is one message's content being both summarized and kept.
+ */
+export function compactionBoundaryMatches(live: AgentMessage, boundary: AgentMessage): boolean {
+	if (live === boundary) return true;
+	if (live.role !== boundary.role) return false;
+	const liveTimestamp = (live as { timestamp?: number }).timestamp;
+	const boundaryTimestamp = (boundary as { timestamp?: number }).timestamp;
+	if (liveTimestamp !== boundaryTimestamp) return false;
+	switch (boundary.role) {
+		case "custom":
+		case "hookMessage": {
+			const a = live as CustomMessage | HookMessage;
+			const b = boundary as CustomMessage | HookMessage;
+			return a.customType === b.customType && JSON.stringify(a.content) === JSON.stringify(b.content);
+		}
+		case "branchSummary": {
+			const a = live as BranchSummaryMessage;
+			const b = boundary as BranchSummaryMessage;
+			return a.fromId === b.fromId && a.summary === b.summary;
+		}
+		case "compactionSummary": {
+			const a = live as CompactionSummaryMessage;
+			const b = boundary as CompactionSummaryMessage;
+			return a.summary === b.summary;
+		}
+		default:
+			return false;
+	}
 }
 
 export async function generateSummary(
@@ -721,26 +845,24 @@ export async function generateSummary(
 		basePrompt = `${basePrompt}\n\nAdditional focus: ${customInstructions}`;
 	}
 
-	// Serialize conversation to text so model doesn't try to continue it
-	// Convert to LLM messages first (handles custom app messages when caller provides a transformer).
-	const llmMessages = (options?.convertToLlm ?? convertToLlm)(currentMessages);
-	const conversationText = serializeConversation(llmMessages);
-
-	// Build the prompt with conversation wrapped in tags
-	let promptText = `<conversation>\n${conversationText}\n</conversation>\n\n`;
+	// Instruction shared by both request shapes: previous-summary block (the
+	// update prompt references the tag explicitly), extra context, base prompt.
+	let trailingPromptText = "";
 	if (previousSummary) {
-		promptText += `<previous-summary>\n${previousSummary}\n</previous-summary>\n\n`;
+		trailingPromptText += `<previous-summary>\n${previousSummary}\n</previous-summary>\n\n`;
 	}
-	promptText += formatAdditionalContext(options?.extraContext);
-	promptText += basePrompt;
+	trailingPromptText += formatAdditionalContext(options?.extraContext);
+	trailingPromptText += basePrompt;
 
-	const summarizationMessages = [
-		{
-			role: "user" as const,
-			content: [{ type: "text" as const, text: promptText }],
-			timestamp: Date.now(),
-		},
-	];
+	// Serialize conversation to text so model doesn't try to continue it, and
+	// wrap it in tags. Convert to LLM messages first (handles custom app
+	// messages when caller provides a transformer). Built lazily — the
+	// cache-prefix path replays raw history and never needs this string.
+	const buildSerializedPromptText = () => {
+		const llmMessages = (options?.convertToLlm ?? convertToLlm)(currentMessages);
+		const conversationText = boundConversationTextForSummary(serializeConversation(llmMessages), model, maxTokens);
+		return `<conversation>\n${conversationText}\n</conversation>\n\n${trailingPromptText}`;
+	};
 
 	if (options?.remoteEndpoint) {
 		emitCompactionProgress(options, {
@@ -755,7 +877,7 @@ export async function generateSummary(
 			options.remoteEndpoint,
 			{
 				systemPrompt: SUMMARIZATION_SYSTEM_PROMPT,
-				prompt: promptText,
+				prompt: buildSerializedPromptText(),
 			},
 			signal,
 		);
@@ -770,14 +892,57 @@ export async function generateSummary(
 		indeterminate: true,
 		backend: "local_llm",
 	});
+
+	// Cache-friendly path: replay the live session prefix verbatim (system
+	// prompt, tools, exact message head) and append the summarization
+	// instruction as a trailing user message, so the provider serves the
+	// history from its prompt cache instead of prefilling a serialized
+	// transcript. Gated to the exact live model — a fallback model would miss
+	// the cache and change provider-specific replay (thinking signatures).
+	const cachePrefix = options?.cachePrefix;
+	const useCachePrefix =
+		cachePrefix !== undefined && cachePrefix.modelKey === summaryModelKey(model) && CACHE_PREFIX_APIS.has(model.api);
+	const request = useCachePrefix
+		? {
+				systemPrompt: cachePrefix.systemPrompt,
+				messages: [
+					...(options?.convertToLlm ?? convertToLlm)(cachePrefix.messages),
+					{
+						role: "user" as const,
+						// The live system prompt replaces SUMMARIZATION_SYSTEM_PROMPT, so its
+						// do-not-continue guard moves into the trailing instruction. The
+						// serialized promptText's <conversation> wrapper is dropped — the
+						// history itself is the conversation.
+						content: [{ type: "text" as const, text: `${SUMMARIZATION_SYSTEM_PROMPT}\n\n${trailingPromptText}` }],
+						attribution: "agent" as const,
+						timestamp: Date.now(),
+					},
+				],
+				tools: cachePrefix.tools,
+			}
+		: {
+				systemPrompt: [SUMMARIZATION_SYSTEM_PROMPT],
+				messages: [
+					{
+						role: "user" as const,
+						content: [{ type: "text" as const, text: buildSerializedPromptText() }],
+						timestamp: Date.now(),
+					},
+				],
+			};
 	const response = await instrumentedCompleteSimple(
 		model,
-		{ systemPrompt: [SUMMARIZATION_SYSTEM_PROMPT], messages: summarizationMessages },
+		request,
 		{
 			maxTokens,
 			signal,
 			apiKey,
-			reasoning: Effort.High,
+			// Summarization is extraction, not reasoning — a High thinking budget
+			// dominates compaction wall-clock without improving the summary.
+			// Clamp per model: fixed literals below High throw on models with
+			// narrow effort support (requireSupportedEffort).
+			reasoning: clampThinkingLevelForModel(model, Effort.Low),
+			toolChoice: useCachePrefix ? "none" : undefined,
 			initiatorOverride: options?.initiatorOverride,
 			metadata: options?.metadata,
 		},
@@ -890,7 +1055,7 @@ async function generateShortSummary(
 ): Promise<string> {
 	const maxTokens = Math.min(512, Math.floor(0.2 * reserveTokens));
 	const llmMessages = (options?.convertToLlm ?? convertToLlm)(recentMessages);
-	const conversationText = serializeConversation(llmMessages);
+	const conversationText = boundConversationTextForSummary(serializeConversation(llmMessages), model, maxTokens);
 
 	let promptText = `<conversation>\n${conversationText}\n</conversation>\n\n`;
 	if (historySummary) {
@@ -929,7 +1094,8 @@ async function generateShortSummary(
 			maxTokens,
 			signal,
 			apiKey,
-			reasoning: Effort.High,
+			// Display-only PR-style blurb (≤512 tokens) — minimal thinking suffices.
+			reasoning: clampThinkingLevelForModel(model, Effort.Minimal),
 			initiatorOverride: options?.initiatorOverride,
 			metadata: options?.metadata,
 		},
@@ -1118,9 +1284,11 @@ export async function compact(
 		convertToLlm: options?.convertToLlm,
 		telemetry: options?.telemetry,
 		onProgress: options?.onProgress,
+		cachePrefix: options?.cachePrefix,
 	};
 
 	let preserveData = withOpenAiRemoteCompactionPreserveData(previousPreserveData, undefined);
+	let remoteSummaryText: string | undefined;
 	if (settings.remoteEnabled !== false && shouldUseOpenAiRemoteCompaction(model)) {
 		const previousRemoteCompaction = getPreservedOpenAiRemoteCompactionData(previousPreserveData);
 		const remoteMessages = [...messagesToSummarize, ...turnPrefixMessages, ...recentMessages];
@@ -1152,6 +1320,18 @@ export async function compact(
 					{ authCredentialType: options?.authCredentialType },
 				);
 				preserveData = withOpenAiRemoteCompactionPreserveData(previousPreserveData, remote);
+				// A plaintext server summary can stand in for the local history
+				// summary (same rebuild slot via renderCompactionSummaryContext);
+				// same-provider replay uses the native replacementHistory items and
+				// never reads this text. Below the length floor the server output is
+				// treated as degenerate and local summarization runs as before.
+				if (
+					remote.compactionItem.type === "compaction_summary" &&
+					typeof remote.compactionItem.summary === "string" &&
+					remote.compactionItem.summary.trim().length >= MIN_REMOTE_SUMMARY_CHARS
+				) {
+					remoteSummaryText = remote.compactionItem.summary;
+				}
 			} catch (err) {
 				logger.warn("OpenAI remote compaction failed, falling back to local summarization", {
 					error: err instanceof Error ? err.message : String(err),
@@ -1162,10 +1342,49 @@ export async function compact(
 		}
 	}
 
-	// Generate summaries (can be parallel if both needed) and merge into one
-	let summary: string;
+	// Short summary is display-only and independent of the fresh history summary
+	// (it reads recentMessages plus the PREVIOUS summary), so it runs in parallel
+	// with the main summarization instead of after it. onProgress is intentionally
+	// omitted: its internal short_summary(82%) emit would interleave with the
+	// local_summary segment (hold 81) and regress the progress presenter.
+	// The catch is attached at creation so a main-summary rejection cannot leave
+	// this promise unhandled, and a short-summary failure never fails compaction.
+	// Callers create the main-summary promise FIRST so the synchronous
+	// completeSimple call order (history → turn prefix → short) is stable.
+	const startShortSummary = (): Promise<string | undefined> =>
+		generateShortSummary(recentMessages, previousSummary, model, settings.reserveTokens, apiKey, signal, {
+			extraContext: options?.extraContext,
+			remoteEndpoint: summaryOptions.remoteEndpoint,
+			initiatorOverride: summaryOptions.initiatorOverride,
+			metadata: summaryOptions.metadata,
+			telemetry: summaryOptions.telemetry,
+		}).catch((err: unknown) => {
+			logger.warn("Short summary generation failed", {
+				error: err instanceof Error ? err.message : String(err),
+				model: model.id,
+				provider: model.provider,
+			});
+			return undefined;
+		});
 
-	if (isSplitTurn && turnPrefixMessages.length > 0) {
+	// Generate summaries (parallel where possible) and merge into one
+	let summary: string;
+	let shortSummaryPromise: Promise<string | undefined>;
+
+	if (remoteSummaryText !== undefined) {
+		// Remote compaction already produced the summary — only the short summary
+		// is still in flight, so the short_summary segment runs alone here.
+		emitCompactionProgress(summaryOptions, {
+			phase: "summarizing_short",
+			percent: 82,
+			segment: "short_summary",
+			message: "Generating short summary…",
+			indeterminate: true,
+			backend: "openai_remote",
+		});
+		shortSummaryPromise = startShortSummary();
+		summary = remoteSummaryText;
+	} else if (isSplitTurn && turnPrefixMessages.length > 0) {
 		emitCompactionProgress(summaryOptions, {
 			phase: "summarizing_turn_prefix",
 			percent: 30,
@@ -1174,8 +1393,8 @@ export async function compact(
 			indeterminate: true,
 			backend: "local_llm",
 		});
-		// Generate both summaries in parallel
-		const [historyResult, turnPrefixResult] = await Promise.all([
+		// Generate all three summaries in parallel
+		const historyPromise =
 			messagesToSummarize.length > 0
 				? generateSummary(
 						messagesToSummarize,
@@ -1187,14 +1406,22 @@ export async function compact(
 						previousSummary,
 						summaryOptions,
 					)
-				: Promise.resolve("No prior history."),
-			generateTurnPrefixSummary(turnPrefixMessages, model, settings.reserveTokens, apiKey, signal, summaryOptions),
-		]);
+				: Promise.resolve("No prior history.");
+		const turnPrefixPromise = generateTurnPrefixSummary(
+			turnPrefixMessages,
+			model,
+			settings.reserveTokens,
+			apiKey,
+			signal,
+			summaryOptions,
+		);
+		shortSummaryPromise = startShortSummary();
+		const [historyResult, turnPrefixResult] = await Promise.all([historyPromise, turnPrefixPromise]);
 		// Merge into single summary
 		summary = `${historyResult}\n\n---\n\n**Turn Context (split turn):**\n\n${turnPrefixResult}`;
 	} else if (messagesToSummarize.length > 0) {
 		// Generate history summary from messages to summarize
-		summary = await generateSummary(
+		const summaryPromise = generateSummary(
 			messagesToSummarize,
 			model,
 			settings.reserveTokens,
@@ -1204,30 +1431,19 @@ export async function compact(
 			previousSummary,
 			summaryOptions,
 		);
+		shortSummaryPromise = startShortSummary();
+		summary = await summaryPromise;
 	} else if (previousSummary) {
 		// No new messages to summarize, preserve previous summary
+		shortSummaryPromise = startShortSummary();
 		summary = previousSummary;
 	} else {
 		// No messages and no previous summary
+		shortSummaryPromise = startShortSummary();
 		summary = "No prior history.";
 	}
 
-	const shortSummary = await generateShortSummary(
-		recentMessages,
-		summary,
-		model,
-		settings.reserveTokens,
-		apiKey,
-		signal,
-		{
-			extraContext: options?.extraContext,
-			remoteEndpoint: summaryOptions.remoteEndpoint,
-			initiatorOverride: summaryOptions.initiatorOverride,
-			metadata: summaryOptions.metadata,
-			telemetry: summaryOptions.telemetry,
-			onProgress: summaryOptions.onProgress,
-		},
-	);
+	const shortSummary = await shortSummaryPromise;
 
 	// Compute file lists and append to summary
 	const { readFiles, modifiedFiles } = computeFileLists(fileOps);
@@ -1261,7 +1477,7 @@ async function generateTurnPrefixSummary(
 	const maxTokens = Math.floor(0.5 * reserveTokens); // Smaller budget for turn prefix
 
 	const llmMessages = (options?.convertToLlm ?? convertToLlm)(messages);
-	const conversationText = serializeConversation(llmMessages);
+	const conversationText = boundConversationTextForSummary(serializeConversation(llmMessages), model, maxTokens);
 	const promptText = `<conversation>\n${conversationText}\n</conversation>\n\n${TURN_PREFIX_SUMMARIZATION_PROMPT}`;
 	const summarizationMessages = [
 		{
@@ -1278,7 +1494,8 @@ async function generateTurnPrefixSummary(
 			maxTokens,
 			signal,
 			apiKey,
-			reasoning: Effort.High,
+			// Same rationale as the history summary: extraction task, clamp per model.
+			reasoning: clampThinkingLevelForModel(model, Effort.Low),
 			initiatorOverride: options?.initiatorOverride,
 			metadata: options?.metadata,
 		},

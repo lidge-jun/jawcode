@@ -65,7 +65,7 @@ async function loadMCPServers(ctx: LoadContext): Promise<LoadResult<MCPServer>> 
 	const projectConfig = await loadTomlConfig(projectConfigPath);
 	const items: MCPServer[] = [];
 	if (projectConfig) {
-		const servers = extractMCPServersFromToml(projectConfig);
+		const servers = extractMCPServersFromToml(projectConfig, path.dirname(projectConfigPath));
 		for (const [name, config] of Object.entries(servers)) {
 			items.push({
 				name,
@@ -104,7 +104,23 @@ interface CodexMCPConfig {
 	disabled_tools?: string[];
 }
 
-function extractMCPServersFromToml(toml: Record<string, unknown>): Record<string, Partial<MCPServer>> {
+function resolveCodexStdioPaths(
+	config: Pick<CodexMCPConfig, "command" | "cwd">,
+	configDir: string,
+): Pick<CodexMCPConfig, "command" | "cwd"> {
+	const cwd = typeof config.cwd === "string" ? path.resolve(configDir, config.cwd) : undefined;
+	const command = config.command;
+	const commandBase = cwd ?? configDir;
+	return {
+		command: command && /^\.\.?[/\\]/.test(command) ? path.resolve(commandBase, command) : command,
+		cwd,
+	};
+}
+
+function extractMCPServersFromToml(
+	toml: Record<string, unknown>,
+	configDir: string,
+): Record<string, Partial<MCPServer>> {
 	if (!toml.mcp_servers || typeof toml.mcp_servers !== "object") {
 		return {};
 	}
@@ -112,10 +128,12 @@ function extractMCPServersFromToml(toml: Record<string, unknown>): Record<string
 	const codexServers = toml.mcp_servers as Record<string, CodexMCPConfig>;
 	const result: Record<string, Partial<MCPServer>> = {};
 	for (const [name, config] of Object.entries(codexServers)) {
+		const rooted = resolveCodexStdioPaths(config, configDir);
 		const server: Partial<MCPServer> = {
-			command: config.command,
+			command: rooted.command,
 			args: config.args,
 			url: config.url,
+			cwd: rooted.cwd,
 		};
 
 		const env: Record<string, string> = { ...config.env };

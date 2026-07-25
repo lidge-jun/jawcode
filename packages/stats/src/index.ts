@@ -99,10 +99,10 @@ async function main(): Promise<void> {
 
 	if (values.help) {
 		console.log(`
-gjc-stats - AI Usage Statistics Dashboard
+jwc-stats - AI Usage Statistics Dashboard
 
 Usage:
-  gjc-stats [options]
+  jwc-stats [options]
 
 Options:
   -p, --port <port>  Port for the dashboard server (default: 3847)
@@ -111,10 +111,10 @@ Options:
   -h, --help         Show this help message
 
 Examples:
-  gjc-stats              # Start dashboard server
-  gjc-stats --json       # Print stats as JSON
-  gjc-stats --port 8080  # Start on custom port
-  gjc-stats --sync       # Sync and show summary
+  jwc-stats              # Start dashboard server
+  jwc-stats --json       # Print stats as JSON
+  jwc-stats --port 8080  # Start on custom port
+  jwc-stats --sync       # Sync and show summary
 `);
 		return;
 	}

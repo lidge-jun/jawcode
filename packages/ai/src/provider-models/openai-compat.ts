@@ -689,6 +689,17 @@ export function deepseekModelManagerOptions(
 ): ModelManagerOptions<"openai-completions"> {
 	return createSimpleOpenAICompletionsOptions("deepseek", "https://api.deepseek.com", config);
 }
+
+export interface DeepInfraModelManagerConfig {
+	apiKey?: string;
+	baseUrl?: string;
+}
+
+export function deepinfraModelManagerOptions(
+	config?: DeepInfraModelManagerConfig,
+): ModelManagerOptions<"openai-completions"> {
+	return createSimpleOpenAICompletionsOptions("deepinfra", "https://api.deepinfra.com/v1/openai", config);
+}
 // ---------------------------------------------------------------------------
 // 7.5 Fireworks
 // ---------------------------------------------------------------------------
@@ -2266,8 +2277,15 @@ const MODELS_DEV_PROVIDER_DESCRIPTORS_CORE: readonly ModelsDevProviderDescriptor
 		defaultContextWindow: 131072,
 	}),
 	// --- xAI ---
-	openAiCompletionsDescriptor("xai", "xai", "https://api.x.ai/v1"),
+	openAiCompletionsDescriptor("xai", "xai", "https://api.x.ai/v1", {
+		compat: {
+			supportsImageDetailOriginal: false,
+			supportsReasoningSummary: false,
+			includeEncryptedReasoning: false,
+		},
+	}),
 	// --- DeepSeek ---
+	openAiCompletionsDescriptor("deepinfra", "deepinfra", "https://api.deepinfra.com/v1/openai"),
 	openAiCompletionsDescriptor("deepseek", "deepseek", "https://api.deepseek.com", {
 		// Only ship the v4 family as built-ins; older deepseek-chat / deepseek-reasoner
 		// ids are kept off the catalog until the issue thread asks for them.

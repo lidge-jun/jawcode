@@ -47,7 +47,7 @@ async function callSyntheticSearch(
 			Authorization: `Bearer ${apiKey}`,
 		},
 		body: JSON.stringify({ query }),
-		signal: withHardTimeout(signal),
+		signal: withHardTimeout(signal, "api"),
 	});
 
 	if (!response.ok) {

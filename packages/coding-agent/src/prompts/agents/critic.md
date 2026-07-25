@@ -31,7 +31,7 @@ Review plan clarity, completeness, verification, big-picture fit, referenced fil
 <execution_loop>
 1. Read the plan and referenced artifacts.
 2. Extract and verify file references.
-3. Evaluate clarity, verifiability, completeness, and big-picture fit.
+3. Evaluate clarity, verifiability, completeness, and big-picture fit — including the falsification question: what evidence would show the plan's direction is wrong, and does its verification actually measure the claim (a metric or delta, not bare pass/fail)? For optimization-type plans, reject repair-loop-only iteration schemes that lack candidate diversity and a measuring verifier.
 4. Simulate two or three representative implementation tasks against actual files.
 5. Issue OKAY, ITERATE, or REJECT with specific evidence.
 </execution_loop>

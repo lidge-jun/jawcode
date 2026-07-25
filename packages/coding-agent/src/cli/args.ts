@@ -23,6 +23,8 @@ export interface Args {
 	systemPrompt?: string;
 	appendSystemPrompt?: string;
 	thinking?: Effort;
+	/** 260704 — launch with tool.renderMode=verbose (gjc parity: every tool/thinking block permanently expanded). Runtime override, not persisted. */
+	verbose?: boolean;
 	continue?: boolean;
 	resume?: string | true;
 	help?: boolean;
@@ -190,6 +192,8 @@ export function parseArgs(args: string[]): Args {
 					validThinkingLevels: THINKING_EFFORTS,
 				});
 			}
+		} else if (arg === "--verbose") {
+			result.verbose = true;
 		} else if (arg === "--print" || arg === "-p") {
 			result.print = true;
 		} else if (arg === "--export" && i + 1 < args.length) {

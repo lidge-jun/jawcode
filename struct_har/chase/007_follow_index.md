@@ -1,10 +1,10 @@
 # chase — 따라갈 내용 인덱스 (실행 순)
 
-> **부채 스택**: [devlog 02_debt_priority_stack](../../devlog/_fin/260614_chase_upstream_pull_priority_report/02_debt_priority_stack.md)  
-> **pull 델타**: [devlog 01_pull_delta](../../devlog/_fin/260614_chase_upstream_pull_priority_report/01_pull_delta_gjc_omp.md)  
-> **명명 (필수)**: [008_gjc_jwc_naming_contract.md](./008_gjc_jwc_naming_contract.md) — `jwc` · **`python/jwc-rpc`** · `.jwc`  
-> **RPC 묶음 실현성**: [03_rpc_bundle_feasibility_jwc_rpc](../../devlog/_fin/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md)  
-> 업데이트: **2026-06-14** (executor v2 · chase refresh)
+> **부채 스택**: [devlog 02_debt_priority_stack](../../devlog/_fin/260614_chase_upstream_pull_priority_report/02_debt_priority_stack.md)
+> **pull 델타**: [devlog 01_pull_delta](../../devlog/_fin/260614_chase_upstream_pull_priority_report/01_pull_delta_gjc_omp.md)
+> **명명 (필수)**: [008_gjc_jwc_naming_contract.md](./008_gjc_jwc_naming_contract.md) — `jwc` · **`python/jwc-rpc`** · `.jwc`
+> **RPC 묶음 실현성**: [03_rpc_bundle_feasibility_jwc_rpc](../../devlog/_fin/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md)
+> 업데이트: **2026-07-17** (chase clone pull refresh: GJC `3ddf26079`, OMP `b0d04e517`)
 > **PABCD devlog**: [260614_chase_rpc_harness_bundle](../../devlog/_plan/260614_chase_rpc_harness_bundle/000_moc.md)
 
 ## 2026-06-27 세션 상태 (방향-결정 인터뷰 + 닫기 루프)
@@ -52,15 +52,15 @@ Recommended first user-value path: **028 → 029 → 030 → 032**, then 031/034
 | U6 | 043 | [10.043 web-search/read URL hardening](./_fin/10/10.043_gjc_chase_web_search_insane_security.md) | **P1** | ✅ _fin · phases 24-26, 29 |
 | U7 | 051 | [10.051 agent/composer/toolcall integrity](./_fin/10/10.051_gjc_chase_agent_composer_toolcall_integrity.md) | **P1** | ✅ _fin · phases 6,15,19,59 |
 | U8 | 039 | [10.039 harness receipts/phase rollup](./10.039_gjc_chase_harness_receipts_phase_rollup.md) | P2 | ⬜ |
-| U9 | 041 | [10.041 TUI/input/render/Windows psmux](./10.041_gjc_chase_tui_input_render_windows_psmux.md) | P2 | ⬜ |
-| U10 | 042 | [10.042 deep-interview/ask/goal state](./10.042_gjc_chase_deep_interview_ask_goal_state.md) | P2 | ⬜ |
+| U9 | 041 | [10.041 TUI/input/render/Windows psmux](./_fin/10/10.041_gjc_chase_tui_input_render_windows_psmux.md) | P2 | ✅ _fin 260701 · ADAPT inline/list-slot autocomplete; remaining broad tmux/session lifecycle split remains 10.050 |
+| U10 | 042 | [10.042 deep-interview/ask/goal state](./_fin/10/10.042_gjc_chase_deep_interview_ask_goal_state.md) | P2 | ✅ _fin 260701 (ADAPT: 1 slice) |
 | U11 | 044 | [10.044 plugin/extensibility bundle](./10.044_gjc_chase_plugin_extensibility_bundle.md) | P2 | ⬜ |
 | U12 | 045 | [10.045 computer-use native control](./10.045_gjc_chase_computer_use_native_control.md) | P2 | ⬜ |
-| U13 | 048 | [10.048 dev/CI/release packaging](./10.048_gjc_chase_dev_ci_release_packaging.md) | P2 | ⬜ |
+| U13 | 048 | [10.048 dev/CI/release packaging](./_fin/10/10.048_gjc_chase_dev_ci_release_packaging.md) | P2 | ✅ _fin 260701 · ADAPT affected-path false-green guard (`8b3ab60`); matrix fanout/release credentials deferred |
 | U14 | 050 | [10.050 session/tmux/team/worktree](./10.050_gjc_chase_session_tmux_team_worktree.md) | P2 | ⬜ |
 | U15 | 046 | [10.046 RLM/research mode](./10.046_gjc_chase_rlm_research_mode.md) | P3 | ⬜ |
 | U16 | 049 | [10.049 perf/bench/corpus](./10.049_gjc_chase_performance_bench_corpus.md) | P3 | ⬜ |
-| U17 | 052 | [10.052 docs/external integrations](./10.052_gjc_chase_docs_external_integrations.md) | P3 | ⬜ |
+| U17 | 052 | [10.052 docs/external integrations](./_fin/10/10.052_gjc_chase_docs_external_integrations.md) | P3 | ✅ _fin 260701 · ADAPT docs matrix, bridge-client namespace, generated-docs guard |
 
 Recommended order after Telegram MVP: **036/047 security-auth first**, then runtime/RPC/compaction, then UX/docs/perf reference cards.
 
@@ -71,11 +71,83 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 | 순 | NNN | 문서 | P | 상태 |
 |---|-----|------|---|------|
 | R1 | 055 | [10.055 Codex/AI replay stability](./_fin/10/10.055_gjc_chase_codex_replay_stability.md) | **P1** | ✅ _fin 260629 · 1 import (`29f4621`), 1 defer (`16d4e2b`), 3 confirm already-shipped, 1 defer; goal `65f1dc1a-373` |
-| R2 | 054 | [10.054 local provider discovery](./10.054_gjc_chase_local_provider_discovery.md) | P2 | ⬜ |
-| R3 | 056 | [10.056 terminal bell/completion hook](./10.056_gjc_chase_terminal_bell_notifications.md) | P3 | ⬜ |
-| R4 | 057 | [10.057 Windows hardening](./10.057_gjc_chase_windows_hardening.md) | P3 | ⬜ |
+| R2 | 054 | [10.054 local provider discovery](./_fin/10/10.054_gjc_chase_local_provider_discovery.md) | P2 | ✅ _fin 260701 · IMPORT (adapt) all 5 surfaces as JWC code (`8b3b861`/`f8838a4`/`afd7038`); goal `f8909338-255` |
+| R3 | 056 | [10.056 terminal bell/completion hook](./_fin/10/10.056_gjc_chase_terminal_bell_notifications.md) | P3 | ✅ _fin 260701 · ADAPT terminal bell + global-only `completion.notifyCommand` with `JWC_NOTIFICATION_*` env |
+| R4 | 057 | [10.057 Windows hardening](./_fin/10/10.057_gjc_chase_windows_hardening.md) | P3 | ✅ _fin 260701 · ADAPT npm shims/update verify/team PowerShell/worktree+coordinator error preservation; v0.7.8 psmux/titles closed in 10.061, broad lifecycle remains 10.050 |
 | R5 | 058 | [10.058 status line + misc tooling](./_fin/10/10.058_gjc_chase_status_line_misc_tooling.md) | P3 | ✅ _fin 260629 · web-search timeout IMPORT (`2401b6a`), memory GC DEFER (evidence), 5 polish items out-of-scope; goal `65f1dc1a-373` |
 
+### 10.059-065 v0.7.8 델타 (2026-07-01, `fa995807..20c299eb` 21 commits)
+
+신규 7카드. 21커밋 전부 카드 또는 chore/docs no-card 귀속 (미할당 0). 권장 우선순위: 보안/data-safety + 사용자 가치 먼저 (059 render guard·ask gate → 060 render resilience → 062 provider → 064 daemon → 061 tmux → 065 prompt → 063 packaging).
+
+| 순 | NNN | 문서 | P | 상태 |
+|---|-----|------|---|------|
+| V1 | 059 | [10.059 deep-interview/ralplan/ultragoal ask gate + render guard](./_fin/10/10.059_gjc_chase_deep_interview_ask_ralplan_gate.md) | P2 | ✅ _fin 260701 (ADAPT+IMPORT: 4 slices) |
+| V2 | 060 | [10.060 TUI render resilience + Ctrl+Enter + status-line](./_fin/10/10.060_gjc_chase_tui_render_resilience_editor_submit.md) | P2 | ✅ _fin 260701 (IMPORT/ADAPT; custom editor UX deferred) |
+| V3 | 062 | [10.062 DeepInfra provider + Gemini UA](./_fin/10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md) | P2 | ✅ _fin 260701 · IMPORT (adapt) DeepInfra provider+service-tier + Gemini UA as JWC code (`b249348`/`ad6ec8f`/`27311f6`); goal `f8909338-255` |
+| V4 | 064 | [10.064 Telegram daemon entrypoint + Windows bell](./_fin/10/10.064_gjc_chase_telegram_daemon_entrypoint_notify.md) | P2 | ✅ _fin 260701 · ADAPT hidden `notify daemon-internal` adapter + Windows Terminal bell docs |
+| V5 | 061 | [10.061 tmux/team Windows psmux titles](./_fin/10/10.061_gjc_chase_tmux_team_windows_psmux_titles.md) | P3 | ✅ _fin 260701 · ADAPT tmux titles + Windows/psmux launch/team dispatch |
+| V6 | 065 | [10.065 prompt self-awareness grounding](./_fin/10/10.065_gjc_chase_prompt_self_awareness_grounding.md) | P3 | ✅ _fin 260701 (ADAPT) |
+| V7 | 063 | [10.063 natives platform split packages](./10.063_gjc_chase_natives_platform_split_packages.md) | P3 | ⬜ |
+
+> no-card (chore/docs): `af1e9c5d` version bump 0.7.8 · `b948e377` contributing guide (#1312) · `ebacf8d0` Discord invite (#1301). OMP 849-commit 백로그는 범위 밖 — 보류.
+
+### 10.066-069 v0.7.9/v0.7.10 델타 (2026-07-02, `20c299eb..79b42377` 54 commits)
+
+54커밋 = 4카드 + no-card docs/changelog/revert bucket. 권장 검토순: workflow state(067) → session/tmux resilience(068) → UX(066) → provider/search docs(069).
+
+| 순 | NNN | 문서 | P | 상태 |
+|---|-----|------|---|------|
+| X1 | 067 | [10.067 goal/plan skill-state refresh](./10.067_gjc_chase_goal_plan_skill_state_refresh.md) | P1 | ⬜ |
+| X2 | 068 | [10.068 tmux/Telegram/session resilience](./10.068_gjc_chase_tmux_telegram_session_resilience.md) | P2 | ⬜ |
+| X3 | 066 | [10.066 composer command/model selector UX](./10.066_gjc_chase_composer_command_model_selector_ux.md) | P2 | ⬜ |
+| X4 | 069 | [10.069 provider/search/docs/model support](./_fin/10/10.069_gjc_chase_provider_search_docs_model_support.md) | P2 | ✅ _fin 260702 · already-covered Tavily/Claude retry docs + rejected reverted Aside |
+
+### 10.070-073 v0.7.11 델타 (2026-07-03, `79b42377..db7938e1` 34 commits)
+
+34커밋 = 4 active 카드. 권장 검토순: workflow/state(070) → RPC/session lifecycle(073) → search/utils/edit safety(071) → TUI/tmux UX(072). JWC 코드 무변경 chase-map 갱신만 수행.
+
+| 순 | NNN | 문서 | P | 상태 |
+|---|-----|------|---|------|
+| Y1 | 070 | [10.070 workflow intent/state/artifacts](./10.070_gjc_chase_workflow_intent_state_artifacts.md) | P1 | ⬜ |
+| Y2 | 073 | [10.073 RPC/session/notifications lifecycle](./10.073_gjc_chase_rpc_session_notifications_lifecycle.md) | P1 | ⬜ |
+| Y3 | 071 | [10.071 search/utils/edit safety](./10.071_gjc_chase_search_utils_edit_safety.md) | P2 | ⬜ |
+| Y4 | 072 | [10.072 model selector/tmux/cmux UX](./10.072_gjc_chase_model_selector_tmux_cmux_ux.md) | P2 | ⬜ |
+
+### 10.087-104 v0.9.6→v0.11.1+ 델타 (2026-07-17, `4a80bac9..3ddf26079` 302 non-merge commits)
+
+실행 순서는 P1 model/security/lifecycle을 먼저 닫고, P2 UX·infra를 이어서 처리한 뒤 P3 CI·misc·docs를 마감한다.
+
+| 순 | NNN | 문서 | P | 상태 |
+|---|---:|---|---|---|
+| C03 | 089 | [10.089 model preset/fallback selection](./10.089_gjc_chase_model_preset_fallback_selection.md) | P1 | ⬜ |
+| C11 | 097 | [10.097 Grok/Codex benchmark presets](./10.097_gjc_chase_grok_codex_benchmark_presets.md) | P1 | ⬜ |
+| C12 | 098 | [10.098 Codex reasoning/thinking SDK](./_fin/10/10.098_gjc_chase_codex_reasoning_thinking_sdk.md) | P1 | ✅ **_fin** |
+| C02 | 088 | [10.088 security/prompt control-token](./10.088_gjc_chase_security_prompt_control_token.md) | P1 | ⬜ |
+| C01 | 087 | [10.087 SDK lifecycle ledger](./10.087_gjc_chase_sdk_lifecycle_ledger_hardening.md) | P1 | ⬜ |
+| C17 | 103 | [10.103 provider safety/transport](./_fin/10/10.103_gjc_chase_provider_safety_transport.md) | P2 | ✅ **_fin** |
+| C05 | 091 | [10.091 TUI command palette](./10.091_gjc_chase_tui_command_palette.md) | P2 | ⬜ |
+| C06 | 092 | [10.092 TUI IRC/sidebar/Kitty/tmux](./10.092_gjc_chase_tui_irc_sidebar_kitty_tmux.md) | P2 | ⬜ |
+| C07 | 093 | [10.093 coordinator MCP/session reaper](./_fin/10/10.093_gjc_chase_coordinator_mcp_session_reaper.md) | P2 | ✅ **_fin** |
+| C08 | 094 | [10.094 Telegram notification v2](./10.094_gjc_chase_telegram_notification_v2.md) | P2 | ⬜ |
+| C09 | 095 | [10.095 deep-interview/goal/ultragoal](./10.095_gjc_chase_deep_interview_goal_ultragoal.md) | P2 | ⬜ |
+| C10 | 096 | [10.096 session context-usage SSOT](./_fin/10/10.096_gjc_chase_session_context_usage_ssot.md) | P2 | ✅ **_fin** |
+| C04 | 090 | [10.090 prompt refactor/compact ralplan](./10.090_gjc_chase_prompt_refactor_compact_ralplan.md) | P2 | ⬜ |
+| C13 | 099 | [10.099 RPC durable selection/pet](./10.099_gjc_chase_rpc_durable_selection_pet.md) | P3 | ⬜ |
+| C14 | 100 | [10.100 CI/release stabilization](./10.100_gjc_chase_ci_release_stabilization.md) | P3 | ⬜ |
+| C15 | 101 | [10.101 browser/psmux misc](./10.101_gjc_chase_browser_psmux_misc.md) | P3 | ⬜ |
+| C16 | 102 | [10.102 agent async misc](./_fin/10/10.102_gjc_chase_agent_async_misc.md) | P3 | ✅ **_fin** |
+| C18 | 104 | [10.104 docs/changelog/QA](./10.104_gjc_chase_docs_changelog_qa.md) | P3 | ⬜ |
+
+### 10.105-107 post-v0.11.1 supplement (2026-07-17, `3ddf26079..904eab21c` 41 non-merge commits)
+
+| 순 | NNN | 문서 | P | 상태 |
+|---|---:|---|---|---|
+| S1 | 105 | [10.105 routing/fallback availability cache](./10.105_gjc_chase_routing_fallback_availability_cache.md) | P1 | ⬜ |
+| S2 | 106 | [10.106 config UX/credential setup](./10.106_gjc_chase_config_ux_credential_setup.md) | P2 | ⬜ |
+| S3 | 107 | [10.107 context compaction/CI](./_fin/10/10.107_gjc_chase_context_compaction_ci.md) | P2 | ✅ **_fin** |
+
+### Legacy RPC / early-priority carried rows
 | 순 | NNN | 문서 | P | 상태 |
 |---|-----|------|---|------|
 | 9 | 011 | [10.011 receipt spool](./_fin/10/10.011_gjc_chase_receipt_spool.md) | P1 | ✅ _fin · receipt spool |
@@ -115,13 +187,98 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 
 | 순 | NNN | 문서 | P | 상태 |
 |---|-----|------|---|------|
-| O1 | 009 | [20.009 append-only context integrity](./20.009_omp_chase_append_only_context_integrity.md) | P2 | ⬜ |
+| O1 | 009 | [20.009 append-only context integrity](./_fin/20/20.009_omp_chase_append_only_context_integrity.md) | P2 | ✅ _fin 260701 |
 | O2 | 010 | [20.010 AI OAuth/reasoning replay](./_fin/20/20.010_omp_chase_ai_oauth_reasoning_replay.md) | P2 | ✅ _fin · reference · phases 10,60 |
 | O3 | 011 | [20.011 TUI image drafts/terminal edges](./_fin/20/20.011_omp_chase_tui_image_drafts_terminal_edges.md) | P2 | ✅ _fin · ref · phases 10,61 |
 | O4 | 012 | [20.012 bash snapshot/env security](./_fin/20/20.012_omp_chase_bash_snapshot_env_security.md) | P2 | ✅ _fin · ref · phases 10,61 |
 | O5 | 013 | [20.013 plugin virtual registry/bundle](./_fin/20/20.013_omp_chase_plugin_virtual_registry_bundle.md) | P2 | ✅ _fin · ref · phases 10,61 |
 | O6 | 014 | [20.014 goal compaction/provider concurrency](./_fin/20/20.014_omp_chase_goal_compaction_provider_concurrency.md) | P2 | ✅ _fin · ref · phases 10,61 |
-| O7 | 015 | [20.015 release/test leak hardening](./20.015_omp_chase_release_test_leak_hardening.md) | P3 | ⬜ |
+| O7 | 015 | [20.015 release/test leak hardening](./_fin/20/20.015_omp_chase_release_test_leak_hardening.md) | P3 | ✅ _fin |
+
+### 20.023-030 v16.2.9 델타 (2026-07-01, `ca9f2847e..b6c9747d4` 175 commits, reference-only)
+
+신규 8 reference 카드 (전부 ⬜ open, **1:1 port ❌**). 175커밋 = 105 card-bound + 70 no-card, 미할당 0. OMP는 G2 약함 축이라 전부 설계 참조 — JWC 코드 무변경. 권장 검토순: 보안/AI 표면 먼저 (024 oauth → 023 providers → 027 prompts(identity) → 025 compaction → 028 web-search → 026 TUI → 029 stats → 030 misc).
+
+| 순 | NNN | 문서 | P | 상태 |
+|---|-----|------|---|------|
+| W1 | 024 | [20.024 MCP oauth/reauth flow](./20.024_omp_chase_mcp_oauth_reauth_flow.md) | ref | ⬜ |
+| W2 | 023 | [20.023 AI providers/catalog/service-tier](./_fin/20/20.023_omp_chase_ai_providers_catalog_service_tier.md) | ref | ✅ _fin 260701 · reference-triage (no JWC code): service-tier already-shipped, all_turns inapplicable, leaked-fence-heal defer→20.018; goal `f8909338-255` |
+| W2.5 | 019 | [20.019 codex/AI config](./_fin/20/20.019_omp_chase_codex_ai_config.md) | ref→ADAPT | ✅ _fin 260701 · ADAPT 2 JWC slices: codex base-url host-boundary fix (`bc79608`) + textVerbosity official-endpoint plumbing (`027c3a9`); all_turns inapplicable, default-verbosity/tiny-role defer→③; goal `f8909338-255` |
+| W3 | 027 | [20.027 prompts/subagent/discovery (identity)](./_fin/20/20.027_omp_chase_prompts_subagent_discovery_rules.md) | ref | ✅ _fin |
+| W4 | 025 | [20.025 compaction/snapcompact/session-scope](./_fin/20/20.025_omp_chase_compaction_snapcompact_session_scope.md) | ref | ✅ _fin 260701 (IMPORT) |
+| W5 | 028 | [20.028 web-search/provider settings](./_fin/20/20.028_omp_chase_web_search_provider_settings.md) | ref | ✅ _fin 260701 · IMPORT: DDG browser-aligned request + CLI provider settings; gemini api-key defer③ |
+| W6 | 026 | [20.026 TUI loader/MCP-enable](./20.026_omp_chase_tui_input_loader_mcp_enable.md) | ref | ⬜ |
+| W7 | 029 | [20.029 stats sync worker/perf](./20.029_omp_chase_stats_sync_worker_perf.md) | ref | ⬜ |
+| W8 | 030 | [20.030 misc dictation/binary/font/yield/irc/win](./20.030_omp_chase_misc_dictation_binary_font_yield_irc_win.md) | ref | ⬜ |
+
+> no-card: 38 merge · 12 style · 10 chore · 8 test · 1 revert (`d1e412eef`) · 1 keep (`6f8f76be4`) · version bumps `0ba736f5b`/`38250ce88`/`5bc68f57c`/`b6c9747d4`. behavior gap 없음.
+
+### 20.031-035 v16.3.1 델타 (2026-07-02, `b6c9747d4..0ea6ea630` 433 commits, reference-only)
+
+433커밋 = 5 reference 카드 + no-card docs/changelog/style/test/version buckets. OMP는 G2 약함 축이라 전부 설계 참조 — JWC 코드 무변경. 권장 검토순: session/data safety(033) → tool contract(035) → native/search(031) → AI provider(032) → UI/runtime(034).
+
+| 순 | NNN | 문서 | P | 상태 |
+|---|-----|------|---|------|
+| Z1 | 033 | [20.033 session/patch/rewind integrity](./20.033_omp_chase_session_patch_rewind_integrity.md) | ref | ⬜ |
+| Z2 | 035 | [20.035 tool schema/task/TTS/stats](./_fin/20/20.035_omp_chase_tool_schema_task_tts_stats.md) | ref | ✅ _fin 260702 · reference-triage; public schema change rejected, task/stats/voice split |
+| Z3 | 031 | [20.031 native/search pipeline](./20.031_omp_chase_native_search_pipeline.md) | ref | ⬜ |
+| Z4 | 032 | [20.032 AI thinking/catalog/speech](./20.032_omp_chase_ai_thinking_catalog_speech.md) | ref | ⬜ |
+| Z5 | 034 | [20.034 TUI/collab/browser resilience](./20.034_omp_chase_tui_collab_browser_resilience.md) | ref | ⬜ |
+
+### 20.036-040 v16.3.4 델타 (2026-07-03, `0ea6ea630..d0c1890a6` 216 commits, reference-only)
+
+216커밋 = 5 reference 카드 + version/changelog/style/test/no-card buckets. OMP는 G2 약함 축이라 전부 설계 참조 — JWC 코드 무변경. 권장 검토순: AI/auth risk(036) → session/data safety(037) → tool/hashline/plugin/task safety(038) → TUI/runtime(039) → robomp/release references(040).
+
+| 순 | NNN | 문서 | P | 상태 |
+|---|-----|------|---|------|
+| Q1 | 036 | [20.036 AI catalog/auth/usage](./20.036_omp_chase_ai_catalog_auth_usage.md) | ref | ⬜ |
+| Q2 | 037 | [20.037 session/async/plan integrity](./20.037_omp_chase_session_async_plan_integrity.md) | ref | ⬜ |
+| Q3 | 038 | [20.038 hashline/tool/plugin/task safety](./20.038_omp_chase_hashline_tool_plugin_task_safety.md) | ref | ⬜ |
+| Q4 | 039 | [20.039 TUI/terminal/render resilience](./20.039_omp_chase_tui_terminal_render_resilience.md) | ref | ⬜ |
+| Q5 | 040 | [20.040 robomp/ISO/sandbox/release](./20.040_omp_chase_robomp_iso_sandbox_release.md) | ref | ⬜ |
+
+### 20.051-070 v16.4.2→v17.0.1 델타 (2026-07-17, `7aa1d581c..b0d04e517` 586 non-merge commits, reference-only)
+
+OMP는 1:1 이식하지 않는다. P1 model/auth/provider 레퍼런스를 먼저 평가하고 P2 UX·tooling, P3 운영·release 순으로 따른다.
+
+| 순 | NNN | 문서 | P | 상태 |
+|---|---:|---|---|---|
+| D01 | 051 | [20.051 model hub/selector](./20.051_omp_chase_model_hub_selector.md) | P1 | ⬜ |
+| D02 | 052 | [20.052 catalog pricing/routing](./20.052_omp_chase_catalog_pricing_routing.md) | P1 | ⬜ |
+| D03 | 053 | [20.053 auth/OAuth/credential](./20.053_omp_chase_auth_oauth_credential.md) | P1 | ⬜ |
+| D04 | 054 | [20.054 provider/transport/schema](./20.054_omp_chase_provider_transport_schema.md) | P1 | ⬜ |
+| D05 | 055 | [20.055 model resolver/fallback](./20.055_omp_chase_model_resolver_fallback.md) | P1 | ⬜ |
+| D17 | 067 | [20.067 usage/quota/spend-limit](./20.067_omp_chase_usage_quota_spend_limit.md) | P1 | ⬜ |
+| D06 | 056 | [20.056 vibe mode](./20.056_omp_chase_vibe_mode.md) | P2 | ⬜ |
+| D07 | 057 | [20.057 ask dialog](./20.057_omp_chase_ask_dialog.md) | P2 | ⬜ |
+| D08 | 058 | [20.058 TUI render/streaming](./20.058_omp_chase_tui_render_streaming.md) | P2 | ⬜ |
+| D09 | 059 | [20.059 advisor/steering](./20.059_omp_chase_advisor_steering.md) | P2 | ⬜ |
+| D10 | 060 | [20.060 agent-loop/tool/stream](./20.060_omp_chase_agent_loop_tool_stream.md) | P2 | ⬜ |
+| D11 | 061 | [20.061 search/grep/tools](./20.061_omp_chase_search_grep_tools.md) | P2 | ⬜ |
+| D12 | 062 | [20.062 plugin/MCP/discovery](./20.062_omp_chase_plugin_mcp_discovery.md) | P2 | ⬜ |
+| D19 | 069 | [20.069 centralized prompt/small model](./20.069_omp_chase_centralized_prompt_small_model.md) | P2 | ⬜ |
+| D13 | 063 | [20.063 session/settings/startup](./20.063_omp_chase_session_settings_startup.md) | P3 | ⬜ |
+| D14 | 064 | [20.064 mnemopi/memory/eval](./20.064_omp_chase_mnemopi_memory_eval.md) | P3 | ⬜ |
+| D15 | 065 | [20.065 browser/bash/commit](./20.065_omp_chase_browser_bash_commit.md) | P3 | ⬜ |
+| D16 | 066 | [20.066 collab-web/extension](./20.066_omp_chase_collab_web_extension.md) | P3 | ⬜ |
+| D18 | 068 | [20.068 TUI/SIXEL/subagent misc](./20.068_omp_chase_tui_sixel_subagent_misc.md) | P3 | ⬜ |
+| D20 | 070 | [20.070 CI/release/changelog](./20.070_omp_chase_ci_release_changelog.md) | P3 | ⬜ |
+
+### 20.071-080 post-v17.0.1 supplement 2 (2026-07-17, `b0d04e517..5394081390` 175 non-merge commits, reference-only)
+
+| 순 | NNN | 문서 | P | 상태 |
+|---|---:|---|---|---|
+| D24 | 074 | [20.074 AI credential redaction](./20.074_omp_chase_ai_credential_redaction.md) | P1 | ⬜ |
+| D21 | 071 | [20.071 Warp event bridge](./20.071_omp_chase_warp_event_bridge.md) | P2 | ⬜ |
+| D22 | 072 | [20.072 cursor/advisor/xdev](./20.072_omp_chase_cursor_advisor_xdev.md) | P2 | ⬜ |
+| D23 | 073 | [20.073 TUI rendering/status](./20.073_omp_chase_tui_rendering_status.md) | P2 | ⬜ |
+| D25 | 075 | [20.075 coding-agent tool restoration](./_fin/20/20.075_omp_chase_coding_agent_tool_restoration.md) | P2 | ✅ **_fin** |
+| D26 | 076 | [20.076 session/plan lifecycle](./20.076_omp_chase_session_plan_lifecycle.md) | P2 | ⬜ |
+| D27 | 077 | [20.077 plugins/CommonJS/MCP](./20.077_omp_chase_plugins_commonjs_mcp.md) | P2 | ⬜ |
+| D29 | 079 | [20.079 Codex Lite/telemetry](./20.079_omp_chase_codex_lite_telemetry.md) | P2 | ⬜ |
+| D28 | 078 | [20.078 bash/IRC/registry](./20.078_omp_chase_bash_irc_registry.md) | P3 | ⬜ |
+| D30 | 080 | [20.080 CI/style/changelog](./20.080_omp_chase_ci_style_changelog.md) | P3 | ⬜ |
+
 
 ## 완료 (_fin)
 

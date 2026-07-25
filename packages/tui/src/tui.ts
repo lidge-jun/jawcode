@@ -4,17 +4,26 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { performance } from "node:perf_hooks";
-import { $flag, getDebugLogPath } from "@jawcode-dev/utils";
+import { $env, $flag, getDebugLogPath, logger } from "@jawcode-dev/utils";
 import { VIEWPORT_FILL_SENTINEL } from "./components/viewport-fill";
-import { buildInsertHistorySequence, detectHistoryLaneMode, type HistoryLaneMode } from "./insert-history";
+import { detectHistoryLaneMode, type HistoryLaneMode } from "./insert-history";
 import { isKeyRelease, matchesKey } from "./keys";
 import { flushPerfEventsSync, isPerfJsonlFlushEnabled, renderMetrics } from "./metrics";
 import type { Terminal } from "./terminal";
-import { ImageProtocol, setCellDimensions, setTerminalImageProtocol, TERMINAL } from "./terminal-capabilities";
+import {
+	ImageProtocol,
+	isImageProtocolForced,
+	isUnderTerminalMultiplexer,
+	setCellDimensions,
+	setTerminalImageProtocol,
+	TERMINAL,
+} from "./terminal-capabilities";
 import {
 	Ellipsis,
 	extractSegments,
+	getAmbiguousWidthMode,
 	normalizeTerminalOutput,
+	setAmbiguousWidthMode,
 	sliceByColumn,
 	sliceWithWidth,
 	truncateToWidth,
@@ -152,12 +161,28 @@ function isTermuxSession(): boolean {
 }
 
 /** Detect terminal multiplexers where scrollback clearing and height-change redraws are hostile. */
-function isMultiplexerSession(): boolean {
-	return Boolean(process.env.TMUX || process.env.STY || process.env.ZELLIJ);
+function isMultiplexerSession(env: NodeJS.ProcessEnv = process.env): boolean {
+	return isUnderTerminalMultiplexer(env);
+}
+
+/** Decide whether runtime sixel probing is safe and authoritative. */
+export function shouldProbeSixelCapability(
+	env: NodeJS.ProcessEnv = process.env,
+	platform: NodeJS.Platform = process.platform,
+): boolean {
+	if (isImageProtocolForced(env)) return false;
+	// tmux/screen advertise compile-time sixel support, not attached-client
+	// support, so their DA1 response is not an end-to-end graphics proof.
+	if (isUnderTerminalMultiplexer(env)) return false;
+	return platform === "win32" && Boolean(env.WT_SESSION?.trim());
 }
 
 function useLegacyMultiplexerFullRender(): boolean {
 	return $flag("PI_TUI_LEGACY_MULTIPLEXER_FULL_RENDER");
+}
+
+function useViewportRepaintPath(): boolean {
+	return isMultiplexerSession() && !useLegacyMultiplexerFullRender();
 }
 
 /**
@@ -246,9 +271,33 @@ export class Container implements Component {
 			// Commit lane (083.9 P4): committed pixels live in the scrollback —
 			// the frame must not carry a second copy.
 			if (child.committed) continue;
-			lines.push(...child.render(width));
+			lines.push(...safeRenderComponent(child, width, "container-child"));
 		}
 		return lines;
+	}
+}
+
+const MAX_REPORTED_RENDER_ERRORS = 200;
+const reportedRenderErrors = new Set<string>();
+
+function safeRenderComponent(component: Component, width: number, where: string): string[] {
+	try {
+		return component.render(width);
+	} catch (error) {
+		const name = component.constructor?.name || "Component";
+		const message = error instanceof Error ? error.message : String(error);
+		const key = `${where}:${name}:${message}`;
+		if (!reportedRenderErrors.has(key)) {
+			if (reportedRenderErrors.size >= MAX_REPORTED_RENDER_ERRORS) reportedRenderErrors.clear();
+			reportedRenderErrors.add(key);
+			logger.error("Component render failed; emitting fallback line", {
+				where,
+				component: name,
+				error: message,
+				stack: error instanceof Error ? error.stack : undefined,
+			});
+		}
+		return [`[render error: ${name}]`];
 	}
 }
 
@@ -271,13 +320,56 @@ export class TUI extends Container {
 	#historyLane: HistoryLaneMode = "unsupported";
 	/** Committed pixel rows sitting directly above the live zone, not yet scrolled into scrollback. */
 	#committedScreenRows = 0;
+	/**
+	 * 260703 v3 — 1-based screen row where the on-screen committed block ENDS.
+	 * 0 = no parked block: callers fall back to the fill-region bottom
+	 * (#lastFillRows / prevFillRows), which is byte-identical to the pre-v3
+	 * behavior. Set by realignOverflowedFrame, which parks the previous turn's
+	 * visible tail at rows 1..blockRows while the NEXT frame's fill can be
+	 * taller — the block bottom, not the raw fill, is the history-region
+	 * boundary, or growth scroll-outs stamp the trailing-blank gap into the
+	 * scrollback (gap repro, 20_realign_v3_committed_bottom.md).
+	 */
+	#committedBottomRow = 0;
 	/** True once any line was committed — the scrollback is then canonical and 3J is forbidden. */
 	#hasCommittedHistory = false;
+	/**
+	 * 260703 WP5 — sticky: true once an overflowing frame was PHYSICALLY
+	 * printed/scrolled (above-viewport rows exist as real terminal history).
+	 * Multiplexer clearing replays downgrade to a viewport repaint only after
+	 * this point — downgrading a first-ever overflow render instead LOSES the
+	 * rows for good (no 3J-less path ever materializes them; mux golden repro).
+	 * Never reset: #restoreOverflowFloor zeroes the floor on every no-sentinel
+	 * render, so the floor cannot serve as this memory for legacy frames.
+	 */
+	#hasMaterializedOverflow = false;
 	/** Fill rows at the top of the frame as last painted (= history region height). */
 	#lastFillRows = 0;
+	/**
+	 * 260704 S5-2 — rows BELOW the fill region (the composer cluster) as last
+	 * painted. The live-zone flush geometry scrolls region [1..height-#composerRows]
+	 * so the pinned composer is never pushed across the seam.
+	 */
+	#composerRows = 0;
 	#renderTimer: NodeJS.Timeout | undefined;
 	#lastRenderAt = 0;
 	static readonly #MIN_RENDER_INTERVAL_MS = 16;
+	/**
+	 * 260703 WP1 — one-shot request for an absolute viewport repaint, consumed
+	 * by the next #doRender pass. Set via resyncViewport(); any absolute render
+	 * branch (first render, width/height change, quarantine) satisfies it too.
+	 */
+	#resyncRequested = false;
+	/**
+	 * 260704 RESIZE REBUILD — fired once ~250ms after the LAST width-changing
+	 * resize event. The embedder re-emits the full transcript at the new
+	 * width via replayTranscript(): a FULL replace of the scrollback cannot
+	 * duplicate anything (unlike partial repairs, which the immutability
+	 * policy exists to forbid), so resize-mangled history heals completely.
+	 * Unwired in tests/replays — no determinism impact.
+	 */
+	onResizeSettled?: () => void;
+	#resizeRebuildTimer: NodeJS.Timeout | undefined;
 	// Input-priority scheduling: an input keystroke must never be starved behind a
 	// pending normal (frame-budget) render timer. When set, an input-priority render
 	// is queued for the next tick and supersedes any pending normal timer.
@@ -293,6 +385,29 @@ export class TUI extends Container {
 	#sixelProbeBuffer = "";
 	#sixelProbeTimeout?: NodeJS.Timeout;
 	#sixelProbeUnsubscribe?: () => void;
+	// ── Ambiguous-width probe (260703 WP2.5) ───────────────────────────
+	#ambiguousProbePending = false;
+	#ambiguousProbeBuffer = "";
+	#ambiguousProbeTimeout?: NodeJS.Timeout;
+	#ambiguousProbeUnsubscribe?: () => void;
+	/** Post-timeout grace: swallow one late CPR reply, never apply it. */
+	#ambiguousProbeGrace = false;
+	/**
+	 * False only while a CPR probe is outstanding. commitLines() refuses
+	 * while unresolved: a mismeasured PAINT is row-safe (DECAWM off) and
+	 * repainted after the probe, but a mismeasured COMMIT would bake wrongly
+	 * truncated pixels into canonical scrollback forever.
+	 */
+	#ambiguousWidthResolved = true;
+	/**
+	 * 260703 WP3b-min — true while a high-churn output phase is in progress
+	 * (the embedding app streams a response). While streaming and the user
+	 * may be scrolled off-bottom, DECSTBM history insertions fight native
+	 * scrolling (the top-pinned-block symptom) — new commits then defer to
+	 * the virtual lane. Agent-agnostic on purpose: the TUI stays
+	 * message-agnostic.
+	 */
+	#streamingActive = false;
 	#showHardwareCursor = $flag("PI_HARDWARE_CURSOR");
 	#clearOnShrink = $flag("PI_CLEAR_ON_SHRINK"); // Clear empty rows when content shrinks (default: off)
 	#maxLinesRendered = 0; // Line count from last render, used for viewport calculation
@@ -457,11 +572,12 @@ export class TUI extends Container {
 		this.#historyLane = detectHistoryLaneMode();
 		this.terminal.start(
 			data => this.#handleInput(data),
-			() => this.requestRender(),
+			() => this.#handleResize(),
 		);
 		this.#hideCursor();
 		this.#querySixelSupport();
 		this.#queryCellSize();
+		this.#queryAmbiguousWidth();
 		this.requestRender(true);
 	}
 
@@ -478,7 +594,13 @@ export class TUI extends Container {
 			this.#renderTimer = undefined;
 			if (renderMetrics.enabled) renderMetrics.setTimerGauge("tui.renderTimer", 0);
 		}
+		if (this.#resizeRebuildTimer) {
+			clearTimeout(this.#resizeRebuildTimer);
+			this.#resizeRebuildTimer = undefined;
+		}
 		this.#clearSixelProbeState();
+		this.#clearAmbiguousProbeState();
+		this.#ambiguousWidthResolved = true;
 	}
 
 	#writeTerminal(data: string): boolean {
@@ -524,8 +646,7 @@ export class TUI extends Container {
 
 	#querySixelSupport(): void {
 		if (TERMINAL.imageProtocol) return;
-		if (process.platform !== "win32") return;
-		if (!process.env.WT_SESSION) return;
+		if (!shouldProbeSixelCapability()) return;
 		if (!process.stdin.isTTY || !process.stdout.isTTY) return;
 
 		this.#clearSixelProbeState();
@@ -565,11 +686,13 @@ export class TUI extends Container {
 
 			if (useDa && this.#sixelProbePendingDa) {
 				this.#sixelProbePendingDa = false;
-				const attributes = (match[1] ?? "")
+				const params = (match[1] ?? "")
 					.split(";")
 					.map(value => Number.parseInt(value, 10))
 					.filter(value => Number.isFinite(value));
-				const hasSixelAttribute = attributes.includes(4);
+				// DA1's first parameter is the device class; only later parameters
+				// are extension attributes such as 4 (sixel graphics).
+				const hasSixelAttribute = params.slice(1).includes(4);
 				if (hasSixelAttribute) {
 					this.#sixelProbePendingGraphics = false;
 					probeOutcome = true;
@@ -579,7 +702,8 @@ export class TUI extends Container {
 			} else if (!useDa && this.#sixelProbePendingGraphics) {
 				this.#sixelProbePendingGraphics = false;
 				const status = Number.parseInt(match[1] ?? "", 10);
-				const supportsSixel = !Number.isNaN(status) && status !== 0;
+				// XTSMGRAPHICS Ps=0 is success; 1/2/3 are errors.
+				const supportsSixel = status === 0;
 				if (supportsSixel) {
 					this.#sixelProbePendingDa = false;
 					probeOutcome = true;
@@ -657,8 +781,149 @@ export class TUI extends Container {
 		this.#writeTerminal("\x1b[16t");
 	}
 
+	/**
+	 * 260703 WP2.5 — learn how the terminal renders East Asian AMBIGUOUS
+	 * characters. One invisible round-trip before the first frame: clear the
+	 * line, print three EAW-A probes, ask for the cursor position (CPR),
+	 * clear again — the reply (CSI row;col R) arrives async. col-1 of 6 means
+	 * ambiguous-wide (3 chars × 2 cells); 3 means narrow. The verdict feeds
+	 * BOTH width tables (Bun.stringWidth and pi-natives) via
+	 * setAmbiguousWidthMode. Env override JWC_AMBIGUOUS_WIDTH=1|narrow|2|wide
+	 * wins and skips the probe (also the deterministic path for replays).
+	 * Timeout keeps the current default: most terminals render ambiguous
+	 * narrow, and post-WP2 (DECAWM off) a wrong narrow only clips a cell,
+	 * while a wrong wide would mis-lay-out every padded line.
+	 */
+	#queryAmbiguousWidth(): void {
+		const override = $env.JWC_AMBIGUOUS_WIDTH;
+		if (override === "2" || override === "wide") {
+			setAmbiguousWidthMode("wide");
+			return;
+		}
+		if (override === "1" || override === "narrow") {
+			setAmbiguousWidthMode("narrow");
+			return;
+		}
+		// stdin too: without a readable TTY the reply can never arrive — the
+		// probe would only stall the commit gate for the timeout window.
+		if (!process.stdout.isTTY || !process.stdin.isTTY) return;
+		// A terminal too narrow for the probe chars would clip them (DECAWM
+		// off) and report a meaningless column.
+		if (this.terminal.columns < 8) return;
+
+		this.#clearAmbiguousProbeState();
+		this.#ambiguousProbePending = true;
+		this.#ambiguousWidthResolved = false;
+		this.#ambiguousProbeUnsubscribe = this.addInputListener(data => this.#handleAmbiguousProbeInput(data));
+		// Single write: clear, probe chars, CPR snapshot, clear again — the
+		// terminal processes in order, so the screen is never visibly
+		// disturbed and the cursor ends at column 1 exactly as the first
+		// render (fullRender without clear) expects.
+		if (!this.#writeTerminal("\r\x1b[2K§…·\x1b[6n\r\x1b[2K")) {
+			this.#resolveAmbiguousProbe(null);
+			return;
+		}
+		this.#ambiguousProbeTimeout = setTimeout(() => {
+			this.#enterAmbiguousProbeGrace();
+		}, 150);
+	}
+
+	/**
+	 * Timeout path: unblock the commit gate immediately (safe-default narrow)
+	 * but keep a short-lived swallower listening — a terminal that answers
+	 * CPR late would otherwise leak `ESC[r;cR` into the editor as keystrokes.
+	 * The late reply is cleanup only: it never changes the width mode
+	 * (re-measuring after content may have rendered/committed is more
+	 * disruptive than a one-cell clip).
+	 */
+	#enterAmbiguousProbeGrace(): void {
+		this.#ambiguousWidthResolved = true;
+		this.#ambiguousProbeGrace = true;
+		if (this.#ambiguousProbeTimeout) clearTimeout(this.#ambiguousProbeTimeout);
+		this.#ambiguousProbeTimeout = setTimeout(() => {
+			this.#clearAmbiguousProbeState();
+		}, 800);
+	}
+
+	#handleAmbiguousProbeInput(data: string): InputListenerResult {
+		if (!this.#ambiguousProbePending) return undefined;
+		this.#ambiguousProbeBuffer += data;
+
+		const match = this.#ambiguousProbeBuffer.match(/\x1b\[(\d+);(\d+)R/);
+		if (match?.index !== undefined) {
+			const passthrough =
+				this.#ambiguousProbeBuffer.slice(0, match.index) +
+				this.#ambiguousProbeBuffer.slice(match.index + match[0].length);
+			this.#ambiguousProbeBuffer = "";
+			if (this.#ambiguousProbeGrace) {
+				// Late reply after the timeout window: swallow it, keep narrow.
+				this.#clearAmbiguousProbeState();
+			} else {
+				this.#resolveAmbiguousProbe(Number.parseInt(match[2], 10));
+			}
+			if (passthrough.length === 0) return { consume: true };
+			return { data: passthrough };
+		}
+
+		// Keep a plausible CPR prefix (plain CSI — the terminal-side
+		// reassembler only covers private `ESC[?` replies); pass everything
+		// before it through so user keystrokes are never swallowed.
+		const lastEsc = this.#ambiguousProbeBuffer.lastIndexOf("\x1b");
+		if (lastEsc >= 0 && /^\x1b(\[[0-9;]*)?$/.test(this.#ambiguousProbeBuffer.slice(lastEsc))) {
+			const passthrough = this.#ambiguousProbeBuffer.slice(0, lastEsc);
+			this.#ambiguousProbeBuffer = this.#ambiguousProbeBuffer.slice(lastEsc);
+			if (passthrough.length === 0) return { consume: true };
+			return { data: passthrough };
+		}
+
+		const passthrough = this.#ambiguousProbeBuffer;
+		this.#ambiguousProbeBuffer = "";
+		if (passthrough.length === 0) return { consume: true };
+		return { data: passthrough };
+	}
+
+	/** Apply the probe verdict; null = timeout/failure (keep current mode). */
+	#resolveAmbiguousProbe(col: number | null): void {
+		this.#clearAmbiguousProbeState();
+		this.#ambiguousWidthResolved = true;
+		if (col === null) return;
+		const mode = col - 1 >= 6 ? "wide" : "narrow";
+		if (mode === getAmbiguousWidthMode()) return;
+		setAmbiguousWidthMode(mode);
+		// Every cached prepared line and rendered layout was measured with the
+		// old table — rebuild from scratch.
+		this.#clearPreparedLineCaches();
+		this.invalidate();
+		this.requestRender(true);
+	}
+
+	#clearAmbiguousProbeState(): void {
+		if (this.#ambiguousProbeTimeout) {
+			clearTimeout(this.#ambiguousProbeTimeout);
+			this.#ambiguousProbeTimeout = undefined;
+		}
+		if (this.#ambiguousProbeUnsubscribe) {
+			this.#ambiguousProbeUnsubscribe();
+			this.#ambiguousProbeUnsubscribe = undefined;
+		}
+		this.#ambiguousProbePending = false;
+		this.#ambiguousProbeGrace = false;
+		this.#ambiguousProbeBuffer = "";
+	}
+
 	stop(): void {
+		if (this.#resizeRebuildTimer) {
+			clearTimeout(this.#resizeRebuildTimer);
+			this.#resizeRebuildTimer = undefined;
+		}
 		this.#clearSixelProbeState();
+		this.#clearAmbiguousProbeState();
+		this.#ambiguousWidthResolved = true;
+		this.#resyncRequested = false;
+		// A stopped TUI can be restarted (Ctrl+Z resume, background mode,
+		// external editor) on paths where the embedding app's stream-end event
+		// never fired — a stale flag would gate the commit lane forever.
+		this.#streamingActive = false;
 		this.#stopped = true;
 		if (this.#renderTimer) {
 			clearTimeout(this.#renderTimer);
@@ -705,16 +970,19 @@ export class TUI extends Container {
 		}
 		if (renderMetrics.enabled) renderMetrics.recordRequest(source);
 		if (force) {
+			const preserveViewportCursor = useViewportRepaintPath();
 			// A forced full redraw supersedes any queued input-priority render.
 			this.#inputRenderPending = false;
 			this.#previousLines = [];
 			this.#previousWidth = -1; // -1 triggers widthChanged, forcing a full clear
 			this.#clearPreparedLineCaches();
 			this.#previousHeight = -1; // -1 triggers heightChanged, forcing a full clear
-			this.#cursorRow = 0;
-			this.#hardwareCursorRow = 0;
-			this.#viewportTopRow = 0;
-			this.#maxLinesRendered = 0;
+			if (!preserveViewportCursor) {
+				this.#cursorRow = 0;
+				this.#hardwareCursorRow = 0;
+				this.#viewportTopRow = 0;
+				this.#maxLinesRendered = 0;
+			}
 			if (this.#renderTimer) {
 				clearTimeout(this.#renderTimer);
 				this.#renderTimer = undefined;
@@ -1033,7 +1301,7 @@ export class TUI extends Container {
 			component.setOverlayViewportRows?.(Math.max(1, maxHeight ?? termHeight));
 
 			// Render component at calculated width
-			let overlayLines = component.render(width);
+			let overlayLines = safeRenderComponent(component, width, "overlay");
 
 			// Apply maxHeight if specified
 			if (maxHeight !== undefined && overlayLines.length > maxHeight) {
@@ -1268,18 +1536,293 @@ export class TUI extends Container {
 		);
 	}
 
-	/** Frame-length floor while the pinned frame overflows the viewport (083.7 §9). */
-	#viewportFillFloor = 0;
-	/** Blank rows currently held by the floor between content and composer (083.7 §10). */
-	#viewportFillGap = 0;
+	/**
+	 * Physical frame length while the frame overflows the viewport (260630).
+	 * The terminal cannot un-scroll: once an N-row frame was painted, rows may
+	 * already live in the scrollback, so the frame must stay N rows long until
+	 * a deliberate clearing full render realigns screen and frame. Shrinks are
+	 * absorbed by #restoreOverflowFloor tombstones instead of shifting rows.
+	 */
+	#overflowFloor = 0;
+	/**
+	 * Raw (post-fill, pre-composite, pre-prepare) lines of the last frame.
+	 * #restoreOverflowFloor scans these to anchor shrink tombstones at the
+	 * exact first changed row; survives forced renders so the floor invariant
+	 * holds across requestRender(true).
+	 */
+	#previousRawLines: string[] = [];
+	/** Tombstone rows inserted by the last #restoreOverflowFloor pass. */
+	#lastTombstoneRows = 0;
+	/** Whether the current frame carries a ViewportFill sentinel (pin model). */
+	#fillSentinelPresent = false;
+	/**
+	 * While true (transient in-frame expansion, e.g. ctrl+o), growth must not
+	 * physically scroll the terminal: the grown rows are painted via viewport
+	 * repaint only and the overflow floor stays frozen, so collapsing back
+	 * restores the pre-expansion screen exactly instead of leaving a blank
+	 * residue the height of the expansion (260630 ctrl+o hole follow-up).
+	 */
+	#overflowFloorFrozen = false;
 
 	/**
-	 * Collapse the post-overflow gap the viewport-fill floor accumulated
-	 * (083.7 §10): resets the floor and forces a full repaint, so the
-	 * transcript tail hugs the composer again. The full repaint re-emits the
-	 * entire frame, so terminal scrollback is rebuilt consistently. Call at
-	 * quiet points (turn end) — no-op when there is no gap.
+	 * Mark the current in-frame expansion as transient (see
+	 * #overflowFloorFrozen). Callers freeze before rendering the expansion and
+	 * unfreeze when it collapses or the turn ends; leaving it frozen only
+	 * degrades to viewport-repaint growth (no duplication, scrollback pauses).
 	 */
+	setOverflowFloorFrozen(frozen: boolean): void {
+		this.#overflowFloorFrozen = frozen;
+	}
+
+	/**
+	 * 260703 WP1 — request a one-shot absolute repaint of the visible viewport
+	 * on the next render. Unlike requestRender(true) this neither clears the
+	 * scrollback nor rebuilds the mirrors from scratch: it replays the current
+	 * frame's visible rows at absolute coordinates (the viewportRepaint lane),
+	 * re-synchronizing the physical screen with the renderer's row bookkeeping
+	 * after drift the diff path cannot detect (stale-width writes during a
+	 * resize race, terminal reflow moving the cursor, autowrap-inserted rows).
+	 * Cannot destroy history: scrollback pixels are never touched.
+	 */
+	resyncViewport(reason = "resync viewport"): void {
+		if (this.#stopped || !this.terminalAvailable) return;
+		this.#resyncRequested = true;
+		this.requestRender(false, reason);
+	}
+
+	/**
+	 * 260703 WP1 — resize events whose dimensions DIFFER from the last render
+	 * are healed by the width/height-change branches (absolute repaints), so
+	 * they only need a normal render request. The dangerous residue is a
+	 * flip-back (A→B→A inside one render window, e.g. a drag-resize that
+	 * returns to the original size): widthChanged never trips, yet the
+	 * terminal reflowed the screen and may have moved the cursor — the diff
+	 * path would then paint relative to a fiction. Detect it at event time
+	 * (deterministically — no wall-clock timer, which would inject repaints
+	 * at nondeterministic points of a streaming byte sequence) and request the
+	 * one-shot absolute resync.
+	 */
+	#handleResize(): void {
+		if (
+			this.#previousWidth > 0 &&
+			this.#previousHeight > 0 &&
+			this.terminal.columns === this.#previousWidth &&
+			this.terminal.rows === this.#previousHeight
+		) {
+			this.resyncViewport("resize flip-back");
+			return;
+		}
+		// 260704 RESIZE REBUILD: width changes re-wrap history — schedule the
+		// full-transcript replay once the drag storm settles.
+		if (this.onResizeSettled && this.#previousWidth > 0 && this.terminal.columns !== this.#previousWidth) {
+			if (this.#resizeRebuildTimer) clearTimeout(this.#resizeRebuildTimer);
+			this.#resizeRebuildTimer = setTimeout(() => {
+				this.#resizeRebuildTimer = undefined;
+				if (this.#stopped) return;
+				this.onResizeSettled?.();
+			}, 250);
+		}
+		this.requestRender();
+	}
+
+	/**
+	 * 260704 RESIZE REBUILD — replace the ENTIRE terminal contents (screen +
+	 * scrollback) with the given transcript lines re-rendered at the current
+	 * width, then let the next render append the live frame directly below.
+	 * A full replace cannot duplicate content — this is the one operation the
+	 * scrollback-immutability policy permits to touch history, and it is what
+	 * heals hard-wrapped rows after a width change.
+	 */
+	replayTranscript(lines: string[], opts?: { clusterRows?: number }): void {
+		if (this.#stopped || !this.terminalAvailable) return;
+		const width = this.terminal.columns;
+		const widthUsed = width;
+		const height = this.terminal.rows;
+		const { lines: prepared, stats } = this.#prepareLinesForTerminal([...lines], width);
+		this.#recordPreparedLineStats(stats, "commit");
+		// BOTTOM-ANCHORED rebuild (260704 user UX round 3): keep the last
+		// `parked` transcript rows visible at the screen top and let the
+		// frame's cluster sit on the floor, so the post-resize screen looks
+		// like the pre-resize one. The parked rows use the realign contract
+		// (mirror-blank) and drain progressively as later growth shrinks the
+		// fill — the oracle-tested v3 behavior.
+		const clusterRows = Math.max(0, Math.min(opts?.clusterRows ?? 0, height - 1));
+		const parked = clusterRows > 0 ? Math.min(prepared.length, height - clusterRows) : 0;
+		let buffer = "\x1b[?2026h";
+		buffer += "\x1b[2J\x1b[H\x1b[3J";
+		for (const line of prepared) {
+			buffer += line;
+			buffer += "\r\n";
+		}
+		if (parked > 0) {
+			// Scroll until exactly `parked` tail rows remain on screen: of the
+			// L printed rows, printing itself scrolled max(0, L+1-height) out.
+			const extra = Math.max(0, prepared.length - parked - Math.max(0, prepared.length + 1 - height));
+			buffer += `\x1b[${height};1H`;
+			buffer += "\n".repeat(extra);
+		}
+		buffer += "\x1b[?2026l";
+		if (!this.#writeTerminal(buffer)) return;
+		this.#previousWidth = this.terminal.columns;
+		this.#previousHeight = this.terminal.rows;
+		this.#clearPreparedLineCaches();
+		this.#cursorRow = 0;
+		this.#viewportTopRow = 0;
+		this.#overflowFloor = 0;
+		this.#lastTombstoneRows = 0;
+		this.#hasCommittedHistory = true;
+		if (parked > 0) {
+			// Parked-contract seed: mirrors declare every row blank, so the
+			// next diff paints ONLY the frame's cluster rows (the fill rows are
+			// blank on both sides) and the parked tail pixels survive.
+			const preparedBlank = this.#prepareLinesForTerminal([""], width).lines[0];
+			this.#previousLines = new Array<string>(height).fill(preparedBlank);
+			this.#previousRawLines = new Array<string>(height).fill("");
+			this.#hardwareCursorRow = height - 1;
+			this.#maxLinesRendered = height;
+			this.#committedScreenRows = parked;
+			this.#committedBottomRow = parked;
+			this.#lastFillRows = parked;
+		} else {
+			// Legacy/top-anchored mode (no cluster info): the live frame
+			// appends at the cursor right below the replayed tail.
+			this.#previousLines = [];
+			this.#previousRawLines = [];
+			this.#hardwareCursorRow = 0;
+			this.#maxLinesRendered = 0;
+			this.#committedScreenRows = 0;
+			this.#committedBottomRow = 0;
+		}
+		this.requestRender(false, "resize transcript rebuild");
+		// GPT Pro round-8 belt-and-suspenders: a resize DURING the replay
+		// leaves a stale-width transcript (no duplication — full replace);
+		// re-arm the settle so the next replay heals it.
+		if (this.terminal.columns !== widthUsed) {
+			this.onResizeSettled?.();
+		}
+	}
+
+	/**
+	 * 260702 F3 (v2 — user e2e follow-up 3) — turn-boundary realign as PURE
+	 * BOOKKEEPING. While the frame overflows, the visible transcript tail
+	 * exists only on screen. Instead of scrolling it out and rebuilding (which
+	 * blanked the viewport into a full-screen fill wall every turn), the tail
+	 * is re-declared as the commit lane's on-screen committed block (§6-2):
+	 *
+	 * - No terminal write happens here. The physical screen stays exactly
+	 *   as-is: [content K][trailing blanks][cluster at the bottom].
+	 * - The K visible content rows become `#committedScreenRows`, and
+	 *   `#committedBottomRow = K` anchors the history region at the block's
+	 *   bottom row. The NEXT frame's `#expandViewportFill` may declare a
+	 *   taller blank prefix (`#lastFillRows = F > K`); the block bottom, not
+	 *   the raw fill, stays the scroll-out boundary (v3) — otherwise growth
+	 *   scroll-outs march the trailing-blank gap into the scrollback.
+	 * - `#previousLines` is rewritten to the equivalent short-frame mirror:
+	 *   blanks over the block and the gap (logically-blank rows are never
+	 *   repainted, so the physical pixels survive), plus the old cluster lines
+	 *   at their real bottom-anchored rows (so the next frame diffs/erases the
+	 *   cluster normally).
+	 * - As the next turn's content grows past the trailing-blank gap, the
+	 *   `#scrollOutCommittedRows` lane feeds the block into the real
+	 *   scrollback exactly as fast as the fill drops below the block bottom —
+	 *   region `1..#committedBottomRow` is content-only, so never blanks; the
+	 *   gap itself is painted over in place and never reaches the scrollback.
+	 *
+	 * Returns false (pure no-op) unless every precondition holds. The caller
+	 * additionally gates on commitLaneEnabled() and a fully-markable backlog.
+	 */
+	/**
+	 * 260704 — true when the CURRENT frame has content physically in the
+	 * scrollback (the realign engage-condition), regardless of whether the
+	 * realign itself ran. Boundary controllers use it to ADOPT already-
+	 * scrolled pixels (markOnly sweep) when realign refuses: a markOnly=false
+	 * write is impossible on an overflowed frame (commitLines refuses), and
+	 * leaving the backlog uncommitted makes the next turn scroll a SECOND
+	 * copy into history (duplication-after-error-turns, devlog 00 OPEN).
+	 */
+	hasOverflowedIntoScrollback(): boolean {
+		// fable adversarial review 260704: mirror realign's environmental gates
+		// or adoption fires where pixels were never (zellij virtual lane) or
+		// only partially (quarantine repaint-only growth) materialized — and
+		// use the FLOOR, not #maxLinesRendered: only physically materialized
+		// rows are actually in the scrollback.
+		if (this.#historyLane !== "standard") return false;
+		if (!this.#fillSentinelPresent) return false;
+		if (this.overlayStack.length > 0) return false;
+		return this.#overflowFloor > this.terminal.rows;
+	}
+
+	realignOverflowedFrame(liveClusterRows: number): boolean {
+		if (this.#stopped || !this.terminalAvailable) return false;
+		if (!this.#fillSentinelPresent) return false;
+		// The block hand-off relies on scroll-region ops downstream
+		// (#scrollOutCommittedRows / commitLines) — refuse on lanes where
+		// regions misbehave (zellij) exactly like the commit lane does.
+		if (this.#historyLane !== "standard") return false;
+		if (this.overlayStack.length > 0) return false;
+		const height = this.terminal.rows;
+		const width = this.terminal.columns;
+		// Overflowing means EITHER a materialized floor beyond the viewport OR
+		// a quarantined logical frame (floor reset by a previous realign that
+		// immediately re-overflowed via downgraded viewport repaints). The
+		// quarantined case must stay realignable or the commit lane would be
+		// permanently dead again (B-verify finding 1); rows that never
+		// materialized during a quarantine window are the documented
+		// history-gap tradeoff.
+		if (Math.max(this.#overflowFloor, this.#maxLinesRendered) <= height) return false;
+		// A negative/NaN cluster measurement means the caller could not locate
+		// the composer cluster — a wrong block boundary would hand composer
+		// pixels to the history lane, so refuse.
+		if (!Number.isFinite(liveClusterRows) || liveClusterRows < 0) return false;
+		const clusterRows = Math.floor(liveClusterRows);
+		if (height - clusterRows <= 0) return false;
+		const raw = this.#previousRawLines;
+		const painted = this.#previousLines;
+		// Both mirrors must describe the painted frame for the row surgery to
+		// be sound; bail to a no-op otherwise (next submit retries).
+		if (painted.length < height || raw.length !== painted.length) return false;
+		// Last visible content row above the cluster — the trailing run of
+		// tombstone/spacing blanks is left as the in-viewport growth gap and
+		// is later painted over by new content (never scrolled to history).
+		const visibleTop = Math.max(0, raw.length - height);
+		let lastContent = raw.length - clusterRows - 1;
+		while (lastContent >= visibleTop && raw[lastContent].trim() === "") lastContent--;
+		const blockRows = Math.max(0, lastContent - visibleTop + 1);
+		// Rewrite the mirrors as the short-frame equivalent of the CURRENT
+		// physical screen: logically blank over block + gap, real cluster
+		// lines at the bottom. The painted mirror must use the PREPARED blank
+		// representation (prepare appends an SGR terminator to every line) or
+		// the next diff sees blank≠blank and 2K-erases the block pixels.
+		const preparedBlank = this.#prepareLinesForTerminal([""], width).lines[0];
+		const mirror = new Array<string>(height).fill(preparedBlank);
+		const rawMirror = new Array<string>(height).fill("");
+		for (let i = 0; i < clusterRows; i++) {
+			const src = painted.length - clusterRows + i;
+			if (src >= 0) {
+				mirror[height - clusterRows + i] = painted[src];
+				rawMirror[height - clusterRows + i] = raw[src];
+			}
+		}
+		this.#previousLines = mirror;
+		this.#previousRawLines = rawMirror;
+		this.#previousWidth = width;
+		this.#previousHeight = height;
+		// The on-screen block (and everything already scrolled above it) is
+		// canonical history now — 3J must never wipe it.
+		this.#hasCommittedHistory = true;
+		this.#committedScreenRows = blockRows;
+		this.#committedBottomRow = blockRows;
+		this.#lastFillRows = blockRows;
+		this.#overflowFloor = 0;
+		this.#lastTombstoneRows = 0;
+		this.#maxLinesRendered = height;
+		this.#viewportTopRow = 0;
+		this.#hardwareCursorRow = Math.max(0, Math.min(height - 1, this.#hardwareCursorRow - visibleTop));
+		this.#cursorRow = height - 1;
+		this.requestRender(false, "realign overflowed frame");
+		return true;
+	}
+
 	/**
 	 * Scroll the history region (screen rows 1..regionBottom, 1-based) up by
 	 * `count` rows: its top rows enter the scrollback and `count` blank rows
@@ -1289,15 +1832,40 @@ export class TUI extends Container {
 	#scrollOutCommittedRows(count: number, regionBottom: number): void {
 		if (count <= 0 || regionBottom < 1) return;
 		const height = this.terminal.rows;
+		// DECSTBM requires bottom > top — terminals silently IGNORE a 1-row
+		// region (`CSI 1;1r`), so the \r\n would just move the cursor and the
+		// last committed row would never reach the scrollback (v3 repro: the
+		// final parked-block row was overwritten by the next diff). Widen to
+		// [1..2]: row 1 exits into scrollback, live row 2 shifts up, and the
+		// mirrors are rotated the same way so the following diff still maps
+		// every physical row correctly.
+		const widened = regionBottom === 1;
+		if (widened) count = 1;
+		const bottom = widened ? 2 : regionBottom;
 		let buffer = "\x1b[?2026h";
-		buffer += `\x1b[1;${regionBottom}r`;
-		buffer += `\x1b[${regionBottom};1H`;
+		buffer += `\x1b[1;${bottom}r`;
+		buffer += `\x1b[${bottom};1H`;
 		buffer += "\r\n".repeat(count);
 		buffer += "\x1b[r";
 		const screenCursorRow = Math.max(0, Math.min(height - 1, this.#hardwareCursorRow - this.#viewportTopRow));
 		buffer += `\x1b[${screenCursorRow + 1};1H`;
 		buffer += "\x1b[?2026l";
-		this.#writeTerminal(buffer);
+		if (!this.#writeTerminal(buffer)) return;
+		if (widened) {
+			// Mirror the physical shift of the widened region in the PAINTED
+			// mirror (the one the same-pass diff maps rows against): screen row 2
+			// moved up to row 1, row 2 opened blank. #previousRawLines is left
+			// alone — at the growth call site it already holds the CURRENT
+			// frame's raw lines (overwritten before the scroll-out runs), and the
+			// flush call sites replace both mirrors wholesale right after.
+			// Skipped when no mirror exists (a forced render repaints every row).
+			const vt = Math.max(0, this.#previousLines.length - height);
+			if (this.#previousLines.length > vt + 1) {
+				const width = this.terminal.columns;
+				this.#previousLines[vt] = this.#previousLines[vt + 1];
+				this.#previousLines[vt + 1] = this.#prepareLinesForTerminal([""], width).lines[0];
+			}
+		}
 	}
 
 	/**
@@ -1307,25 +1875,137 @@ export class TUI extends Container {
 	 * unavailable (no fill region, overlay open, unsupported terminal); the
 	 * caller falls back to virtual-lane behavior (chatContainer append).
 	 */
+	/**
+	 * 260703 WP3b-min — mark the boundaries of a high-churn output phase.
+	 * While active, the history lane defers new commits whenever the user may
+	 * be scrolled off-bottom (see #canUseHistoryLaneNow). Callers should
+	 * flushHistoryLane() at both boundaries: before streaming so the phase
+	 * never starts with parked rows (which would force mandatory mid-stream
+	 * drains), and after it so deferred content reaches the scrollback in one
+	 * discrete write.
+	 */
+	setStreamingActive(active: boolean): void {
+		this.#streamingActive = active;
+	}
+
+	/**
+	 * 260703 WP3b-min — the gating policy (GPT Pro round-5 spec): an overlay
+	 * always blocks; outside a streaming phase the lane is free; while
+	 * streaming, a known off-bottom viewport blocks, and an UNKNOWN viewport
+	 * blocks only in multiplexers (tmux/screen pane history is where DECSTBM
+	 * churn visibly fights user scrolling — direct terminals allow in v1;
+	 * JWC_TUI_DEFER_UNKNOWN_BOTTOM=1 opts into the conservative policy).
+	 */
+	#canUseHistoryLaneNow(): boolean {
+		if (this.overlayStack.length > 0) return false;
+		if (!this.#streamingActive) return true;
+		const bottom = this.terminal.isViewportAtBottom?.();
+		if (bottom === false) return false;
+		if (bottom === undefined && (isMultiplexerSession() || $flag("JWC_TUI_DEFER_UNKNOWN_BOTTOM"))) return false;
+		return true;
+	}
+
+	/**
+	 * 260703 WP3b-min — push a PARKED committed block (realign product,
+	 * `#committedBottomRow > 0`) into the terminal scrollback in one discrete
+	 * write, then resync. Called at streaming boundaries so per-growth-frame
+	 * drains (which mutate the top region while the user may be reading
+	 * history) become rare. PARKED ONLY by design: the parked region
+	 * `1..bottom` is content-only, so the flush is blank-free — flushing the
+	 * ORDINARY lane would have to push the whole fill region (bottom-aligned
+	 * rows need regionBottom scrolls to cross row 1), stamping a fill-height
+	 * blank gap into scrollback EVERY turn (fable adversarial review C1,
+	 * empirically reproduced). Ordinary committed rows keep the pre-existing
+	 * progressive S2 drain instead. Safe by the mirror-blank contract: the
+	 * flushed region is logically blank in the mirrors, and the resync
+	 * repaints the frame absolutely.
+	 */
+	flushHistoryLane(): void {
+		if (this.#stopped || !this.terminalAvailable) return;
+		if (this.#historyLane !== "standard") return;
+		if (this.overlayStack.length > 0) return;
+		if (this.#committedScreenRows <= 0) return;
+		// 260704 WP6b-v2: ALL committed rows are top-anchored content at rows
+		// 1..B, so the flush is unconditionally blank-free (the parked-only
+		// restriction and its C1 rationale evaporated with the geometry).
+		this.#scrollOutCommittedRows(this.#committedScreenRows, this.#committedScreenRows);
+		this.#committedScreenRows = 0;
+		this.#committedBottomRow = 0;
+		this.resyncViewport("history lane flush");
+	}
+
 	commitLines(lines: string[]): boolean {
 		if (this.#historyLane !== "standard" || this.#stopped || !this.terminalAvailable) return false;
 		if (this.overlayStack.length > 0) return false;
-		const liveZoneTop = this.#lastFillRows;
-		if (liveZoneTop <= 0 || lines.length === 0) return false;
-		const width = this.terminal.columns;
+		// 260703 WP2.5: while the ambiguous-width CPR probe is outstanding the
+		// width tables may still change — committed pixels are immutable, so
+		// defer to the virtual lane until the mode is resolved (~150ms max).
+		if (!this.#ambiguousWidthResolved) return false;
+		// 260703 WP3b-min: while streaming with the user possibly off-bottom,
+		// creating NEW parked rows would guarantee scroll-fighting drains —
+		// defer to the virtual lane (the turn-boundary sweep retries).
+		if (!this.#canUseHistoryLaneNow()) return false;
+		// 260704 S5-2 — LIVE-ZONE FLUSH geometry (devlog 90). Under the
+		// top-flow layout the committed component IS the topmost content on
+		// screen (all earlier components already committed and left the frame),
+		// so committing means: canonically rewrite its rows 1..P, then scroll
+		// region [1..height-#composerRows] up by P — the rows cross the seam
+		// into REAL scrollback, the remaining live content shifts up, and P
+		// blank rows open above the untouched, pinned composer. No persistent
+		// on-screen block, no blank ever crosses the seam.
+		// FITS-ONLY: under overflow the physical top rows are the middle of
+		// the transcript, not the component — the turn-boundary realign lane
+		// (as-streamed adoption) owns that regime.
+		if (this.#maxLinesRendered > this.terminal.rows) return false;
+		if (!this.#fillSentinelPresent) return false;
+		// T1 hardening (adversarial review): inside a forced-render window the
+		// fits gate reads zeroed bookkeeping while the physical frame may be
+		// overflowed — empty mirrors mean "state unknown", refuse.
+		if (this.#previousLines.length === 0) return false;
+		// Legacy fill-FIRST frames (sentinel at frame line 0) and realign-
+		// parked states put the blank pad / parked block at the TOP — scrolling
+		// [1..liveBottom] there would push blanks or parked pixels; those
+		// layouts stay on the virtual/realign lanes.
+		if (this.#lastFillRows > 0) return false;
 		const height = this.terminal.rows;
+		const liveBottom = height - this.#composerRows;
+		if (liveBottom <= 1 || lines.length === 0 || lines.length > liveBottom) return false;
+		const width = this.terminal.columns;
 		const { lines: prepared, stats } = this.#prepareLinesForTerminal([...lines], width);
 		this.#recordPreparedLineStats(stats, "commit");
 		const screenCursorRow = Math.max(0, Math.min(height - 1, this.#hardwareCursorRow - this.#viewportTopRow));
-		const seq = buildInsertHistorySequence(prepared, {
-			liveZoneTop,
-			liveZoneBottom: height,
-			screenRows: height,
-			cursor: { row: screenCursorRow, col: 0 },
-		});
-		if (!seq) return false;
-		if (!this.#writeTerminal(`\x1b[?2026h${seq}\x1b[?2026l`)) return false;
-		this.#committedScreenRows = Math.min(this.#committedScreenRows + prepared.length, liveZoneTop);
+		let buffer = "\x1b[?2026h";
+		// Canonical rewrite: scrollback receives the committed form even when
+		// it differs from the as-streamed pixels currently on those rows.
+		for (let i = 0; i < prepared.length; i++) {
+			buffer += `\x1b[${i + 1};1H\x1b[2K`;
+			buffer += prepared[i];
+		}
+		buffer += `\x1b[1;${liveBottom}r`;
+		buffer += `\x1b[${liveBottom};1H`;
+		for (let i = 0; i < prepared.length; i++) {
+			buffer += "\r\n\x1b[2K";
+		}
+		buffer += "\x1b[r";
+		buffer += `\x1b[${screenCursorRow + 1};1H`;
+		buffer += "\x1b[?2026l";
+		if (!this.#writeTerminal(buffer)) return false;
+		// Rotate the mirrors to match the physical shift: the top P rows left
+		// the screen, everything in [P..liveBottom) moved up, and P blanks
+		// opened at the region bottom. The next frame drops the committed
+		// component, so the rotated mirror lines up with it row-for-row and
+		// the diff stays cheap.
+		const preparedBlank = this.#prepareLinesForTerminal([""], width).lines[0];
+		const p = prepared.length;
+		if (this.#previousLines.length >= liveBottom) {
+			this.#previousLines.splice(0, p);
+			this.#previousLines.splice(liveBottom - p, 0, ...new Array<string>(p).fill(preparedBlank));
+		}
+		if (this.#previousRawLines.length >= liveBottom) {
+			this.#previousRawLines.splice(0, p);
+			this.#previousRawLines.splice(liveBottom - p, 0, ...new Array<string>(p).fill(""));
+		}
+		this.#hardwareCursorRow = screenCursorRow;
 		this.#hasCommittedHistory = true;
 		return true;
 	}
@@ -1336,9 +2016,15 @@ export class TUI extends Container {
 	}
 
 	compactViewportFill(): void {
-		if (this.#viewportFillGap === 0) return;
-		this.#viewportFillFloor = 0;
-		this.#viewportFillGap = 0;
+		// 260630: the post-overflow top gap no longer exists — shrink residue is
+		// kept as in-place tombstone rows (#restoreOverflowFloor) that later
+		// growth consumes, because inserting the gap at the frame top shifted
+		// every row below over pixels already in the scrollback and duplicated
+		// the viewport-top rows. The forced render remains as the compact pass:
+		// while 3J is still allowed it rebuilds the buffer without tombstones,
+		// and fullRender downgrades it to a viewport repaint whenever a
+		// clearing replay could duplicate the scrollback.
+		if (this.#lastTombstoneRows === 0) return;
 		this.requestRender(true, "viewportFill compact");
 	}
 
@@ -1350,8 +2036,8 @@ export class TUI extends Container {
 	 */
 	#expandViewportFill(lines: string[], height: number): string[] {
 		const first = lines.indexOf(VIEWPORT_FILL_SENTINEL);
+		this.#fillSentinelPresent = first !== -1;
 		if (first === -1) {
-			this.#viewportFillFloor = 0;
 			this.#lastFillRows = 0;
 			return lines;
 		}
@@ -1360,39 +2046,120 @@ export class TUI extends Container {
 		for (const line of lines) {
 			if (line !== VIEWPORT_FILL_SENTINEL) result.push(line);
 		}
-		// While content overflows the viewport (083.7 §9/§12): scrolled-out rows
-		// cannot be reclaimed, so a shrink (autocomplete close, collapse) grows
-		// the gap to keep the frame length — the composer stays on the floor.
-		// The gap is STICKY upward only: it must not shrink back on growth,
-		// because consuming top blanks shifts every row below and turns each
-		// streaming append into a full redraw (3J storm — 260613 00:36 진단).
-		// Growth extends the frame at the end instead (append-only diff); the
-		// gap is cleared by compactViewportFill() at quiet points, or naturally
-		// when content fits the viewport again (full-redraw reset).
+		// While content overflows the viewport, no top fill is emitted (260630).
+		// The old policy grew a sticky top gap on shrink to preserve the frame
+		// length; that shifted every content row DOWN over pixels already in
+		// the terminal scrollback, so the viewport repaint duplicated the last
+		// scrolled-out rows at the viewport top (scroll-seam-duplication repro).
+		// Post-overflow shrinks are now absorbed by #restoreOverflowFloor with
+		// in-place tombstone rows at the first changed row instead.
 		const overflowed = result.length > height;
-		let fill: number;
-		if (overflowed) {
-			this.#viewportFillGap = Math.max(this.#viewportFillGap, this.#viewportFillFloor - result.length, 0);
-			fill = this.#viewportFillGap;
-		} else {
-			fill = Math.max(0, height - result.length);
-			this.#viewportFillGap = 0;
-		}
+		const fill = overflowed ? 0 : Math.max(0, height - result.length);
 		if (fill > 0) {
 			const blanks = new Array<string>(fill).fill("");
 			result.splice(first, 0, ...blanks);
 		}
 		// 083.9 P2: the fill region doubles as the history region — record its
 		// painted height so commitLines/growth scroll-out know the region bottom.
+		// While overflowed the fill rows would sit ABOVE the viewport, not at the
+		// screen top, so the commit lane must stay disabled (fill = 0).
 		this.#lastFillRows = first === 0 ? fill : 0;
-		// Track the final frame length (shrink detection baseline).
-		this.#viewportFillFloor = result.length > height ? result.length : 0;
+		// 260704 S5-2 bookkeeping: rows after the fill region = the composer
+		// cluster (top-flow layout mounts the sentinel between transcript and
+		// composer). No consumer yet — armed by the live-zone flush rewrite.
+		this.#composerRows = first === -1 ? 0 : Math.max(0, result.length - first - fill);
 		if (renderMetrics.enabled) renderMetrics.recordHelper("viewportFill", renderMetrics.now() - expandStart);
 		return result;
 	}
 
+	/**
+	 * Enforce the overflow frame-length floor (260630 seam fix). While the
+	 * frame overflows the viewport, its head rows physically live in the
+	 * terminal scrollback and cannot be reclaimed; a net shrink therefore must
+	 * not move any surviving row. The removed rows are replaced by tombstones
+	 * at the first changed row: rows above the old viewport top keep their
+	 * previously painted bytes (frozen pixels), visible rows become blank.
+	 * The prefix keeps its absolute indices, the suffix realigns to its
+	 * previous rows, and subsequent growth consumes the tombstones in place
+	 * before the frame extends again.
+	 */
+	#restoreOverflowFloor(lines: string[], width: number, height: number): string[] {
+		// The floor invariant belongs to the composer-pin model. Legacy frames
+		// (no ViewportFill sentinel) keep their original shrink behavior
+		// byte-identically (clearOnShrink full rebuild).
+		if (!this.#fillSentinelPresent) {
+			this.#overflowFloor = 0;
+			this.#lastTombstoneRows = 0;
+			return lines;
+		}
+		const realResize =
+			(this.#previousWidth > 0 && this.#previousWidth !== width) ||
+			(this.#previousHeight > 0 && this.#previousHeight !== height);
+		// A forced rebuild (requestRender(true) marks dimensions -1) that is
+		// still allowed to clear the scrollback (3J) realigns screen and frame
+		// from scratch — the compact path. Once the scrollback is canonical
+		// (committed history) or user-navigated (multiplexer) the rebuild is
+		// downgraded to a viewport repaint, so the floor must survive.
+		const forcedRebuild = this.#previousWidth === -1;
+		const canClearScrollback = !isMultiplexerSession() && !this.#hasCommittedHistory;
+		if (realResize || (forcedRebuild && canClearScrollback)) {
+			// Re-wrap / full clear invalidates row identity; the clearing full
+			// render that follows realigns screen and frame, so the floor restarts.
+			this.#overflowFloor = 0;
+			this.#previousRawLines = [];
+			this.#lastTombstoneRows = 0;
+		} else if (this.#overflowFloor > height && lines.length < this.#overflowFloor) {
+			const prev = this.#previousRawLines;
+			const missing = this.#overflowFloor - lines.length;
+			let firstChanged = 0;
+			const scanEnd = Math.min(lines.length, prev.length);
+			while (firstChanged < scanEnd && lines[firstChanged] === prev[firstChanged]) firstChanged++;
+			// 260702: freeze only rows PHYSICALLY in the scrollback. The logical
+			// #viewportTopRow can exceed the physical seam after repaint-only
+			// growth (quarantine state); frozen pixels below the real seam would
+			// resurface stale transcript rows inside the visible viewport.
+			const physicalSeam = Math.max(0, this.#overflowFloor - height);
+			const freezeEnd = Math.min(physicalSeam, prev.length);
+			const tombstones = new Array<string>(missing);
+			for (let i = 0; i < missing; i++) {
+				const row = firstChanged + i;
+				tombstones[i] = row < freezeEnd ? prev[row] : "";
+			}
+			lines.splice(firstChanged, 0, ...tombstones);
+			this.#lastTombstoneRows = missing;
+			// Fixed-C recurrence guard (260702): raw content that fits again can
+			// have re-inserted top fill (#expandViewportFill ran first), but the
+			// padded frame still overflows the viewport — that fill is NOT a
+			// screen-top history region, so the commit lane must stay on its
+			// fallback until the floor is genuinely reset.
+			this.#lastFillRows = 0;
+		} else {
+			this.#lastTombstoneRows = 0;
+		}
+		// The floor is NOT raised here: it tracks the physically materialized
+		// frame length, so it only advances in paths that actually scroll or
+		// fully print the frame (diff append, append-growth, real fullRender).
+		// Growth painted via viewportRepaint (unknown viewport, frozen floor)
+		// leaves the floor behind on purpose — those rows never entered the
+		// scrollback, so a later shrink may repaint over them freely.
+		return lines;
+	}
+
+	/** Raise the physical floor after a path that scrolled/printed the frame. */
+	#raiseOverflowFloor(frameLength: number, height: number): void {
+		if (frameLength > height) {
+			this.#overflowFloor = Math.max(this.#overflowFloor, frameLength);
+			this.#hasMaterializedOverflow = true;
+		}
+	}
+
 	#doRender(): void {
 		if (this.#stopped || !this.terminalAvailable) return;
+		// 260703 WP1: consume the one-shot resync request up front — whichever
+		// branch renders this pass satisfies it (every non-diff branch is
+		// already an absolute repaint).
+		const resyncRequested = this.#resyncRequested;
+		this.#resyncRequested = false;
 		const width = this.terminal.columns;
 		const height = this.terminal.rows;
 		const widthChanged = this.#previousWidth !== 0 && this.#previousWidth !== width;
@@ -1417,8 +2184,39 @@ export class TUI extends Container {
 		// against the final frame) and before cursor extraction (absolute rows
 		// must be final). No sentinel present → input returned untouched, so the
 		// legacy path stays byte-identical.
-		const prevFillRows = this.#lastFillRows;
 		newLines = this.#expandViewportFill(newLines, height);
+
+		// 260703 v3 overlay guard: overlays composite into arbitrary top rows and
+		// the diff then repaints them, destroying parked committed pixels that
+		// never reached the scrollback. Flush the block first — region
+		// `1..flushBottom` is content-only while parked. Must run HERE, before
+		// #restoreOverflowFloor overwrites #previousRawLines, while both mirrors
+		// still declare the block rows logically blank (no rewrite needed).
+		// Parked blocks only (#committedBottomRow > 0): the ordinary commit-lane
+		// state keeps its pre-v3 bytes (B-verify byte-compat finding).
+		// 260703 WP3a: a scroll-region mutation mid-pass invalidates the relative
+		// lanes' cursor/mirror assumptions (clamp mismatch + unrotated mirrors —
+		// devlog 30_wp3a). Track it and finish such passes with an absolute
+		// repaint instead of the relative diff.
+		let scrolledOutThisPass = false;
+		if (this.overlayStack.length > 0 && this.#committedScreenRows > 0) {
+			// 260704 WP6b-v2: top-anchored block — content-only flush.
+			this.#scrollOutCommittedRows(this.#committedScreenRows, this.#committedScreenRows);
+			this.#committedScreenRows = 0;
+			this.#committedBottomRow = 0;
+			scrolledOutThisPass = true;
+		}
+
+		// 260630 seam fix: while overflowed, absorb net shrinks with in-place
+		// tombstones so no row shifts over pixels already in the scrollback.
+		// Must run before overlay compositing (overlays anchor on the final
+		// frame) and the raw copy must be taken before cursor extraction and
+		// line preparation mutate the array. Updating the raw snapshot before
+		// the terminal write is safe because a failed write marks the terminal
+		// unavailable and stops rendering permanently — a stale snapshot can
+		// never be consumed by a later frame (codex audit 260630 발견 1).
+		newLines = this.#restoreOverflowFloor(newLines, width, height);
+		this.#previousRawLines = [...newLines];
 
 		// Composite overlays into the rendered lines (before differential compare)
 		if (this.overlayStack.length > 0) {
@@ -1443,24 +2241,67 @@ export class TUI extends Container {
 		}
 
 		// 083.9 §3b-3: live-zone growth shrinks the fill region. The committed
-		// pixel block sits at the BOTTOM of the old fill — scroll the history
-		// region up by the full shrinkage so the block lands exactly at the new
-		// fill bottom, BEFORE the diff paints content over its old rows.
-		if (this.#committedScreenRows > 0 && this.#lastFillRows < prevFillRows) {
-			this.#scrollOutCommittedRows(prevFillRows - this.#lastFillRows, prevFillRows);
+		// pixel block ends at the history-region bottom (parked: its own bottom
+		// row; otherwise the old fill bottom) — scroll the region up so the
+		// block lands exactly at the new fill bottom, BEFORE the diff paints
+		// content over its old rows. Parked blocks (260703 v3) do NOT move
+		// while the fill is still taller than the block: the growth is absorbed
+		// by painting the trailing-blank gap bottom-up, and only region
+		// `1..#committedBottomRow` (content-only) ever scrolls — the gap blanks
+		// below the block can never enter the scrollback.
+		// 260704 WP6b-v2: the committed block is TOP-ANCHORED at rows 1..B —
+		// the drain region is always the block itself (content-only; the old
+		// prevFillRows fallback was the bottom-anchored lane).
+		const historyBottom = this.#committedScreenRows;
+		if (this.#committedScreenRows > 0 && this.#lastFillRows < historyBottom) {
+			// 260703 WP3b-min: this drain is MANDATORY even while the history
+			// lane is gated — the live zone is about to paint over the parked
+			// rows, and skipping the scroll-out would erase committed pixels
+			// (the class WP3a fixed). Gating prevents NEW parked rows instead;
+			// record when the corner still fires so the policy is observable.
+			if (renderMetrics.enabled && !this.#canUseHistoryLaneNow()) {
+				renderMetrics.recordCounter("tui.historyLane", "mandatoryDrainWhileBlocked", 1);
+			}
+			this.#scrollOutCommittedRows(historyBottom - this.#lastFillRows, historyBottom);
 			this.#committedScreenRows = Math.min(this.#committedScreenRows, this.#lastFillRows);
+			this.#committedBottomRow =
+				this.#committedBottomRow > 0 && this.#committedScreenRows > 0 ? this.#committedScreenRows : 0;
+			scrolledOutThisPass = true;
 		}
 
 		// Width/height changes need full re-render handling below.
 		// Helper to clear scrollback and viewport and render all new lines
 		const fullRender = (clear: boolean, reason = "full render"): void => {
+			// 260630: once 3J is forbidden (committed history is canonical, or a
+			// multiplexer owns the scrollback), a clearing replay of an
+			// overflowing frame pushes a duplicate copy of every above-viewport
+			// row into the scrollback. Repaint the visible viewport instead;
+			// above-viewport pixels stay as immutable history.
+			// 260703 WP5: a multiplexer downgrades only AFTER something was
+			// physically materialized — downgrading the first-ever overflow
+			// render silently drops the above-viewport rows from the pane
+			// history instead of preventing a duplicate (there is none yet).
+			if (
+				clear &&
+				newLines.length > height &&
+				!useLegacyMultiplexerFullRender() &&
+				(this.#hasCommittedHistory || (isMultiplexerSession() && this.#hasMaterializedOverflow))
+			) {
+				viewportRepaint(`${reason} (scrollback-safe downgrade)`);
+				return;
+			}
 			// 083.9 P2: a clearing render would erase committed pixels that have
-			// not scrolled into the scrollback yet — push the whole history
-			// region out first (the bottom committed row needs regionBottom
-			// scrolls to cross row 1 into the scrollback).
+			// not scrolled into the scrollback yet — push the history region out
+			// first (the bottom committed row needs regionBottom scrolls to
+			// cross row 1 into the scrollback). 260703 v3: a parked block ends
+			// at #committedBottomRow, not the raw fill bottom — flushing
+			// prevFillRows would stamp the trailing-blank gap into history.
 			if (clear && this.#committedScreenRows > 0) {
-				this.#scrollOutCommittedRows(prevFillRows, prevFillRows);
+				// 260704 WP6b-v2: the block is top-anchored content at rows 1..B —
+				// scrolling region 1..B by B pushes ONLY content across the seam.
+				this.#scrollOutCommittedRows(this.#committedScreenRows, this.#committedScreenRows);
 				this.#committedScreenRows = 0;
+				this.#committedBottomRow = 0;
 			}
 			this.#fullRedrawCount += 1;
 			if (renderMetrics.enabled) renderMetrics.recordFullRedraw(reason);
@@ -1481,13 +2322,17 @@ export class TUI extends Container {
 			this.#hardwareCursorRow = toRow;
 			buffer += seq;
 			buffer += "\x1b[?2026l"; // End synchronized output
-			if (!this.#writeTerminal(buffer)) return;
+			if (!this.#writeRenderBufferAndReanchorImeCursor(buffer, cursorPos, newLines.length)) return;
 			// Reset max lines when clearing, otherwise track growth
 			if (clear) {
 				this.#maxLinesRendered = newLines.length;
 			} else {
 				this.#maxLinesRendered = Math.max(this.#maxLinesRendered, newLines.length);
 			}
+			// A full render realigns physical screen and frame — the overflow
+			// floor restarts from this frame's length (260630).
+			this.#overflowFloor = newLines.length > height ? newLines.length : 0;
+			if (newLines.length > height) this.#hasMaterializedOverflow = true;
 			this.#viewportTopRow = Math.max(0, this.#maxLinesRendered - height);
 			this.#previousLines = newLines;
 			this.#previousWidth = width;
@@ -1498,6 +2343,20 @@ export class TUI extends Container {
 		// leaves scrollback pixels untouched. Originally multiplexer-only; now the
 		// default for every above-viewport change (devlog 083.8 S3).
 		const viewportRepaint = (reason: string): void => {
+			// 260703 v3: the absolute repaint 2K-erases every screen row — parked
+			// committed pixels (logically blank in the frame) would be silently
+			// destroyed while the bookkeeping still claims them, and later
+			// scroll-outs would push the now-blank rows into the scrollback as if
+			// they were content. Flush the block into the real scrollback first;
+			// region `1..flushBottom` is content-only while parked. Parked blocks
+			// only (#committedBottomRow > 0): the ordinary commit-lane state keeps
+			// its pre-v3 bytes (B-verify byte-compat finding).
+			if (this.#committedScreenRows > 0) {
+				// 260704 WP6b-v2: top-anchored block — content-only flush.
+				this.#scrollOutCommittedRows(this.#committedScreenRows, this.#committedScreenRows);
+				this.#committedScreenRows = 0;
+				this.#committedBottomRow = 0;
+			}
 			this.#fullRedrawCount += 1;
 			if (renderMetrics.enabled) renderMetrics.recordFullRedraw(reason);
 			const nextViewportTop = Math.max(0, newLines.length - height);
@@ -1521,7 +2380,7 @@ export class TUI extends Container {
 			this.#hardwareCursorRow = cursorToRow;
 			buffer += cursorSeq;
 			buffer += "\x1b[?2026l";
-			if (!this.#writeTerminal(buffer)) return;
+			if (!this.#writeRenderBufferAndReanchorImeCursor(buffer, cursorPos, newLines.length)) return;
 
 			if ($flag("PI_DEBUG_REDRAW")) {
 				const logPath = getDebugLogPath();
@@ -1531,6 +2390,52 @@ export class TUI extends Container {
 			// Deliberately prioritizes the live viewport over historical scrollback
 			// repair. After offscreen changes, #previousLines tracks the desired
 			// logical transcript, not every byte emitted into the scrollback.
+			this.#cursorRow = Math.max(0, newLines.length - 1);
+			this.#maxLinesRendered = newLines.length;
+			this.#viewportTopRow = nextViewportTop;
+			this.#previousLines = newLines;
+			this.#previousWidth = width;
+			this.#previousHeight = height;
+		};
+
+		// 260703 WP3a: absolute repaint of the LIVE ZONE ONLY (screen rows below
+		// the fill region). Used by the scroll-out barrier while committed
+		// pixels are still parked in the fill region: those rows are
+		// mirror-blank by contract (never repainted by diffs), so a full
+		// viewportRepaint's per-row 2K would erase them. Bookkeeping updates
+		// mirror viewportRepaint's wholesale rewrite — fill rows in newLines
+		// are prepared blanks, matching the untouched physical rows above.
+		const liveZoneRepaint = (reason: string): void => {
+			this.#fullRedrawCount += 1;
+			if (renderMetrics.enabled) renderMetrics.recordFullRedraw(reason);
+			const nextViewportTop = Math.max(0, newLines.length - height);
+			const startRow = Math.max(0, this.#lastFillRows);
+			let buffer = "\x1b[?2026h";
+			if (startRow < height) {
+				// A fill region spanning the whole screen has no live-zone rows —
+				// clearing anything would erase parked pixels; bookkeeping still
+				// updates below (GPT Pro round-4 guard).
+				buffer += `\x1b[${startRow + 1};1H`;
+				for (let screenRow = startRow; screenRow < height; screenRow++) {
+					if (screenRow > startRow) buffer += "\r\n";
+					buffer += "\x1b[2K";
+					const lineIndex = nextViewportTop + screenRow;
+					if (lineIndex >= newLines.length) continue;
+					buffer += this.#truncatePreparedLineToWidth(newLines[lineIndex], width);
+				}
+			}
+			const finalPhysicalRow = nextViewportTop + Math.max(0, height - 1);
+			let cursorSeq = "\x1b[?25l";
+			let cursorToRow = finalPhysicalRow;
+			if (cursorPos && cursorPos.row >= nextViewportTop + startRow && cursorPos.row < nextViewportTop + height) {
+				const cursor = this.#cursorControlSequence(cursorPos, newLines.length, finalPhysicalRow);
+				cursorSeq = cursor.seq;
+				cursorToRow = cursor.toRow;
+			}
+			this.#hardwareCursorRow = cursorToRow;
+			buffer += cursorSeq;
+			buffer += "\x1b[?2026l";
+			if (!this.#writeRenderBufferAndReanchorImeCursor(buffer, cursorPos, newLines.length)) return;
 			this.#cursorRow = Math.max(0, newLines.length - 1);
 			this.#maxLinesRendered = newLines.length;
 			this.#viewportTopRow = nextViewportTop;
@@ -1575,7 +2480,7 @@ export class TUI extends Container {
 			buffer += cursorSeq;
 			buffer += "\x1b[?2026l";
 
-			if (!this.#writeTerminal(buffer)) return;
+			if (!this.#writeRenderBufferAndReanchorImeCursor(buffer, cursorPos, newLines.length)) return;
 
 			if ($flag("PI_DEBUG_REDRAW")) {
 				const logPath = getDebugLogPath();
@@ -1589,6 +2494,7 @@ export class TUI extends Container {
 			this.#previousLines = newLines;
 			this.#previousWidth = width;
 			this.#previousHeight = height;
+			this.#raiseOverflowFloor(newLines.length, height);
 		};
 
 		const debugRedraw = $flag("PI_DEBUG_REDRAW");
@@ -1628,6 +2534,38 @@ export class TUI extends Container {
 			}
 		}
 
+		// 260702 misaligned-viewport quarantine: #maxLinesRendered beyond
+		// Math.max(#overflowFloor, height) means rows were painted via viewport
+		// repaint only and never physically materialized — the logical frame is
+		// longer than the terminal's real scroll history. Any relative diff
+		// would map frame rows onto wrong physical rows (confirmed drift: the
+		// frame tail painted at the viewport top, composer mid-screen, stale
+		// bands — scroll-misalignment.test.ts). Every render stays on the
+		// absolute viewport repaint until a frame realigns: a shrink back to
+		// the floor (tombstone-padded to exactly #overflowFloor) or a fitting
+		// frame lets viewportRepaint record #maxLinesRendered = length again.
+		// Evaluated on the POST-overlay frame (overlays can extend the frame);
+		// resize branches above keep their own reset semantics. Legacy frames
+		// (no ViewportFill sentinel) never enter this state.
+		if (this.#fillSentinelPresent && this.#maxLinesRendered > Math.max(this.#overflowFloor, height)) {
+			viewportRepaint(
+				`misaligned viewport quarantine (max=${this.#maxLinesRendered} > floor=${this.#overflowFloor})`,
+			);
+			return;
+		}
+
+		// 260703 WP1 — explicit resync (resize settle, external callers): replay
+		// the visible viewport at absolute coordinates. Guard: a legacy
+		// no-sentinel frame shorter than the viewport may not be anchored at
+		// screen row 1 (the first render prints at the shell cursor without
+		// clearing), so an ESC[H repaint would stamp frame rows over shell
+		// history — downgrade that case to the normal diff. Pin-model frames
+		// are always ≥ height after fill expansion.
+		if (resyncRequested && (this.#fillSentinelPresent || newLines.length >= height)) {
+			viewportRepaint("explicit resync");
+			return;
+		}
+
 		// Content shrunk below the previous render and no overlays - re-render to clear empty rows
 		// (overlays need the padding, so only do this when no overlays are active)
 		// Configurable via setClearOnShrink() or PI_CLEAR_ON_SHRINK=0 env var
@@ -1660,6 +2598,35 @@ export class TUI extends Container {
 			lastChanged = newLines.length - 1;
 		}
 		const appendStart = appendedLines && firstChanged === this.#previousLines.length && firstChanged > 0;
+
+		// 260703 WP3a scroll-out repaint barrier: the DECSTBM mutation above
+		// shifted physical rows and restored the cursor to a CLAMPED screen row,
+		// while the relative lanes below still compute moves from the UNCLAMPED
+		// captured locals against unrotated mirrors. Those lanes survived on the
+		// blank-region coincidence only (devlog 30_wp3a) — finish the pass with
+		// an ABSOLUTE repaint instead. While committed pixels still sit in the
+		// fill region (mirror-blank rows the frame must never erase), repaint
+		// only the live zone below them; a full viewportRepaint would 2K those
+		// rows away (B-phase finding). With an overlay open the fill rows can
+		// carry composited overlay content, so flush the committed rows into
+		// the scrollback first and take the full repaint.
+		if (scrolledOutThisPass) {
+			if (this.#committedScreenRows > 0 && this.overlayStack.length > 0) {
+				// 260704 WP6b-v2: top-anchored block at rows 1..B — scrolling
+				// region 1..B by B moves ALL content across the seam, blank-free
+				// (the round-4 bottom-alignment reasoning inverted with the
+				// geometry).
+				this.#scrollOutCommittedRows(this.#committedScreenRows, this.#committedScreenRows);
+				this.#committedScreenRows = 0;
+				this.#committedBottomRow = 0;
+			}
+			if (this.#committedScreenRows > 0) {
+				liveZoneRepaint("scroll-out repaint barrier");
+			} else {
+				viewportRepaint("scroll-out repaint barrier");
+			}
+			return;
+		}
 
 		// No changes - but still need to update hardware cursor position if it moved
 		if (firstChanged === -1) {
@@ -1706,7 +2673,7 @@ export class TUI extends Container {
 				this.#hardwareCursorRow = toRow;
 				buffer += seq;
 				buffer += "\x1b[?2026l";
-				if (!this.#writeTerminal(buffer)) return;
+				if (!this.#writeRenderBufferAndReanchorImeCursor(buffer, cursorPos, newLines.length)) return;
 			}
 			this.#previousLines = newLines;
 			this.#previousWidth = width;
@@ -1736,7 +2703,15 @@ export class TUI extends Container {
 			const viewportAtBottom = this.terminal.isViewportAtBottom?.();
 			if (useLegacyMultiplexerFullRender()) {
 				fullRender(true, "firstChanged < viewportTop");
-			} else if (grew && !isMultiplexerSession() && viewportAtBottom === true) {
+			} else if (
+				grew &&
+				!isMultiplexerSession() &&
+				viewportAtBottom === true &&
+				// The floor freeze belongs to the composer-pin model — legacy
+				// no-sentinel frames must stay byte-identical even when a caller
+				// set the flag (260702 gpt-5.5 review finding).
+				!(this.#overflowFloorFrozen && this.#fillSentinelPresent)
+			) {
 				appendGrowthAndRepaintViewport(`firstChanged < viewportTop (${firstChanged} < ${prevViewportTop})`);
 			} else {
 				viewportRepaint(`firstChanged < viewportTop (${firstChanged} < ${prevViewportTop})`);
@@ -1748,6 +2723,23 @@ export class TUI extends Container {
 		// Build buffer with all updates wrapped in synchronized output
 		let buffer = "\x1b[?2026h"; // Begin synchronized output
 		const prevViewportBottom = prevViewportTop + height - 1;
+		// 260630 ctrl+o follow-up: a transient expansion must not scroll the
+		// terminal — pushed rows can never be un-scrolled, leaving a blank
+		// residue the size of the expansion after collapse. Any differential
+		// render that would walk the cursor past the current screen bottom
+		// (explicit scroll or the paint loop itself) repaints the viewport in
+		// place instead; the floor stays frozen so collapsing restores the
+		// pre-expansion screen exactly.
+		if (
+			this.#overflowFloorFrozen &&
+			// Pin-model only — legacy no-sentinel frames ignore the freeze so
+			// their write stream stays byte-identical (260702 gpt-5.5 review).
+			this.#fillSentinelPresent &&
+			Math.min(lastChanged, newLines.length - 1) > prevViewportBottom
+		) {
+			viewportRepaint(`growth while floor frozen (${lastChanged} > ${prevViewportBottom})`);
+			return;
+		}
 		const moveTargetRow = appendStart ? firstChanged - 1 : firstChanged;
 		if (moveTargetRow > prevViewportBottom) {
 			const currentScreenRow = Math.max(0, Math.min(height - 1, hardwareCursorRow - prevViewportTop));
@@ -1836,7 +2828,7 @@ export class TUI extends Container {
 		}
 
 		// Write entire buffer at once
-		if (!this.#writeTerminal(buffer)) return;
+		if (!this.#writeRenderBufferAndReanchorImeCursor(buffer, cursorPos, newLines.length)) return;
 
 		// Track cursor position for next render.
 		// cursorRow tracks end of content (for viewport calculation).
@@ -1849,6 +2841,10 @@ export class TUI extends Container {
 		this.#previousLines = newLines;
 		this.#previousWidth = width;
 		this.#previousHeight = height;
+		// The differential path walks the cursor through every appended row, so
+		// any growth beyond the previous bottom physically scrolled — the frame
+		// is materialized to its full length.
+		this.#raiseOverflowFloor(newLines.length, height);
 	}
 
 	/**
@@ -1885,18 +2881,28 @@ export class TUI extends Container {
 		return { seq, toRow: targetRow };
 	}
 
+	#writeRenderBufferAndReanchorImeCursor(
+		buffer: string,
+		cursorPos: { row: number; col: number } | null,
+		totalLines: number,
+	): boolean {
+		if (!this.#writeTerminal(buffer)) return false;
+		if (!this.#showHardwareCursor) return true;
+		return this.#writeCursorPosition(cursorPos, totalLines);
+	}
+
 	/**
 	 * Write the hardware cursor position to the terminal as a standalone
 	 * synchronized output block. Use when there is no surrounding render buffer
 	 * to embed the sequences into.
 	 */
-	#writeCursorPosition(cursorPos: { row: number; col: number } | null, totalLines: number): void {
+	#writeCursorPosition(cursorPos: { row: number; col: number } | null, totalLines: number): boolean {
 		if (!cursorPos || totalLines <= 0) {
-			this.#hideCursor();
-			return;
+			return this.#hideCursor();
 		}
 		const { seq, toRow } = this.#cursorControlSequence(cursorPos, totalLines, this.#hardwareCursorRow);
 		this.#hardwareCursorRow = toRow;
-		this.#writeTerminal(`\x1b[?2026h${seq}\x1b[?2026l`);
+		// A standalone write preserves macOS IME composition state after synchronized repaint.
+		return this.#writeTerminal(seq);
 	}
 }

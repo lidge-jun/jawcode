@@ -1,6 +1,6 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import type { ThinkingLevel } from "@jawcode-dev/agent-core";
+import { ThinkingLevel } from "@jawcode-dev/agent-core";
 import { type AuthStorage, type Model, modelsAreEqual } from "@jawcode-dev/ai";
 import { APP_NAME, getAgentDir, setProjectDir } from "@jawcode-dev/utils";
 import {
@@ -8,10 +8,16 @@ import {
 	JWC_MODEL_ASSIGNMENT_TARGETS,
 	type JwcModelAssignmentTargetId,
 } from "../config/model-registry";
-import { extractExplicitThinkingSelector, formatModelSelectorValue, parseModelPattern } from "../config/model-resolver";
+import {
+	extractExplicitThinkingSelector,
+	formatModelSelectorValue,
+	parseModelPattern,
+	parseModelString,
+} from "../config/model-resolver";
 import { resolveOAuthProviderId } from "../config/oauth-provider-aliases";
 import { clearPluginRootsAndCaches, isJawBrand, resolveActiveProjectRegistryPath } from "../discovery/helpers.js";
 import { buildGoalPlanningStart } from "../goals/goal-planning-start";
+import type { GoalModeState } from "../goals/state";
 import { runNativeGoalCommand } from "../jwc-runtime/goal-cli";
 import { createGoalPlan, startNextGoal } from "../jwc-runtime/goal-engine";
 import { runNativeOrchestrateCommand } from "../jwc-runtime/orchestrate-runtime";
@@ -26,18 +32,38 @@ import {
 	parseProviderCompatibility,
 } from "../setup/provider-onboarding";
 import { parseThinkingLevel } from "../thinking";
+import { getDisplayChangelogEntries } from "../utils/changelog";
 import { getSearchProvider, nativeSearchProviderFor, setPreferredSearchProvider } from "../web/search/provider";
 import { isSearchProviderPreference, type SearchProviderId } from "../web/search/types";
 
+/** jwc fork (devlog 260702_tone_command): /tone dispatch vocabulary. */
+const TONE_PRESET_NAMES = ["sarcastic", "savage", "deadpan", "hype", "uhehe"] as const;
+type TonePresetName = (typeof TONE_PRESET_NAMES)[number];
+const TONE_COMMAND_OPTIONS = "sarcastic|savage|deadpan|hype|uhehe|custom|off|status";
+
+function isTonePreset(verb: string): verb is TonePresetName {
+	return (TONE_PRESET_NAMES as readonly string[]).includes(verb);
+}
+
 /**
- * 083.4: parse a /effort argument, accepting Codex ReasoningEffort vocabulary
- * (none/minimal) as aliases for jwc thinking levels (off/min).
+ * Shared instruction for the `/tone custom` no-args interview lane (both the
+ * text/ACP dispatcher and the TUI dispatcher reach this through `handle`).
  */
-function parseEffortArg(raw: string): ThinkingLevel | undefined {
-	const normalized = raw === "none" ? "off" : raw === "minimal" ? "min" : raw;
-	const level = parseThinkingLevel(normalized);
-	// "inherit" is a model-selector concept, not a session effort.
-	return level === "inherit" ? undefined : level;
+function buildToneCustomInstruction(): string {
+	const configPath = path.join(getAgentDir(), "config.yml");
+	return [
+		"Help me set a custom persona tone for the agent.",
+		"Ask me, in the language I have been using, to paste the tone text in one message (multi-line is fine; interior newlines are preserved, ends are trimmed).",
+		"If I decline or paste nothing, save nothing and reply that the tone settings were not changed.",
+		"Otherwise persist it safely (pasted text may contain quotes, $, dashes, or any delimiter line — never pass it through a shell heredoc or inline shell string):",
+		"1. Run mktemp to create a unique temp file path.",
+		"2. Write the pasted text to that file VERBATIM with your file-write tool (not via shell).",
+		`3. Run: ${APP_NAME} config set identity.toneCustom -- "$(cat <that-file>)" (the \`--\` keeps values starting with \`-\` from being read as flags)`,
+		`4. Run: ${APP_NAME} config set identity.tone custom`,
+		"5. Delete the temp file.",
+		`(settings file: ${configPath})`,
+		"Finish with a one-line summary of what was saved, and note that the tone applies to new prompts.",
+	].join("\n");
 }
 
 import { buildContextReportText } from "./helpers/context-report";
@@ -175,11 +201,28 @@ function splitExplicitThinkingSelector(selector: string): { baseSelector: string
 	return thinkingLevel ? { baseSelector: trimmed.slice(0, colonIndex), thinkingLevel } : { baseSelector: trimmed };
 }
 
-function resolveModelCommandSelection(
+interface ModelCommandSelection {
+	model: Model;
+	selector: string;
+	thinkingLevel?: ThinkingLevel;
+}
+
+type ModelCommandResolution =
+	| { ok: true; selection: ModelCommandSelection }
+	| { ok: false; failure: { message: string } };
+
+function parseProviderQualifiedSelector(selector: string): { provider: string; modelId: string } | undefined {
+	const splitSelector = splitExplicitThinkingSelector(selector);
+	const parsed = parseModelString(splitSelector.baseSelector);
+	if (!parsed) return undefined;
+	return { provider: parsed.provider, modelId: parsed.id };
+}
+
+function resolveModelCommandSelectionFromAvailable(
 	runtime: SlashCommandRuntime,
 	selector: string,
-): { model: Model; selector: string; thinkingLevel?: ThinkingLevel } | undefined {
-	const availableModels = runtime.session.getAvailableModels?.() ?? [];
+	availableModels: Model[],
+): ModelCommandSelection | undefined {
 	const matchPreferences = { usageOrder: runtime.settings.getStorage()?.getModelUsageOrder() };
 	const resolved = parseModelPattern(selector, availableModels, matchPreferences, {
 		modelRegistry: runtime.session.modelRegistry,
@@ -201,6 +244,74 @@ function resolveModelCommandSelection(
 		model: resolved.model,
 		selector: persistedSelector,
 		thinkingLevel: resolved.explicitThinkingLevel ? resolved.thinkingLevel : undefined,
+	};
+}
+
+function formatDiscoverableProviderFailure(
+	selector: string,
+	provider: string,
+	modelId: string,
+	runtime: SlashCommandRuntime,
+): string {
+	const state = runtime.session.modelRegistry.getProviderDiscoveryState?.(provider);
+	const discovered = state?.models ?? [];
+	const base = `Unknown model: ${selector}.`;
+	if (!modelId.trim()) {
+		return `${base} Local provider model selectors must use provider/model-id syntax with a non-empty model id.`;
+	}
+	if (!state) {
+		return `${base} Provider ${provider} is configured for discovery but has not reported models yet.`;
+	}
+	if (state.status === "unavailable") {
+		const details = state.error ? ` (${state.error})` : "";
+		return `${base} Provider ${provider} discovery is unavailable${details}. Check the local endpoint and run /model again.`;
+	}
+	if (state.status === "unauthenticated") {
+		return `${base} Provider ${provider} requires authentication before model discovery.`;
+	}
+	if (state.status === "empty") {
+		return `${base} Provider ${provider} discovery succeeded but returned no models.`;
+	}
+	if (discovered.length > 0) {
+		const preview = discovered.slice(0, 8).join(", ");
+		const suffix = discovered.length > 8 ? ", …" : "";
+		return `${base} Provider ${provider} did not report model ${modelId}. Available local models: ${preview}${suffix}.`;
+	}
+	return `${base} Provider ${provider} did not report model ${modelId}.`;
+}
+
+async function resolveModelCommandSelection(
+	runtime: SlashCommandRuntime,
+	selector: string,
+): Promise<ModelCommandResolution> {
+	let availableModels = (runtime.session.getAvailableModels?.() ?? []) as Model[];
+	const initialSelection = resolveModelCommandSelectionFromAvailable(runtime, selector, availableModels);
+	if (initialSelection) {
+		return { ok: true, selection: initialSelection };
+	}
+
+	const providerRef = parseProviderQualifiedSelector(selector);
+	const discoverableProviders = runtime.session.modelRegistry?.getDiscoverableProviders?.() ?? [];
+	if (providerRef && discoverableProviders.includes(providerRef.provider)) {
+		await runtime.session.modelRegistry.refreshProvider?.(providerRef.provider, "online");
+		availableModels = (runtime.session.getAvailableModels?.() ?? []) as Model[];
+		const refreshedSelection = resolveModelCommandSelectionFromAvailable(runtime, selector, availableModels);
+		if (refreshedSelection) {
+			return { ok: true, selection: refreshedSelection };
+		}
+		return {
+			ok: false,
+			failure: {
+				message: formatDiscoverableProviderFailure(selector, providerRef.provider, providerRef.modelId, runtime),
+			},
+		};
+	}
+
+	return {
+		ok: false,
+		failure: {
+			message: `Unknown model: ${selector}. Configure or login to a provider first, then list/select models with /model.`,
+		},
 	};
 }
 
@@ -336,13 +447,65 @@ function modelSelectionUsage(runtime: SlashCommandRuntime, currentModelLine?: st
 		.join("\n\n");
 }
 
+const EFFORT_COMMAND_INPUT_HINT = "[inherit|off|minimal|low|medium|high|xhigh|max]";
+const EFFORT_COMMAND_ACCEPTED_VALUES = ["inherit", "off", "minimal", "low", "medium", "high", "xhigh", "max"] as const;
+
+function effortCommandUsage(prefix?: string): string {
+	return [prefix, `Usage: /effort ${EFFORT_COMMAND_INPUT_HINT}`]
+		.filter((line): line is string => Boolean(line))
+		.join("\n");
+}
+
+function formatEffortStatus(runtime: SlashCommandRuntime): string {
+	const current = runtime.session.thinkingLevel ?? ThinkingLevel.Off;
+	const configuredDefault = runtime.settings.get("defaultThinkingLevel");
+	const supported = runtime.session.getAvailableThinkingLevels();
+	return [
+		`Current effective effort: ${current}`,
+		`Configured default effort: ${configuredDefault}`,
+		`Accepted values: ${EFFORT_COMMAND_ACCEPTED_VALUES.join(", ")}`,
+		`Current-model supported levels: ${supported.length > 0 ? supported.join(", ") : "(none reported)"}`,
+	].join("\n");
+}
+
+async function handleEffortCommand(
+	command: ParsedSlashCommand,
+	runtime: SlashCommandRuntime,
+): Promise<SlashCommandResult> {
+	const tokens = command.args.trim().split(/\s+/).filter(Boolean);
+	if (tokens.length === 0) {
+		await runtime.output(formatEffortStatus(runtime));
+		return commandConsumed();
+	}
+	if (tokens.length !== 1) {
+		return usage(effortCommandUsage("Invalid effort input."), runtime);
+	}
+
+	const requestedToken = tokens[0];
+	const requestedLevel = parseThinkingLevel(requestedToken);
+	if (!requestedToken || !requestedLevel) {
+		return usage(effortCommandUsage(`Invalid effort: ${tokens[0] ?? ""}.`), runtime);
+	}
+
+	const levelToApply =
+		requestedLevel === ThinkingLevel.Inherit ? runtime.settings.get("defaultThinkingLevel") : requestedLevel;
+	runtime.session.setThinkingLevel(levelToApply, false);
+	const effectiveLevel = runtime.session.thinkingLevel ?? ThinkingLevel.Off;
+	const requestedLabel =
+		requestedLevel === ThinkingLevel.Inherit ? `${requestedLevel} (${levelToApply})` : requestedLevel;
+	const clampedSuffix =
+		effectiveLevel === levelToApply ? "" : ` Requested ${levelToApply}; effective ${effectiveLevel}.`;
+	await runtime.output(
+		`Reasoning effort set to ${requestedLabel}. Effective effort: ${effectiveLevel}.${clampedSuffix}`,
+	);
+	return commandConsumed();
+}
+
 function refreshStatusLine(ctx: InteractiveModeContext): void {
 	ctx.statusLine.invalidate();
 	ctx.updateEditorTopBorder();
 	ctx.ui.requestRender();
 }
-
-const GOAL_PAUSED_DIAGNOSTIC = "Resume the current goal first, or drop it before setting a new objective.";
 
 function goalCommandVerb(args: string): { verb: string; rest: string } {
 	const trimmed = args.trim();
@@ -361,6 +524,18 @@ async function removeGoalTool(runtime: SlashCommandRuntime): Promise<void> {
 	await runtime.session.setActiveToolsByName(runtime.session.getActiveToolNames().filter(name => name !== "goal"));
 }
 
+async function createOrReplaceGoalState(runtime: SlashCommandRuntime, objective: string): Promise<GoalModeState> {
+	const current = runtime.session.getGoalModeState();
+	if (current?.enabled && current.goal.status === "active") {
+		return await runtime.session.goalRuntime.replaceGoal({ objective });
+	}
+	if (current?.goal.status === "paused") {
+		await runtime.session.goalRuntime.dropGoal();
+		runtime.session.setGoalModeState(undefined);
+	}
+	return await runtime.session.goalRuntime.createGoal({ objective });
+}
+
 async function showNativeGoalStatus(runtime: SlashCommandRuntime): Promise<SlashCommandResult> {
 	const result = await runNativeGoalCommand(["status"], runtime.cwd);
 	if (result.stderr) await runtime.output(result.stderr.trimEnd());
@@ -369,19 +544,10 @@ async function showNativeGoalStatus(runtime: SlashCommandRuntime): Promise<Slash
 }
 
 async function startTextGoalPlan(runtime: SlashCommandRuntime, hint: string): Promise<SlashCommandResult> {
-	const current = runtime.session.getGoalModeState();
-	if (current?.goal.status === "paused") {
-		await runtime.output("Resume the current goal first, or drop it before starting goal planning.");
-		return commandConsumed();
-	}
-
 	const { brief, prompt } = buildGoalPlanningStart(hint);
 	await createGoalPlan({ cwd: runtime.cwd, brief });
 	await startNextGoal({ cwd: runtime.cwd });
-	const replacingActive = current?.enabled && current.goal.status === "active";
-	const state = replacingActive
-		? await runtime.session.goalRuntime.replaceGoal({ objective: brief })
-		: await runtime.session.goalRuntime.createGoal({ objective: brief });
+	const state = await createOrReplaceGoalState(runtime, brief);
 	await addGoalTool(runtime);
 	runtime.session.setGoalModeState(state);
 	return { prompt };
@@ -394,18 +560,9 @@ async function startTextGoal(runtime: SlashCommandRuntime, objective: string): P
 		return commandConsumed();
 	}
 
-	const current = runtime.session.getGoalModeState();
-	if (current?.goal.status === "paused") {
-		await runtime.output(GOAL_PAUSED_DIAGNOSTIC);
-		return commandConsumed();
-	}
-
 	await createGoalPlan({ cwd: runtime.cwd, brief: trimmedObjective });
 	await startNextGoal({ cwd: runtime.cwd });
-	const replacingActive = current?.enabled && current.goal.status === "active";
-	const state = replacingActive
-		? await runtime.session.goalRuntime.replaceGoal({ objective: trimmedObjective })
-		: await runtime.session.goalRuntime.createGoal({ objective: trimmedObjective });
+	const state = await createOrReplaceGoalState(runtime, trimmedObjective);
 	await addGoalTool(runtime);
 	runtime.session.setGoalModeState(state);
 	return { prompt: trimmedObjective };
@@ -488,8 +645,15 @@ const BUILTIN_SLASH_COMMAND_REGISTRY: ReadonlyArray<SlashCommandSpec> = [
 		description: "Show agent identity settings and where to configure them",
 		handle: async (_command, runtime) => {
 			const configPath = path.join(getAgentDir(), "config.yml");
-			const value = (key: "identity.name" | "identity.emoji" | "identity.vibe" | "identity.language") =>
-				runtime.settings.get(key) ?? "(unset)";
+			const value = (
+				key:
+					| "identity.name"
+					| "identity.emoji"
+					| "identity.vibe"
+					| "identity.language"
+					| "identity.tone"
+					| "identity.toneCustom",
+			) => runtime.settings.get(key) ?? "(unset)";
 			await runtime.output(
 				[
 					"Identity settings (rendered into the system prompt identity block when set):",
@@ -497,6 +661,8 @@ const BUILTIN_SLASH_COMMAND_REGISTRY: ReadonlyArray<SlashCommandSpec> = [
 					`  identity.emoji    = ${value("identity.emoji")}`,
 					`  identity.vibe     = ${value("identity.vibe")}`,
 					`  identity.language = ${value("identity.language")}`,
+					`  identity.tone     = ${value("identity.tone")}`,
+					`  identity.toneCustom = ${value("identity.toneCustom")}`,
 					"",
 					"Configure via:",
 					"  /settings → Identity tab",
@@ -674,16 +840,11 @@ const BUILTIN_SLASH_COMMAND_REGISTRY: ReadonlyArray<SlashCommandSpec> = [
 						runtime,
 					);
 				}
-				const selection = resolveModelCommandSelection(runtime, modelId);
-				if (!selection) {
-					return usage(
-						modelSelectionUsage(
-							runtime,
-							`Unknown model: ${modelId}. Configure or login to a provider first, then list/select models with /model.`,
-						),
-						runtime,
-					);
+				const resolution = await resolveModelCommandSelection(runtime, modelId);
+				if (!resolution.ok) {
+					return usage(modelSelectionUsage(runtime, resolution.failure.message), runtime);
 				}
+				const { selection } = resolution;
 				try {
 					const persistedSelector = formatModelSelectorValue(selection.selector, selection.thinkingLevel);
 					if (parsedArgs.targetId === "default") {
@@ -830,64 +991,64 @@ const BUILTIN_SLASH_COMMAND_REGISTRY: ReadonlyArray<SlashCommandSpec> = [
 		},
 	},
 	{
-		name: "effort",
-		description: "Set reasoning effort for the current session",
-		acpDescription: "Set reasoning effort",
-		acpInputHint: "[off|minimal|low|medium|high|xhigh|max]",
+		// jwc fork (devlog 260702_tone_command): persona tone presets + custom lane.
+		// handle-only by design — the TUI dispatcher delegates through
+		// adaptTuiSlashRuntime, so status/output routes via showStatus.
+		name: "tone",
+		description: "Set persona tone preset for the system prompt (identity.tone)",
+		acpDescription: "Set persona tone preset",
+		acpInputHint: "[sarcastic|savage|deadpan|hype|uhehe|custom|off|status]",
 		subcommands: [
-			{ name: "off", description: "No reasoning" },
-			{ name: "minimal", description: "Very brief reasoning (~1k tokens)" },
-			{ name: "low", description: "Light reasoning (~2k tokens)" },
-			{ name: "medium", description: "Moderate reasoning (~8k tokens)" },
-			{ name: "high", description: "Deep reasoning (~16k tokens)" },
-			{ name: "xhigh", description: "Maximum reasoning (~32k tokens)" },
-			{ name: "max", description: "Unrestricted reasoning" },
-			{ name: "status", description: "Show current reasoning effort" },
+			{ name: "sarcastic", description: "빈정거리지만 정확 — dry sarcasm" },
+			{ name: "savage", description: "매운맛 — profanity allowed, brutal honesty" },
+			{ name: "deadpan", description: "건조 극단 — facts only, zero flair" },
+			{ name: "hype", description: "텐션 최대 — maximum enthusiasm" },
+			{ name: "uhehe", description: "어흐흐 — 변태적 미소녀 톤" },
+			{ name: "custom", description: "Paste your own tone text", usage: "[text]" },
+			{ name: "off", description: "Clear tone preset" },
+			{ name: "status", description: "Show current tone" },
 		],
 		allowArgs: true,
 		handle: async (command, runtime) => {
-			const raw = command.args.trim().toLowerCase();
-			if (!raw || raw === "status") {
-				await runtime.output(
-					`Reasoning effort: ${runtime.session.thinkingLevel ?? "off"}. Options: off, minimal, low, medium, high, xhigh, max.`,
-				);
+			// First token only is normalized for dispatch; the remainder stays
+			// verbatim (case/newlines preserved) for `custom` text.
+			const args = command.args.trim();
+			const firstToken = args.match(/^\S+/)?.[0] ?? "";
+			const verb = firstToken.toLowerCase();
+			const rest = args.slice(firstToken.length).trim();
+			if (!verb || verb === "status") {
+				const tone = runtime.settings.get("identity.tone");
+				const custom = runtime.settings.get("identity.toneCustom");
+				const detail =
+					tone === "custom" ? (custom ? " (custom text set)" : " (no custom text — run /tone custom <text>)") : "";
+				await runtime.output(`Tone: ${tone ?? "(unset)"}${detail}. Options: ${TONE_COMMAND_OPTIONS}.`);
 				return commandConsumed();
 			}
-			const level = parseEffortArg(raw);
-			if (!level) {
-				await runtime.output(
-					`Unknown effort "${command.args.trim()}". Options: off, minimal, low, medium, high, xhigh, max.`,
-				);
+			if (verb === "off") {
+				runtime.settings.set("identity.tone", undefined);
+				await runtime.notifyConfigChanged?.();
+				await runtime.output("Tone preset cleared (custom text kept for reuse). Applies to new prompts.");
 				return commandConsumed();
 			}
-			runtime.session.setThinkingLevel(level);
-			await runtime.output(`Reasoning effort set to ${runtime.session.thinkingLevel ?? "off"}.`);
+			if (verb === "custom") {
+				if (!rest) {
+					await runtime.session.prompt(buildToneCustomInstruction());
+					return commandConsumed();
+				}
+				runtime.settings.set("identity.toneCustom", rest);
+				runtime.settings.set("identity.tone", "custom");
+				await runtime.notifyConfigChanged?.();
+				await runtime.output("Tone set to custom. Applies to new prompts.");
+				return commandConsumed();
+			}
+			if (isTonePreset(verb)) {
+				runtime.settings.set("identity.tone", verb);
+				await runtime.notifyConfigChanged?.();
+				await runtime.output(`Tone set to ${verb}. Applies to new prompts.`);
+				return commandConsumed();
+			}
+			await runtime.output(`Unknown tone "${firstToken}". Options: ${TONE_COMMAND_OPTIONS}.`);
 			return commandConsumed();
-		},
-		handleTui: (command, runtime) => {
-			const raw = command.args.trim().toLowerCase();
-			if (!raw) {
-				runtime.ctx.showEffortSelector();
-				runtime.ctx.editor.setText("");
-				return;
-			}
-			if (raw === "status") {
-				runtime.ctx.showStatus(
-					`Reasoning effort: ${runtime.ctx.session.thinkingLevel ?? "off"} (off|minimal|low|medium|high|xhigh|max)`,
-				);
-				runtime.ctx.editor.setText("");
-				return;
-			}
-			const level = parseEffortArg(raw);
-			if (!level) {
-				runtime.ctx.showError(`Unknown effort "${command.args.trim()}" (off|minimal|low|medium|high|xhigh|max)`);
-				runtime.ctx.editor.setText("");
-				return;
-			}
-			runtime.ctx.session.setThinkingLevel(level);
-			refreshStatusLine(runtime.ctx);
-			runtime.ctx.showStatus(`Reasoning effort set to ${runtime.ctx.session.thinkingLevel ?? "off"}.`);
-			runtime.ctx.editor.setText("");
 		},
 	},
 	{
@@ -1240,8 +1401,10 @@ const BUILTIN_SLASH_COMMAND_REGISTRY: ReadonlyArray<SlashCommandSpec> = [
 				return commandConsumed();
 			}
 			if (args === "login" || args.startsWith("login ")) {
+				const providerId = args.slice("login".length).trim();
+				const loginCommand = providerId ? `/login ${providerId}` : "/login [provider-id]";
 				await runtime.output(
-					"Use the terminal UI /login selector for browser, device-code, or manual callback provider login.",
+					`Open the terminal UI and run ${loginCommand} for OAuth/subscription account login. Paste callbacks with /login <redirect URL or code>.`,
 				);
 				return commandConsumed();
 			}
@@ -1746,9 +1909,81 @@ const BUILTIN_SLASH_COMMAND_REGISTRY: ReadonlyArray<SlashCommandSpec> = [
 		},
 	},
 	{
+		name: "effort",
+		description: "Show or set model reasoning effort",
+		acpDescription: "Show or set model reasoning effort",
+		inlineHint: EFFORT_COMMAND_INPUT_HINT,
+		acpInputHint: EFFORT_COMMAND_INPUT_HINT,
+		allowArgs: true,
+		handle: handleEffortCommand,
+		handleTui: async (command, runtime) => {
+			if (command.args.trim()) {
+				const result = await handleEffortCommand(command, adaptTuiSlashRuntime(runtime.ctx));
+				runtime.ctx.statusLine.invalidate();
+				runtime.ctx.updateEditorBorderColor();
+				runtime.ctx.updateEditorTopBorder();
+				runtime.ctx.editor.setText("");
+				runtime.ctx.ui.requestRender();
+				return result;
+			}
+
+			if (typeof runtime.ctx.showEffortSelector === "function") {
+				runtime.ctx.showEffortSelector();
+				runtime.ctx.editor.setText("");
+				return;
+			}
+
+			const result = await handleEffortCommand(command, adaptTuiSlashRuntime(runtime.ctx));
+			runtime.ctx.editor.setText("");
+			return result;
+		},
+	},
+	{
 		name: "exit",
+		aliases: ["quit"],
 		description: "Exit the application",
 		handleTui: shutdownHandlerTui,
+	},
+	{
+		name: "clear",
+		description: "Clear conversation context (preserves session)",
+		acpDescription: "Clear conversation context while preserving the current session",
+		handleTui: async (_command, runtime) => {
+			runtime.ctx.editor.setText("");
+			if (!(await runtime.ctx.session.clearContext())) return commandConsumed();
+			runtime.ctx.statusLine.invalidate();
+			runtime.ctx.updateEditorTopBorder();
+			runtime.ctx.updateEditorBorderColor();
+			runtime.ctx.ui.requestRender();
+			return commandConsumed();
+		},
+	},
+	{
+		name: "changelog",
+		description: "Show recent changes",
+		acpDescription: "Show recent changes",
+		allowArgs: true,
+		inlineHint: "[full|--full]",
+		handle: async (command, runtime) => {
+			const args = command.args.trim().toLowerCase();
+			if (args && args !== "full" && args !== "--full") {
+				return usage("Usage: /changelog [full|--full]", runtime);
+			}
+			const showFull = args === "full" || args === "--full";
+			const allEntries = getDisplayChangelogEntries();
+			const entriesToShow = showFull ? allEntries : allEntries.slice(0, 3);
+			const changelogMarkdown =
+				entriesToShow.length > 0
+					? [...entriesToShow]
+							.reverse()
+							.map(entry => entry.content)
+							.join("\n\n")
+					: "No changelog entries found.";
+			const title = showFull ? "Full Changelog" : "Recent Changes";
+			const hint = showFull ? "" : "\n\nUse `/changelog --full` to view the complete changelog.";
+			await runtime.output(`${title}\n\n${changelogMarkdown}${hint}`);
+			return commandConsumed();
+		},
 	},
 ];
 

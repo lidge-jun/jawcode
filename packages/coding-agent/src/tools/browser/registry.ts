@@ -1,5 +1,5 @@
 import * as path from "node:path";
-import { logger } from "@jawcode-dev/utils";
+import { logger, withTimeout } from "@jawcode-dev/utils";
 import type { Subprocess } from "bun";
 import type { Browser, CDPSession } from "puppeteer-core";
 import { ToolAbortError, ToolError } from "../tool-errors";
@@ -25,6 +25,13 @@ export interface BrowserHandle {
 }
 
 const browsers = new Map<string, BrowserHandle>();
+const DEFAULT_BROWSER_CLOSE_TIMEOUT_MS = 5_000;
+
+export interface ReleaseBrowserOptions {
+	kill: boolean;
+	timeoutMs?: number;
+	resource?: string;
+}
 
 function browserKey(kind: BrowserKind): string {
 	switch (kind.kind) {
@@ -154,7 +161,7 @@ export function holdBrowser(handle: BrowserHandle): void {
 	handle.refCount++;
 }
 
-export async function releaseBrowser(handle: BrowserHandle, opts: { kill: boolean }): Promise<void> {
+export async function releaseBrowser(handle: BrowserHandle, opts: ReleaseBrowserOptions): Promise<void> {
 	handle.refCount = Math.max(0, handle.refCount - 1);
 	if (handle.refCount === 0) {
 		browsers.delete(handle.key);
@@ -162,12 +169,24 @@ export async function releaseBrowser(handle: BrowserHandle, opts: { kill: boolea
 	}
 }
 
-async function disposeBrowserHandle(handle: BrowserHandle, opts: { kill: boolean }): Promise<void> {
+async function disposeBrowserHandle(handle: BrowserHandle, opts: ReleaseBrowserOptions): Promise<void> {
 	if (handle.kind.kind === "headless") {
 		if (handle.browser.connected) {
+			const timeoutMs = opts.timeoutMs ?? DEFAULT_BROWSER_CLOSE_TIMEOUT_MS;
+			const resource = opts.resource ?? handle.key;
+			const timeoutMessage = `Timed out after ${timeoutMs}ms closing headless browser for ${resource}`;
 			try {
-				await handle.browser.close();
+				await withTimeout(handle.browser.close(), timeoutMs, timeoutMessage);
 			} catch (err) {
+				if (err instanceof Error && err.message === timeoutMessage) {
+					try {
+						handle.browser.disconnect();
+					} catch {}
+					try {
+						handle.browser.process()?.kill();
+					} catch {}
+					throw new ToolError(`${timeoutMessage}; forced browser disconnect/kill`);
+				}
 				logger.debug("Failed to close headless browser", { error: (err as Error).message });
 			}
 		}

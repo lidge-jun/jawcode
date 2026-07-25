@@ -22,6 +22,7 @@ interface AppKeybindings {
 	"app.suspend": true;
 	"app.thinking.cycle": true;
 	"app.thinking.toggle": true;
+	"app.commandPalette.open": true;
 	"app.model.cycleForward": true;
 	"app.model.cycleBackward": true;
 	"app.model.select": true;
@@ -89,6 +90,10 @@ export const KEYBINDINGS = {
 	"app.thinking.toggle": {
 		defaultKeys: [],
 		description: "Toggle thinking block visibility",
+	},
+	"app.commandPalette.open": {
+		defaultKeys: "ctrl+shift+p",
+		description: "Open command palette",
 	},
 	"app.model.cycleForward": {
 		defaultKeys: "ctrl+p",
@@ -238,6 +243,7 @@ const KEYBINDING_NAME_MIGRATIONS = {
 	historySearch: "app.history.search",
 	expandTools: "app.tools.expand",
 	toggleThinking: "app.thinking.toggle",
+	commandPalette: "app.commandPalette.open",
 	externalEditor: "app.editor.external",
 	followUp: "app.message.followUp",
 	dequeue: "app.message.dequeue",

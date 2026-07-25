@@ -1,0 +1,22 @@
+{
+  "phase": "IDLE",
+  "sessionId": "019f99aa-d87c-7c42-831c-747956a1c5be",
+  "slug": "",
+  "updatedAt": "2026-07-25T14:34:04.952Z",
+  "flags": {
+    "interview": false,
+    "auditPassed": false,
+    "checkPassed": false
+  },
+  "supersededBy": null,
+  "injectedTurns": [
+    "019f99ab-735a-7ec0-9142-1fc6e6466f5d"
+  ],
+  "lastInjectedPhase": null,
+  "orchestrationActive": false,
+  "interview": null,
+  "stopBlockPhase": null,
+  "stopBlockCount": 0,
+  "loopArmSeen": true,
+  "idleEditNudges": 3
+}

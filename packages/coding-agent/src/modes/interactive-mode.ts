@@ -133,11 +133,28 @@ import {
 	onThemeChange,
 	theme,
 } from "./theme/theme";
-import type { CompactionQueuedMessage, InteractiveModeContext, SubmittedUserInput, TodoItem, TodoPhase } from "./types";
+import {
+	type CommandPaletteAction,
+	type CompactionQueuedMessage,
+	type ComposerOwnership,
+	canApplyComposerOwnership,
+	type InteractiveModeContext,
+	type SubmittedUserInput,
+	type TodoItem,
+	type TodoPhase,
+} from "./types";
 import type { CompactionProgressPresenter } from "./utils/compaction-progress";
-import { UiHelpers } from "./utils/ui-helpers";
+import {
+	addSignatureCredit,
+	consumeSignatureCredit,
+	rebuildTranscriptForResize,
+	takeFirstSignature,
+	UiHelpers,
+} from "./utils/ui-helpers";
 
 const INTERACTIVE_ABORT_CLEANUP_TIMEOUT_MS = 5_000;
+const COMPOSER_NEWLINE_HINT = process.platform === "win32" ? "Alt+Enter/Ctrl+J" : "Shift+Enter/Ctrl+J";
+export const DEFAULT_COMPOSER_PLACEHOLDER = `Type your message... ${COMPOSER_NEWLINE_HINT}: New line · Ctrl+C: Clear · Ctrl+R: Search history · Shift+Tab: Reasoning`;
 
 const HINT_SHIMMER_PALETTE: ShimmerPalette = {
 	low: "dim",
@@ -162,7 +179,7 @@ function configureDefaultComposerChrome(editor: CustomEditor): void {
 	editor.setClosedBorderBox(true);
 	editor.setPromptGutter(undefined);
 	editor.setInputPrefix(getDefaultInputPrefix());
-	editor.setPlaceholder("Type your message...");
+	editor.setPlaceholder(DEFAULT_COMPOSER_PLACEHOLDER);
 	editor.setPaddingX(1);
 	editor.setTopBorder(undefined);
 }
@@ -325,12 +342,13 @@ export class InteractiveMode implements InteractiveModeContext {
 	retryCountdownTimer?: ReturnType<typeof setInterval>;
 	unsubscribe?: () => void;
 	onInputCallback?: (input: SubmittedUserInput) => void;
-	optimisticUserMessageSignature: string | undefined = undefined;
-	locallySubmittedUserSignatures: Set<string> = new Set();
+	optimisticUserSignatures: string[] = [];
+	locallySubmittedUserSignatures: Map<string, number> = new Map();
 	#pendingSubmittedInput: SubmittedUserInput | undefined;
 	#pendingSubmissionDispose: (() => void) | undefined;
 	lastSigintTime = 0;
 	lastEscapeTime = 0;
+	lastComposerClearEscapeTime = 0;
 	shutdownRequested = false;
 	#isShuttingDown = false;
 	hookSelector: HookSelectorComponent | undefined = undefined;
@@ -522,6 +540,18 @@ export class InteractiveMode implements InteractiveModeContext {
 		const startupQuiet = settings.get("startup.quiet");
 		this.#welcomeComponent = undefined;
 
+		// 260704 BOTTOM-UP FLOW (user UX round 3): the fill is the FIRST frame
+		// child, so the entire transcript + live cluster + composer ride the
+		// terminal floor as ONE contiguous block — the spinner sits right above
+		// the composer and new content pushes older rows UP (standard terminal
+		// feel; eyes stay at the bottom where you type). With the sentinel at
+		// frame line 0 the S5-2 live-zone flush refuses by design (its guard
+		// needs the fill BELOW the content), so mid-turn commits stay virtual
+		// and history materializes through the proven turn-boundary realign
+		// lane. All corruption fixes (resize rebuild, WP5.3, realign v3) are
+		// geometry-independent and stay active.
+		this.ui.addChild(this.#viewportFill);
+
 		for (const warning of this.session.configWarnings) {
 			this.ui.addChild(new Text(theme.fg("warning", `Warning: ${warning}`), 1, 0));
 			this.ui.addChild(new Spacer(1));
@@ -571,7 +601,6 @@ export class InteractiveMode implements InteractiveModeContext {
 		// Unset setting = brand default (jwc on).
 		const composerPinSetting = settings.get("tui.composerPin");
 		this.#viewportFill.setEnabled(!$flag("PI_NO_COMPOSER_PIN") && (composerPinSetting ?? isJawBrand()));
-		this.ui.addChild(this.#viewportFill);
 		this.ui.addChild(this.chatContainer);
 		this.ui.addChild(this.pendingMessagesContainer);
 		// 99.20.04 live zone — active tool previews render here (above the status
@@ -622,6 +651,11 @@ export class InteractiveMode implements InteractiveModeContext {
 		await this.#loadTodoList();
 
 		// Start the UI
+		// 260704 RESIZE REBUILD: once a width change settles, replace the whole
+		// terminal contents with the transcript re-rendered at the new width —
+		// the full replace is the one history-touching operation that cannot
+		// duplicate, and it heals hard-wrapped committed rows completely.
+		this.ui.onResizeSettled = () => rebuildTranscriptForResize(this);
 		this.ui.start();
 		pushTerminalTitle();
 		setSessionTerminalTitle(this.sessionManager.getSessionName(), this.sessionManager.getCwd());
@@ -811,13 +845,24 @@ export class InteractiveMode implements InteractiveModeContext {
 			return () => {};
 		}
 		const signature = `${text}\u0000${imageCount}`;
-		this.locallySubmittedUserSignatures.add(signature);
+		addSignatureCredit(this.locallySubmittedUserSignatures, signature);
 		let disposed = false;
 		return () => {
 			if (disposed) return;
 			disposed = true;
-			this.locallySubmittedUserSignatures.delete(signature);
+			consumeSignatureCredit(this.locallySubmittedUserSignatures, signature);
 		};
+	}
+
+	/**
+	 * Remove the FIFO credit an optimistic submission registered (cancel/error/
+	 * never-started paths — the matching `message_start` will never consume it).
+	 * customType submissions never pushed one.
+	 */
+	#takePendingOptimisticSignature(submission: SubmittedUserInput): void {
+		if (submission.customType) return;
+		const signature = `${submission.text}\u0000${submission.images?.length ?? 0}`;
+		takeFirstSignature(this.optimisticUserSignatures, signature);
 	}
 
 	prepareRealUserAgentPromptSubmission(): void {
@@ -837,12 +882,15 @@ export class InteractiveMode implements InteractiveModeContext {
 		}
 	}
 
-	startPendingSubmission(input: {
-		text: string;
-		images?: ImageContent[];
-		customType?: string;
-		display?: boolean;
-	}): SubmittedUserInput {
+	startPendingSubmission(
+		input: {
+			text: string;
+			images?: ImageContent[];
+			customType?: string;
+			display?: boolean;
+		},
+		ownership?: ComposerOwnership,
+	): SubmittedUserInput {
 		const submission: SubmittedUserInput = {
 			text: input.text,
 			images: input.images,
@@ -855,7 +903,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		if (!submission.customType) {
 			this.#resetGoalContinuationSuppression();
 			const imageCount = submission.images?.length ?? 0;
-			this.optimisticUserMessageSignature = `${submission.text}\u0000${imageCount}`;
+			this.optimisticUserSignatures.push(`${submission.text}\u0000${imageCount}`);
 			this.#pendingSubmissionDispose = this.recordLocalSubmission(submission.text, imageCount);
 			this.addMessageToChat({
 				role: "user",
@@ -865,10 +913,12 @@ export class InteractiveMode implements InteractiveModeContext {
 			});
 			this.currentTurnStartIndex = this.chatContainer.children.length;
 		} else {
-			this.optimisticUserMessageSignature = undefined;
+			// customType submissions render nothing optimistically — no FIFO entry.
 			this.#pendingSubmissionDispose = undefined;
 		}
-		this.editor.setText("");
+		if (canApplyComposerOwnership(ownership, this.editor)) {
+			this.editor.setText("");
+		}
 		this.ensureLoadingAnimation();
 		this.ui.requestRender();
 		return submission;
@@ -882,7 +932,7 @@ export class InteractiveMode implements InteractiveModeContext {
 
 		submission.cancelled = true;
 		this.#pendingSubmittedInput = undefined;
-		this.optimisticUserMessageSignature = undefined;
+		this.#takePendingOptimisticSignature(submission);
 		this.#pendingSubmissionDispose?.();
 		this.#pendingSubmissionDispose = undefined;
 		this.#pendingWorkingMessage = undefined;
@@ -924,7 +974,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		}
 
 		if (wasPendingSubmission && !this.session.isStreaming && !this.streamingComponent) {
-			this.optimisticUserMessageSignature = undefined;
+			this.#takePendingOptimisticSignature(input);
 			pendingSubmissionDispose?.();
 			this.#pendingWorkingMessage = undefined;
 			if (this.loadingAnimation) {
@@ -1774,13 +1824,18 @@ export class InteractiveMode implements InteractiveModeContext {
 			const pausedState = this.#getPausedGoalState();
 			if (pausedState) {
 				if (subRest) {
-					this.showWarning("Resume the current goal first, or drop it before setting a new objective.");
+					await this.#writeGoalPlanFromBrief(subRest);
+					await this.#createOrReplaceGoalFromObjective(subRest);
+					if (this.onInputCallback) {
+						this.onInputCallback(this.startPendingSubmission({ text: subRest }));
+					}
 					return;
 				}
 				await this.#openGoalMenu("paused");
 				return;
 			}
 			if (subRest) {
+				await this.#writeGoalPlanFromBrief(subRest);
 				await this.#startGoalFromObjective(subRest);
 				return;
 			}
@@ -1908,6 +1963,19 @@ export class InteractiveMode implements InteractiveModeContext {
 			await this.session.sendGoalModeContext({ deliverAs: "steer" });
 		}
 	}
+	async #createOrReplaceGoalFromObjective(objective: string): Promise<void> {
+		if (this.goalModeEnabled) {
+			await this.#applyReplacedGoalState(objective);
+			return;
+		}
+		if (this.#getPausedGoalState()) {
+			await this.session.goalRuntime.dropGoal();
+			this.session.setGoalModeState(undefined);
+			this.goalModePaused = false;
+		}
+		await this.#enterGoalMode({ objective, silent: true });
+		this.#resetGoalContinuationSuppression();
+	}
 
 	async #startGoalFromObjective(objective: string): Promise<void> {
 		await this.#enterGoalMode({ objective, silent: true });
@@ -1922,19 +1990,9 @@ export class InteractiveMode implements InteractiveModeContext {
 	}
 
 	async #startGoalPlanningFromHint(hint: string): Promise<void> {
-		if (this.#getPausedGoalState()) {
-			this.showWarning("Resume the current goal first, or drop it before starting goal planning.");
-			return;
-		}
 		const { brief, prompt } = buildGoalPlanningStart(hint);
-		if (this.goalModeEnabled) {
-			await this.#writeGoalPlanFromBrief(brief);
-			await this.#applyReplacedGoalState(brief);
-		} else {
-			await this.#writeGoalPlanFromBrief(brief);
-			await this.#enterGoalMode({ objective: brief, silent: true });
-			this.#resetGoalContinuationSuppression();
-		}
+		await this.#writeGoalPlanFromBrief(brief);
+		await this.#createOrReplaceGoalFromObjective(brief);
 		if (this.onInputCallback) {
 			this.onInputCallback(this.startPendingSubmission({ text: prompt }));
 		}
@@ -1949,19 +2007,15 @@ export class InteractiveMode implements InteractiveModeContext {
 	}
 
 	async #handleGoalSetSubcommand(rest: string): Promise<void> {
-		if (!this.goalModeEnabled && this.#getPausedGoalState()) {
-			this.showWarning("Resume the current goal first, or drop it before setting a new objective.");
-			return;
-		}
 		const objective = rest.trim()
 			? rest.trim()
 			: (await this.showHookEditor("Goal objective", undefined, undefined, { promptStyle: true }))?.trim();
 		if (!objective) return;
-		if (this.goalModeEnabled) {
-			await this.#replaceGoalFromObjective(objective);
-			return;
+		await this.#writeGoalPlanFromBrief(objective);
+		await this.#createOrReplaceGoalFromObjective(objective);
+		if (this.onInputCallback) {
+			this.onInputCallback(this.startPendingSubmission({ text: objective }));
 		}
-		await this.#startGoalFromObjective(objective);
 	}
 
 	async handlePlanApproval(details: PlanApprovalDetails): Promise<void> {
@@ -2100,7 +2154,9 @@ export class InteractiveMode implements InteractiveModeContext {
 		const sessionId = this.sessionManager.getSessionId();
 		const sessionFile = this.sessionManager.getSessionFile();
 		if (sessionId && sessionFile) {
-			process.stderr.write(`\n${chalk.dim(`Resume this session with ${APP_NAME} --resume ${sessionId}`)}\n`);
+			process.stderr.write(
+				`\n${chalk.dim("Resume this session with:")}\n${chalk.dim(`${APP_NAME} --resume ${sessionId}`)}\n`,
+			);
 		}
 
 		await postmortem.quit(0);
@@ -2175,8 +2231,8 @@ export class InteractiveMode implements InteractiveModeContext {
 	}
 
 	showError(message: string): void {
+		if (this.#pendingSubmittedInput) this.#takePendingOptimisticSignature(this.#pendingSubmittedInput);
 		this.#pendingSubmittedInput = undefined;
-		this.optimisticUserMessageSignature = undefined;
 		this.#pendingSubmissionDispose?.();
 		this.#pendingSubmissionDispose = undefined;
 		this.#pendingWorkingMessage = undefined;
@@ -2302,8 +2358,8 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.#uiHelpers.updatePendingMessagesDisplay();
 	}
 
-	queueCompactionMessage(text: string, mode: "steer" | "followUp"): void {
-		this.#uiHelpers.queueCompactionMessage(text, mode);
+	queueCompactionMessage(text: string, mode: "steer" | "followUp", ownership?: ComposerOwnership): void {
+		this.#uiHelpers.queueCompactionMessage(text, mode, ownership);
 	}
 
 	flushCompactionQueue(options?: { willRetry?: boolean }): Promise<void> {
@@ -2682,6 +2738,14 @@ export class InteractiveMode implements InteractiveModeContext {
 	// Selector handling
 	showSettingsSelector(): void {
 		this.#selectorController.showSettingsSelector();
+	}
+
+	showCommandPalette(
+		commands: SlashCommand[],
+		actions: CommandPaletteAction[],
+		executeSlashCommand: (name: string) => Promise<void>,
+	): void {
+		this.#selectorController.showCommandPalette(commands, actions, executeSlashCommand);
 	}
 
 	showThemeSelector(): void {

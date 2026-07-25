@@ -19,7 +19,7 @@ Subagents have no conversation history. Every fact, file path, and direction the
 {{/if}}
 
 <parameters>
-- `agent`: callable task role for all tasks. Use `executor` for ordinary parallel implementation/research, `executor_ext` for explicit external/ext/fresh/model-diverse executor work, and `planner`/`architect`/`critic` for explicit specialist lenses.
+- `agent`: callable task role for all tasks. Use `executor` for ordinary parallel implementation/research, `executor_ext` for explicit external/ext/fresh/model-diverse executor work, and `planner`/`architect`/`critic` for explicit specialist lenses. Optional — defaults to the general-purpose worker when omitted.
 - `tasks`: tasks to execute in parallel
  - `.id`: CamelCase, ≤32 chars
  - `.description`: UI label only — subagent never sees it

@@ -13,6 +13,7 @@ Reference this skill when planning web or codebase searches. It covers tool sele
 | I need... | 1st tool | 2nd tool (required) |
 |---|---|---|
 | Exact symbol / function | `grep` / `find` | `search` (BM25) or `read` |
+| Unfamiliar codebase shape | `map` (ranked structure map; run before deep grep, works on subtrees) | `grep` → `read` on surfaced files |
 | External library docs | Context7 MCP | `web_search` |
 | Latest pricing / versions | `web_search` | cross-check with official docs |
 | Deep web interaction (JS/auth) | `browser` tool | `web_search` for corroboration |
@@ -103,7 +104,7 @@ Every web-search-sourced claim must carry a tag:
 
 | Tag | Meaning | Condition |
 |---|---|---|
-| 🟢 Confirmed | 2+ sources agree, within 6 months | Official docs or 2 independent sources |
+| 🟢 Confirmed | 2+ sources agree AND at least one primary/original source was actually opened/fetched, within 6 months | Official docs or 2 independent sources — snippet-level agreement alone never reaches 🟢 |
 | 🟡 Single source | Only 1 source found | Add "추가 검증 권장" |
 | 🟠 Stale | Info >6 months old | Add date + "이후 변경 가능" |
 | 🔴 Unverified | Cannot confirm | State "확인되지 않음", no guessing |

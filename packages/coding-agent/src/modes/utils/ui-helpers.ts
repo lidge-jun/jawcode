@@ -1,8 +1,9 @@
 import type { AgentMessage } from "@jawcode-dev/agent-core";
 import type { AssistantMessage, ImageContent, Message } from "@jawcode-dev/ai";
-import { type Component, Spacer, Text, TruncatedText } from "@jawcode-dev/tui";
+import { type Component, Spacer, Text, TruncatedText, ViewportFill } from "@jawcode-dev/tui";
 import { APP_NAME } from "@jawcode-dev/utils";
 import { settings } from "../../config/settings";
+import { isJawBrand } from "../../discovery/helpers";
 import { AssistantMessageComponent } from "../../modes/components/assistant-message";
 import { BashExecutionComponent } from "../../modes/components/bash-execution";
 import { BranchSummaryMessageComponent } from "../../modes/components/branch-summary-message";
@@ -19,7 +20,12 @@ import { SkillMessageComponent } from "../../modes/components/skill-message";
 import { ToolExecutionComponent } from "../../modes/components/tool-execution";
 import { UserMessageComponent } from "../../modes/components/user-message";
 import { theme } from "../../modes/theme/theme";
-import type { CompactionQueuedMessage, InteractiveModeContext } from "../../modes/types";
+import {
+	type CompactionQueuedMessage,
+	type ComposerOwnership,
+	canApplyComposerOwnership,
+	type InteractiveModeContext,
+} from "../../modes/types";
 import {
 	type CustomMessage,
 	isSilentAbort,
@@ -55,10 +61,82 @@ export function commitLaneEnabled(): boolean {
 	return true;
 }
 
+/**
+ * 99.20.04 / 260703 WP6a-B — tool render mode. `commit` (jaw brand default):
+ * live-zone previews + collapsed-on-completion + ctrl+o current-turn
+ * expansion. `verbose` (engine default, gjc upstream parity): every tool and
+ * thinking block renders fully expanded, permanently — no minimize on the
+ * next tool, no fold toggle.
+ */
+export function toolRenderModeIsCommit(): boolean {
+	const mode = settings.get("tool.renderMode");
+	return (mode ?? (isJawBrand() ? "commit" : "verbose")) === "commit";
+}
+
+/**
+ * 260703 WP6b — commit-on-completion: finalized blocks reach the terminal
+ * scrollback as they complete instead of waiting for the next prompt submit
+ * (codex-rs model). Safe since the 260704 top-anchor redesign (devlog 80):
+ * commits either write directly into blank fill rows (no scroll) or push
+ * ONLY content across the scrollback seam, so the blank-gap class that
+ * forced the earlier rollback is geometrically impossible.
+ * JWC_COMMIT_ON_COMPLETION=0 opts out.
+ */
+export function commitOnCompletionEnabled(): boolean {
+	const env = process.env.JWC_COMMIT_ON_COMPLETION;
+	if (env !== undefined) return env !== "0" && env !== "false";
+	return true;
+}
+
+/**
+ * 260703 WP6b — mid-turn contiguous-prefix commit. Reuses the exact
+ * turn-boundary sweep (same stopper set: streaming component, pending tools,
+ * non-committable children — so it can never commit past live content or out
+ * of order), and every refusal lane degrades to today's behavior: the block
+ * stays in the virtual lane and the next boundary sweep retries. Refusals
+ * come free from TUI.commitLines (overlay open, frame overflowed, WP3b-min
+ * off-bottom/mux gate while streaming, width probe unresolved). COMMIT MODE
+ * ONLY: renderCommitted() forces the collapsed form, which is the committed
+ * contract for commit mode but would violate verbose permanence — verbose
+ * keeps its boundary-only cadence.
+ */
+export function commitFinalizedBacklogMidTurn(ctx: InteractiveModeContext): void {
+	if (!commitOnCompletionEnabled()) return;
+	if (!toolRenderModeIsCommit()) return;
+	commitFinalizedBacklog(ctx);
+}
+
 export function markLiveToggleEligible(component: unknown, eligible: boolean): void {
 	if (typeof component === "object" && component !== null) {
 		(component as LiveToggleEligible).liveToggleEligible = eligible;
 	}
+}
+
+/**
+ * 260703 WP2 — multiset helpers for the local-submission signature protocol.
+ * Signatures are `text\u0000imageCount`; identical texts must keep independent
+ * credits or a second delivery re-adds a duplicate chat component / wipes the
+ * editor draft (see devlog 30_dup_input_signatures.md).
+ */
+export function addSignatureCredit(counts: Map<string, number>, signature: string): void {
+	counts.set(signature, (counts.get(signature) ?? 0) + 1);
+}
+
+/** Consume one credit; false when none remain. */
+export function consumeSignatureCredit(counts: Map<string, number>, signature: string): boolean {
+	const n = counts.get(signature) ?? 0;
+	if (n <= 0) return false;
+	if (n === 1) counts.delete(signature);
+	else counts.set(signature, n - 1);
+	return true;
+}
+
+/** Remove the first occurrence; false when absent. */
+export function takeFirstSignature(list: string[], signature: string): boolean {
+	const index = list.indexOf(signature);
+	if (index === -1) return false;
+	list.splice(index, 1);
+	return true;
 }
 
 export function isLiveToggleEligible(component: unknown): boolean {
@@ -94,20 +172,190 @@ function hasCommittedRenderer(component: unknown): component is CommittedRendera
  * the first non-committable child (streaming component, pending tool awaiting
  * a result, or a commitLines fallback).
  */
-export function commitFinalizedBacklog(ctx: InteractiveModeContext): void {
+/**
+ * The contiguous-prefix stopper set shared by the sweep and the realign gate
+ * (they MUST stay identical — gpt-5.5 review rounds 1/3): the streaming
+ * component, a pending agent tool, or any component that declares itself not
+ * yet committable (`isBacklogCommittable()` — user `!`/`$` bash/eval
+ * executions still running across a turn boundary; committing them freezes
+ * their pixels and their later result updates could never render).
+ */
+function stopsBacklogSweep(ctx: InteractiveModeContext, pending: Set<unknown>, child: unknown): boolean {
+	if (child === ctx.streamingComponent || pending.has(child)) return true;
+	const committable = (child as { isBacklogCommittable?: () => boolean }).isBacklogCommittable;
+	return typeof committable === "function" && committable.call(child) === false;
+}
+
+export function commitFinalizedBacklog(ctx: InteractiveModeContext, options?: { markOnly?: boolean }): void {
 	// The typeof guard doubles as a harness escape hatch: partial UI fixtures
 	// (and any non-TUI surface) simply stay on the virtual lane.
 	if (!commitLaneEnabled() || typeof ctx.ui.commitLines !== "function") return;
+	// 260704 (adversarial review T3): WRITE commits must never land below an
+	// in-frame preamble (reading-order inversion in history). Retry the
+	// preamble first; if it still refuses, stay on the virtual lane.
+	if (options?.markOnly !== true && Array.isArray(ctx.ui.children)) {
+		commitPreamble(ctx);
+		for (const child of ctx.ui.children) {
+			if (child === (ctx.chatContainer as unknown as Component)) break;
+			if (child instanceof ViewportFill) continue;
+			if (!child.committed) return;
+		}
+	}
+	// 260702 F3: after a successful scroll-out realign the finalized cells'
+	// pixels are already in the physical scrollback (as-streamed) — mark them
+	// committed WITHOUT a second insert-history write, or the content would
+	// appear twice in history.
+	const markOnly = options?.markOnly === true;
 	const width = Math.max(1, ctx.ui.terminal?.columns ?? 80);
-	const pending = new Set(ctx.pendingTools.values());
+	const pending = new Set<unknown>(ctx.pendingTools.values());
 	for (const child of ctx.chatContainer.children) {
 		if (child.committed) continue;
-		if (child === ctx.streamingComponent || pending.has(child as never)) return;
-		const lines = hasCommittedRenderer(child) ? child.renderCommitted(width) : child.render(width);
-		if (lines.length > 0 && !ctx.ui.commitLines(lines)) return;
+		if (stopsBacklogSweep(ctx, pending, child)) return;
+		if (!markOnly) {
+			const lines = hasCommittedRenderer(child) ? child.renderCommitted(width) : child.render(width);
+			if (lines.length > 0 && !ctx.ui.commitLines(lines)) return;
+		}
 		child.committed = true;
 		markLiveToggleEligible(child, false);
 	}
+}
+
+/**
+ * 260702 F3 (gpt-5.5 review blocker) — the scroll-out realign is only safe
+ * when the sweep that follows can mark the ENTIRE backlog: a still-pending
+ * component (background/detached tool parked in chatContainer between turns)
+ * or the streaming component stops the contiguous-prefix sweep, and its rows
+ * — already pushed into the scrollback by the scroll-out — would be redrawn
+ * by the forced rebuild, duplicating content across scrollback and frame.
+ */
+export function canMarkEntireBacklog(ctx: InteractiveModeContext): boolean {
+	// Partial UI fixtures may omit these structures — refuse (skip realign)
+	// rather than throw; realign is an optimization, not a correctness need.
+	if (!ctx.pendingTools || !ctx.chatContainer?.children) return false;
+	const pending = new Set<unknown>(ctx.pendingTools.values());
+	for (const child of ctx.chatContainer.children) {
+		if (child.committed) continue;
+		if (stopsBacklogSweep(ctx, pending, child)) return false;
+	}
+	return true;
+}
+
+/**
+ * 260702 F3 follow-up (user e2e: duplicated welcome banner) — after a
+ * successful scroll-out realign the frame preamble (config warnings, spacers,
+ * welcome banner, changelog — every direct UI child mounted ABOVE
+ * chatContainer) is physically in the scrollback like everything else, but it
+ * is outside the chatContainer sweep, so the forced rebuild repainted it and
+ * pushed a fresh copy into history at every turn boundary. Mark it committed
+ * (frame assembly skips committed children); the ViewportFill spacer must
+ * stay live — it carries the pin sentinel.
+ */
+/**
+ * 260704 gap fix — commit the PREAMBLE (welcome banner, warnings, changelog)
+ * into the scrollback via the top-anchored write lane. With the fill sentinel
+ * now the first frame child, the lane is alive from frame 1; committing the
+ * preamble at the first stream start moves the banner to the scrollback seam
+ * so all later content flows top-down beneath it (no banner-vs-chat gap) and
+ * — critically — GUARANTEES reading order: chat rows must never commit above
+ * an in-frame banner. Idempotent; stops at the first refusal and retries at
+ * the next stream start.
+ */
+export function commitPreamble(ctx: InteractiveModeContext): void {
+	if (!commitLaneEnabled() || typeof ctx.ui.commitLines !== "function") return;
+	const children = ctx.ui.children;
+	if (!Array.isArray(children)) return;
+	const width = Math.max(1, ctx.ui.terminal?.columns ?? 80);
+	for (const child of children) {
+		if (child === (ctx.chatContainer as unknown as Component)) break;
+		if (child instanceof ViewportFill) continue;
+		if (child.committed) continue;
+		const lines = hasCommittedRenderer(child) ? child.renderCommitted(width) : child.render(width);
+		if (lines.length > 0 && !ctx.ui.commitLines(lines)) return;
+		child.committed = true;
+	}
+}
+
+/**
+ * 260704 RESIZE REBUILD — after a width change settles, re-emit the ENTIRE
+ * finalized transcript at the new width (TUI.replayTranscript does the full
+ * screen+scrollback replace; a full replace cannot duplicate). The gathered
+ * prefix uses the committed render forms and stops at the same contiguous-
+ * prefix boundary as the commit sweep, so streaming/live content stays in
+ * the frame and re-renders below the replayed tail.
+ */
+export function rebuildTranscriptForResize(ctx: InteractiveModeContext): void {
+	const ui = ctx.ui as unknown as {
+		terminal?: { columns?: number };
+		replayTranscript?: (lines: string[], opts?: { clusterRows?: number }) => void;
+		children?: Component[];
+	};
+	if (typeof ui.replayTranscript !== "function" || !Array.isArray(ui.children)) return;
+	const width = Math.max(1, ui.terminal?.columns ?? 80);
+	const lines: string[] = [];
+	const pending = new Set<unknown>(ctx.pendingTools.values());
+	const renderOf = (child: Component): string[] =>
+		hasCommittedRenderer(child) ? child.renderCommitted(width) : child.render(width);
+	// Preamble (everything above chatContainer except the fill sentinel).
+	for (const child of ui.children) {
+		if (child === (ctx.chatContainer as unknown as Component)) break;
+		if (child instanceof ViewportFill) continue;
+		lines.push(...renderOf(child));
+		child.committed = true;
+	}
+	// Finalized chat prefix (same stopper boundary as the commit sweep).
+	for (const child of ctx.chatContainer.children) {
+		if (stopsBacklogSweep(ctx, pending, child)) break;
+		lines.push(...renderOf(child));
+		child.committed = true;
+	}
+	// Bottom-anchored rebuild: the composer cluster keeps the floor and the
+	// replayed tail stays visible above it (260704 user UX round 3).
+	const cluster = measureComposerClusterRows(ctx);
+	ui.replayTranscript(lines, cluster > 0 ? { clusterRows: cluster } : undefined);
+}
+
+export function markPreambleCommitted(ctx: InteractiveModeContext): void {
+	const children = ctx.ui.children;
+	if (!Array.isArray(children)) return;
+	for (const child of children) {
+		if (child === (ctx.chatContainer as unknown as Component)) break;
+		if (child instanceof ViewportFill) continue;
+		child.committed = true;
+	}
+}
+
+/**
+ * 260702 F3 — measure the composer cluster: every component mounted BELOW the
+ * chat container (pending-message chips, live tool zone, status/todo/btw
+ * containers, breathing-room spacer, status line, hook widgets, editor,
+ * composer footer, background panel). Walking the actual TUI child list keeps
+ * anonymous members (the Spacer) and future additions counted. Returns -1
+ * when the cluster cannot be located — the realign refuses rather than
+ * scrolling composer pixels into history.
+ */
+export function measureComposerClusterRows(ctx: InteractiveModeContext): number {
+	const children = ctx.ui.children;
+	if (!Array.isArray(children)) return -1;
+	// 260703 v3: anchor on the chat container, not the live tool container —
+	// pendingMessagesContainer (queued Steer/Follow-up chips) is mounted
+	// BETWEEN them, and measuring below liveToolContainer classified the chip
+	// pixels as transcript content, so the realign parked stale gray chip text
+	// into the committed block and stamped it into the scrollback. Everything
+	// below the transcript is composer cluster.
+	const start = children.indexOf(ctx.chatContainer as never);
+	if (start === -1) return -1;
+	const width = Math.max(1, ctx.ui.terminal?.columns ?? 80);
+	let rows = 0;
+	for (let i = start + 1; i < children.length; i++) {
+		// 260704 (adversarial review C1): the fill sentinel now sits below the
+		// chat (top-flow layout) and renders one SENTINEL line that expands to
+		// ZERO physical rows under overflow — counting it inflated the cluster
+		// by one and the realign excluded the turn's LAST content row from the
+		// committed block (permanently lost at every overflowed boundary).
+		if (children[i] instanceof ViewportFill) continue;
+		rows += children[i].render(width).length;
+	}
+	return rows;
 }
 
 export class UiHelpers {
@@ -685,10 +933,12 @@ export class UiHelpers {
 		}
 	}
 
-	queueCompactionMessage(text: string, mode: "steer" | "followUp"): void {
+	queueCompactionMessage(text: string, mode: "steer" | "followUp", ownership?: ComposerOwnership): void {
 		this.ctx.compactionQueuedMessages.push({ text, mode } as CompactionQueuedMessage);
-		this.ctx.editor.addToHistory(text);
-		this.ctx.editor.setText("");
+		if (canApplyComposerOwnership(ownership, this.ctx.editor)) {
+			this.ctx.editor.addToHistory(text);
+			this.ctx.editor.setText("");
+		}
 		this.ctx.updatePendingMessagesDisplay();
 		this.ctx.showStatus("Queued message for after compaction");
 	}

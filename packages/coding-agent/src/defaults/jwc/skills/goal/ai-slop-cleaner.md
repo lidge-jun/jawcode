@@ -23,7 +23,13 @@ Classify every finding against the full taxonomy:
 4. **Needless abstraction** — pass-through wrappers, speculative indirection, single-use helper layers.
 5. **Boundary violations** — hidden coupling, leaky responsibilities, wrong-layer imports or side effects.
 6. **UI/design slop** — context-sensitive signals, not absolute bans; preserve intentional brand/design-system/accessibility/product rationale. Signals: small Korean body copy (challenge 11-12px; Korean body text generally needs 14px+ unless a dense accessible system supports smaller), gratuitous shadows/depth, repetitive eyebrow+title+description scaffolding and filler/emoji badges, default blue/purple palettes (e.g. #3B82F6) without rationale, over-perfect uniform 3/4-column grids, and extreme "AI demo" gradients.
+   - 2026 frontend tell priority: gradient overuse is the new #1 AI-design signal. Challenge pages with more than 1 ambient/background gradient per viewport, gradients on 3+ sibling cards, or stacked background wash + card gradient + gradient border + glow shadow.
+   - Challenge one-note single-hue themes: full-page terminal green, cyber cyan, CRT amber, or similar washes where backgrounds, borders, badges, glows, imagery, and accent text all resolve to one hue family. Healthy dark UI uses a neutral base with the accent under roughly 10% of surface area.
+   - Challenge self-describing meta copy: visible UI text that narrates the mockup, layout, bento/crop/image reuse, responsive behavior, viewport sizes, or the agent/design process instead of the product job for the user.
+   - Challenge bento grids that are card piles in costume: ragged row edges, no dominant cell, spans that do not match content weight, orphan tail rows, or uniform sealed boxes with identical radius/border/padding/background.
+   - Challenge duplicate image reuse on one page, such as using the same generated/stock image as both hero art and a detail crop/zoom tile. Each visual slot should earn distinct content or be cut.
 7. **Missing tests** — behavior not locked, weak regression coverage, missing edge/failure-mode cases.
+8. **Unvetted dependencies** — new packages introduced by the story without registry vetting. AI-suggested package names are a slopsquatting attack surface (hallucinated names get registered by attackers). Blocking signals: package does not exist on the official registry, release history is days old, maintainer/repository link is implausible or missing, install scripts do surprising network/exec work, or the lockfile diff was never reviewed. Report the finding; the leader routes registry vetting — this cleaner never installs or removes packages.
 
 ## Blocking vs advisory
 
@@ -46,6 +52,7 @@ Advisory Findings: [none, or numbered findings with file, category, evidence, wh
 Fallback Findings: [none, or finding -> masking fallback slop / grounded compatibility/fail-safe fallback -> blocking/advisory]
 UI/Design Findings: [none/N/A, or signal -> blocking/advisory -> rationale]
 Missing Test Findings: [none, or gap -> blocking/advisory -> required coverage]
+Dependency Findings: [none/N/A, or new package -> vetting signal -> blocking/advisory]
 Recursion Guard: [confirmed no nested orchestrate/team/jaw-interview/goal spawned; broad findings handed to leader]
 Changed Files Reviewed:
 - [path] - [reviewed / no relevant edits]

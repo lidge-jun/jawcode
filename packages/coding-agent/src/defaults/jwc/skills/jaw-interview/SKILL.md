@@ -1,7 +1,7 @@
 ---
 name: jaw-interview
 description: IPABCD I-stage engine — Socratic jaw interview with dual-audit ambiguity gating before execution approval
-argument-hint: "[--quick|--standard|--deep] <idea or vague description>"
+argument-hint: "[--trace] [--quick|--standard|--deep] <idea or vague description>"
 pipeline: [jaw-interview, plan]
 handoff-policy: approval-required
 handoff: .jwc/specs/jaw-interview-{slug}.md
@@ -20,11 +20,14 @@ Jaw Interview implements Ouroboros-inspired Socratic questioning with mathematic
 - User says "ouroboros", "socratic", "I have a vague idea", "not sure exactly what I want"
 - User wants to avoid "that's not what I meant" outcomes from autonomous execution
 - Task is complex enough that jumping to code would waste cycles on scope discovery
+- User asks for implementation but the target, scope, acceptance criteria, or safety boundary is ambiguous enough that mutation would require guessing
+- User requests a trace/research pre-step before the interview, e.g. `/skill:jaw-interview --trace <idea>`
 - User wants mathematically-validated clarity before committing to execution
 </Use_When>
 
 <Do_Not_Use_When>
 - User has a detailed, specific request with file paths, function names, or acceptance criteria -- execute directly
+- User has an explicit concrete low-risk implementation request with enough target, scope, and acceptance criteria to execute safely -- execute directly
 - User wants to explore options or brainstorm -- use the orchestrate plan stage (`jwc orchestrate p`) instead
 - User wants a quick fix or single change -- delegate to executor or execution
 - User says "just do it" or "skip the questions" without an explicit execution path -- respect their intent by ending interview and writing a `pending approval` spec, not by mutating files or delegating execution
@@ -46,6 +49,8 @@ Inspired by the [Ouroboros project](https://github.com/Q00/ouroboros) which demo
 - Gather codebase facts via `explore` agent BEFORE asking the user about them
 - For brownfield confirmation questions, cite the repo evidence that triggered the question (file path, symbol, or pattern) instead of asking the user to rediscover it
 - Internal audit every round: re-assess all four dimensions (goal/constraints/criteria/ontology) yourself and accumulate a known/unknown tracker where each known fact carries source (user_statement, repo_fact, inference, assumption, default) and confidence
+- **INTERVIEW-CLASSIFY-01:** before the interview can hand off to planning or execution, settle three things: the task shape, the loop archetype, and the **unit residence** — which implementation unit (`devlog/_plan/YYMMDD_slug/`) this work belongs to, an existing unit or a new one (UNIT-RESIDENCE-01). Ask, explicitly or implicitly from evidence, whether a verifier defines done for this work or only better. Record the archetype as `spec-satisfaction` or `open-ended-optimization`; record the unit path in the spec metadata. Discovering the archetype only after candidates have been burned, or orphaning work outside a unit, is an interview failure, not a build failure.
+- For optimization-shaped work, confirm what instrumentation or telemetry is needed before candidate generation. If the current verifier is scalar-only, the interview spec must flag that the plan/build path starts with measurement, not candidate patches.
 - When appending each round to `state.rounds[]`, record `ambiguity` (the post-round score) and `dimensions` — the four per-dimension clarity levels mapped to a 0..3 integer scale (low=0, medium=1, high/xhigh=2, max=3). The HUD renders these as mini gauges; rounds without the fields stay backward-compatible.
 - Negativity bias: treat every answer as a claim to pressure-test. If an answer is vague, hedging ("maybe", "아마", "~일 수도"), or lacks concrete detail, DOWNGRADE the affected dimension score and stay on that dimension until one layer deeper, one assumption clearer, or one boundary tighter. Never raise a score to close the interview faster
 - The ontology dimension score is the ontology stability_ratio mapped to the tracker (display only); the external ambiguity formula and gate stay on the three scored dimensions (+brownfield context)
@@ -54,6 +59,10 @@ Inspired by the [Ouroboros project](https://github.com/Q00/ouroboros) which demo
 - Keep prompt payloads budgeted: summarize or trim oversized initial context/history before composing question, scoring, spec, or handoff prompts
 - If the user's initial context is oversized, create a concise prompt-safe summary first and wait for that summary before ambiguity scoring, question generation, or downstream execution handoff
 - Do not proceed to execution or `jwc orchestrate p` until ambiguity ≤ the resolved threshold, closure guard passes, the restated goal is explicitly confirmed, the short full-spec summary has been shown, the user acknowledges/proceeds after that summary, strict confirmed handoff metadata is persisted, and the user explicitly selects a Phase 5 execution option
+- Treat user wording such as `implementation`, "implementation plan", Korean `구현`, or "구현 계획" as describing the eventual target of the work, not as permission to implement now
+- While still in jaw-interview, do not implement, edit or write product/source code, launch implementation workers, or start task/skill/goal execution; keep interviewing for scope, risks, acceptance criteria, and unknowns
+- When the user wants interview output for eventual implementation, say: "I can interview for an implementation plan, but I won't implement during jaw-interview." Then continue clarifying scope, risks, acceptance criteria, and unknowns
+- Implementation requires an explicit phase transition after the interview: jaw-interview must first persist its spec/handoff, the workflow phase must explicitly transition out of jaw-interview (for example into the native `orchestrate P` plan stage), and execution approval must be captured by a downstream execution path
 - Allow early exit with a clear warning if ambiguity is still high
 - Persist interview state for resume across session interruptions
 - Explicit markdown/mockup interview mode is allowed when the user explicitly asks to conduct the interview while updating Markdown documents or lightweight HTML mockups. In this mode, the runtime permits `.md` and mockup `.html` edits and the prompt policy governs judgment: create or update Markdown only for interview decisions, open questions, phase splits, risks, specs, plans, or related planning notes; create or update HTML only as a static mockup to clarify requirements or UX decisions. Non-markdown/non-mockup product/source files, tests/builds, commits, execution handoffs, delegation, and direct `.jwc/state` edits remain forbidden until the normal approval gates are satisfied.
@@ -177,6 +186,47 @@ The first line of this announcement MUST be exactly the Phase 0 threshold marker
 > **Your idea:** "{initial_idea}"
 > **Project type:** {greenfield|brownfield}
 > **Current ambiguity:** 100% (we haven't started yet)
+
+## Phase 1.5: Catalog Discovery (conditional, INTERVIEW-CATALOG-01)
+
+When the initial idea is a vague product/domain request ("사주 앱 만들고 싶어") with no prior
+codebase context (`state.type === "greenfield"` AND no file paths, function names, or error
+descriptions — just a domain/product concept), activate catalog discovery before Round 0.
+
+**Hard barrier — design/UX LEADS (CATALOG-DESIGN-FIRST-01).** Load the option ontology from
+`catalog-discovery-axes.md`. Iterate stages ascending; do NOT present a stage until every
+required entry of all earlier stages is answered:
+
+1. **Stage 1 — Design/UX** (all 6 dials required): use Product-Personality-Selection
+   methodology. Present each dial's options with trade-offs (from `catalog-discovery-axes.md`),
+   then ask. Map answers to design tokens. May spawn `auto-research-catalog.md` for structured
+   option presentation.
+2. **Stage 2 — Domain**: app type selection. Seeds stage-3 derivation via `implies[]`.
+3. **Stage 3 — Derived**: surface backend entries whose `derived_from` matches selected
+   stage 1+2 entry IDs, or whose `auto_activate_rules` keywords match the initial idea text.
+   Never dump a flat list. Confirm high-impact activations with the user.
+
+**Output**: store selections in `state.catalog_discovery`:
+```json
+"catalog_discovery": {
+  "mode": "completed",
+  "personality": {"mood": "mystical", "lightness": "dark", ...},
+  "domain": "content_service",
+  "derived_entries": ["security.pii_protection", "data.retention_policy", ...],
+  "completed_at": "round_0_pre"
+}
+```
+
+The derived component list from stage 3 becomes the **candidate list for Round 0 topology
+enumeration** — the user confirms/edits topology as normal, but seeded from catalog selections
+instead of free-form extraction.
+
+**Ambiguity pre-seeding**: personality selection → pre-seed goal clarity; domain → constraint
+clarity; derived architecture → context clarity. This gives the Socratic loop a non-1.0
+starting ambiguity when Phase 2 begins.
+
+**Skip**: if the user wants standard Socratic flow, already specifies components, or the
+request is brownfield, skip catalog discovery and go straight to Round 0.
 
 ## Round 0: Topology Enumeration Gate
 
@@ -481,6 +531,9 @@ Spec structure:
 - Rounds: {count}
 - Final Ambiguity Score: {score}%
 - Type: greenfield | brownfield
+- Task Shape: {simple|refactor|feature|broad initiative|high-risk}
+- Loop Archetype: {spec-satisfaction|open-ended-optimization}
+- Verifier Semantics: {defines-done|measures-better}
 - Generated: {timestamp}
 - Threshold: {threshold}
 - Threshold Source: <resolvedThresholdSource>
@@ -519,6 +572,12 @@ Spec structure:
 ## Non-Goals
 - {explicitly excluded scope 1}
 - {explicitly excluded scope 2}
+
+## Loop Classification
+- Task shape: {simple, refactor, feature, broad initiative, or high-risk, and why}
+- Loop archetype: {spec-satisfaction | open-ended-optimization}
+- Verifier question: Does the verifier define done, or only better? {answer}
+- Measurement prerequisite: {instrumentation/telemetry needed before candidates, or none}
 
 ## Acceptance Criteria
 - [ ] {testable criterion 1}
@@ -569,7 +628,7 @@ Spec structure:
 
 **Research workflow override:** if `--research-setup` is active, skip the standard execution options below and write a pending-approval spec that names research setup as an unresolved follow-up. Do not invoke deprecated research workflow shims.
 
-**Loop assessment** (skipped when `--research-setup` is active): Before presenting the execution options below, assess whether the spec describes work that should be split into multiple PABCD cycles. If so, note it in the question preamble so the user can make an informed choice. Do not bypass the execution options — loop is a mode of Option 1 (orchestrate P), not a separate gate.
+**Loop assessment** (skipped when `--research-setup` is active): Before presenting the execution options below, use the spec's Loop Classification to assess whether the work should be split into multiple PABCD cycles and whether the verifier defines done or only better. If so, note it in the question preamble so the user can make an informed choice. Do not bypass the execution options — loop is a mode of Option 1 (orchestrate P), not a separate gate.
 
 
 After the final spec is written and the mandatory short summary acknowledgement has been persisted as `summary_confirmed` or `early_exit_summary_confirmed`, mark it `pending approval` and present execution options via the `ask` tool. Until the user selects an execution option, the jaw-interview module MUST NOT run mutation-oriented shell commands, edit source files, commit, push, open PRs, invoke execution skills, or delegate implementation tasks:

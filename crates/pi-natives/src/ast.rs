@@ -11,6 +11,7 @@ use napi_derive::napi;
 use pi_ast::{
 	SupportLang,
 	ops::{self as shared_ops},
+	tags as repo_tags,
 };
 
 use crate::{fs_cache, glob_util, task};
@@ -213,6 +214,19 @@ pub struct AstReplaceResult {
 	pub limit_reached:      bool,
 	/// Parse or pattern errors when not failing the whole operation.
 	pub parse_errors:       Option<Vec<String>>,
+}
+
+/// Options for `repoMap`: path scope and approximate token budget.
+#[napi(object)]
+pub struct RepoMapOptions<'env> {
+	/// Single file or directory to map.
+	pub path:       String,
+	/// Approximate output token budget; defaults to 4096.
+	pub budget:     Option<u32>,
+	/// Optional cancellation handle.
+	pub signal:     Option<Unknown<'env>>,
+	/// Wall-clock timeout for the worker task in milliseconds.
+	pub timeout_ms: Option<u32>,
 }
 
 struct FileCandidate {
@@ -1002,4 +1016,17 @@ mod tests {
 		];
 		assert!(apply_edits(source, &edits).is_err());
 	}
+}
+
+/// Build a ranked tree-sitter tag map for a file or directory; returns a
+/// promise resolved on a worker thread.
+#[napi]
+pub fn repo_map(options: RepoMapOptions<'_>) -> task::Promise<String> {
+	let RepoMapOptions { path, budget, signal, timeout_ms } = options;
+	let ct = task::CancelToken::new(timeout_ms, signal);
+	task::blocking("repo_map", ct, move |ct| {
+		ct.heartbeat()?;
+		repo_tags::repo_map(path, budget.map(|value| value as usize))
+			.map_err(|err| Error::from_reason(err.to_string()))
+	})
 }

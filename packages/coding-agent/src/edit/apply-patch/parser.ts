@@ -24,6 +24,7 @@
 
 import { ParseError } from "../diff";
 import type { PatchInput } from "../modes/patch";
+import { validateEditHeaderPath } from "../path-validation";
 
 const BEGIN_PATCH_MARKER = "*** Begin Patch";
 const END_PATCH_MARKER = "*** End Patch";
@@ -34,6 +35,15 @@ const MOVE_TO_MARKER = "*** Move to: ";
 
 interface ParseApplyPatchOptions {
 	streaming?: boolean;
+}
+
+function validateApplyPatchPath(raw: string, context: string, lineNumber: number): string {
+	try {
+		return validateEditHeaderPath(raw, context);
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		throw new ParseError(message, lineNumber);
+	}
 }
 
 /**
@@ -91,7 +101,7 @@ function parseApplyPatchWithOptions(patchText: string, options: ParseApplyPatchO
 		const firstLine = remaining[0].trim();
 
 		if (firstLine.startsWith(ADD_FILE_MARKER)) {
-			const path = firstLine.slice(ADD_FILE_MARKER.length);
+			const path = validateApplyPatchPath(firstLine.slice(ADD_FILE_MARKER.length), "Add file", lineNumber);
 			let contents = "";
 			let consumed = 1;
 
@@ -112,7 +122,7 @@ function parseApplyPatchWithOptions(patchText: string, options: ParseApplyPatchO
 		}
 
 		if (firstLine.startsWith(DELETE_FILE_MARKER)) {
-			const path = firstLine.slice(DELETE_FILE_MARKER.length);
+			const path = validateApplyPatchPath(firstLine.slice(DELETE_FILE_MARKER.length), "Delete file", lineNumber);
 			hunks.push({ path, op: "delete" });
 			remaining = remaining.slice(1);
 			lineNumber++;
@@ -120,13 +130,13 @@ function parseApplyPatchWithOptions(patchText: string, options: ParseApplyPatchO
 		}
 
 		if (firstLine.startsWith(UPDATE_FILE_MARKER)) {
-			const path = firstLine.slice(UPDATE_FILE_MARKER.length);
+			const path = validateApplyPatchPath(firstLine.slice(UPDATE_FILE_MARKER.length), "Update file", lineNumber);
 			remaining = remaining.slice(1);
 			lineNumber++;
 
 			let movePath: string | undefined;
 			if (remaining.length > 0 && remaining[0].startsWith(MOVE_TO_MARKER)) {
-				movePath = remaining[0].slice(MOVE_TO_MARKER.length);
+				movePath = validateApplyPatchPath(remaining[0].slice(MOVE_TO_MARKER.length), "Move to", lineNumber);
 				remaining = remaining.slice(1);
 				lineNumber++;
 			}

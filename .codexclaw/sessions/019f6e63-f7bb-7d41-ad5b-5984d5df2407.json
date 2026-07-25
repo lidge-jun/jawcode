@@ -1,0 +1,20 @@
+{
+  "phase": "IDLE",
+  "sessionId": "019f6e63-f7bb-7d41-ad5b-5984d5df2407",
+  "slug": "34-a-cards-triage-implement-fin-pabcd-infinite-l",
+  "updatedAt": "2026-07-17T05:50:18.600Z",
+  "flags": {
+    "interview": false,
+    "auditPassed": false,
+    "checkPassed": false
+  },
+  "supersededBy": null,
+  "injectedTurns": [],
+  "lastInjectedPhase": null,
+  "orchestrationActive": false,
+  "interview": null,
+  "stopBlockPhase": null,
+  "stopBlockCount": 0,
+  "loopArmSeen": false,
+  "idleEditNudges": 0
+}

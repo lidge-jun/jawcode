@@ -122,7 +122,11 @@ export class FullTranscriptOverlayComponent extends Container {
 		const itemCount = this.#source.kind === "components" ? this.#source.items.length : this.#source.itemCount;
 		const visibleLines = lines.slice(this.#scroll, this.#scroll + rows);
 		while (visibleLines.length < rows) {
-			visibleLines.push(" ".repeat(Math.max(1, width)));
+			// 260703 WP5.1: blank filler rows carry no cells — the overlay
+			// compositor pads every overlay line to the overlay width itself
+			// (tui #compositeLineAt overlayPad), and full-width literal spaces
+			// are exactly the reflow-amplifier class WP5 removes.
+			visibleLines.push("");
 		}
 		return [
 			theme.fg("accent", ` Full transcript (${itemCount} entries, ${position})`),

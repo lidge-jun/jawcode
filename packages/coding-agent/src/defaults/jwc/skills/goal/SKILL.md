@@ -103,6 +103,23 @@ Loop until `jwc goal status` reports all goals complete:
    `jwc goal checkpoint --goal-id <id> --status blocked --evidence "<completed legacy jwc goal blocks goal create in this thread>" --gjc-goal-json <goal-get-json-or-path>`
 11. Resume failed goals with `jwc goal complete-goals --retry-failed`.
 
+## Loop execution contract
+
+For each active story, carry the approved plan's loop-spec into `.jwc/goal/ledger.jsonl`: archetype, trigger, goal, non-goals, verifier and what it measures, stop condition, memory artifact, terminal states, escalation, and resource bounds for unattended runs. Memory lives on disk, not in the transcript; every checkpoint evidence string should point to durable artifacts such as the plan/spec path, changed files, verifier command, exit/status result, and quality-gate receipt.
+
+Terminal states are report/checkpoint vocabulary, not new inline goal states: `DONE` means verified success, `NOOP` means nothing needed, `BLOCKED` means an external dependency stops progress, `UNSAFE` means a human risk decision is required, `NEEDS_HUMAN` means the next decision is user judgment, and `BUDGET_EXHAUSTED` means resources ran out and any best-so-far result must be labeled as such. Budget exhaustion is never success.
+
+Classify the story before choosing the loop shape (`LOOP-ARCHETYPE-01`):
+
+- **Spec-satisfaction**: the verifier defines done, such as tests, contracts, typecheck, or a quality gate. Use the normal repair loop: implement, run verifier, read the failure delta, repair only that delta, and re-verify.
+- **Open-ended optimization**: the verifier only defines better, such as scores, win rates, or adversarial evaluators. Use explore-and-select: generate diverse candidates, evaluate them on the same instances, keep best-so-far, regenerate from evidence, and stop on plateau or budget as `BUDGET_EXHAUSTED`, not `DONE`.
+
+Repair thresholds apply inside a story (`LOOP-REPAIR-01`). Two consecutive failed repairs of the same failure require root-cause analysis before another patch. Three require replan or handoff back to jaw-interview. Three same-phase gate/checkpoint failures in one story count as no-progress and force a clarification return instead of another retry.
+
+Conditional-path activation grounding: when a story adds or changes a path that only runs under a trigger absent from the happy path (error handler, fallback, retry, cache, guard, gated branch, threshold behavior), the verification lane must TRIGGER that condition for real and OBSERVE the path execute with its intended effect (a hit assertion, log line, or counter that is read back). "All verifier lanes green" does not cover a branch no lane drives; a change whose observable output is byte-identical to baseline should be presumed dead and instrumented before "no effect" is concluded. Record the activation artifact in the checkpoint evidence like any other durable proof.
+
+Unattended goal loops must state tool/credential scope, token or cost budget, and wall-clock bound before execution. Missing resource bounds on high-risk surfaces are a stop-and-ask condition.
+
 ## Dynamic steering
 
 Use `jwc goal steer` when real findings or blockers prove the current story decomposition should change while the aggregate objective and constraints stay fixed. Steering is explicit-only and evidence-backed; broad natural-language requests are rejected instead of guessed.
@@ -169,7 +186,7 @@ The completion-gate cleanup sweep is driven by `ai-slop-cleaner`, an internal Go
 
 - It is not slash-command discoverable, has no public skill-listing entry, and is never resolvable through `skill://`.
 - It is a read-only detector+reporter over the active story's changed files only: it never edits code, writes files, mutates `.jwc/`, checkpoints, calls goal tools, or spawns workflows.
-- It classifies every finding as blocking or advisory across the full taxonomy (fallback-like masking vs. grounded, duplication, dead code, needless abstraction, boundary violations, UI/design slop, missing tests).
+- It classifies every finding as blocking or advisory across the full taxonomy (fallback-like masking vs. grounded, duplication, dead code, needless abstraction, boundary violations, UI/design slop, missing tests, unvetted dependencies/slopsquatting).
 - The leader and a leader-spawned `executor` own all fixes; the cleaner reruns until zero blocking findings remain. Advisory findings live in the gate report only.
 - Recursion guard: it must not spawn nested `orchestrate`/`team`/`jaw-interview`/`goal`; broad or architectural findings are handed back to the leader as review blockers.
 
@@ -300,6 +317,72 @@ Receipts are freshness-scoped:
 - Per-goal receipts remain fresh for their target goal unless that goal, its blocker metadata, or its supersession metadata changes.
 - Normal later `goal_started` or clean receipt-backed `goal_checkpointed` events for other goals do not stale older per-goal receipts.
 - Appending required goals or changing final required-goal state stales final aggregate receipts. Final aggregate completion requires a fresh final aggregate receipt proving no incomplete, blocked, or `review_blocked` required goals remain.
+
+## Optimization-loop discipline (score/objective goals)
+
+When the aggregate goal maximizes a score/metric against an evaluator (benchmarks,
+win-rates, graded suites), apply plateau discipline on top of the normal gate:
+
+- Track each discarded candidate's killing stage and change class (parameter-tweak |
+  branch-toggle | state-space redesign | evaluator change). After N consecutive
+  same-class discards (starting value N=3 — tune per domain), the next story MUST
+  target the killing mechanism itself — usually the evaluation gate — not another
+  candidate of that class.
+- Each new story/plan quotes the previous story's conclusion and next-direction from
+  `ledger.jsonl`; contradicting the recorded direction requires an explicit stated
+  reason. The ledger is the continuity spine, not just an audit trail.
+- `LOOP-REANALYZE-01`: every generation starts with an analysis deliverable before candidate patches:
+  updated problem/opponent model from telemetry, replays, and failure deltas; plus
+  capability-gap hypotheses describing what the artifact cannot yet sense or do.
+  A gap hypothesis may expand the allowed patch surface, but only by explicit
+  steering or a P-level plan amendment.
+- Source divergence candidates from domain-state evidence (logs, trajectories,
+  instance/opponent analysis), not only from existing code parameters. An
+  all-threshold-tweak candidate list signals parameter-space anchoring — regenerate
+  from the state space.
+- `LOOP-MECHANISM-PROOF-01`: a candidate whose value is a new branch or mechanism
+  needs activation evidence from the instances it targets — a counter, log line, or
+  trace showing the branch actually fired — before the story adopts it. Aggregate
+  score movement is not activation proof; in a multi-feature candidate a dead
+  mechanism hides behind the other features' gains. A zero-delta solo ablation
+  (single-feature candidate scores exactly baseline on the instances it was built to
+  flip) means "presume the path never ran; instrument first", not "weak feature".
+  Record the activation artifact in the ledger checkpoint evidence.
+- `LOOP-RESIDUAL-TRACE-01`: a residual failure carried into story close-out needs a
+  mechanism-level trace (which branches armed, which did not, why the outcome
+  followed) or the explicit label `unexplained` in the ledger. A plausible story
+  about the environment or opponent is a hypothesis, not evidence, until the trace
+  confirms our own relevant mechanism acted.
+- `LOOP-PEER-CONTRAST-01`: when a peer or reference artifact achieves the objective
+  on an instance we fail, the next generation's first analysis deliverable is a
+  behavioral diff of the two traces (what they did that we did not) before any new
+  candidate — the cheapest capability-gap detector available, and a free
+  counterexample to any environment story. (These three adopted 2026-07-06 from a
+  contest-bot incident: an endgame branch shipped inside a passing combo while
+  structurally unreachable; its solo ablation was baseline-exact, and one stderr
+  trace line exposed the leak in minutes.)
+- When the true evaluator is rate-limited and local checks are proxies, quantify
+  proxy/oracle divergence before trusting proxy accept/reject; an optimistic proxy is
+  never sole acceptance evidence. Replay-based evidence is prefix-valid only — state
+  the divergence point when citing it.
+- A hard invariant that vetoes 3+ consecutive candidates targeting strictly larger
+  gains must be re-justified with expected-value reasoning or downgraded to a soft cost.
+- Verification lanes treat time-based flakes as bugs: no sleep-based synchronization,
+  no retry-as-fix, no green-on-retry acceptance without a deterministic cause.
+- `LOOP-PESSIMIST-01`: optimization close-out is pessimistic: record what did not improve, which hypothesis
+  died, and what evidence would falsify the current direction. Treat
+  story-complete -> idle -> next-plan as a context and bias flush; resume from the
+  disk artifacts, not from transcript momentum.
+- `LOOP-CONTINUE-01`: the loop keeps the turn alive; the agent decides what "remaining
+  work" means. Do not redefine the objective downward — success criteria from the plan
+  are the bar. Audit completion against current repo state, not memory. Read durable
+  state (worklog, devlog, goalplan ledger) before planning the next pass. IDLE is not
+  the end while work remains: if unmet criteria remain under an active goal, start the
+  next story at plan.
+- Divergence/collapse: PABCD is convergence-first. Divergence is a mode for
+  open-ended-optimization (§archetype), not a standing habit. Enter deliberately when
+  intent is open or approach is uncertain; in goal mode, enter when plateau is detected.
+  Collapse early for spec work, late for metric work. Turn off after resolution.
 
 ## Handoff back to planning
 

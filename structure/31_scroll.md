@@ -39,15 +39,16 @@ jwc는 CC(구세대)·gjc 계열의 **스크롤백-네이티브** 모델이다: 
 |------|------|------|
 | 센티널 방출 | `components/viewport-fill.ts` | `VIEWPORT_FILL_SENTINEL` 1줄 (disabled면 0줄 — 레거시 바이트 동일) |
 | 확장 | `tui.ts #expandViewportFill` — 트리 렌더 직후·오버레이 합성 **이전** | 첫 센티널을 `max(0, target - 콘텐츠줄수)`개의 빈 줄로 치환, 추가 센티널 제거. 렌더러 코어 분기 무수정 |
-| **sticky gap** (§9→§12) | 동일 함수 `#viewportFillGap`/`#viewportFillFloor` | 초과 구간 수축 시 갭이 늘어 컴포저를 바닥에 고정(풀렌더 1회). **성장 시 갭 동결** — 프레임이 끝에서 자라 append-only diff 유지 (§12: 갭을 위에서 소비하면 전 행 시프트 → append마다 3J 풀렌더 폭풍). 갭은 상단(스크롤백 쪽)이라 뷰포트에 안 보임 |
-| gap 추적 | `#viewportFillGap` | floor가 적립한 빈 행 수 |
-| **압축** (§10) | `compactViewportFill()` | floor/gap 리셋 + `requestRender(true)` — 전체 트랜스크립트 재인쇄로 스크롤백을 빈 행 없이 재구축. 갭 0이면 no-op |
+| **오버플로 floor** (§9→§12→260630) | `#restoreOverflowFloor` — `#overflowFloor`/`#previousRawLines` | 초과 구간에서 프레임 길이는 **단조 불변** (un-scroll 불가). 수축 시 제거된 행 수만큼 **첫 변경 행(f) 위치에 in-place 톰스톤**을 삽입 — 접두부는 절대 인덱스 유지, 접미부는 이전 행에 재정렬, 이후 성장이 톰스톤을 제자리에서 소비한 뒤 프레임이 끝에서 자란다. **동결(frozen) 경계는 물리 seam** `max(0, #overflowFloor - height)` — 논리 `#viewportTopRow`는 repaint-only 성장 후 물리보다 앞설 수 있어(260702 quarantine 상태) 그 기준으로 동결하면 stale 픽셀이 가시 뷰포트 안에 되살아난다. 물리 seam 위는 이전 픽셀 동결, 가시 구간은 빈 줄. 톰스톤 패딩 중에는 `#lastFillRows = 0` 강제(Fixed-C 재발 가드 — fit-again raw 콘텐츠의 상단 fill을 히스토리 리전으로 오인 금지). **(구) 상단 sticky gap은 폐기** — 갭을 프레임 최상단에 넣으면 아래 전 행이 K줄 시프트되어, 이미 스크롤백에 들어간 행이 뷰포트 상단에 다시 그려져 중복 밴드가 생겼다 (260630 seam 중복 버그, `scroll-seam-duplication.test.ts`) |
+| **미정렬 격리** (260702) | `#doRender` quarantine 분기 | `#fillSentinelPresent && #maxLinesRendered > max(#overflowFloor, height)`이면 **모든 렌더를 절대좌표 `viewportRepaint`로 강제**. repaint-only 성장(실터미널 unknown-viewport의 뷰포트-위 변경+꼬리 성장)이 논리 길이를 물리 실체화 길이 너머로 부풀린 뒤 평범한 diff 수축이 오면, 부풀려진 `viewportTop` 기준으로 프레임 꼬리를 화면 최상단에 그려 컴포저가 화면 중간에 박히고 stale 밴드가 남는다(260702 실측, `scroll-misalignment.test.ts`). 격리는 shrink-to-floor 프레임의 절대 repaint가 논리/물리를 재정렬하는 순간 자가 해제 |
+| **턴 경계 realign** (260702 F3) | `realignOverflowedFrame(liveClusterRows)` — 제출 경로에서 `commitLaneEnabled() && canMarkEntireBacklog()` 게이트 후 호출 (미완 pending/streaming 셀이 백로그에 남아 있으면 스크롤-아웃된 행을 리빌드가 다시 그려 이중화되므로 realign 자체를 건너뜀 — gpt-5.5 최종 리뷰 blocker) | 오버플로 중 커밋 레인이 죽는(fill=0) 데스 스파이럴의 해소: 제출 시점에 **가시 트랜스크립트 꼬리를 bottom-anchored `\r\n` 스크롤로 스크롤백에 1회 실체화**(컴포저 클러스터 `liveClusterRows`는 제외 — `measureComposerClusterRows`가 liveToolContainer 아래 실제 자식들을 합산), `#hasCommittedHistory=true`(3J 영구 금지), floor 리셋, 강제 리빌드 예약. 이어지는 스윕은 `markOnly`로 확정 셀을 재기록 없이 committed 처리(as-streamed 픽셀이 정본, 이중 기록 없음). 전제 미충족(비오버플로/zellij/오버레이/음수 측정) 시 순수 no-op → 기존 동작 바이트 동일 |
+| **압축** (§10→260630) | `compactViewportFill()` | 톰스톤 0이면 no-op. 있으면 `requestRender(true)` — 3J 허용 세션(비멀티플렉서·커밋 히스토리 없음)에서만 진짜 재구축(floor 리셋 + 2J/3J 전체 재인쇄), 그 외에는 fullRender 다운그레이드로 뷰포트 리페인트만 수행 |
 
 압축/토글 트리거 맵 (정본: devlog `99.20.03_issue_transient_shrink_triggers.md`, 083.8 S2 갱신):
-**프롬프트 제출** (`input-controller.ts:457` — `commitFinalizedBacklog` 직후 compact) · 슬래시 디스패치 완료
-(`input-controller.ts:328` `slashResult === true`) · ctrl+o current-turn 출력 토글 말미. ctrl+o는 현재 live turn만 펼치기/접기하며, 이미 커밋된 이전 턴은 펴기도 접기도 하지 않는다. ctrl+o는 current-turn assistant thinking coupling(`thinkingExpanded`)도 유지한다. ctrl+t는 full transcript overlay 전환이며 prompt scrollback compact trigger가 아니다. ctrl+t overlay는 최신/하단에서 열리고, 열린 뒤에는 사용자 스크롤 위치를 보존하며 위로 올라가 과거를 본다.
+**프롬프트 제출** (`input-controller.ts` 정상 제출 경로 — `commitFinalizedBacklog` 직후 동결 해제와 compact) · 슬래시 디스패치 완료
+(`slashResult === true` 분기) · ctrl+o current-turn 출력 토글 말미. ctrl+o는 현재 턴 시작 인덱스 이후의 chat 자식, live-zone 자식, streaming component만 펼치기/접기하며, 이미 커밋된 이전 턴은 펴기도 접기도 하지 않는다. ctrl+o는 current-turn assistant thinking coupling(`thinkingExpanded`)도 유지한다. ctrl+t는 full transcript overlay 전환이며 prompt scrollback compact trigger가 아니다. ctrl+t overlay는 최신/하단에서 열리고, 열린 뒤에는 사용자 스크롤 위치를 보존하며 위로 올라가 과거를 본다.
 `event-controller.ts:775` 주석: `"083.8 S2: the post-overflow gap is NOT compacted here"`.
-`input-controller.ts:457` 주석: `"083.8 S2: collapse any post-overflow gap left by the previous turn"`.
+`input-controller.ts` 정상 제출 경로 주석: `"083.8 S2: collapse any post-overflow gap left by the previous turn"`.
 잔여 에지: ESC 드롭다운(제출 없음).
 
 ## 4. 커밋 시점 접기 (99.20.04 — 수축의 근원 제거)
@@ -59,13 +60,13 @@ jwc는 CC(구세대)·gjc 계열의 **스크롤백-네이티브** 모델이다: 
   도구발 수축 원천 소멸. agent_end가 잔여 라이브 셀 일괄 커밋(abort 안전망).
 - **verbose**: 083.1 현행 — preview가 히스토리에 흐르고 사후 접힘(§9/§10 안전망 의존).
 - 구현: `event-controller.ts` `#commitFoldingEnabled`/`#commitLiveTool`. ctrl+o 스윕은
-  `input-controller.ts setToolsExpanded`에서 `liveToggleEligible`인 chat/live-zone 자식만 순회한다.
+  `input-controller.ts setToolsExpanded`에서 현재 턴 chat slice, `liveToolContainer`, `streamingComponent`를 대상으로 순회한다.
 
 ## 5. 뷰포트 리페인트 정책 (083.8 S3)
 
 뷰포트 밖 변경이 발생했을 때 어떤 경로를 밟느냐가 UX의 핵심이다.
 
-**`viewportRepaint`** (`tui.ts:1353`) — 2J/3J 없이 현재 보이는 N행만 제자리에 재인쇄. 스크롤백
+**`viewportRepaint`** (`tui.ts` 내부 로컬 렌더 경로) — 2J/3J 없이 현재 보이는 N행만 제자리에 재인쇄. 스크롤백
 픽셀을 건드리지 않고 커서를 화면 상단으로 올려 각 행을 2K로 지우고 다시 씀. 083.8 S3 이후
 **모든 터미널(멀티플렉서 포함)의 뷰포트-위 변경**에 기본 경로다. 과거에는 멀티플렉서 전용
 `multiplexerViewportRepaint`가 별도로 존재했으나 현재는 통합·삭제됐다.
@@ -90,15 +91,26 @@ jwc는 CC(구세대)·gjc 계열의 **스크롤백-네이티브** 모델이다: 
 - **Fixed:** unknown real-terminal viewport를 bottom-like로 취급해 생기던 물리 duplicate/pushed-row 문제.
 - **Deferred:** “다음 채팅 입력을 치면 복구되는” next-input self-healing repaint timing edge. 논리 프레임은 맞고 즉시 repaint/compact 트리거가 한 박자 늦는 계열로 보며, 성능 devlog `73_scroll_repaint_timing_followup.md`에 보류 기록.
 - **Forbidden shortcut:** 이 deferred edge를 이유로 P1.5.1 expedited input render, P2.2 prepared-line cache, 또는 tick-wide render scheduling을 wholesale rollback하지 않는다. 재오픈 시 다음 입력이 유발한 repair path와 누락된 transition path를 먼저 비교한다.
+
+260630 follow-up taxonomy (seam 중복 — 재현·수정 완료):
+- **Fixed A (시프트 중복):** 오버플로 중 수축(ctrl+o 접기·thinking settle·autocomplete 닫힘·083.9 P3 shed)이 상단 sticky gap을 키워 콘텐츠 전 행을 K줄 아래로 시프트 → `viewportRepaint`가 이미 스크롤백에 들어간 마지막 K행을 뷰포트 상단에 다시 그려 **위로 스크롤하면 같은 내용이 이중으로 보이는** 밴드를 만들었다. → 상단 gap 폐기, `#restoreOverflowFloor` in-place 톰스톤으로 대체.
+- **Fixed B (replay 중복):** `#hasCommittedHistory` 이후 3J 금지 상태에서 `compactViewportFill()`·`requestRender(true)`(ctrl+o 접기 포함)가 2J-only 전체 재인쇄로 프레임 헤드 사본을 스크롤백에 추가로 밀어 넣었다. → `fullRender(true)` 다운그레이드 가드.
+- **Fixed C (커밋 리전 오염):** 오버플로 중 gap이 `#lastFillRows`로 잡혀 화면 상단 가시 행을 히스토리 리전으로 오인, `commitLines()`가 가시 트랜스크립트 위에 커밋을 덮어쓸 수 있었다. → 오버플로 시 fill=0으로 커밋 레인 자동 차단.
+- **Fixed D (ctrl+o 왕복 잔여 공백 — e2e 후속):** 펼치기 성장이 diff 경로로 물리 스크롤을 일으키면 un-scroll 불가로 접기 후 펼침 크기만큼 빈 구멍이 남았다. → **transient expansion floor 동결**: `setToolsExpanded`가 `ui.setOverflowFloorFrozen(expanded)`로 동결하면 성장 렌더가 화면 바닥을 넘는 순간 스크롤 대신 `viewportRepaint`로 처리되고 floor가 오르지 않아, 접는 즉시 펼치기 전 화면이 **바이트 단위로 복원**된다. 동결은 프롬프트 제출 시 자동 해제(동결 유지 시에도 중복 없이 스크롤백 일시정지로만 강등). floor 승격은 물리 스크롤이 실제 발생한 경로(diff append·append-growth·진짜 fullRender)에서만 일어난다.
+- 회귀 자산: `packages/tui/test/scroll-seam-duplication.test.ts` (xterm 실측 — 접기·펼치기-접기 왕복·shed+성장·frozen-floor ctrl+o 왕복 정확 복원·compact replay 5케이스, 스크롤백+뷰포트 전 버퍼에서 마커 중복 0 어서션).
 - `extraLines > height` 조건: 레거시 멀티플렉서 플래그(`PI_TUI_LEGACY_MULTIPLEXER_FULL_RENDER`)
   없는 경우 `viewportRepaint` 분기.
 - height 변화(멀티플렉서 한정): `viewportRepaint` 경로.
 
-**`fullRender(true)`** — `2J H` 후 프레임 전체 재인쇄. 스크롤백을 내용 동일하게 재구성하므로
-히스토리가 보존된다(압축이 안전한 이유). width 변화, clearOnShrink, `requestRender(true)` 등
-강제 리빌드 시 발화.
+**`fullRender(true)`** — `2J H` 후 프레임 전체 재인쇄. width 변화, clearOnShrink,
+`requestRender(true)` 등 강제 리빌드 시 발화. **"스크롤백이 내용 동일하게 재구성된다"는 전제는
+3J가 함께 실행될 때만 성립한다** — 커밋 레인이 3J를 영구 금지한 뒤에는 2J-only 재인쇄가 기존
+스크롤백 위에 프레임 헤드 사본을 추가로 밀어 넣어 **전체 트랜스크립트가 중복**된다 (260630 확인).
+따라서 260630부터 `fullRender(true)`는 **다운그레이드 가드**를 가진다: `프레임 > viewport &&
+(멀티플렉서 || #hasCommittedHistory) && !레거시 플래그` → `viewportRepaint`로 대체. 실제 전체
+재인쇄는 3J 허용 세션 또는 프레임 ≤ viewport(스크롤백 푸시 없음)에서만 일어난다.
 
-**3J(스크롤백 전체 삭제) 금지 조건** (`tui.ts:1325`):
+**3J(스크롤백 전체 삭제) 금지 조건** (`fullRender(clear=true)`):
 
 ```
 buffer += isMultiplexerSession() || this.#hasCommittedHistory
@@ -110,7 +122,7 @@ buffer += isMultiplexerSession() || this.#hasCommittedHistory
 - **커밋 레인이 한 줄이라도 스크롤백에 기록한 후** (`#hasCommittedHistory = true`): 스크롤백이
   정본 트랜스크립트이므로 3J로 지우면 안 된다 — 영구 금지.
 
-`tui.ts:251` 주석: `"True once any line was committed — the scrollback is then canonical and 3J is forbidden."`
+`#hasCommittedHistory` 주석: `"True once any line was committed — the scrollback is then canonical and 3J is forbidden."`
 
 ## 6. 커밋 레인 이중-레인 아키텍처 (083.9)
 
@@ -123,7 +135,7 @@ jwc는 렌더링 경로를 **두 레인**으로 분리한다.
 
 ### 6-1. commitLines() — 스크롤백 커밋 기본 연산
 
-`tui.ts:1168 commitLines(lines: string[]): boolean`:
+`commitLines(lines: string[]): boolean`:
 
 ```
 커밋 레인 진입 조건:
@@ -143,14 +155,14 @@ jwc는 렌더링 경로를 **두 레인**으로 분리한다.
 화면 상단에 버티고 있는 커밋된 픽셀 블록이다. 두 가지 시나리오에서 훼손될 수 있으며 tui.ts가
 각각 방어한다:
 
-1. **라이브 존 성장으로 fill 축소** (`tui.ts:1295`): `lastFillRows < prevFillRows`이면 히스토리
+1. **라이브 존 성장으로 fill 축소** (`#doRender`의 `#lastFillRows < prevFillRows` 분기): `lastFillRows < prevFillRows`이면 히스토리
    블록이 덮일 위험이 있다 → `#scrollOutCommittedRows(delta, prevFillRows)`로 먼저 스크롤 아웃.
-2. **fullRender(clear=true)** (`tui.ts:1309`): 클리어 렌더 전 블록 전체를 `#scrollOutCommittedRows`
+2. **fullRender(clear=true)**: 클리어 렌더 전 블록 전체를 `#scrollOutCommittedRows`
    로 스크롤백에 밀어넣고 `#committedScreenRows = 0`으로 초기화.
 
 ### 6-3. fill-region = history-region 재해석
 
-`#expandViewportFill` 실행 후 `#lastFillRows = first === 0 ? fill : 0` (`tui.ts:1247`):
+`#expandViewportFill` 실행 후 `#lastFillRows = first === 0 ? fill : 0`:
 
 fill 스페이서가 프레임 **맨 위**(index 0)에 있을 때만 히스토리 영역으로 인정한다. fill이 0이거나
 프레임 중간에 위치하면 커밋 레인은 자동으로 비활성(`commitLines` → `false`)된다. 즉 **fill
@@ -265,13 +277,24 @@ tmux 친화. alt-screen 전환은 99.20 장기 메모로만 존재.
 
 ## 9. 테스트 자산
 
-- `packages/tui/test/viewport-fill.test.ts` — **13케이스**: 핀 불변식(grow/collapse×3) ·
+- `packages/tui/test/viewport-fill.test.ts` — 핀 불변식(grow/collapse×3) ·
   clearOnShrink 미발화 · 센티널 규칙 · 경계 상/하향 통과 · off 경로 바이트 동일 · 커서 정합 ·
   리사이즈 · post-overflow 수축(autocomplete/접힘) · 갭 압축+no-op · 슬래시 복구 ·
   **뷰포트 초과 셀렉터 복구**(260613 00:04 스크린샷 시나리오).
 - `packages/tui/test/settings-list-undefined-value.test.ts` — 크래시 회귀.
 - `packages/coding-agent/test/commit-time-folding.test.ts` — 라이브존→접힌 커밋 · agent_end
   잔여 커밋 · verbose 보존.
+- `packages/tui/test/scroll-seam-duplication.test.ts` — **5케이스** (260630): 오버플로 중 접기 ·
+  펼치기→접기 왕복 · shed+꼬리 성장(스트리밍) · frozen-floor ctrl+o 왕복 정확 복원 ·
+  커밋 히스토리 후 compact — 물리 버퍼(스크롤백+뷰포트) 전체에서 콘텐츠 행 중복 0 ·
+  seam 연속성 · 컴포저 floor 유지 · frozen-floor 케이스의 전체 버퍼 동일성.
+- `packages/tui/test/scroll-misalignment.test.ts` — **4케이스** (260702): repaint-only 성장 →
+  평범한 diff 수축 드리프트(격리로 컴포저 floor 유지·stale live 행 0) · 격리 후 연속 스트리밍
+  중복 0 · `realignOverflowedFrame` 가시 꼬리 스크롤백 보존(트랜스크립트 행 정확히 1회,
+  컴포저 픽셀 히스토리 오염 0, floor 리셋) · 전제 미충족 시 순수 no-op(write 0바이트).
+- `packages/coding-agent/test/turn-boundary-realign.test.ts` — **5케이스** (260702):
+  `measureComposerClusterRows` 합산/미탐색 -1 · `commitFinalizedBacklog` markOnly 무기록
+  커밋 · 기본 경로 유지 · 실패 시 폴백 정지.
 
 ## 관련 문서
 
@@ -279,4 +302,5 @@ tmux 친화. alt-screen 전환은 99.20 장기 메모로만 존재.
   이동·S3 기본화) · `083.9`(커밋 레인 P1/P2 — insert-history·commitLines·history-region) ·
   `99.20.03`(압축 트리거 맵) · `99.20.04`(커밋 폴딩 설계·구현·핫픽스)
 - 260615 follow-up: `devlog/_plan/260615_scroll_anchor_duplication/20.9_d_done_summary.md`(unknown-viewport duplicate/pushed-row fix) · `devlog/_plan/260614_performance/73_scroll_repaint_timing_followup.md`(deferred next-input repaint timing edge)
+- 260630 seam fix: `devlog/_plan/260630_scroll_seam_duplication/00_root_cause_and_fix.md`(상단 sticky gap 시프트 + 3J 금지 replay — 근본 원인 재현·수정) · `devlog/_plan/260630_scroll_seam_duplication/01_ctrl_o_transient_expansion.md`(ctrl+o transient expansion floor 동결 후속)
 - 주입/프롬프트와의 경계: [prompt_flow.md](./20_prompt_flow.md) — 스크롤은 표시층, 주입은 컨텍스트층.

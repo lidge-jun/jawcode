@@ -49,6 +49,7 @@ import { AssistantMessageEventStream } from "../utils/event-stream";
 import { finalizeErrorMessage, type RawHttpRequestDump } from "../utils/http-inspector";
 import { getOpenAIStreamIdleTimeoutMs, iterateWithIdleTimeout } from "../utils/idle-iterator";
 import { parseStreamingJson } from "../utils/json-parse";
+import { isInvalidatedOAuthTokenError } from "../utils/oauth/auth-errors";
 import { resolveRetryBudget } from "../utils/retry-budget";
 import { adaptSchemaForStrict, NO_STRICT, sanitizeSchemaForOpenAIResponses, toolWireSchema } from "../utils/schema";
 import { compactGrammarDefinition } from "./grammar";
@@ -70,7 +71,7 @@ import {
 	mapOpenAIResponsesStopReason,
 	populateResponsesUsageFromResponse,
 } from "./openai-responses-shared";
-import { transformMessages } from "./transform-messages";
+import { redactSensitiveInObject, transformMessages } from "./transform-messages";
 
 export interface OpenAICodexResponsesOptions extends StreamOptions {
 	reasoning?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
@@ -81,6 +82,7 @@ export interface OpenAICodexResponsesOptions extends StreamOptions {
 	toolChoice?: ToolChoice;
 	preferWebsockets?: boolean;
 	serviceTier?: ServiceTier;
+	responsesLite?: boolean;
 }
 
 const CODEX_DEBUG = $flag("PI_CODEX_DEBUG");
@@ -665,6 +667,7 @@ async function buildTransformedCodexRequestBody(
 		reasoningSummary: options?.reasoningSummary ?? "auto",
 		textVerbosity: options?.textVerbosity,
 		include: options?.include,
+		responsesLite: options?.responsesLite,
 	};
 
 	return transformRequestBody(params, model, codexOptions, { developerMessages });
@@ -1624,7 +1627,7 @@ async function handleCodexStreamFailure(
 		resetCodexSessionMetadata(context.requestContext.websocketState);
 	}
 	output.stopReason = context.options?.signal?.aborted ? "aborted" : "error";
-	output.errorStatus = extractHttpStatusFromError(error);
+	output.errorStatus = isInvalidatedOAuthTokenError(error) ? 401 : extractHttpStatusFromError(error);
 	output.errorMessage = await finalizeErrorMessage(error, context.requestContext.rawRequestDump);
 	output.duration = Date.now() - context.startTime;
 	if (context.firstTokenTime) {
@@ -2459,7 +2462,7 @@ async function openCodexSseEventStream(
 		const info = await parseCodexError(response);
 		const error = new Error(info.friendlyMessage || info.message);
 		(error as { headers?: Headers; status?: number }).headers = response.headers;
-		(error as { headers?: Headers; status?: number }).status = response.status;
+		(error as { headers?: Headers; status?: number }).status = info.status;
 		throw error;
 	}
 	if (!response.body) {
@@ -2607,13 +2610,14 @@ function convertMessages(model: Model<"openai-codex-responses">, context: Contex
 				| Array<ResponseInput[number]>
 				| undefined;
 			if (historyItems) {
-				for (const item of historyItems) {
+				const redactedHistoryItems = redactSensitiveInObject(historyItems).result as Array<ResponseInput[number]>;
+				for (const item of redactedHistoryItems) {
 					const maybe = item as { type?: string; call_id?: string };
 					if (maybe.type === "custom_tool_call" && typeof maybe.call_id === "string") {
 						customCallIds.add(maybe.call_id);
 					}
 				}
-				messages.push(...historyItems);
+				messages.push(...redactedHistoryItems);
 				msgIndex += 1;
 				continue;
 			}

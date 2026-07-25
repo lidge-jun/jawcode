@@ -1,3 +1,4 @@
+import { NOTIFICATION_DAEMON_GENERATION } from "./protocol";
 import {
 	DEFAULT_TRANSPORT_HEARTBEAT_TTL_MS,
 	isFreshLiveTransportOwner,
@@ -6,10 +7,10 @@ import {
 	type TransportOwnerState,
 } from "./transport-state";
 
-export type OwnerClaimReason = "no-owner" | "stale-owner" | "live-owner" | "self-owner";
+export type OwnerClaimReason = "no-owner" | "stale-owner" | "stale-generation" | "live-owner" | "self-owner";
 
 export interface OwnerClaimDecision {
-	action: "claim" | "defer" | "keep";
+	action: "claim" | "defer" | "keep" | "reload";
 	reason: OwnerClaimReason;
 }
 
@@ -26,9 +27,9 @@ export interface DecideOwnerClaimInput {
 /**
  * Decide whether a candidate daemon may claim the single Telegram poll owner slot.
  *
- * Exactly one owner is allowed (Telegram permits one active `getUpdates`). A fresh, live owner is
- * never displaced; a stopped/stale/dead owner is replaceable; the candidate keeps ownership when it
- * is already the live owner.
+ * Exactly one owner is allowed (Telegram permits one active `getUpdates`). A current-generation
+ * fresh owner is reused, an older generation is cooperatively reloaded, and a stopped/stale/dead
+ * owner is replaceable. The candidate keeps ownership when it is already the live owner.
  */
 export function decideOwnerClaim(input: DecideOwnerClaimInput): OwnerClaimDecision {
 	const { current, candidate, now } = input;
@@ -48,6 +49,11 @@ export function decideOwnerClaim(input: DecideOwnerClaimInput): OwnerClaimDecisi
 		ttlMs,
 		pidAlive: input.pidAlive,
 	});
-	if (live) return { action: "defer", reason: "live-owner" };
+	if (live) {
+		if (sameTransportIdentity(current, candidate) && (current.generation ?? 0) < NOTIFICATION_DAEMON_GENERATION) {
+			return { action: "reload", reason: "stale-generation" };
+		}
+		return { action: "defer", reason: "live-owner" };
+	}
 	return { action: "claim", reason: "stale-owner" };
 }

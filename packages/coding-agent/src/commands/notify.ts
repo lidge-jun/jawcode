@@ -23,6 +23,11 @@ export default class Notify extends Command {
 	};
 
 	async run(): Promise<void> {
+		if (this.argv[0] === "daemon-internal") {
+			await runNotifyCommand({ action: "daemon-internal", rawArgs: this.argv.slice(1), flags: {} });
+			return;
+		}
+
 		const { args, flags } = await this.parse(Notify);
 		const action = (args.action ?? "status") as NotifyAction;
 		const parsed = parseNotifyFlags({

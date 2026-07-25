@@ -6,6 +6,7 @@ import { isRecord } from "./utils";
 
 const DEFAULT_CACHE_TTL_MS = 2 * 60 * 60 * 1000;
 const NON_AUTHORITATIVE_RETRY_MS = 5 * 60 * 1000;
+const RETIRED_MODEL_KEYS = new Set(["google-antigravity/gemini-3.1-pro-high"]);
 
 /**
  * Controls when dynamic endpoint models should be fetched.
@@ -93,7 +94,11 @@ function passModelList<TApi extends Api>(value: unknown): Model<TApi>[] {
 	}
 	const out: Model<TApi>[] = [];
 	for (const item of value) {
-		if (item === null || typeof item !== "object" || typeof (item as { id: unknown }).id !== "string") {
+		if (item === null || typeof item !== "object") {
+			continue;
+		}
+		const candidate = item as { id?: unknown; provider?: unknown };
+		if (typeof candidate.id !== "string" || isRetiredModel(candidate)) {
 			continue;
 		}
 		out.push(enrichModelThinking(item as Model<TApi>));
@@ -168,7 +173,10 @@ export async function resolveProviderModels<TApi extends Api = Api, TModelsDevPa
 			? buildUnlistedTagger<TApi>(dynamicModels)
 			: null;
 	const mergedWithCache = mergeDynamicModels(staticBaseModels, cacheModels, staticTransports);
-	const models = applyUnlistedTagger(mergeDynamicModels(mergedWithCache, dynamicModels, staticTransports), unlistedTagger);
+	const models = applyUnlistedTagger(
+		mergeDynamicModels(mergedWithCache, dynamicModels, staticTransports),
+		unlistedTagger,
+	);
 	const dynamicAuthoritative = !hasDynamicFetcher || dynamicFetchSucceeded || shouldUseFreshCacheAsAuthoritative;
 	if (shouldFetchFromNetwork) {
 		if (dynamicFetchSucceeded) {
@@ -441,11 +449,17 @@ function normalizeModelList<TApi extends Api>(value: unknown): Model<TApi>[] {
 	}
 	const models: Model<TApi>[] = [];
 	for (const item of value) {
-		if (isModelLike(item)) {
+		if (isModelLike(item) && !isRetiredModel(item)) {
 			models.push(enrichModelThinking(item as Model<TApi>));
 		}
 	}
 	return models;
+}
+
+function isRetiredModel(model: { id?: unknown; provider?: unknown }): boolean {
+	return typeof model.provider === "string" && typeof model.id === "string"
+		? RETIRED_MODEL_KEYS.has(`${model.provider}/${model.id}`)
+		: false;
 }
 
 function isModelLike(value: unknown): value is Model<Api> {

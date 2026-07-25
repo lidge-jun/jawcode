@@ -1,7 +1,9 @@
 import * as path from "node:path";
+import { postmortem } from "@jawcode-dev/utils";
 import type { Settings } from "../config/settings";
-import { getNotificationConfig, isNotificationEnabled } from "./config";
+import { consumeNotificationChildSessionMarker, getNotificationConfig, isNotificationEnabled } from "./config";
 import { NotificationLoopbackServer } from "./server";
+import { TelegramTurnDelivery } from "./telegram-turn-delivery";
 
 export interface MaybeStartNotificationServerOptions {
 	settings: Settings;
@@ -10,6 +12,11 @@ export interface MaybeStartNotificationServerOptions {
 	cwd: string;
 	/** Subagent depth; only top-level sessions (0) start a server. */
 	taskDepth?: number;
+	/** Fallback subagent signals used when depth metadata is unavailable. */
+	parentTaskPrefix?: string;
+	currentAgentType?: string;
+	/** Injectable child-process provenance; defaults to consuming the per-spawn env marker. */
+	spawnedByJwc?: boolean;
 	registerCleanup: (name: string, cleanup: () => Promise<void> | void) => void;
 	/** Injectable for tests. */
 	startServer?: typeof NotificationLoopbackServer.start;
@@ -28,7 +35,9 @@ const NOTIFICATION_CLEANUP_KEY = "notifications";
 export async function maybeStartNotificationServer(
 	options: MaybeStartNotificationServerOptions,
 ): Promise<NotificationLoopbackServer | null> {
-	if ((options.taskDepth ?? 0) !== 0) return null; // top-level sessions only
+	const spawnedByJwc = options.spawnedByJwc ?? consumeNotificationChildSessionMarker();
+	if ((options.taskDepth ?? 0) !== 0 || options.parentTaskPrefix || options.currentAgentType || spawnedByJwc)
+		return null;
 
 	const config = getNotificationConfig(options.settings);
 	if (!isNotificationEnabled(config)) return null;
@@ -36,8 +45,22 @@ export async function maybeStartNotificationServer(
 	const stateRoot = path.join(options.cwd, ".jwc", "state");
 	const start = options.startServer ?? NotificationLoopbackServer.start;
 	try {
-		const server = await start({ sessionId: options.sessionId, stateRoot, now: options.now });
-		options.registerCleanup(NOTIFICATION_CLEANUP_KEY, () => server.stop());
+		const server = await start({
+			sessionId: options.sessionId,
+			stateRoot,
+			now: options.now,
+			turnDelivery:
+				config.botToken && config.chatId
+					? new TelegramTurnDelivery({ token: config.botToken, chatId: config.chatId })
+					: undefined,
+		});
+		const cancelPostmortemCleanup = postmortem.register(`notifications-session-closed:${options.sessionId}`, () =>
+			server.stop(),
+		);
+		options.registerCleanup(NOTIFICATION_CLEANUP_KEY, async () => {
+			cancelPostmortemCleanup();
+			await server.stop();
+		});
 		return server;
 	} catch (error) {
 		console.error("[notifications] loopback server start failed", (error as Error).message);

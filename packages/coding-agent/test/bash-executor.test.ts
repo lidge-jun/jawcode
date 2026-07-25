@@ -233,6 +233,7 @@ describe("executeBash", () => {
 		}
 		const result = await executeBash("sleep 10", { cwd: tempDir, timeout: 50 });
 		expect(result.cancelled).toBe(true);
+		expect(result.timedOut).toBe(true);
 		expect(result.output).toContain("timed out");
 	});
 
@@ -260,6 +261,7 @@ describe("executeBash", () => {
 		controller.abort();
 		const result = await promise;
 		expect(result.cancelled).toBe(true);
+		expect(result.timedOut).toBe(false);
 		expect(result.output).toContain("Command cancelled");
 	});
 
@@ -375,6 +377,7 @@ describe("executeBash", () => {
 		expect(raced.type).toBe("result");
 		if (raced.type === "result") {
 			expect(raced.result.cancelled).toBe(true);
+			expect(raced.result.timedOut).toBe(true);
 			expect(raced.result.output).toContain("Command timed out after 1 seconds");
 		}
 		expect(abortSpy).toHaveBeenCalled();

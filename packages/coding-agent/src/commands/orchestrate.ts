@@ -25,6 +25,15 @@ export default class Orchestrate extends Command {
 		"review-override-ref": Flags.string({
 			description: "With verdict/transition: path or section ref containing main-session waiver/override synthesis",
 		}),
+		"render-observed": Flags.boolean({
+			description: "With verdict in stage c: record that the render-grounding observation was completed",
+		}),
+		"render-not-applicable": Flags.boolean({
+			description: "With verdict in stage c: record that no render artifacts require grounding",
+		}),
+		"render-pending": Flags.boolean({
+			description: "With verdict in stage c: mark render grounding in-scope (arms the c→d soft warning until resolved)",
+		}),
 		"user-approved": Flags.boolean({ description: "Explicit user approval override for a gated transition" }),
 		shared: Flags.boolean({
 			description: "Target shared .jwc/state PABCD state instead of the current session scope",
@@ -40,6 +49,9 @@ export default class Orchestrate extends Command {
 		"$ jwc orchestrate a --audit-mode dual",
 		"$ jwc orchestrate verdict --audit-lens planner --revision-id a-r1 --worker-output ./audit-report.md",
 		"$ jwc orchestrate verdict --worker-output ./critic-review.md --review-override-ref devlog/_plan/.../synthesis.md",
+		"$ jwc orchestrate verdict --render-pending",
+		"$ jwc orchestrate verdict --render-observed",
+		"$ jwc orchestrate verdict --render-not-applicable",
 		"$ jwc orchestrate b --user-approved",
 		"$ jwc orchestrate status --json",
 		"$ jwc orchestrate status --shared",

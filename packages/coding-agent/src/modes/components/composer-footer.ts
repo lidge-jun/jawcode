@@ -101,13 +101,15 @@ export class ComposerFooter implements Component {
 		const right = this.#backgroundText ? theme.fg("accent", sanitizeStatusText(this.#backgroundText)) : "";
 		if (!left && !right) return [""];
 		if (!right) return [truncateToWidth(` ${left}`, width)];
-		if (!left)
-			return [truncateToWidth(`${" ".repeat(Math.max(0, width - visibleWidth(right) - 1))}${right} `, width)];
+		// 260703 WP5.1: lines end AT content — no trailing fill after the right
+		// label (the 1-col right margin comes from sizing the leading/mid gap
+		// one short instead). Trailing cells are exactly what terminal reflow
+		// wraps into floating fragments on width shrink.
+		if (!left) return [truncateToWidth(`${" ".repeat(Math.max(0, width - visibleWidth(right) - 1))}${right}`, width)];
 		const leftStr = ` ${left}`;
-		const rightStr = `${right} `;
 		const leftW = visibleWidth(leftStr);
-		const rightW = visibleWidth(rightStr);
-		const gap = Math.max(1, width - leftW - rightW);
-		return [truncateToWidth(`${leftStr}${" ".repeat(gap)}${rightStr}`, width)];
+		const rightW = visibleWidth(right);
+		const gap = Math.max(1, width - leftW - rightW - 1);
+		return [truncateToWidth(`${leftStr}${" ".repeat(gap)}${right}`, width)];
 	}
 }

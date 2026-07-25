@@ -3,6 +3,7 @@
  * Displays a list of string options with keyboard navigation.
  */
 import {
+	type AutocompleteProvider,
 	Container,
 	CURSOR_MARKER,
 	Editor,
@@ -97,6 +98,7 @@ export interface HookSelectorOptions {
 		label?: string;
 		onSubmit: (text: string) => void;
 	};
+	autocompleteProvider?: AutocompleteProvider;
 }
 
 /**
@@ -390,6 +392,7 @@ export class HookSelectorComponent extends Container {
 	#helpTextComponent: Text;
 	#baseHelpText: string;
 	#tui: TUI | undefined;
+	#autocompleteProvider: AutocompleteProvider | undefined;
 	constructor(
 		title: string,
 		options: string[],
@@ -420,6 +423,7 @@ export class HookSelectorComponent extends Container {
 		this.#listSlotEditor = undefined;
 		this.#editorFocused = false;
 		this.#tui = opts?.tui;
+		this.#autocompleteProvider = opts?.autocompleteProvider;
 
 		this.addChild(new DynamicBorder());
 		this.addChild(new Spacer(1));
@@ -573,6 +577,13 @@ export class HookSelectorComponent extends Container {
 	#ensureListSlotEditor(): void {
 		if (this.#listSlotEditor) return;
 		this.#listSlotEditor = createAskOutputPanelEditor();
+		if (this.#autocompleteProvider) {
+			this.#listSlotEditor.setAutocompleteProvider(this.#autocompleteProvider);
+			this.#listSlotEditor.onAutocompleteUpdate = () => {
+				this.#syncOutputPanelPresentation();
+				this.#tui?.requestRender();
+			};
+		}
 	}
 
 	#mountOutputPanelChrome(): void {
@@ -635,6 +646,13 @@ export class HookSelectorComponent extends Container {
 		editor.setBorderVisible(false);
 		editor.setPromptGutter(promptGutter);
 		editor.disableSubmit = true;
+		if (this.#autocompleteProvider) {
+			editor.setAutocompleteProvider(this.#autocompleteProvider);
+			editor.onAutocompleteUpdate = () => {
+				this.invalidate();
+				this.#tui?.requestRender();
+			};
+		}
 		return editor;
 	}
 
@@ -799,6 +817,14 @@ export class HookSelectorComponent extends Container {
 
 		if (matchesAppExternalEditor(keyData)) {
 			void this.#openExternalEditor(editor);
+			return;
+		}
+		if (editor.isShowingAutocomplete()) {
+			editor.handleInput(keyData);
+			if (this.#customInputListSlot && editor === this.#listSlotEditor) {
+				this.#syncOutputPanelPresentation();
+			}
+			this.#tui?.requestRender();
 			return;
 		}
 		if (matchesKey(keyData, "enter") || matchesKey(keyData, "return")) {

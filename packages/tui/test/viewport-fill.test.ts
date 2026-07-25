@@ -299,21 +299,28 @@ describe("ViewportFill gap compaction (083.7 §10)", () => {
 		tui.start();
 		await flushRender(term);
 
-		// Shrink while overflowing — the floor keeps the composer pinned with a
-		// 5-row gap above it (§9 behavior).
+		// Shrink while overflowing — the overflow floor keeps the frame length
+		// with tombstone rows AT the shrink point (260630 seam fix). The old
+		// top-side gap shifted content down over rows already in the scrollback
+		// and duplicated the viewport-top rows.
 		content.setLines(Array.from({ length: 25 }, (_v, i) => `chat-${i}`));
 		tui.requestRender();
 		await flushRender(term);
-		// §11: the floor gap sits above the content (scrollback side), so the
-		// viewport already shows content hugging the composer…
 		expect(term.getViewport()[11]).toBe("[footer]");
-		expect(term.getViewport()[8]).toBe("chat-24");
-		// …and the gap stays logical-only (083.8 S3): the shrink repaints just the
-		// viewport, so scrollback keeps the pre-shrink rows instead of being
-		// rewritten with blank fill rows.
-		const blanksBefore = term.getScrollBuffer().filter(line => line.trim() === "").length;
+		// Tombstones sit where the tail rows were removed — between the content
+		// and the composer — so no surviving row moved.
+		expect(term.getViewport()[3]).toBe("chat-24");
+		expect(term.getViewport()[8]).toBe("");
+		// Seam continuity: the viewport top continues the scrollback exactly —
+		// no duplicated band.
+		const scrollbackBefore = term.getScrollBuffer();
+		expect(scrollbackBefore[term.getViewportY() - 1]).toBe("chat-20");
+		expect(term.getViewport()[0]).toBe("chat-21");
+		// The shrink repaints in place (083.8 S3): scrollback keeps the
+		// pre-shrink rows instead of being rewritten with blank fill rows.
+		const blanksBefore = scrollbackBefore.slice(0, term.getViewportY()).filter(line => line.trim() === "").length;
 		expect(blanksBefore).toBe(0);
-		expect(term.getScrollBuffer().some(line => line === "chat-0")).toBeTrue();
+		expect(scrollbackBefore.some(line => line === "chat-0")).toBeTrue();
 
 		// Turn end: compact — buffer rebuilt without the dead blank region.
 		tui.compactViewportFill();
