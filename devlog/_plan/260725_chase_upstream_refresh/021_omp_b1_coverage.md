@@ -27,7 +27,7 @@ git -C devlog/_omp_chase/oh-my-pi rev-list --no-merges --count v17.0.6..v17.0.8 
 
 ## No-card hashes
 
-The following 171 commits are explicit no-card entries because they are tests, formatting, changelog/docs, CI bookkeeping, version/vouch administration, or revert/merge-adjacent maintenance. They remain in the coverage set and may support a future card if a concrete JWC failure reproduces.
+The following 168 commits are explicit no-card entries because they are tests, formatting, changelog/docs, CI bookkeeping, version/vouch administration, or revert/merge-adjacent maintenance. They remain in the coverage set and may support a future card if a concrete JWC failure reproduces.
 
 - `5e362714f` — no card: maintenance-only (ci: installed libstdc++ and libgcc in alpine musl smoke; .github/workflows/ci.yml)
 - `1f7d2ff9e` — no card: maintenance-only (ci: skipped glibc-host smoke for musl release binaries; .github/workflows/ci.yml)
@@ -58,8 +58,6 @@ The following 171 commits are explicit no-card entries because they are tests, f
 - `8047bedaa` — no card: maintenance-only (test(mnemopi): record bench host metadata and allow archive-deployed sha; packages/mnemopi/bench/native-vectors.bench.ts)
 - `973bad0c6` — no card: maintenance-only (test(natives): include production isWellFormed guards in native diff timings; packages/natives/bench/diff.ts)
 - `ee6717872` — no card: maintenance-only (test(natives): cover ill-formed UTF-16 rejection and jsdiff fallback; packages/coding-agent/test/tools/edit-diff.test.ts,packages/coding-agent/test/tools/edit-renderer.test.ts,packages/hashline/test/recovery-session-chain.test.ts)
-- `7cbcc3e3a` — no card: maintenance-only (Normalize OSC 8 links in inline Markdown; packages/tui/src/components/markdown.ts,packages/tui/test/markdown.test.ts)
-- `08e617eec` — no card: maintenance-only (Fix ST-terminated OSC 8 Markdown tables; packages/tui/CHANGELOG.md,packages/tui/src/components/markdown.ts,packages/tui/test/markdown.test.ts)
 - `6b9726552` — no card: maintenance-only (chore(mnemopi): add changelog attribution links; packages/mnemopi/CHANGELOG.md,packages/natives/CHANGELOG.md)
 - `55bba890a` — no card: maintenance-only (chore(coding-agent): add changelog attribution links; packages/coding-agent/CHANGELOG.md,packages/hashline/CHANGELOG.md,packages/natives/CHANGELOG.md)
 - `c71834040` — no card: maintenance-only (chore(coding-agent): sync changelog numbers with final bench artifact; packages/coding-agent/CHANGELOG.md,packages/natives/CHANGELOG.md)
@@ -168,7 +166,6 @@ The following 171 commits are explicit no-card entries because they are tests, f
 - `f36394ef5` — no card: maintenance-only (style: fixed formatting in merged test and session files; packages/ai/test/cursor-exec-handlers.test.ts,packages/coding-agent/src/session/agent-session.ts,packages/coding-agent/test/slash-commands/clear-alias.test.ts)
 - `2594ae352` — no card: maintenance-only (style: formatted conflict-resolved files with biome; packages/coding-agent/src/advisor/__tests__/advisor.test.ts,packages/coding-agent/src/advisor/runtime.ts,packages/coding-agent/src/modes/interactive-mode.ts)
 - `f4bbf2dec` — no card: maintenance-only (chore: normalized changelogs after merge sweep; packages/ai/CHANGELOG.md,packages/catalog/CHANGELOG.md,packages/coding-agent/CHANGELOG.md)
-- `dd84ec57c` — no card: maintenance-only (apply PR #5468: fix(advisor): stop retrying terminal failures; packages/coding-agent/CHANGELOG.md,packages/coding-agent/src/advisor/__tests__/advisor.test.ts,packages/coding-agent/src/advisor/runtime.ts)
 - `7e47a1d36` — no card: maintenance-only (test(auth): isolated import fixtures from broker env; packages/coding-agent/CHANGELOG.md,packages/coding-agent/test/auth-broker-import.test.ts)
 - `4e85f6ace` — no card: maintenance-only (apply PR #5490: fix(tui): refresh dark/light appearance on explicit ctrl+l reset; packages/coding-agent/CHANGELOG.md,packages/coding-agent/src/modes/controllers/input-controller.ts,packages/coding-agent/test/input-controller-keybindings.test.ts)
 - `06d11d11a` — no card: maintenance-only (apply PR #5480: fix(slash-commands): added /q alias for /quit; packages/coding-agent/CHANGELOG.md,packages/coding-agent/src/slash-commands/builtin-registry.ts,packages/tui/test/autocomplete.test.ts)
@@ -204,10 +201,10 @@ The following 171 commits are explicit no-card entries because they are tests, f
 ## Hash-set proof
 
 - Delta set: **678** unique non-merge commits.
-- Card-cited set: **507** unique commits.
-- Explicit no-card set: **171** unique commits.
+- Card-cited set: **510** unique commits.
+- Explicit no-card set: **168** unique commits.
 - Overlap between cited and no-card: **0**.
-- Coverage arithmetic: **507 + 171 = 678**.
+- Coverage arithmetic: **510 + 168 = 678**.
 - Set difference: `delta - cited - no_card = ∅`.
 - Overflow/RESIDUAL: **none**; cards stop at 20.090, within the allocated 20.081–20.099 range.
 
@@ -222,3 +219,9 @@ comm -23 \
 # output: empty
 ```
 
+
+
+## Post-C amendments (2026-07-25, adversarial review round 1)
+
+- `7cbcc3e3a`, `08e617eec` moved from no-card to [20.085](../../../struct_har/chase/20.085_omp_chase_tui_render_input_markdown.md) — observable product fixes with regression tests, wrongly excluded.
+- `dd84ec57c` moved from no-card to [20.084](../../../struct_har/chase/20.084_omp_chase_task_subagent_advisor_launch.md) — advisor terminal-failure retry behavior change.

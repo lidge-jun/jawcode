@@ -10,7 +10,7 @@
 ## 2026-07-25 세션 상태 (upstream refresh + 문서화 루프)
 
 > **신규 카드 39**: GJC 10 (10.108–10.117, 529 commits `3ddf26079..baa4dc76`) · OMP 29 (20.081–20.090 / 20.101–20.112 / 20.121–20.127, 1301 commits `b0d04e517..59619623`). 해시셋 커버리지 독립 검증 완료(uncovered=0, extraneous=0). 증거: [devlog 001_delta_evidence](../../devlog/_plan/260725_chase_upstream_refresh/001_delta_evidence.md) + coverage notes 020–023.
-> **자율 구현 대상 (A bucket)**: GJC 10.110(SDK/ACP/bridge) · 10.112(notifications/Telegram daemon) · 10.116(natives/Windows) · 10.117(CI/release/docs evidence-fill); OMP 20.081·20.082·20.083·20.087·20.088·20.089·20.102·20.107·20.109·20.122·20.124.
+> **자율 구현 대상 (A bucket)**: GJC 10.110(SDK/ACP/bridge) · 10.112(notifications/Telegram daemon) · 10.116(natives/Windows, A-slice — welcome.ts 제외) · 10.117(CI/release/docs evidence-fill); OMP 20.081·20.082·20.083(A-slice)·20.087·20.088·20.089·20.102·20.107·20.109·20.122·20.124(A-slice).
 > **보류 (B)**: 10.109 · 10.115 · 20.085 · 20.090 · 20.110 · 20.112 · 20.127. **사용자 결정 (C)**: 10.108 · 10.111 · 10.113 · 10.114 · 20.084 · 20.086 · 20.101 · 20.103–20.106 · 20.108 · 20.111 · 20.121 · 20.123 · 20.125 · 20.126.
 > **정본 정합성 수리**: MOC 링크 stale(753dc65/319c69d2가 헤더 마커 없이 _fin 이동) 수정 — GJC 10.083–10.106 14 rows, OMP 20.051–20.079 14 rows → _fin 링크 + `evidence pending wp4` 표기. 마커 없는 _fin 카드 21장의 closure evidence 보강은 wp4 큐.
 
