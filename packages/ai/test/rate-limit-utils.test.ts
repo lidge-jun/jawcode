@@ -1,5 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import { calculateRateLimitBackoffMs, isUsageLimitError, parseRateLimitReason } from "@jawcode-dev/ai/rate-limit-utils";
+import {
+	calculateRateLimitBackoffMs,
+	isUsageLimitError,
+	isUsageLimitOutcome,
+	parseRateLimitReason,
+} from "@jawcode-dev/ai/rate-limit-utils";
 
 const PERSISTENT_USAGE_LIMIT_FIXTURES = [
 	{
@@ -88,6 +93,21 @@ describe("isUsageLimitError", () => {
 	it("keeps transient throttles and content filters out of credential rotation", () => {
 		expect(isUsageLimitError("429 Too Many Requests. Retry after 2 seconds.")).toBe(false);
 		expect(isUsageLimitError("Provider finish_reason: content_filter")).toBe(false);
+	});
+});
+
+describe("isUsageLimitOutcome", () => {
+	it("classifies an opaque 402 as a usage limit", () => {
+		expect(isUsageLimitOutcome(402, "HTTP 402")).toBe(true);
+		expect(isUsageLimitError("HTTP 402")).toBe(true);
+	});
+
+	it("classifies balance exhaustion regardless of status", () => {
+		expect(isUsageLimitOutcome(undefined, "Grok Build usage balance exhausted")).toBe(true);
+	});
+
+	it("does not classify an informative non-quota 402 as a usage limit", () => {
+		expect(isUsageLimitOutcome(402, "A subscription is required for this endpoint")).toBe(false);
 	});
 });
 

@@ -22,7 +22,7 @@ describe("Google Gemini CLI user agent", () => {
 		delete process.env.JWC_AI_GEMINI_CLI_VERSION;
 		delete process.env.PI_AI_GEMINI_CLI_VERSION;
 
-		expect(getGeminiCliUserAgent("gemini-2.5-flash")).toContain("GeminiCLI/0.49.0/gemini-2.5-flash");
+		expect(getGeminiCliUserAgent("gemini-2.5-flash")).toContain("GeminiCLI/0.50.0/gemini-2.5-flash");
 	});
 
 	it("prefers the documented JWC Gemini CLI version override", () => {

@@ -53,6 +53,47 @@ async function collectSse(stream: ReadableStream<Uint8Array>): Promise<SseEvent[
 }
 
 describe("anthropic-messages parseRequest", () => {
+	it("preserves only validated Anthropic web-search history blocks", () => {
+		const parsed = parseRequest({
+			model: "claude-sonnet-4-5",
+			max_tokens: 128,
+			messages: [
+				{
+					role: "assistant",
+					content: [
+						{ type: "server_tool_use", id: "srvtoolu_1", name: "web_search", input: { query: "JWC" } },
+						{
+							type: "web_search_tool_result",
+							tool_use_id: "srvtoolu_1",
+							content: [{ type: "web_search_result", encrypted_content: "ciphertext" }],
+						},
+						{ type: "server_tool_use", id: "srvtoolu_2", name: "code_execution", input: {} },
+						{ type: "web_search_tool_result", tool_use_id: "", content: [] },
+					],
+				},
+			],
+		});
+
+		const message = parsed.context.messages[0];
+		expect(message?.role).toBe("assistant");
+		if (message?.role !== "assistant") throw new Error("expected assistant history");
+		expect(message.content.slice(0, 2)).toEqual([
+			{
+				type: "anthropicServerTool",
+				block: { type: "server_tool_use", id: "srvtoolu_1", name: "web_search", input: { query: "JWC" } },
+			},
+			{
+				type: "anthropicServerTool",
+				block: {
+					type: "web_search_tool_result",
+					tool_use_id: "srvtoolu_1",
+					content: [{ type: "web_search_result", encrypted_content: "ciphertext" }],
+				},
+			},
+		]);
+		expect(message.content.slice(2).every(block => block.type === "text")).toBe(true);
+	});
+
 	it("parses system + user + assistant(thinking,text,tool_use) + tool_result", () => {
 		const parsed = parseRequest({
 			model: "claude-opus-4-7",
@@ -238,6 +279,36 @@ describe("anthropic-messages parseRequest", () => {
 });
 
 describe("anthropic-messages encodeResponse", () => {
+	it("round-trips preserved web-search blocks without flattening", () => {
+		const message: AssistantMessage = {
+			role: "assistant",
+			content: [
+				{
+					type: "anthropicServerTool",
+					block: { type: "server_tool_use", id: "srvtoolu_1", name: "web_search", input: { query: "JWC" } },
+				},
+				{
+					type: "anthropicServerTool",
+					block: {
+						type: "web_search_tool_result",
+						tool_use_id: "srvtoolu_1",
+						content: [{ encrypted_content: "x" }],
+					},
+				},
+			],
+			api: "anthropic-messages",
+			provider: "anthropic",
+			model: "claude-sonnet-4-5",
+			usage: emptyUsage(),
+			stopReason: "stop",
+			timestamp: 0,
+		};
+
+		expect(encodeResponse(message, message.model).content).toEqual(
+			message.content.filter(content => content.type === "anthropicServerTool").map(content => content.block),
+		);
+	});
+
 	it("encodes text + thinking + tool_use with correct ordering and stop_reason mapping", () => {
 		const message: AssistantMessage = {
 			role: "assistant",
@@ -298,6 +369,45 @@ describe("anthropic-messages encodeResponse", () => {
 });
 
 describe("anthropic-messages encodeStream", () => {
+	it("emits preserved web-search blocks at their original content indexes", async () => {
+		const finalMessage: AssistantMessage = {
+			role: "assistant",
+			content: [
+				{
+					type: "anthropicServerTool",
+					block: { type: "server_tool_use", id: "srvtoolu_1", name: "web_search", input: { query: "JWC" } },
+				},
+				{ type: "text", text: "done" },
+			],
+			api: "anthropic-messages",
+			provider: "anthropic",
+			model: "claude-sonnet-4-5",
+			usage: emptyUsage(),
+			stopReason: "stop",
+			timestamp: 0,
+		};
+		const events: AssistantMessageEvent[] = [
+			{ type: "start", partial: finalMessage },
+			{ type: "text_start", contentIndex: 1, partial: finalMessage },
+			{ type: "text_delta", contentIndex: 1, delta: "done", partial: finalMessage },
+			{ type: "text_end", contentIndex: 1, content: "done", partial: finalMessage },
+			{ type: "done", reason: "stop", message: finalMessage },
+		];
+
+		const sse = await collectSse(encodeStream(makeStream(events), finalMessage.model));
+		const starts = sse.filter(event => event.event === "content_block_start").map(event => event.data);
+		const serverTool = finalMessage.content[0];
+		if (serverTool?.type !== "anthropicServerTool") throw new Error("expected server-tool block");
+		expect(starts).toEqual([
+			{
+				type: "content_block_start",
+				index: 0,
+				content_block: serverTool.block,
+			},
+			{ type: "content_block_start", index: 1, content_block: { type: "text", text: "" } },
+		]);
+	});
+
 	it("emits thinking_delta + signature_delta + text_delta + tool_use input_json_delta + message_stop", async () => {
 		const finalMessage: AssistantMessage = {
 			role: "assistant",

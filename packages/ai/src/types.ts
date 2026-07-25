@@ -478,6 +478,25 @@ export interface RedactedThinkingContent {
 	data: string;
 }
 
+/** Anthropic web-search history retained verbatim for same-provider replay. */
+export interface AnthropicServerToolContent {
+	type: "anthropicServerTool";
+	block:
+		| {
+				type: "server_tool_use";
+				id: string;
+				name: "web_search";
+				input?: Record<string, unknown> | null;
+				[key: string]: unknown;
+		  }
+		| {
+				type: "web_search_tool_result";
+				tool_use_id: string;
+				content: unknown;
+				[key: string]: unknown;
+		  };
+}
+
 export interface ImageContent {
 	type: "image";
 	data: string; // base64 encoded image data
@@ -590,7 +609,7 @@ export interface DeveloperMessage {
 
 export interface AssistantMessage {
 	role: "assistant";
-	content: (TextContent | ThinkingContent | RedactedThinkingContent | ToolCall)[];
+	content: (TextContent | ThinkingContent | RedactedThinkingContent | AnthropicServerToolContent | ToolCall)[];
 	api: Api;
 	provider: Provider;
 	model: string;
@@ -765,6 +784,8 @@ export interface OpenAICompat extends ToolChoiceCompat {
 	supportsReasoningSummary?: boolean;
 	/** Whether Responses requests accept `reasoning.encrypted_content` in `include`. Default: true. */
 	includeEncryptedReasoning?: boolean;
+	/** First-event watchdog timeout in ms for OpenAI Responses/Completions streams. `0` disables. */
+	streamFirstEventTimeoutMs?: number;
 	/** Whether the provider supports the `developer` role (vs `system`). Default: auto-detected from URL. */
 	supportsDeveloperRole?: boolean;
 	/**

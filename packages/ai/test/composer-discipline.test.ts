@@ -15,6 +15,7 @@ const compat: Required<OpenAICompat> = {
 	supportsImageDetailOriginal: true,
 	supportsReasoningSummary: true,
 	includeEncryptedReasoning: true,
+	streamFirstEventTimeoutMs: 15_000,
 	supportsDeveloperRole: false,
 	supportsMultipleSystemMessages: true,
 	supportsReasoningEffort: false,

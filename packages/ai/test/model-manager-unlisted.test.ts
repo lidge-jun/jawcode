@@ -122,4 +122,34 @@ describe("markUnlistedOutsideDynamic", () => {
 		);
 		expect(unlistedIds(offline.models)).toEqual(["gpt-5"]);
 	});
+
+	it("restores live headers only from the static catalog after a cache round-trip", async () => {
+		const dbPath = path.join(tempDir, "models.db");
+		const staticHeaders = { "X-Static-Route": "catalog-value" };
+		const staticModel = codexModel("gpt-5", { headers: staticHeaders });
+		await resolveProviderModels(
+			{
+				providerId: "openai-codex",
+				staticModels: [staticModel],
+				cacheDbPath: dbPath,
+				fetchDynamicModels: async () => [
+					codexModel("gpt-5", { headers: { "X-Cached-Secret": "must-not-survive" } }),
+					codexModel("dynamic-only", { headers: { "X-Cached-Secret": "must-not-survive" } }),
+				],
+			},
+			"online",
+		);
+
+		const offline = await resolveProviderModels(
+			{
+				providerId: "openai-codex",
+				staticModels: [staticModel],
+				cacheDbPath: dbPath,
+			},
+			"offline",
+		);
+
+		expect(offline.models.find(model => model.id === "gpt-5")?.headers).toEqual(staticHeaders);
+		expect(offline.models.find(model => model.id === "dynamic-only")?.headers).toBeUndefined();
+	});
 });

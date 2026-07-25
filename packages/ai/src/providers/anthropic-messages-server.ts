@@ -1,6 +1,7 @@
 import { logger } from "@jawcode-dev/utils";
 import { captureRequestHeaders, resolvePromptCacheKey } from "../auth-gateway/http";
 import type {
+	AnthropicServerToolContent,
 	AssistantMessage,
 	AssistantMessageEventStream,
 	Message,
@@ -22,6 +23,7 @@ import {
 	type AnthropicToolResultContent,
 	type AnthropicUserContentBlock,
 	anthropicMessagesRequestSchema,
+	isAnthropicWebSearchHistoryBlock,
 } from "./anthropic-messages-server-schema";
 
 /**
@@ -178,8 +180,8 @@ function walkUserContent(
 
 function walkAssistantContent(
 	blocks: string | AnthropicAssistantContentBlock[],
-): (TextContent | ThinkingContent | RedactedThinkingContent | ToolCall)[] {
-	const out: (TextContent | ThinkingContent | RedactedThinkingContent | ToolCall)[] = [];
+): (TextContent | ThinkingContent | RedactedThinkingContent | AnthropicServerToolContent | ToolCall)[] {
+	const out: (TextContent | ThinkingContent | RedactedThinkingContent | AnthropicServerToolContent | ToolCall)[] = [];
 	if (typeof blocks === "string") {
 		if (blocks.length > 0) out.push({ type: "text", text: blocks });
 		return out;
@@ -205,6 +207,15 @@ function walkAssistantContent(
 					name: block.name,
 					arguments: block.input ?? {},
 				});
+				break;
+			case "server_tool_use":
+			case "web_search_tool_result":
+				if (isAnthropicWebSearchHistoryBlock(block)) {
+					out.push({ type: "anthropicServerTool", block: { ...block } });
+				} else {
+					warnUnknownBlockType("assistant", block.type);
+					out.push({ type: "text", text: describeUnknownBlock(block) });
+				}
 				break;
 			default: {
 				// Unknown assistant variant (server_tool_use, mcp_tool_use, …).
@@ -432,6 +443,9 @@ function encodeContentBlocks(message: AssistantMessage): Record<string, unknown>
 			case "redactedThinking":
 				blocks.push({ type: "redacted_thinking", data: c.data });
 				break;
+			case "anthropicServerTool":
+				blocks.push(c.block);
+				break;
 			case "toolCall":
 				blocks.push({ type: "tool_use", id: c.id, name: c.name, input: c.arguments ?? {} });
 				break;
@@ -517,6 +531,25 @@ export function encodeStream(
 				);
 			};
 
+			let nextContentIndexToInspect = 0;
+			const emitServerToolBlocksBefore = (message: AssistantMessage, beforeIndex: number) => {
+				const limit = Math.min(beforeIndex, message.content.length);
+				while (nextContentIndexToInspect < limit) {
+					const index = nextContentIndexToInspect++;
+					const content = message.content[index];
+					if (content?.type !== "anthropicServerTool") continue;
+					ensureStart(message);
+					controller.enqueue(
+						sseFrame("content_block_start", {
+							type: "content_block_start",
+							index,
+							content_block: content.block,
+						}),
+					);
+					controller.enqueue(sseFrame("content_block_stop", { type: "content_block_stop", index }));
+				}
+			};
+
 			const closeBlock = (index: number) => {
 				if (!open.has(index)) return;
 				controller.enqueue(sseFrame("content_block_stop", { type: "content_block_stop", index }));
@@ -530,6 +563,7 @@ export function encodeStream(
 							ensureStart(ev.partial);
 							break;
 						case "text_start": {
+							emitServerToolBlocksBefore(ev.partial, ev.contentIndex);
 							ensureStart(ev.partial);
 							open.set(ev.contentIndex, { index: ev.contentIndex, kind: "text" });
 							controller.enqueue(
@@ -554,6 +588,7 @@ export function encodeStream(
 							closeBlock(ev.contentIndex);
 							break;
 						case "thinking_start": {
+							emitServerToolBlocksBefore(ev.partial, ev.contentIndex);
 							ensureStart(ev.partial);
 							open.set(ev.contentIndex, { index: ev.contentIndex, kind: "thinking" });
 							controller.enqueue(
@@ -589,6 +624,7 @@ export function encodeStream(
 							break;
 						}
 						case "toolcall_start": {
+							emitServerToolBlocksBefore(ev.partial, ev.contentIndex);
 							ensureStart(ev.partial);
 							const tc = ev.partial.content[ev.contentIndex] as ToolCall | undefined;
 							open.set(ev.contentIndex, { index: ev.contentIndex, kind: "tool_use" });
@@ -620,6 +656,7 @@ export function encodeStream(
 							break;
 						case "done": {
 							for (const idx of [...open.keys()]) closeBlock(idx);
+							emitServerToolBlocksBefore(ev.message, ev.message.content.length);
 							controller.enqueue(
 								sseFrame("message_delta", {
 									type: "message_delta",
