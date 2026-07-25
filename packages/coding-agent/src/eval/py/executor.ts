@@ -355,7 +355,13 @@ async function replaceSessionKernel(
 			) {
 				throw new PythonExecutionCancelledError(false);
 			}
-			const next = await startKernel(cwd, { ...options, signal: undefined, deadlineMs: replacementDeadlineMs });
+			// Envelope the WHOLE startup (availability probe, settings/runtime prep,
+			// spawn) in the replacement-owned deadline: PythonKernel.start's internal
+			// pre-spawn steps do not all honor the deadline, so the executor races it.
+			const next = await waitForPromiseWithCancellation(
+				startKernel(cwd, { ...options, signal: undefined, deadlineMs: replacementDeadlineMs }),
+				{ deadlineMs: replacementDeadlineMs },
+			);
 			if (
 				sessions.get(session.sessionId) !== session ||
 				session.generation !== generation ||
