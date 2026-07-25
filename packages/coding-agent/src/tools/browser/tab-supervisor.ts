@@ -166,6 +166,11 @@ export async function acquireTab(
 			throw finalError;
 		}
 	}
+	if (opts.signal?.aborted) {
+		await worker.terminate().catch(() => undefined);
+		if (browser.refCount === 0) await releaseBrowser(browser, { kill: false }).catch(() => undefined);
+		throw new ToolAbortError("Browser tab open aborted");
+	}
 
 	holdBrowser(browser);
 	const tab: TabSession = {

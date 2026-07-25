@@ -21,6 +21,7 @@ let terminalEverStarted = false;
 const STD_INPUT_HANDLE = -10;
 const ENABLE_VIRTUAL_TERMINAL_INPUT = 0x0200;
 const BLIND_RESTORE_SEQUENCE =
+	"\x1b[?1l\x1b>" + // Restore normal cursor-key and keypad mode
 	"\x1b[?2004l" + // Disable bracketed paste
 	"\x1b[?1000l" + // Disable normal mouse reporting
 	"\x1b[?1006l" + // Disable SGR extended mouse reporting
@@ -603,6 +604,7 @@ export class ProcessTerminal implements Terminal {
 		this.#safeWrite("\x1b[?1006l");
 		// Restore autowrap (260703 WP2 — session runs with DECAWM off)
 		this.#safeWrite("\x1b[?7h");
+		this.#safeWrite("\x1b[?1l\x1b>");
 
 		// Disable Mode 2031 appearance change notifications
 		this.#safeWrite("\x1b[?2031l");

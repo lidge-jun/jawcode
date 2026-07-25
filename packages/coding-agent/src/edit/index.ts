@@ -1,5 +1,5 @@
 import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@jawcode-dev/agent-core";
-import { prompt } from "@jawcode-dev/utils";
+import { isEnoent, prompt } from "@jawcode-dev/utils";
 import type * as z from "zod/v4";
 import {
 	executeHashlineSingle,
@@ -21,6 +21,8 @@ import hashlineDescription from "../prompts/tools/hashline.md" with { type: "tex
 import patchDescription from "../prompts/tools/patch.md" with { type: "text" };
 import replaceDescription from "../prompts/tools/replace.md" with { type: "text" };
 import type { ToolSession } from "../tools";
+import { findUniqueWorkspaceSuffix, isInternalUrlPath } from "../tools/path-utils";
+import { resolvePlanPath } from "../tools/plan-mode-guard";
 import { VimTool, vimSchema } from "../tools/vim";
 import { type EditMode, normalizeEditMode, resolveEditMode } from "../utils/edit-mode";
 import type { VimToolDetails } from "../vim/types";
@@ -82,6 +84,29 @@ function resolveConfiguredEditMode(rawEditMode: string): EditMode | undefined {
 	}
 
 	return editMode;
+}
+
+async function resolveEditPath(
+	session: ToolSession,
+	authoredPath: string,
+	options: { mustExist: boolean; signal?: AbortSignal },
+): Promise<string> {
+	if (!options.mustExist || isInternalUrlPath(authoredPath)) return authoredPath;
+
+	try {
+		await Bun.file(resolvePlanPath(session, authoredPath)).stat();
+		return authoredPath;
+	} catch (error) {
+		if (
+			!isEnoent(error) &&
+			!(typeof error === "object" && error !== null && "code" in error && error.code === "ENOTDIR")
+		) {
+			throw error;
+		}
+	}
+
+	const match = await findUniqueWorkspaceSuffix(authoredPath, session.cwd, options.signal);
+	return match?.displayPath ?? authoredPath;
 }
 
 function resolveAllowFuzzy(session: ToolSession, rawValue: string): boolean {
@@ -355,7 +380,7 @@ export class EditTool implements AgentTool<TInput> {
 			patch: {
 				description: () => prompt.render(patchDescription),
 				parameters: patchEditSchema,
-				execute: (
+				execute: async (
 					tool: EditTool,
 					params: EditParams,
 					signal: AbortSignal | undefined,
@@ -363,11 +388,15 @@ export class EditTool implements AgentTool<TInput> {
 					onUpdate?: (partialResult: AgentToolResult<EditToolDetails, TInput>) => void,
 				) => {
 					const { edits, path } = params as PatchParams;
+					const targetPath = await resolveEditPath(tool.session, path, {
+						mustExist: (edits[0]?.op ?? "update") !== "create",
+						signal,
+					});
 					const runs = (edits as PatchEditEntry[]).map(
 						entry => (br: LspBatchRequest | undefined) =>
 							executePatchSingle({
 								session: tool.session,
-								path,
+								path: targetPath,
 								params: entry,
 								signal,
 								batchRequest: br,
@@ -377,7 +406,7 @@ export class EditTool implements AgentTool<TInput> {
 								beginDeferredDiagnosticsForPath: p => tool.#beginDeferredDiagnosticsForPath(p),
 							}),
 					);
-					return executeSinglePathEntries(path, runs, batchRequest, onUpdate);
+					return executeSinglePathEntries(targetPath, runs, batchRequest, onUpdate);
 				},
 			},
 			apply_patch: {
@@ -391,14 +420,24 @@ export class EditTool implements AgentTool<TInput> {
 					onUpdate?: (partialResult: AgentToolResult<EditToolDetails, TInput>) => void,
 				) => {
 					const entries = expandApplyPatchToEntries(params as ApplyPatchParams);
+					const resolvedTargets = new Map<string, Promise<string>>();
+					const resolveOnce = (path: string, mustExist: boolean): Promise<string> => {
+						let pending = resolvedTargets.get(path);
+						if (!pending) {
+							pending = resolveEditPath(tool.session, path, { mustExist, signal });
+							resolvedTargets.set(path, pending);
+						}
+						return pending;
+					};
 					const perFile = entries.map(entry => {
 						const { path, ...patchParams } = entry;
 						return {
 							path,
-							run: (br: LspBatchRequest | undefined) =>
-								executePatchSingle({
+							run: async (br: LspBatchRequest | undefined) => {
+								const targetPath = await resolveOnce(path, patchParams.op !== "create");
+								return executePatchSingle({
 									session: tool.session,
-									path,
+									path: targetPath,
 									params: patchParams,
 									signal,
 									batchRequest: br,
@@ -406,7 +445,8 @@ export class EditTool implements AgentTool<TInput> {
 									fuzzyThreshold: tool.#fuzzyThreshold,
 									writethrough: tool.#writethrough,
 									beginDeferredDiagnosticsForPath: p => tool.#beginDeferredDiagnosticsForPath(p),
-								}),
+								});
+							},
 						};
 					});
 					return executeApplyPatchPerFile(perFile, batchRequest, onUpdate);
@@ -437,7 +477,7 @@ export class EditTool implements AgentTool<TInput> {
 			replace: {
 				description: () => prompt.render(replaceDescription),
 				parameters: replaceEditSchema,
-				execute: (
+				execute: async (
 					tool: EditTool,
 					params: EditParams,
 					signal: AbortSignal | undefined,
@@ -445,11 +485,12 @@ export class EditTool implements AgentTool<TInput> {
 					onUpdate?: (partialResult: AgentToolResult<EditToolDetails, TInput>) => void,
 				) => {
 					const { edits, path } = params as ReplaceParams;
+					const targetPath = await resolveEditPath(tool.session, path, { mustExist: true, signal });
 					const runs = (edits as ReplaceEditEntry[]).map(
 						entry => (br: LspBatchRequest | undefined) =>
 							executeReplaceSingle({
 								session: tool.session,
-								path,
+								path: targetPath,
 								params: entry,
 								signal,
 								batchRequest: br,
@@ -459,7 +500,7 @@ export class EditTool implements AgentTool<TInput> {
 								beginDeferredDiagnosticsForPath: p => tool.#beginDeferredDiagnosticsForPath(p),
 							}),
 					);
-					return executeSinglePathEntries(path, runs, batchRequest, onUpdate);
+					return executeSinglePathEntries(targetPath, runs, batchRequest, onUpdate);
 				},
 			},
 			vim: {

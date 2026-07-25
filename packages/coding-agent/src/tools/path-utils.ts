@@ -2,9 +2,10 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as url from "node:url";
-import { isEnoent } from "@jawcode-dev/utils";
+import { glob } from "@jawcode-dev/natives";
+import { isEnoent, untilAborted } from "@jawcode-dev/utils";
 import { InternalUrlRouter } from "../internal-urls";
-import { ToolError } from "./tool-errors";
+import { ToolAbortError, ToolError } from "./tool-errors";
 
 const UNICODE_SPACES = /[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g;
 const FILE_LINE_RANGE_RE = /^(?:L?\d+(?:[-+]L?\d+|-)?(?:,L?\d+(?:[-+]L?\d+|-)?)*|raw|conflicts)$/i;
@@ -616,6 +617,53 @@ export function resolveReadPath(filePath: string, cwd: string): string {
 	}
 
 	return resolved;
+}
+
+export async function probeLiteralPathExists(filePath: string, cwd: string): Promise<"exists" | "missing" | "unknown"> {
+	try {
+		await fs.promises.lstat(resolveReadPath(filePath, cwd));
+		return "exists";
+	} catch (error) {
+		if (
+			isEnoent(error) ||
+			(typeof error === "object" && error !== null && "code" in error && error.code === "ENOTDIR")
+		) {
+			return "missing";
+		}
+		return "unknown";
+	}
+}
+
+const WORKSPACE_SUFFIX_TIMEOUT_MS = 5000;
+
+function escapeGlobMetachars(value: string): string {
+	return value.replace(/[*?[{]/g, "[$&]");
+}
+
+export async function findUniqueWorkspaceSuffix(
+	rawPath: string,
+	cwd: string,
+	signal?: AbortSignal,
+): Promise<{ absolutePath: string; displayPath: string } | null> {
+	const normalized = rawPath.replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/+$/, "");
+	if (!normalized) return null;
+
+	const timeoutSignal = AbortSignal.timeout(WORKSPACE_SUFFIX_TIMEOUT_MS);
+	const combinedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
+	try {
+		const result = await untilAborted(combinedSignal, () =>
+			glob({ pattern: `**/${escapeGlobMetachars(normalized)}`, path: cwd, hidden: true }),
+		);
+		if (result.matches.length !== 1) return null;
+		const displayPath = result.matches[0].path;
+		return { absolutePath: path.resolve(cwd, displayPath), displayPath };
+	} catch (error) {
+		if (error instanceof Error && error.name === "AbortError") {
+			if (!signal?.aborted) return null;
+			throw new ToolAbortError();
+		}
+		return null;
+	}
 }
 
 // =============================================================================

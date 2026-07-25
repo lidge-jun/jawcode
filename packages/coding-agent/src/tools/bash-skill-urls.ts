@@ -140,6 +140,79 @@ function unquoteToken(token: string): string {
 	return token;
 }
 
+function isInsideShellQuote(command: string, index: number): boolean {
+	type ShellQuote = "'" | '"' | undefined;
+	interface CommandSubstitution {
+		kind: "dollar" | "backtick";
+		outerQuote: ShellQuote;
+		depth: number;
+	}
+
+	let quote: ShellQuote;
+	const substitutions: CommandSubstitution[] = [];
+	for (let i = 0; i < index; i++) {
+		const char = command[i];
+		if (
+			char === "\\" &&
+			command[i + 1] === '"' &&
+			quote !== "'" &&
+			substitutions.at(-1)?.kind === "backtick" &&
+			substitutions.at(-1)?.outerQuote === '"'
+		) {
+			quote = quote === '"' ? undefined : '"';
+			i++;
+			continue;
+		}
+		if (char === "\\" && quote !== "'") {
+			i++;
+			continue;
+		}
+		if (char === "'" && quote !== '"') {
+			quote = quote === "'" ? undefined : "'";
+			continue;
+		}
+		if (char === '"' && quote !== "'") {
+			quote = quote === '"' ? undefined : '"';
+			continue;
+		}
+		if (char === "$" && command[i + 1] === "(" && quote !== "'") {
+			substitutions.push({ kind: "dollar", outerQuote: quote, depth: 1 });
+			quote = undefined;
+			i++;
+			continue;
+		}
+		if (char === "`" && quote !== "'") {
+			const top = substitutions.at(-1);
+			if (top?.kind === "backtick") {
+				substitutions.pop();
+				quote = top.outerQuote;
+			} else {
+				substitutions.push({ kind: "backtick", outerQuote: quote, depth: 0 });
+				quote = undefined;
+			}
+			continue;
+		}
+		if (quote !== undefined) continue;
+
+		const substitution = substitutions.at(-1);
+		if (substitution?.kind !== "dollar") continue;
+		if (char === "(") {
+			substitution.depth++;
+		} else if (char === ")") {
+			substitution.depth--;
+			if (substitution.depth === 0) {
+				quote = substitutions.pop()?.outerQuote;
+			}
+		}
+	}
+	return quote !== undefined;
+}
+
+function isEmbeddedInQuotedText(command: string, token: string, index: number): boolean {
+	if (token.startsWith("'") || token.startsWith('"')) return false;
+	return isInsideShellQuote(command, index);
+}
+
 /** Shell-escape a path using single quotes. */
 function shellEscape(p: string): string {
 	return `'${p.replace(/'/g, "'\\''")}'`;
@@ -230,6 +303,7 @@ export async function expandInternalUrls(command: string, options: InternalUrlEx
 		const token = match[0];
 		const index = match.index;
 		if (index === undefined) continue;
+		if (isEmbeddedInQuotedText(command, token, index)) continue;
 
 		const rawUrl = unquoteToken(token);
 		const url = normalizeLocalScheme(rawUrl);
