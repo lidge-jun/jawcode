@@ -69,6 +69,9 @@ describe("openai-completions compatibility", () => {
 		};
 		const compat = {
 			supportsStore: true,
+			supportsImageDetailOriginal: true,
+			supportsReasoningSummary: true,
+			includeEncryptedReasoning: true,
 			supportsDeveloperRole: true,
 			supportsMultipleSystemMessages: true,
 			supportsReasoningEffort: true,

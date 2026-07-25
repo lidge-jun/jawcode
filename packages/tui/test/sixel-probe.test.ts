@@ -129,7 +129,7 @@ describe("terminal multiplexer graphics policy", () => {
 	});
 
 	it("drops an auto-detected Kitty protocol when the process starts inside tmux", async () => {
-		const env = { ...process.env, KITTY_WINDOW_ID: "test-kitty", TMUX: "/tmp/tmux/default,1,0" };
+		const env: NodeJS.ProcessEnv = { ...process.env, KITTY_WINDOW_ID: "test-kitty", TMUX: "/tmp/tmux/default,1,0" };
 		delete env.PI_FORCE_IMAGE_PROTOCOL;
 		const child = Bun.spawn(
 			[
