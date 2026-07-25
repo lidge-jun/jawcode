@@ -4,10 +4,10 @@
 
 - Source: read-only `devlog/_omp_chase/oh-my-pi`.
 - Delta: `v17.0.8..v17.1.0` = **539** non-merge commits; `v17.0.9..v17.1.0` = **472**.
-- Card-cited: **422** commits across 12 cards.
-- Explicit no-card: **117** commits.
+- Card-cited: **421** commits across 12 cards.
+- Explicit no-card: **118** commits.
 - Residual / overflow: **0**.
-- Coverage: **539 = 422 cited + 117 no-card + 0 residual**.
+- Coverage: **539 = 421 cited + 118 no-card + 0 residual**.
 
 ## Card allocation
 
@@ -30,6 +30,7 @@
 
 | hash | no-card reason | source subject |
 | --- | --- | --- |
+| `48d0c40403cf13809783206b7086c0916c52fa5f` | post-merge typecheck repair, no product behavior change (moved out of 20.105 after C-stage review) | fix(coding-agent): restore post-merge typecheck |
 | `1b00ed7c2e5f349bffa78c65392b67c589e7d87a` | docs/changelog | Document error notifications |
 | `d960dc4552971d62be7cf4815db904fa22793020` | test-only | Cover friendly secret obfuscation |
 | `068dce0ba6be41bf94cbf046966b7961d94eae76` | docs/changelog | Document friendly secret placeholders |

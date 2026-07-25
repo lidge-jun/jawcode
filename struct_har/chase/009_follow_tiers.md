@@ -89,11 +89,11 @@
 |---|---|
 | [10.110](./10.110_gjc_chase_sdk_acp_bridge_lifecycle.md) | SDK/ACP/bridge lifecycle |
 | [10.112](./10.112_gjc_chase_notifications_telegram_daemon.md) | notifications/Telegram daemon |
-| [10.116](./10.116_gjc_chase_natives_windows_platform.md) | natives/Windows/platform |
+| [10.116](./10.116_gjc_chase_natives_windows_platform.md) | natives/Windows/platform (A-slice — welcome.ts 제외) |
 | [10.117](./10.117_gjc_chase_ci_release_docs_test_evidence.md) | CI/release/docs evidence-fill |
 | [20.081](./20.081_omp_chase_ai_catalog_stream_auth.md) | AI catalog/stream/auth |
 | [20.082](./20.082_omp_chase_session_context_settings_persistence.md) | session/context/settings |
-| [20.083](./20.083_omp_chase_tool_fs_shell_git_safety.md) | tool/fs/shell/git safety |
+| [20.083](./20.083_omp_chase_tool_fs_shell_git_safety.md) | tool/fs/shell/git safety (A-slice만 ①, config/policy는 ②) |
 | [20.087](./20.087_omp_chase_native_diff_search_memory_perf.md) | native diff/search/memory perf |
 | [20.088](./20.088_omp_chase_release_build_platform_ci.md) | release/build/platform/CI |
 | [20.089](./20.089_omp_chase_runtime_stats_logging_collab.md) | runtime/stats/logging/collab |
@@ -101,7 +101,7 @@
 | [20.107](./20.107_omp_chase_compaction_retry_history_resilience.md) | compaction/history resilience |
 | [20.109](./20.109_omp_chase_tools_platform_runtime_hardening.md) | tool/platform runtime hardening |
 | [20.122](./20.122_omp_chase_tui_tool_lifecycle.md) | TUI/tool lifecycle |
-| [20.124](./20.124_omp_chase_ai_provider_stream_integrity.md) | AI/provider stream integrity |
+| [20.124](./20.124_omp_chase_ai_provider_stream_integrity.md) | AI/provider stream integrity (A-slice만 ①, auth/tier는 ②) |
 
 ### ② 기능 결정 필요 (C bucket, 17장)
 
