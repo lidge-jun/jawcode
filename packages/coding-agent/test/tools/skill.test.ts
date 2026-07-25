@@ -43,19 +43,26 @@ function stateBaseDir(cwd: string, sessionId?: string): string {
 	return path.join(cwd, ".jwc/state/sessions", encodeSessionSegment(sessionId));
 }
 
+function canonicalWorkflowSkill(skill: string): string {
+	if (skill === "ralplan") return "plan";
+	if (skill === "ultragoal") return "goal";
+	return skill;
+}
+
 async function writeCallerModeState(
 	cwd: string,
 	skill: string,
 	currentPhase: string,
 	sessionId?: string,
 ): Promise<void> {
-	const filePath = path.join(stateBaseDir(cwd, sessionId), `${skill}-state.json`);
+	const canonicalSkill = canonicalWorkflowSkill(skill);
+	const filePath = path.join(stateBaseDir(cwd, sessionId), `${canonicalSkill}-state.json`);
 	await fs.mkdir(path.dirname(filePath), { recursive: true });
 	await fs.writeFile(
 		filePath,
 		JSON.stringify(
 			{
-				skill,
+				skill: canonicalSkill,
 				version: 1,
 				active: true,
 				current_phase: currentPhase,
@@ -69,7 +76,8 @@ async function writeCallerModeState(
 
 async function readModeState(cwd: string, skill: string, sessionId?: string): Promise<Record<string, unknown> | null> {
 	try {
-		const raw = await fs.readFile(path.join(stateBaseDir(cwd, sessionId), `${skill}-state.json`), "utf-8");
+		const canonicalSkill = canonicalWorkflowSkill(skill);
+		const raw = await fs.readFile(path.join(stateBaseDir(cwd, sessionId), `${canonicalSkill}-state.json`), "utf-8");
 		return JSON.parse(raw) as Record<string, unknown>;
 	} catch (err) {
 		const e = err as NodeJS.ErrnoException;
@@ -133,7 +141,7 @@ describe("SkillTool", () => {
 	});
 
 	it("createIf returns null when session lacks sendCustomMessage", async () => {
-		const goal = await makeSkill("ultragoal", "# Ultragoal\nBody");
+		const goal = await makeSkill("goal", "# Goal\nBody");
 		const session: ToolSession = {
 			cwd: "/tmp",
 			hasUI: false,
@@ -147,18 +155,18 @@ describe("SkillTool", () => {
 
 	it("dispatches the chained skill same-turn without deliverAs nextTurn", async () => {
 		const cwd = await makeTempCwd();
-		const goal = await makeSkill("ultragoal", "---\nname: ultragoal\n---\n# Ultragoal\nTrack execution.");
+		const goal = await makeSkill("goal", "---\nname: goal\n---\n# Goal\nTrack execution.");
 		const captured: CapturedSend[] = [];
 		const session = createSession(cwd, [goal], captured);
 		const tool = SkillTool.createIf(session);
 		expect(tool).not.toBeNull();
 
-		const result = await tool!.execute("call-1", { name: "ultragoal", args: "go" });
+		const result = await tool!.execute("call-1", { name: "goal", args: "go" });
 		const firstBlock = result.content[0];
 		expect(firstBlock?.type).toBe("text");
-		expect(firstBlock?.type === "text" ? firstBlock.text : "").toContain('"callee":"ultragoal"');
+		expect(firstBlock?.type === "text" ? firstBlock.text : "").toContain('"callee":"goal"');
 		expect(firstBlock?.type === "text" ? firstBlock.text : "").toContain('"args":"go"');
-		expect(result.details?.name).toBe("ultragoal");
+		expect(result.details?.name).toBe("goal");
 		expect(result.details?.args).toBe("go");
 
 		expect(captured).toHaveLength(1);
@@ -169,7 +177,7 @@ describe("SkillTool", () => {
 		expect(sent.options?.deliverAs).toBeUndefined();
 
 		const content = sent.message.content as string;
-		expect(content).toContain("# Ultragoal");
+		expect(content).toContain("# Goal");
 		expect(content).toContain("Track execution.");
 		expect(content).toContain("User: go");
 	});
@@ -240,7 +248,7 @@ describe("SkillTool", () => {
 		const di = await readModeState(cwd, "jaw-interview", "s1");
 		expect(di?.active).toBe(false);
 		expect(di?.current_phase).toBe("handoff");
-		expect(di?.handoff_to).toBe("ralplan");
+		expect(di?.handoff_to).toBe("plan");
 		const rp = await readModeState(cwd, "ralplan", "s1");
 		expect(rp?.active).toBe(true);
 		expect(rp?.handoff_from).toBe("jaw-interview");
@@ -261,10 +269,10 @@ describe("SkillTool", () => {
 		await tool.execute("call-1", { name: "ultragoal" });
 		const rp = await readModeState(cwd, "ralplan", "s1");
 		expect(rp?.active).toBe(false);
-		expect(rp?.handoff_to).toBe("ultragoal");
+		expect(rp?.handoff_to).toBe("goal");
 		const ug = await readModeState(cwd, "ultragoal", "s1");
 		expect(ug?.active).toBe(true);
-		expect(ug?.handoff_from).toBe("ralplan");
+		expect(ug?.handoff_from).toBe("plan");
 	});
 
 	it("keeps explicit default model selection stable across workflow handoffs", async () => {
@@ -321,10 +329,10 @@ describe("SkillTool", () => {
 		await tool.execute("call-1", { name: "ralplan" });
 		const ug = await readModeState(cwd, "ultragoal", "s1");
 		expect(ug?.active).toBe(false);
-		expect(ug?.handoff_to).toBe("ralplan");
+		expect(ug?.handoff_to).toBe("plan");
 		const rp = await readModeState(cwd, "ralplan", "s1");
 		expect(rp?.active).toBe(true);
-		expect(rp?.handoff_from).toBe("ultragoal");
+		expect(rp?.handoff_from).toBe("goal");
 	});
 
 	// Terminal-phase allow-list coverage (architect blocker, code lane).

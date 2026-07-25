@@ -64,7 +64,9 @@ describe("createTools", () => {
 	});
 
 	it("creates all builtin tools by default", async () => {
-		const session = createTestSession();
+		const session = createTestSession({
+			settings: createSettingsWithOverrides({ "lsp.enabled": true }),
+		});
 		const tools = await createTools(session);
 		const names = tools.map(t => t.name);
 

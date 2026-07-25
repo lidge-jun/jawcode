@@ -125,7 +125,7 @@ describe("BashTool head/tail stripping", () => {
 describe("BashTool restricted role-agent allowlist", () => {
 	function createRestrictedBashTool(
 		cwd = process.cwd(),
-		bashAllowedPrefixes = ["jwc ralplan --write", "jwc state"],
+		bashAllowedPrefixes = ["jwc planphase --write", "jwc state"],
 	): BashTool {
 		const session = {
 			cwd,
@@ -153,7 +153,7 @@ describe("BashTool restricted role-agent allowlist", () => {
 		const tool = createRestrictedBashTool();
 
 		expect(tool.description).toContain("This session's bash tool is restricted");
-		expect(tool.description).toContain("jwc ralplan --write");
+		expect(tool.description).toContain("jwc planphase --write");
 		expect(tool.description).toContain("jwc state");
 	});
 
@@ -165,11 +165,11 @@ describe("BashTool restricted role-agent allowlist", () => {
 		);
 	});
 
-	it("blocks ralplan invocations that are not artifact writes", async () => {
+	it("blocks planphase invocations that are not artifact writes", async () => {
 		const tool = createRestrictedBashTool();
 
-		await expect(tool.execute("tool-call", { command: "jwc ralplan --consensus 'task'" })).rejects.toThrow(
-			"jwc ralplan --write",
+		await expect(tool.execute("tool-call", { command: "jwc planphase --consensus 'task'" })).rejects.toThrow(
+			"jwc planphase --write",
 		);
 	});
 
@@ -178,28 +178,28 @@ describe("BashTool restricted role-agent allowlist", () => {
 
 		await expect(
 			tool.execute("tool-call", {
-				command: "jwc ralplan --write --stage architect --stage_n 1 --artifact ok",
+				command: "jwc planphase --write --stage architect --stage_n 1 --artifact ok",
 				env: { PATH: "/tmp/fake" },
 			}),
 		).rejects.toThrow("does not allow per-command env overrides");
 	});
 
-	it("marks restricted CLI subprocesses so ralplan does not ingest artifact file paths", async () => {
+	it("marks restricted CLI subprocesses so planphase does not ingest artifact file paths", async () => {
 		const root = await fs.mkdtemp(path.join(process.cwd(), ".tmp-restricted-bash-"));
 		try {
 			const artifactPath = path.join(root, "secret.md");
 			await fs.writeFile(artifactPath, "# Secret\nshould-not-be-read\n");
 			const cliPath = path.resolve(import.meta.dir, "..", "..", "src", "cli.ts");
 			const bunPath = process.execPath;
-			const tool = createRestrictedBashTool(root, [`${bunPath} ${cliPath} ralplan --write`]);
+			const tool = createRestrictedBashTool(root, [`${bunPath} ${cliPath} planphase --write`]);
 			const result = await tool.execute("tool-call", {
-				command: `${bunPath} ${cliPath} ralplan --write --stage architect --stage_n 1 --artifact ${artifactPath} --run-id bash-marker`,
+				command: `${bunPath} ${cliPath} planphase --write --stage architect --stage_n 1 --artifact ${artifactPath} --run-id bash-marker`,
 				timeout: 30,
 			});
 
 			expect(result.content.find(part => part.type === "text")?.text).toContain("stage-01-architect.md");
 			const persisted = await fs.readFile(
-				path.join(root, ".jwc", "plans", "ralplan", "bash-marker", "stage-01-architect.md"),
+				path.join(root, ".jwc", "plans", "planphase", "bash-marker", "stage-01-architect.md"),
 				"utf-8",
 			);
 			expect(persisted).toBe(`${artifactPath}\n`);
