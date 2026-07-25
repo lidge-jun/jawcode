@@ -95,7 +95,7 @@
 | 050 | [10.050_gjc_chase_session_tmux_team_worktree.md](./10.050_gjc_chase_session_tmux_team_worktree.md) | session/tmux/team/worktree | P2 | ⬜ |
 | 051 | [10.051_gjc_chase_agent_composer_toolcall_integrity.md](./_fin/10/10.051_gjc_chase_agent_composer_toolcall_integrity.md) | agent/composer/toolcall integrity | **P1** | ✅ _fin |
 | 052 | [10.052_gjc_chase_docs_external_integrations.md](./_fin/10/10.052_gjc_chase_docs_external_integrations.md) | docs/external integrations | P3 | ✅ **_fin** 260701 (ADAPT: conservative external integration matrix + docs guards) |
-| 053 | [10.053_gjc_chase_local_provider_terminal_bell_windows.md](./10.053_gjc_chase_local_provider_terminal_bell_windows.md) | split index → 054-058 | P2 | ✅ split |
+| 053 | [10.053_gjc_chase_local_provider_terminal_bell_windows.md](./_fin/10/10.053_gjc_chase_local_provider_terminal_bell_windows.md) | split index → 054-058 | P2 | ✅ split |
 | 054 | [10.054_gjc_chase_local_provider_discovery.md](./_fin/10/10.054_gjc_chase_local_provider_discovery.md) | local provider discovery + fallback (split←053) | P2 | ✅ **_fin** [10.054](./_fin/10/10.054_gjc_chase_local_provider_discovery.md) 260701 |
 | 055 | [10.055_gjc_chase_codex_replay_stability.md](./_fin/10/10.055_gjc_chase_codex_replay_stability.md) | Codex/AI replay stability + sanitization (split←053) | **P1** | ✅ **_fin** [10.055](./_fin/10/10.055_gjc_chase_codex_replay_stability.md) 260629 |
 | 056 | [10.056_gjc_chase_terminal_bell_notifications.md](./_fin/10/10.056_gjc_chase_terminal_bell_notifications.md) | terminal bell + completion hook (split←053) | P3 | ✅ **_fin** 260701 (ADAPT: terminal bell + global-only completion hook) |
@@ -108,17 +108,17 @@
 | 063 | [10.063_gjc_chase_natives_platform_split_packages.md](./10.063_gjc_chase_natives_platform_split_packages.md) | split @natives into per-platform packages (v0.7.8) | P3 | ⬜ |
 | 064 | [10.064_gjc_chase_telegram_daemon_entrypoint_notify.md](./_fin/10/10.064_gjc_chase_telegram_daemon_entrypoint_notify.md) | compiled Telegram daemon entrypoint · Windows Terminal bell (v0.7.8) | P2 | ✅ **_fin** 260701 (ADAPT: hidden daemon adapter + Windows bell docs) |
 | 065 | [10.065_gjc_chase_prompt_self_awareness_grounding.md](./_fin/10/10.065_gjc_chase_prompt_self_awareness_grounding.md) | system prompt self-awareness source grounding (v0.7.8) | P3 | ✅ **_fin** 260701 (ADAPT) |
-| 066 | [10.066_gjc_chase_composer_command_model_selector_ux.md](./10.066_gjc_chase_composer_command_model_selector_ux.md) | composer command/model selector UX (v0.7.9/0.7.10) | P2 | ⬜ |
+| 066 | [10.066_gjc_chase_composer_command_model_selector_ux.md](./_fin/10/10.066_gjc_chase_composer_command_model_selector_ux.md) | composer command/model selector UX (v0.7.9/0.7.10) | P2 | ⬜ |
 | 067 | [10.067_gjc_chase_goal_plan_skill_state_refresh.md](./10.067_gjc_chase_goal_plan_skill_state_refresh.md) | goal/plan skill-state refresh + role artifacts | P1 | ⬜ |
-| 068 | [10.068_gjc_chase_tmux_telegram_session_resilience.md](./10.068_gjc_chase_tmux_telegram_session_resilience.md) | tmux/Telegram/session resilience | P2 | ⬜ |
+| 068 | [10.068_gjc_chase_tmux_telegram_session_resilience.md](./_fin/10/10.068_gjc_chase_tmux_telegram_session_resilience.md) | tmux/Telegram/session resilience | P2 | ⬜ |
 | 069 | [10.069_gjc_chase_provider_search_docs_model_support.md](./_fin/10/10.069_gjc_chase_provider_search_docs_model_support.md) | provider/search/docs/model support | P2 | ✅ _fin 260702 (already-covered Tavily/Claude retry docs; reverted Aside no-adopt) |
 | 070 | [10.070_gjc_chase_workflow_intent_state_artifacts.md](./10.070_gjc_chase_workflow_intent_state_artifacts.md) | workflow intent/state/artifact contracts | P1 | ⬜ |
-| 071 | [10.071_gjc_chase_search_utils_edit_safety.md](./10.071_gjc_chase_search_utils_edit_safety.md) | search perf + utils/edit safety | P2 | ⬜ |
+| 071 | [10.071_gjc_chase_search_utils_edit_safety.md](./_fin/10/10.071_gjc_chase_search_utils_edit_safety.md) | search perf + utils/edit safety | P2 | ⬜ |
 | 072 | [10.072_gjc_chase_model_selector_tmux_cmux_ux.md](./10.072_gjc_chase_model_selector_tmux_cmux_ux.md) | model selector + tmux/cmux UX | P2 | ⬜ |
 | 073 | [10.073_gjc_chase_rpc_session_notifications_lifecycle.md](./10.073_gjc_chase_rpc_session_notifications_lifecycle.md) | RPC/session/notifications lifecycle | P1 | ⬜ |
-| 074 | [10.074_gjc_chase_notifications_telegram_v2_rich_streaming.md](./10.074_gjc_chase_notifications_telegram_v2_rich_streaming.md) | notifications/Telegram v2: rich, streaming, slash commands | P2 | ⬜ |
-| 075 | [10.075_gjc_chase_ultragoal_pipeline_extragoal.md](./10.075_gjc_chase_ultragoal_pipeline_extragoal.md) | ultragoal pipeline + extragoal review gates | P2 | ⬜ |
-| 076 | [10.076_gjc_chase_tui_viewport_media_compose_v2.md](./10.076_gjc_chase_tui_viewport_media_compose_v2.md) | TUI viewport/media/compose v2 | P2 | ⬜ |
+| 074 | [10.074_gjc_chase_notifications_telegram_v2_rich_streaming.md](./_fin/10/10.074_gjc_chase_notifications_telegram_v2_rich_streaming.md) | notifications/Telegram v2: rich, streaming, slash commands | P2 | ⬜ |
+| 075 | [10.075_gjc_chase_ultragoal_pipeline_extragoal.md](./_fin/10/10.075_gjc_chase_ultragoal_pipeline_extragoal.md) | ultragoal pipeline + extragoal review gates | P2 | ⬜ |
+| 076 | [10.076_gjc_chase_tui_viewport_media_compose_v2.md](./_fin/10/10.076_gjc_chase_tui_viewport_media_compose_v2.md) | TUI viewport/media/compose v2 | P2 | ⬜ |
 | 077 | [10.077_gjc_chase_context_perf_compaction_audit.md](./_fin/10/10.077_gjc_chase_context_perf_compaction_audit.md) | context/perf audit + prompt lifecycle | **P1** | ✅ **_fin** (tracked residual) |
 | 078 | [10.078_gjc_chase_skill_discovery_slash_commands.md](./_fin/10/10.078_gjc_chase_skill_discovery_slash_commands.md) | runtime skill discovery + slash commands | P2 | ✅ **_fin** (tracked residual) |
 | 079 | [10.079_gjc_chase_subagent_fork_session_hardening.md](./_fin/10/10.079_gjc_chase_subagent_fork_session_hardening.md) | subagent/fork/session hardening + MCP lifecycle | P2 | ✅ **_fin** (tracked residual) |
@@ -150,8 +150,8 @@
 | 10.105 | [`gjc_chase_routing_fallback_availability_cache`](./_fin/10/10.105_gjc_chase_routing_fallback_availability_cache.md) | ✅ **_fin** (evidence pending wp4) | P1 | routing/fallback hardening, availability cache, subagent stickiness | `3ddf26079..904eab21c` |
 | 10.106 | [`gjc_chase_config_ux_credential_setup`](./_fin/10/10.106_gjc_chase_config_ux_credential_setup.md) | ✅ **_fin** (evidence pending wp4) | P2 | config doctor, credential setup, keybindings, SDK UX | `3ddf26079..904eab21c` |
 | 10.107 | [`gjc_chase_context_compaction_ci`](./_fin/10/10.107_gjc_chase_context_compaction_ci.md) | ✅ **_fin** | P2 | compaction/pruning/hindsight budgets, CI native addon | `3ddf26079..904eab21c` |
-| 10.108 | [`security_network_authority`](./10.108_security_network_authority.md) | ⬜ | P1 | security/network authority (adapt, C bucket) | `3ddf26079..baa4dc76` |
-| 10.109 | [`session_storage_migration`](./10.109_session_storage_migration.md) | ⬜ | P1 | session/storage migration (split, B bucket) | `3ddf26079..baa4dc76` |
+| 10.108 | [`security_network_authority`](./10.108_gjc_chase_security_network_authority.md) | ⬜ | P1 | security/network authority (adapt, C bucket) | `3ddf26079..baa4dc76` |
+| 10.109 | [`session_storage_migration`](./10.109_gjc_chase_session_storage_migration.md) | ⬜ | P1 | session/storage migration (split, B bucket) | `3ddf26079..baa4dc76` |
 | 10.110 | [`sdk_acp_bridge_lifecycle`](./10.110_gjc_chase_sdk_acp_bridge_lifecycle.md) | ⬜ | P1 | SDK/ACP/bridge lifecycle (adapt, A bucket) | `3ddf26079..baa4dc76` |
 | 10.111 | [`workflow_interview_handoff_agents`](./10.111_gjc_chase_workflow_interview_handoff_agents.md) | ⬜ | P1 | workflow/interview/handoff/agents (split, C bucket) | `3ddf26079..baa4dc76` |
 | 10.112 | [`notifications_telegram_daemon`](./10.112_gjc_chase_notifications_telegram_daemon.md) | ⬜ | P1 | notifications/Telegram daemon (adapt, A bucket) | `3ddf26079..baa4dc76` |
