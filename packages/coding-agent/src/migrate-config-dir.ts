@@ -16,6 +16,32 @@ import * as path from "node:path";
 const LEGACY_DIR_NAME = ".gjc";
 const SENTINEL = ".jwc-migrated";
 
+/**
+ * Dual-install guard (jwc + upstream gjc on the same machine). When the upstream
+ * `gjc` binary is still resolvable on PATH, `.gjc` trees are presumed LIVE
+ * upstream state — renaming them would silently steal the other product's
+ * sessions. Overrides: JWC_NO_LEGACY_MIGRATION=1 always skips;
+ * JWC_FORCE_LEGACY_MIGRATION=1 always migrates (single-product migrators).
+ */
+export function shouldSkipLegacyMigration(env: NodeJS.ProcessEnv = process.env): boolean {
+	if (env.JWC_FORCE_LEGACY_MIGRATION === "1") return false;
+	if (env.JWC_NO_LEGACY_MIGRATION === "1") return true;
+	const pathVar = env.PATH ?? "";
+	for (const dir of pathVar.split(path.delimiter)) {
+		if (!dir) continue;
+		try {
+			const candidate = path.join(dir, "gjc");
+			if (fs.existsSync(candidate)) {
+				fs.accessSync(candidate, fs.constants.X_OK);
+				return true;
+			}
+		} catch {
+			// unreadable PATH entry — ignore and keep scanning
+		}
+	}
+	return false;
+}
+
 function migrateOne(parent: string, targetDirName: string): "migrated" | "skipped" | "failed" {
 	const legacy = path.join(parent, LEGACY_DIR_NAME);
 	const target = path.join(parent, targetDirName);
@@ -45,10 +71,18 @@ function migrateOne(parent: string, targetDirName: string): "migrated" | "skippe
  * Run the user-level and project-level migrations. Idempotent and best-effort:
  * failures never block startup (the runtime then simply starts fresh in .jwc).
  */
-export function migrateConfigDirOnce(input: { cwd: string; targetDirName: string; home?: string }): {
+export function migrateConfigDirOnce(input: {
+	cwd: string;
+	targetDirName: string;
+	home?: string;
+	env?: NodeJS.ProcessEnv;
+}): {
 	user: string;
 	project: string;
 } {
+	if (shouldSkipLegacyMigration(input.env ?? process.env)) {
+		return { user: "skipped", project: "skipped" };
+	}
 	const home = input.home ?? os.homedir();
 	const user = migrateOne(home, input.targetDirName);
 	const project =

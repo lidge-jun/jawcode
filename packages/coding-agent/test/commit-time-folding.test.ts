@@ -52,7 +52,7 @@ function createFixture() {
 			isTtsrAbortPending: false,
 			retryAttempt: 0,
 		},
-		sessionManager: { getCwd: () => process.cwd(), getSessionName: () => "test" },
+		sessionManager: { getCwd: () => process.cwd(), getSessionId: () => "test-session", getSessionName: () => "test" },
 		setTodos() {},
 		showWarning() {},
 	} as unknown as InteractiveModeContext;

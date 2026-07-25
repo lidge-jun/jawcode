@@ -35,9 +35,9 @@ const bundledNonWorkflowSkills = new Set(["browse", "search"]);
 const expectedBundledRoleAgentPromptFiles = ["architect", "critic", "executor", "planner"] as const;
 const expectedCallableTaskRoles = ["architect", "critic", "executor", "executor_ext", "planner"] as const;
 const expectedPackageScope = "@jawcode-dev/";
-const expectedCliBins = ["gjc", "gjc-stats", "jwc"] as const;
+const expectedCliBins = ["jwc-stats", "jwc"] as const;
 const expectedRootPackageName = "jawcode-monorepo";
-const allowedUnscopedPackageNames = new Set([expectedRootPackageName, "jawcode", "jawcode-compat", "jawcode-cu-mcp-server"]);
+const allowedUnscopedPackageNames = new Set([expectedRootPackageName, "jawcode", "jawcode-cu-mcp-server"]);
 const rootPublicMetadataFields = ["name", "description", "homepage", "repository", "bugs"] as const;
 const rootLegacyScriptKeys = new Set(["test:py"]);
 

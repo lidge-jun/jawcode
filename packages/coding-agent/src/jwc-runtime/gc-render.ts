@@ -1,0 +1,70 @@
+/**
+ * Text rendering for `jwc gc` reports. JSON output is produced directly in
+ * `gc-runtime.ts`; this module owns the human-readable grouped report.
+ * Adapted from GJC gjc-runtime/gc-render.ts.
+ */
+
+import type { ActiveGcStore, GcRecord, GcReport } from "./gc-runtime";
+import { GC_STORES } from "./gc-runtime";
+
+const STORE_HEADINGS: Record<ActiveGcStore, string> = {
+	harness_leases: "Harness leases",
+	team_workers: "Team workers",
+	file_locks: "Config file-locks",
+	registry_entries: "Harness root registry entries",
+};
+
+function actionLabel(record: GcRecord): string {
+	switch (record.action) {
+		case "would_remove":
+			return "would remove";
+		case "removed":
+			return "removed";
+		case "remove_failed":
+			return `remove failed${record.error ? `: ${record.error}` : ""}`;
+		case "skipped":
+			return `skipped: ${record.reason}`;
+		default:
+			return "keep";
+	}
+}
+
+function renderRecord(record: GcRecord): string {
+	const target = record.path ?? record.id;
+	const pid = record.pid !== undefined ? ` pid=${record.pid}` : "";
+	const pidStatus = record.pid_status ? ` (${record.pid_status})` : "";
+	const note = record.detail ? ` — ${record.detail}` : "";
+	return `  [${actionLabel(record)}] ${target}${pid}${pidStatus} :: ${record.status} — ${record.reason}${note}`;
+}
+
+export function buildGcReportText(report: GcReport): string {
+	const lines: string[] = [];
+	lines.push(report.dry_run ? "jwc gc — dry run (no changes made; pass --prune to remove)" : "jwc gc — prune");
+	lines.push("");
+
+	for (const store of GC_STORES) {
+		const records = report.stores[store];
+		lines.push(`${STORE_HEADINGS[store]} (${records.length})`);
+		if (records.length === 0) {
+			lines.push("  (none)");
+		} else {
+			for (const record of records) lines.push(renderRecord(record));
+		}
+		lines.push("");
+	}
+
+	if (report.errors.length > 0) {
+		lines.push(`Errors (${report.errors.length})`);
+		for (const err of report.errors) lines.push(`  [${err.store}/${err.scope}] ${err.message}`);
+		lines.push("");
+	}
+
+	const c = report.counts;
+	lines.push(
+		`Summary: discovered=${c.discovered} stale=${c.stale} alive=${c.alive} eperm=${c.eperm} unknown=${c.unknown} ` +
+			`terminal_lifecycle=${c.terminal_lifecycle} unclassified=${c.unclassified} ` +
+			`${report.dry_run ? `would_remove=${c.would_remove}` : `removed=${c.removed} failed=${c.failed}`} errors=${c.errors}`,
+	);
+	lines.push("");
+	return `${lines.join("\n")}`;
+}

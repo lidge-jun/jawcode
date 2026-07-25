@@ -49,6 +49,7 @@ export interface BashResult {
 	output: string;
 	exitCode: number | undefined;
 	cancelled: boolean;
+	timedOut: boolean;
 	truncated: boolean;
 	totalLines: number;
 	totalBytes: number;
@@ -148,6 +149,7 @@ export async function executeBash(command: string, options?: BashExecutorOptions
 		return {
 			exitCode: undefined,
 			cancelled: true,
+			timedOut: false,
 			...(await sink.dump("Command cancelled")),
 		};
 	}
@@ -252,6 +254,7 @@ export async function executeBash(command: string, options?: BashExecutorOptions
 			return {
 				exitCode: undefined,
 				cancelled: true,
+				timedOut: winner.kind === "timeout",
 				...(await sink.dump(
 					winner.kind === "timeout" && baseTimeoutMs !== undefined
 						? `Command timed out after ${Math.round(baseTimeoutMs / 1000)} seconds`
@@ -273,6 +276,7 @@ export async function executeBash(command: string, options?: BashExecutorOptions
 			return {
 				exitCode: undefined,
 				cancelled: true,
+				timedOut: true,
 				...(await sink.dump(annotation)),
 			};
 		}
@@ -283,6 +287,7 @@ export async function executeBash(command: string, options?: BashExecutorOptions
 			return {
 				exitCode: undefined,
 				cancelled: true,
+				timedOut: false,
 				...(await sink.dump("Command cancelled")),
 			};
 		}
@@ -326,6 +331,7 @@ export async function executeBash(command: string, options?: BashExecutorOptions
 		return {
 			exitCode: winner.result.exitCode,
 			cancelled: false,
+			timedOut: false,
 			...(await sink.dump()),
 		};
 	} catch (err) {

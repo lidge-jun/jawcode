@@ -51,7 +51,7 @@ const SEMVER_RE = /(\d+\.\d+\.\d+)/;
 const checks: VersionCheck[] = [
 	{
 		name: "Gemini CLI",
-		sourcePattern: /PI_AI_GEMINI_CLI_VERSION\s*\|\|\s*"(\d+\.\d+\.\d+)"/,
+		sourcePattern: /DEFAULT_GEMINI_CLI_VERSION\s*=\s*"(\d+\.\d+\.\d+)"/,
 		repo: "google-gemini/gemini-cli",
 		parseTag: (tag) => SEMVER_RE.exec(tag)?.[1] ?? null,
 	},

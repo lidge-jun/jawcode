@@ -5,7 +5,7 @@
  * - `gjc -p "prompt"` - text output
  * - `gjc --mode json "prompt"` - JSON event stream
  */
-import type { AssistantMessage, ImageContent } from "@jawcode-dev/ai";
+import { type AssistantMessage, type ImageContent, isContextOverflow } from "@jawcode-dev/ai";
 import { logger, sanitizeText } from "@jawcode-dev/utils";
 import type { AgentSession } from "../session/agent-session";
 import { isSilentAbort } from "../session/messages";
@@ -23,6 +23,26 @@ export interface PrintModeOptions {
 	initialMessage?: string;
 	/** Images to attach to the initial message */
 	initialImages?: ImageContent[];
+}
+
+/**
+ * Exit code used when a non-interactive text-mode run terminates because the
+ * model context window is exhausted and automatic compaction could not bring
+ * the request under the limit. Distinct from the generic failure code (1) so
+ * text-mode callers can detect context exhaustion specifically.
+ */
+export const CONTEXT_OVERFLOW_EXIT_CODE = 2;
+
+/**
+ * Build an actionable stderr diagnostic for a terminal context-overflow error
+ * in text mode.
+ */
+function formatContextOverflowError(message: AssistantMessage, autoCompactionEnabled: boolean): string {
+	const providerDetail = message.errorMessage ? ` (provider error: ${sanitizeText(message.errorMessage)})` : "";
+	const guidance = autoCompactionEnabled
+		? "Context window exhausted: automatic compaction ran but could not reduce the request below the model's context limit. Reduce the input size (smaller file reads / tool output), raise the compaction threshold, or switch to a larger-context model."
+		: "Context window exhausted and automatic compaction is disabled. Enable it (compaction.enabled=true with a non-off compaction.strategy) so jwc can compact and continue, reduce the input size, or switch to a larger-context model.";
+	return `${guidance}${providerDetail}`;
 }
 
 /**
@@ -82,12 +102,20 @@ export async function runPrintMode(session: AgentSession, options: PrintModeOpti
 				(assistantMsg.stopReason === "error" || assistantMsg.stopReason === "aborted") &&
 				!isSilentAbort(assistantMsg.errorMessage)
 			) {
-				const errorLine = sanitizeText(assistantMsg.errorMessage || `Request ${assistantMsg.stopReason}`);
+				// Context-overflow is an expected, recoverable-in-principle condition.
+				// Surface an actionable diagnostic and a distinct exit code so text-mode
+				// callers can detect context exhaustion specifically.
+				const isOverflow =
+					assistantMsg.stopReason === "error" && isContextOverflow(assistantMsg, session.model?.contextWindow);
+				const errorLine = isOverflow
+					? formatContextOverflowError(assistantMsg, session.autoCompactionEnabled)
+					: sanitizeText(assistantMsg.errorMessage || `Request ${assistantMsg.stopReason}`);
+				const exitCode = isOverflow ? CONTEXT_OVERFLOW_EXIT_CODE : 1;
 				const flushed = process.stderr.write(`${errorLine}\n`);
 				if (flushed) {
-					process.exit(1);
+					process.exit(exitCode);
 				} else {
-					process.stderr.once("drain", () => process.exit(1));
+					process.stderr.once("drain", () => process.exit(exitCode));
 				}
 			}
 

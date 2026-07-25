@@ -24,6 +24,17 @@ export type EvalExecutionLanguage = "python" | "js";
 export class EvalExecutionComponent extends Container {
 	#outputLines: string[] = [];
 	#status: ExecutionStatus = "running";
+
+	/**
+	 * 260702 backlog-sweep guard: a user `$` eval can still be running when a
+	 * prompt submit flushes it into the chat — committing it then freezes its
+	 * pixels and the eventual result update could never render. The
+	 * turn-boundary sweep (commitFinalizedBacklog / canMarkEntireBacklog)
+	 * stops at components that report false here.
+	 */
+	isBacklogCommittable(): boolean {
+		return this.#status !== "running";
+	}
 	#exitCode: number | undefined = undefined;
 	#loader: Loader;
 	#truncation?: TruncationMeta;

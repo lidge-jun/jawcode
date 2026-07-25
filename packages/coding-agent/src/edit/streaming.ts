@@ -33,6 +33,7 @@ import { computeEditDiff, type DiffError, type DiffResult } from "./diff";
 import { type ApplyPatchEntry, expandApplyPatchToEntries, expandApplyPatchToPreviewEntries } from "./modes/apply-patch";
 import { computePatchDiff, type PatchEditEntry } from "./modes/patch";
 import type { ReplaceEditEntry } from "./modes/replace";
+import { validateEditHeaderPath } from "./path-validation";
 
 export interface PerFileDiffPreview {
 	path: string;
@@ -82,11 +83,23 @@ function isHashlineHeaderLine(line: string): boolean {
 	return line.trimEnd().startsWith(HL_FILE_PREFIX);
 }
 
-function parseHashlineHeaderPath(line: string): string {
+function parseHashlineHeaderPath(line: string): string | undefined {
 	const trimmed = line.trimEnd();
 	let prefixEnd = 0;
 	while (prefixEnd < trimmed.length && trimmed[prefixEnd] === HL_FILE_PREFIX) prefixEnd++;
-	return trimmed.slice(prefixEnd).trim();
+	try {
+		return validateEditHeaderPath(trimmed.slice(prefixEnd), "Hashline header");
+	} catch {
+		return undefined;
+	}
+}
+
+function parseApplyPatchHeaderPath(line: string, prefix: string): string | undefined {
+	try {
+		return validateEditHeaderPath(line.slice(prefix.length), "apply_patch header");
+	} catch {
+		return undefined;
+	}
 }
 
 function isHashlineOpLine(line: string): boolean {
@@ -336,18 +349,18 @@ function buildApplyPatchNaturalOrderPreviews(input: string): PerFileDiffPreview[
 			continue;
 		}
 		if (trimmedEnd.startsWith("*** Add File: ")) {
-			currentPath = trimmedEnd.slice("*** Add File: ".length);
-			ensure(currentPath);
+			currentPath = parseApplyPatchHeaderPath(trimmedEnd, "*** Add File: ");
+			if (currentPath) ensure(currentPath);
 			continue;
 		}
 		if (trimmedEnd.startsWith("*** Delete File: ")) {
-			currentPath = trimmedEnd.slice("*** Delete File: ".length);
-			ensure(currentPath);
+			currentPath = parseApplyPatchHeaderPath(trimmedEnd, "*** Delete File: ");
+			if (currentPath) ensure(currentPath);
 			continue;
 		}
 		if (trimmedEnd.startsWith("*** Update File: ")) {
-			currentPath = trimmedEnd.slice("*** Update File: ".length);
-			ensure(currentPath);
+			currentPath = parseApplyPatchHeaderPath(trimmedEnd, "*** Update File: ");
+			if (currentPath) ensure(currentPath);
 			continue;
 		}
 		if (trimmedEnd.startsWith("*** Move to:") || trimmedEnd.startsWith("*** End of File")) {
@@ -395,7 +408,7 @@ function buildHashlineNaturalOrderPreviews(
 	for (const raw of lines) {
 		if (isHashlineEnvelopeMarkerLine(raw)) continue;
 		if (isHashlineHeaderLine(raw)) {
-			currentPath = parseHashlineHeaderPath(raw);
+			currentPath = parseHashlineHeaderPath(raw) ?? "";
 			if (currentPath) ensure(currentPath);
 			continue;
 		}

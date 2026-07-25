@@ -1,20 +1,20 @@
 {
   "version": 1,
-  "brief": "(AI-driven goal planning pending refinement)\nhint: 수정해줘",
+  "brief": "(AI-driven goal planning pending refinement)\nhint: openai는 codex에서 알아서 관리하니까 상관없어 그런거 전부 pabcd 반복해서 구현해놔",
   "jwcGoalMode": "aggregate",
-  "jwcObjective": "Fix goal completion guard receipt targeting so aggregate-mode story/sentinel objectives can validate a fresh final-aggregate receipt, while preserving strict per-story receipt checks and improving stale receipt diagnostics.",
+  "jwcObjective": "Complete the durable goal plan in .jwc/goal/goals.json, including later accepted/appended stories, under the original brief constraints; use .jwc/goal/ledger.jsonl as the audit trail.",
   "goals": [
     {
       "id": "G001",
       "title": "(AI-driven goal planning pending refinement)",
-      "objective": "Fix goal completion guard receipt targeting so aggregate-mode story/sentinel objectives can validate a fresh final-aggregate receipt, while preserving strict per-story receipt checks and improving stale receipt diagnostics.",
+      "objective": "(AI-driven goal planning pending refinement)\nhint: openai는 codex에서 알아서 관리하니까 상관없어 그런거 전부 pabcd 반복해서 구현해놔",
       "status": "active",
-      "createdAt": "2026-06-17T06:02:50.734Z",
-      "updatedAt": "2026-06-17T06:04:13.606Z",
-      "startedAt": "2026-06-17T06:02:50.744Z",
-      "evidence": "Refined sentinel goal to goal-guard receipt targeting fix; User requested implementation after devlog/subagent analysis; refined objective names aggregate story/sentinel final-aggregate fallback, strict per-story preservation, and diagnostic improvement."
+      "createdAt": "2026-07-03T16:41:11.912Z",
+      "updatedAt": "2026-07-03T17:02:56.546Z",
+      "startedAt": "2026-07-03T16:41:11.921Z",
+      "evidence": "pabcd d→complete (audit=fail, verification=pending); /Users/jun/Developer/new/700_projects/jawcode/.jwc/state/pabcd-state.json"
     }
   ],
-  "createdAt": "2026-06-17T06:02:50.734Z",
-  "updatedAt": "2026-06-17T06:04:13.606Z"
+  "createdAt": "2026-07-03T16:41:11.912Z",
+  "updatedAt": "2026-07-03T17:02:56.546Z"
 }

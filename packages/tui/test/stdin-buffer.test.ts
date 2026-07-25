@@ -292,6 +292,14 @@ describe("StdinBuffer", () => {
 			expect(emittedPaste).toEqual(["pasted"]);
 		});
 
+		it("emits incomplete input before a bracketed paste marker instead of dropping it", () => {
+			processInput("\x1b[<35\x1b[200~pasted\x1b[201~");
+
+			expect(emittedSequences).toEqual(["\x1b[<35"]);
+			expect(emittedPaste).toEqual(["pasted"]);
+			expect(buffer.getBuffer()).toBe("");
+		});
+
 		it("should handle paste with newlines", () => {
 			processInput("\x1b[200~line1\nline2\nline3\x1b[201~");
 
@@ -352,6 +360,26 @@ describe("StdinBuffer", () => {
 
 			processInput(bytes.subarray(2));
 			expect(emittedSequences.join("")).toBe(source);
+			expect(emittedSequences.join("")).not.toContain("\uFFFD");
+		});
+
+		it("reassembles a Korean syllable when the completing chunk is one byte", () => {
+			const bytes = Buffer.from("화", "utf8");
+			processInput(bytes.subarray(0, 2));
+			expect(emittedSequences).toEqual([]);
+
+			processInput(bytes.subarray(2, 3));
+			expect(emittedSequences.join("")).toBe("화");
+			expect(emittedSequences.join("")).not.toContain("\uFFFD");
+		});
+
+		it("reassembles a Korean syllable when the leading chunk is one byte", () => {
+			const bytes = Buffer.from("화", "utf8");
+			processInput(bytes.subarray(0, 1));
+			expect(emittedSequences).toEqual([]);
+
+			processInput(bytes.subarray(1));
+			expect(emittedSequences.join("")).toBe("화");
 			expect(emittedSequences.join("")).not.toContain("\uFFFD");
 		});
 
@@ -428,11 +456,29 @@ describe("StdinBuffer", () => {
 			expect(emittedSequences.join("")).not.toBe("화");
 		});
 
-		it("preserves legacy single-high-byte meta conversion (ESC + byte-128)", () => {
-			// An isolated high byte is read as Alt/meta, not fed to the UTF-8
-			// decoder. 0xE1 (225) -> ESC + char(97) = ESC + "a".
+		it("preserves pending single-byte UTF-8 lead as meta before ASCII input", () => {
 			processInput(Buffer.from([0xe1]));
-			expect(emittedSequences).toEqual(["\x1ba"]);
+			expect(emittedSequences).toEqual([]);
+
+			processInput(Buffer.from("x"));
+			expect(emittedSequences).toEqual(["\x1ba", "x"]);
+			expect(emittedSequences.join("")).not.toContain("\uFFFD");
+		});
+
+		it("preserves pending single-byte UTF-8 lead as meta before control input", () => {
+			processInput(Buffer.from([0xe1]));
+			expect(emittedSequences).toEqual([]);
+
+			processInput(Buffer.from("\x1b[A"));
+			expect(emittedSequences).toEqual(["\x1ba", "\x1b[A"]);
+			expect(emittedSequences.join("")).not.toContain("\uFFFD");
+		});
+
+		it("preserves legacy invalid single-high-byte meta conversion (ESC + byte-128)", () => {
+			// Invalid UTF-8 high bytes are read as Alt/meta, not fed to the
+			// decoder. 0xC1 (193) -> ESC + char(65) = ESC + "A".
+			processInput(Buffer.from([0xc1]));
+			expect(emittedSequences).toEqual(["\x1bA"]);
 			expect(emittedSequences.join("")).not.toContain("\uFFFD");
 		});
 	});

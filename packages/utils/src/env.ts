@@ -182,13 +182,24 @@ for (const file of [projectEnv, agentEnv, piEnv, homeEnv, homeShellEnv]) {
  */
 export const $env: Record<string, string> = Bun.env as Record<string, string>;
 
+// Dual-install isolation (jwc + upstream gjc on one machine): with
+// JWC_ISOLATE_LEGACY_ENV=1, jwc stops consuming inherited GJC_* values (they
+// may belong to a live upstream gajae-code session) and stops mirroring JWC_*
+// onto GJC_* names in its own environment. Spawn-time protocol writes are
+// unaffected. Default off — the 062.1 two-release compat window still applies.
+export function $legacyEnvIsolated(env: Record<string, string | undefined> = Bun.env): boolean {
+	return env.JWC_ISOLATE_LEGACY_ENV === "1";
+}
+
 // 062.1 safety net: mirror JWC_* values onto their legacy GJC_* names at load
 // time so read sites that are not yet wired through $resolveEnv still honor
 // the canonical JWC_* spelling. Wired sites prefer JWC_* directly.
-for (const key of Object.keys(Bun.env)) {
-	if (key.startsWith("JWC_")) {
-		const legacy = `GJC_${key.slice(4)}`;
-		if (Bun.env[legacy] === undefined) Bun.env[legacy] = Bun.env[key];
+if (!$legacyEnvIsolated()) {
+	for (const key of Object.keys(Bun.env)) {
+		if (key.startsWith("JWC_")) {
+			const legacy = `GJC_${key.slice(4)}`;
+			if (Bun.env[legacy] === undefined) Bun.env[legacy] = Bun.env[key];
+		}
 	}
 }
 
@@ -201,6 +212,9 @@ export function $resolveEnv(jwcKey: string): string | undefined {
 	if (jwcKey.startsWith("GJC_")) {
 		const jwcValue = Bun.env[`JWC_${jwcKey.slice(4)}`];
 		if (jwcValue !== undefined) return jwcValue;
+		// Isolation mode: never fall back to inherited legacy GJC_* values —
+		// on a dual-install machine they may belong to upstream gajae-code.
+		if ($legacyEnvIsolated()) return undefined;
 	}
 	return Bun.env[jwcKey];
 }
@@ -253,7 +267,10 @@ export function isCompiledBinary(): boolean {
 
 const TRUTHY: Dict<boolean> = { "1": true, Y: true, TRUE: true, YES: true, ON: true };
 export function $flag(name: string, def: boolean = false): boolean {
-	const value = $env[name];
+	const value = $env[name]?.trim();
 	if (!value) return def;
-	return TRUTHY[value] === true;
+	// Boolean-like env values are documented as case-insensitive (`1`/`true`/`yes`/`on`),
+	// so normalize before the lookup — otherwise `FOO=true` (the common lowercase spelling)
+	// would silently read as false while only `FOO=TRUE`/`FOO=1` worked.
+	return TRUTHY[value.toUpperCase()] === true;
 }

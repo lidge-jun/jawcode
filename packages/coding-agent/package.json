@@ -27,9 +27,6 @@
 	],
 	"main": "./src/index.ts",
 	"types": "./src/index.ts",
-	"bin": {
-		"gjc": "src/cli.ts"
-	},
 	"scripts": {
 		"build": "bun scripts/build-binary.ts",
 		"check": "biome check . && bun run check:types",
@@ -56,6 +53,17 @@
 		"@jawcode-dev/natives": "catalog:",
 		"@jawcode-dev/tui": "catalog:",
 		"@jawcode-dev/utils": "catalog:",
+		"@opentelemetry/api": "catalog:",
+		"@opentelemetry/api-logs": "catalog:",
+		"@opentelemetry/context-async-hooks": "catalog:",
+		"@opentelemetry/exporter-logs-otlp-proto": "catalog:",
+		"@opentelemetry/exporter-metrics-otlp-proto": "catalog:",
+		"@opentelemetry/exporter-trace-otlp-proto": "catalog:",
+		"@opentelemetry/resources": "catalog:",
+		"@opentelemetry/sdk-logs": "catalog:",
+		"@opentelemetry/sdk-metrics": "catalog:",
+		"@opentelemetry/sdk-trace-base": "catalog:",
+		"@opentelemetry/sdk-trace-node": "catalog:",
 		"@puppeteer/browsers": "catalog:",
 		"@types/turndown": "catalog:",
 		"@xterm/headless": "catalog:",

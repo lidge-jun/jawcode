@@ -16,15 +16,40 @@ const MODEL_CAPACITY_BASE_MS = 45 * 1000; // 45s base
 const MODEL_CAPACITY_JITTER_MS = 30 * 1000; // ±15s
 const SERVER_ERROR_BACKOFF_MS = 20 * 1000; // 20s
 
+const SPEND_LIMIT_PATTERN = /\bspend(?:ing)?[-_ ]?limit\b/i;
+const OPENROUTER_DAILY_FREE_LIMIT_PATTERN = /\bfree[-_ ]models[-_ ]per[-_ ]day\b/i;
+
+/** Detect usage/quota limit errors in error messages (persistent, requires credential switch). */
+// ZAI reports durable token exhaustion as "[1310][Weekly/Monthly Limit Exhausted...]".
+// Keep this explicit so generic "rate limit exhausted, retry..." throttles remain retryable.
+const USAGE_LIMIT_PATTERN =
+	/usage.?limit|usage_limit_reached|usage_not_included|limit_reached|weekly\/monthly\s+limit\s+exhausted|quota.?(?:exceeded|reached|insufficient)|resource.?exhausted|insufficient.?(?:balance|quota)|(?:run\s+)?out[-_ ]of[-_ ]credits|personal-team-blocked/i;
+
+function matchesPersistentUsageLimit(errorMessage: string): boolean {
+	return (
+		USAGE_LIMIT_PATTERN.test(errorMessage) ||
+		SPEND_LIMIT_PATTERN.test(errorMessage) ||
+		OPENROUTER_DAILY_FREE_LIMIT_PATTERN.test(errorMessage)
+	);
+}
+
 /**
  * Classify a rate-limit error message into a reason category.
- * Priority order: MODEL_CAPACITY > RATE_LIMIT > QUOTA > SERVER_ERROR > UNKNOWN.
+ * Priority order: provider-specific persistent limits > MODEL_CAPACITY > RATE_LIMIT >
+ * generic QUOTA > SERVER_ERROR > UNKNOWN.
  *
  * "resource exhausted" maps to MODEL_CAPACITY (transient, short wait)
  * "quota exceeded" maps to QUOTA_EXHAUSTED (long wait, switch account)
  */
 export function parseRateLimitReason(errorMessage: string): RateLimitReason {
 	const lower = errorMessage.toLowerCase();
+
+	// These provider-specific persistent limits often also contain generic
+	// "rate limit" framing. Preserve the stronger quota classifier before the
+	// transient throttle branch gets a chance to match.
+	if (SPEND_LIMIT_PATTERN.test(errorMessage) || OPENROUTER_DAILY_FREE_LIMIT_PATTERN.test(errorMessage)) {
+		return "QUOTA_EXHAUSTED";
+	}
 
 	if (
 		lower.includes("capacity") ||
@@ -45,7 +70,7 @@ export function parseRateLimitReason(errorMessage: string): RateLimitReason {
 		return "RATE_LIMIT_EXCEEDED";
 	}
 
-	if (lower.includes("exhausted") || lower.includes("quota") || lower.includes("usage limit")) {
+	if (lower.includes("exhausted") || lower.includes("quota") || matchesPersistentUsageLimit(errorMessage)) {
 		return "QUOTA_EXHAUSTED";
 	}
 
@@ -75,10 +100,6 @@ export function calculateRateLimitBackoffMs(reason: RateLimitReason): number {
 	}
 }
 
-/** Detect usage/quota limit errors in error messages (persistent, requires credential switch). */
-const USAGE_LIMIT_PATTERN =
-	/usage.?limit|usage_limit_reached|usage_not_included|limit_reached|quota.?exceeded|resource.?exhausted/i;
-
 export function isUsageLimitError(errorMessage: string): boolean {
-	return USAGE_LIMIT_PATTERN.test(errorMessage);
+	return matchesPersistentUsageLimit(errorMessage);
 }

@@ -1,4 +1,4 @@
-import { getPuppeteerDir, isCompiledBinary, logger, Snowflake } from "@jawcode-dev/utils";
+import { getPuppeteerDir, isCompiledBinary, logger, Snowflake, withTimeout } from "@jawcode-dev/utils";
 import type { Page, Target } from "puppeteer-core";
 import { callSessionTool } from "../../eval/js/tool-bridge";
 import type { ToolSession } from "../../sdk";
@@ -81,10 +81,27 @@ export interface RunInTabOptions {
 
 export interface ReleaseTabOptions {
 	kill?: boolean;
+	timeoutMs?: number;
 }
 
 const tabs = new Map<string, TabSession>();
 const GRACE_MS = 750;
+const DEFAULT_TAB_CLOSE_TIMEOUT_MS = 5_000;
+
+async function waitForTabCleanup<T>(
+	tab: TabSession,
+	timeoutMs: number,
+	pendingResource: string,
+	promise: Promise<T>,
+): Promise<T> {
+	const message = `Timed out after ${timeoutMs}ms closing ${tab.kindTag} browser tab ${JSON.stringify(tab.name)}; pending resource: ${pendingResource}`;
+	try {
+		return await withTimeout(promise, timeoutMs, message);
+	} catch (error) {
+		if (error instanceof Error && error.message === message) throw new ToolError(message);
+		throw error;
+	}
+}
 
 export function getTab(name: string): TabSession | undefined {
 	return tabs.get(name);
@@ -229,6 +246,8 @@ export async function releaseTab(name: string, opts: ReleaseTabOptions = {}): Pr
 		pending.reject(closeError);
 	}
 	tab.pending.clear();
+	const timeoutMs = opts.timeoutMs ?? DEFAULT_TAB_CLOSE_TIMEOUT_MS;
+	let cleanupError: unknown;
 	let forced = false;
 	if (wasAlive) {
 		try {
@@ -238,10 +257,36 @@ export async function releaseTab(name: string, opts: ReleaseTabOptions = {}): Pr
 			forced = true;
 		}
 	}
-	await tab.worker.terminate().catch(() => undefined);
-	if (forced && tab.kindTag === "headless") await closeOrphanTarget(tab);
-	await releaseBrowser(tab.browser, { kill: opts.kill ?? false });
-	tabs.delete(name);
+	try {
+		await waitForTabCleanup(tab, timeoutMs, "tab worker termination", tab.worker.terminate());
+	} catch (error) {
+		forced = true;
+		cleanupError = error;
+	}
+	if (forced && tab.kindTag === "headless") {
+		try {
+			await waitForTabCleanup(
+				tab,
+				timeoutMs,
+				`orphan target ${JSON.stringify(tab.targetId)}`,
+				closeOrphanTarget(tab),
+			);
+		} catch (error) {
+			cleanupError ??= error;
+		}
+	}
+	try {
+		await releaseBrowser(tab.browser, {
+			kill: opts.kill ?? false,
+			timeoutMs,
+			resource: `tab ${JSON.stringify(name)}`,
+		});
+	} catch (error) {
+		cleanupError ??= error;
+	} finally {
+		tabs.delete(name);
+	}
+	if (cleanupError) throw cleanupError;
 	return true;
 }
 
@@ -374,10 +419,33 @@ async function forceKillTab(name: string, reason: string): Promise<void> {
 	const error = new ToolError(reason);
 	for (const pending of tab.pending.values()) pending.reject(error);
 	tab.pending.clear();
-	await tab.worker.terminate().catch(() => undefined);
-	if (tab.kindTag === "headless") await closeOrphanTarget(tab);
-	await releaseBrowser(tab.browser, { kill: false });
-	tabs.delete(name);
+	const timeoutMs = DEFAULT_TAB_CLOSE_TIMEOUT_MS;
+	let cleanupError: unknown;
+	try {
+		await waitForTabCleanup(tab, timeoutMs, "tab worker termination", tab.worker.terminate());
+	} catch (cleanupFailure) {
+		cleanupError = cleanupFailure;
+	}
+	if (tab.kindTag === "headless") {
+		try {
+			await waitForTabCleanup(
+				tab,
+				timeoutMs,
+				`orphan target ${JSON.stringify(tab.targetId)}`,
+				closeOrphanTarget(tab),
+			);
+		} catch (cleanupFailure) {
+			cleanupError ??= cleanupFailure;
+		}
+	}
+	try {
+		await releaseBrowser(tab.browser, { kill: false, timeoutMs, resource: `tab ${JSON.stringify(name)}` });
+	} catch (cleanupFailure) {
+		cleanupError ??= cleanupFailure;
+	} finally {
+		tabs.delete(name);
+	}
+	if (cleanupError) throw cleanupError;
 }
 
 async function closeOrphanTarget(tab: TabSession): Promise<void> {
@@ -387,6 +455,11 @@ async function closeOrphanTarget(tab: TabSession): Promise<void> {
 		await page?.close().catch(() => undefined);
 		return;
 	}
+}
+
+/** Test-only accessor for bounded tab cleanup regressions. */
+export function getTabsMapForTest(): ReadonlyMap<string, TabSession> {
+	return tabs;
 }
 
 async function waitForClosed(tab: TabSession): Promise<void> {

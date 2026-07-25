@@ -178,6 +178,12 @@ export function streamProxy(model: Model, context: Context, options: ProxyStream
 			const reason = options.signal?.aborted ? "aborted" : "error";
 			partial.stopReason = reason;
 			partial.errorMessage = errorMessage;
+			// A stream that ends on abort/error may leave in-progress tool calls
+			// without a `toolcall_end`, so their internal `partialJson` field is
+			// never deleted. Scrub it here — after finalizing the error message —
+			// so the emitted AssistantMessage never carries a non-spec
+			// `partialJson` field that reads as still-streaming downstream.
+			scrubPartialJson(partial);
 			stream.push({
 				type: "error",
 				reason,
@@ -192,6 +198,22 @@ export function streamProxy(model: Model, context: Context, options: ProxyStream
 	})();
 
 	return stream;
+}
+
+/**
+ * Delete the streaming `partialJson` field from any tool-call content blocks
+ * that still carry it (e.g. when the stream ended without a `toolcall_end` on
+ * abort/error). During streaming the field is intentionally kept on the block
+ * so renderers can surface tool arguments before the JSON object closes; this
+ * scrub guarantees it never survives into the finalized `AssistantMessage`,
+ * where it would corrupt serialization/replay and read as still-streaming.
+ */
+function scrubPartialJson(partial: AssistantMessage): void {
+	for (const block of partial.content) {
+		if (block?.type === "toolCall") {
+			delete (block as { partialJson?: string }).partialJson;
+		}
+	}
 }
 
 /**
@@ -314,6 +336,10 @@ function processProxyEvent(
 			partial.stopReason = proxyEvent.reason;
 			partial.usage = proxyEvent.usage;
 			calculateCost(model, partial.usage);
+			// A terminal `done` may arrive while a tool call is still mid-stream
+			// (no `toolcall_end`). Scrub so the finalized message never carries
+			// the internal `partialJson` field.
+			scrubPartialJson(partial);
 			return { type: "done", reason: proxyEvent.reason, message: partial };
 
 		case "error":
@@ -321,6 +347,7 @@ function processProxyEvent(
 			partial.errorMessage = proxyEvent.errorMessage;
 			partial.usage = proxyEvent.usage;
 			calculateCost(model, partial.usage);
+			scrubPartialJson(partial);
 			return { type: "error", reason: proxyEvent.reason, error: partial };
 	}
 }

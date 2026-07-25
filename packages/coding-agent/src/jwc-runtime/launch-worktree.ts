@@ -140,6 +140,22 @@ function readWorktreeEntryFromPath(repoRoot: string, worktreePath: string): GitW
 	return { path: path.resolve(worktreePath), head, branchRef, detached: !branchRef };
 }
 
+function formatWorktreeTargetMismatch(
+	plan: JwcLaunchWorktreePlan,
+	existing: GitWorktreeEntry,
+	expectedBranchRef: string | null,
+): string {
+	const expected = plan.detached ? `detached:${plan.baseRef}` : `branch:${expectedBranchRef ?? "unknown"}`;
+	const actual = existing.detached ? `detached:${existing.head}` : `branch:${existing.branchRef ?? "unknown"}`;
+	return [
+		`worktree_target_mismatch:${plan.worktreePath}`,
+		`expected=${expected}`,
+		`existing=${actual}`,
+		`existing_path=${existing.path}`,
+		"remediation=remove_or_prune_the_existing_worktree_or_choose_a_different_--worktree_name",
+	].join(":");
+}
+
 function isWorktreeDirty(worktreePath: string): boolean {
 	return runGit(worktreePath, ["status", "--porcelain"]).length > 0;
 }
@@ -217,7 +233,7 @@ export function ensureLaunchWorktree(
 		let dirty = isWorktreeDirty(plan.worktreePath);
 		if (plan.detached) {
 			if (!existingAtPath.detached) {
-				throw new Error(`worktree_target_mismatch:${plan.worktreePath}`);
+				throw new Error(formatWorktreeTargetMismatch(plan, existingAtPath, expectedBranchRef));
 			}
 			if (existingAtPath.head !== plan.baseRef) {
 				if (dirty) throw new Error(`worktree_dirty:${plan.worktreePath}`);
@@ -225,7 +241,7 @@ export function ensureLaunchWorktree(
 				dirty = false;
 			}
 		} else if (existingAtPath.branchRef !== expectedBranchRef) {
-			throw new Error(`worktree_target_mismatch:${plan.worktreePath}`);
+			throw new Error(formatWorktreeTargetMismatch(plan, existingAtPath, expectedBranchRef));
 		}
 		return {
 			...plan,

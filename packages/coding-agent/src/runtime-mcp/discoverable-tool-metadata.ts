@@ -14,12 +14,8 @@ export type {
 
 export {
 	buildDiscoverableMCPSearchIndex,
-	collectDiscoverableMCPTools,
 	formatDiscoverableMCPToolServerSummary,
-	getDiscoverableMCPTool,
 	isMCPBridgeTool,
 	isMCPToolName,
 	searchDiscoverableMCPTools,
-	selectDiscoverableMCPToolNamesByServer,
-	summarizeDiscoverableMCPTools,
 } from "../tool-discovery/tool-index";

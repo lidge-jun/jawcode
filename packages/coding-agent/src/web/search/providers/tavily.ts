@@ -96,7 +96,7 @@ async function callTavilySearch(apiKey: string, params: TavilySearchParams): Pro
 			Authorization: `Bearer ${apiKey}`,
 		},
 		body: JSON.stringify(buildRequestBody(params)),
-		signal: withHardTimeout(params.signal),
+		signal: withHardTimeout(params.signal, "api"),
 	});
 
 	if (!response.ok) {

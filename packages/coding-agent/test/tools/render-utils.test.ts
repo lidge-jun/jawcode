@@ -8,6 +8,8 @@ import {
 	formatDiagnostics,
 	formatParseErrors,
 	formatScreenshot,
+	getPreviewLines,
+	shortenPath,
 } from "@jawcode-dev/coding-agent/tools/render-utils";
 
 describe("parse error formatting", () => {
@@ -182,5 +184,25 @@ describe("formatCodeFrameLine", () => {
 		expect(formatCodeFrameLine("*", 448, "match", 3)).toBe("*448│match");
 		expect(formatCodeFrameLine("+", 11, "added", 3)).toBe(" +11│added");
 		expect(formatCodeFrameLine("+", 235, "added", 3)).toBe("+235│added");
+	});
+});
+
+describe("string-helper undefined guards (render crash hardening)", () => {
+	it("getPreviewLines returns [] for non-string input", () => {
+		expect(getPreviewLines(undefined as unknown as string, 3, 50)).toEqual([]);
+		expect(getPreviewLines(null as unknown as string, 3, 50)).toEqual([]);
+	});
+
+	it("getPreviewLines still works for valid string input", () => {
+		expect(getPreviewLines("a\nb\nc", 2, 50)).toEqual(["a", "b"]);
+	});
+
+	it("shortenPath returns empty string for non-string input", () => {
+		expect(shortenPath(undefined as unknown as string)).toBe("");
+		expect(shortenPath(null as unknown as string)).toBe("");
+	});
+
+	it("shortenPath still shortens a home-prefixed path", () => {
+		expect(shortenPath("/home/u/x", "/home/u")).toBe("~/x");
 	});
 });

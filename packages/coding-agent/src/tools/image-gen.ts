@@ -38,7 +38,8 @@ const ANTIGRAVITY_ENDPOINT = "https://daily-cloudcode-pa.sandbox.googleapis.com"
 const IMAGE_SYSTEM_INSTRUCTION =
 	"You are an AI image generator. Generate images based on user descriptions. Focus on creating high-quality, visually appealing images that match the user's request.";
 
-type ImageProvider = "antigravity" | "gemini" | "openai" | "openai-codex" | "openrouter";
+export type ImageProvider = "antigravity" | "gemini" | "openai" | "openai-codex" | "openrouter";
+export type ImageProviderPreference = ImageProvider | "auto";
 interface ImageApiKey {
 	provider: ImageProvider;
 	apiKey: string;
@@ -50,6 +51,8 @@ interface ImageApiKey {
 const responseModalitySchema = z.enum(["IMAGE", "TEXT"] as const);
 const aspectRatioSchema = z.enum(["1:1", "3:4", "4:3", "9:16", "16:9"] as const).describe("aspect ratio");
 const imageSizeSchema = z.enum(["1024x1024", "1536x1024", "1024x1536"] as const).describe("image size");
+const IMAGE_PROVIDER_CHOICES = ["auto", "openai", "openai-codex", "antigravity", "openrouter", "gemini"] as const;
+const AUTO_IMAGE_PROVIDER_ORDER: ImageProvider[] = ["openai", "openai-codex", "antigravity", "openrouter", "gemini"];
 
 const inputImageSchema = z
 	.object({
@@ -72,6 +75,10 @@ const baseImageSchema = z
 		aspect_ratio: aspectRatioSchema.optional(),
 		image_size: imageSizeSchema.optional(),
 		input: z.array(inputImageSchema).describe("input images").optional(),
+		provider: z
+			.enum(IMAGE_PROVIDER_CHOICES)
+			.describe("image provider for this request; overrides the providers.image setting")
+			.optional(),
 	})
 	.strict();
 
@@ -392,10 +399,10 @@ function extractOpenRouterImageUrls(message: OpenRouterMessage | undefined): str
 }
 
 /** Preferred provider set via settings (default: auto) */
-let preferredImageProvider: ImageProvider | "auto" = "auto";
+let preferredImageProvider: ImageProviderPreference = "auto";
 
 /** Set the preferred image provider from settings */
-export function setPreferredImageProvider(provider: ImageProvider | "auto"): void {
+export function setPreferredImageProvider(provider: ImageProviderPreference): void {
 	preferredImageProvider = provider;
 }
 
@@ -454,6 +461,7 @@ async function findOpenAIHostedImageCredentials(
 	if (!modelRegistry || !isOpenAIHostedImageModel(activeModel)) return null;
 	const apiKey = await modelRegistry.getApiKey(activeModel, sessionId);
 	if (!isAuthenticated(apiKey)) return null;
+	if (getOpenAIHostedImageProvider(activeModel) === "openai-codex" && !getCodexAccountId(apiKey)) return null;
 	return {
 		provider: getOpenAIHostedImageProvider(activeModel),
 		apiKey,
@@ -462,51 +470,95 @@ async function findOpenAIHostedImageCredentials(
 	};
 }
 
+const CODEX_IMAGE_MODEL_PRIORITY = ["gpt-5.5", "gpt-5.4", "gpt-5.1", "gpt-5", "gpt-5-codex"] as const;
+
+function resolveDefaultCodexImageModel(modelRegistry: ModelRegistry): Model | undefined {
+	for (const id of CODEX_IMAGE_MODEL_PRIORITY) {
+		const model = modelRegistry.find("openai-codex", id);
+		if (model && isOpenAIHostedImageModel(model)) return model;
+	}
+	return modelRegistry.getAll().find(model => model.provider === "openai-codex" && isOpenAIHostedImageModel(model));
+}
+
+async function findCodexSubscriptionImageCredentials(
+	modelRegistry: ModelRegistry | undefined,
+	activeModel: Model | undefined,
+	sessionId?: string,
+): Promise<ImageApiKey | null> {
+	if (!modelRegistry) return null;
+	const providerToken = await modelRegistry.getApiKeyForProvider("openai-codex", sessionId);
+	if (!providerToken || !getCodexAccountId(providerToken)) return null;
+	const model =
+		isOpenAIHostedImageModel(activeModel) && getOpenAIHostedImageProvider(activeModel) === "openai-codex"
+			? activeModel
+			: resolveDefaultCodexImageModel(modelRegistry);
+	if (!model) return null;
+	const apiKey = await modelRegistry.getApiKey(model, sessionId);
+	if (!isAuthenticated(apiKey) || !getCodexAccountId(apiKey)) return null;
+	return {
+		provider: "openai-codex",
+		apiKey,
+		model,
+		authCredentialType: modelRegistry.getSessionCredentialType?.(model.provider, sessionId),
+	};
+}
+
+function activeImageProvider(model: Model | undefined): ImageProvider | null {
+	switch (model?.provider) {
+		case "openai":
+			return "openai";
+		case "openai-codex":
+			return "openai-codex";
+		case "google-antigravity":
+			return "antigravity";
+		case "openrouter":
+			return "openrouter";
+		case "google":
+			return "gemini";
+		default:
+			return null;
+	}
+}
+
+function imageProviderOrder(
+	activeModel: Model | undefined,
+	preference: ImageProviderPreference = preferredImageProvider,
+): ImageProvider[] {
+	const providers: ImageProvider[] = [];
+	const seen = new Set<ImageProvider>();
+	const add = (provider: ImageProvider | null): void => {
+		if (!provider || seen.has(provider)) return;
+		seen.add(provider);
+		providers.push(provider);
+	};
+	if (preference !== "auto") add(preference);
+	add(activeImageProvider(activeModel));
+	for (const provider of AUTO_IMAGE_PROVIDER_ORDER) add(provider);
+	return providers;
+}
+
 async function findImageApiKey(
+	provider: ImageProvider,
 	modelRegistry?: ModelRegistry,
 	activeModel?: Model,
 	sessionId?: string,
 ): Promise<ImageApiKey | null> {
-	// If a specific provider is preferred, try it first.
-	if (preferredImageProvider === "openai") {
-		const openAI = await findOpenAIHostedImageCredentials(modelRegistry, activeModel, sessionId);
-		if (openAI) return openAI;
-		// Fall through to auto-detect if preferred provider key not found.
-	} else if (preferredImageProvider === "antigravity" && modelRegistry) {
-		const antigravity = await findAntigravityCredentials(modelRegistry, sessionId);
-		if (antigravity) return antigravity;
-		// Fall through to auto-detect if preferred provider key not found.
-	} else if (preferredImageProvider === "gemini") {
-		const geminiKey = getEnvApiKey("google");
-		if (geminiKey) return { provider: "gemini", apiKey: geminiKey };
-		const googleKey = $env.GOOGLE_API_KEY;
-		if (googleKey) return { provider: "gemini", apiKey: googleKey };
-		// Fall through to auto-detect if preferred provider key not found.
-	} else if (preferredImageProvider === "openrouter") {
-		const openRouterKey = getEnvApiKey("openrouter");
-		if (openRouterKey) return { provider: "openrouter", apiKey: openRouterKey };
-		// Fall through to auto-detect if preferred provider key not found.
+	switch (provider) {
+		case "openai":
+			return findOpenAIHostedImageCredentials(modelRegistry, activeModel, sessionId);
+		case "openai-codex":
+			return findCodexSubscriptionImageCredentials(modelRegistry, activeModel, sessionId);
+		case "antigravity":
+			return modelRegistry ? findAntigravityCredentials(modelRegistry, sessionId) : null;
+		case "openrouter": {
+			const apiKey = getEnvApiKey("openrouter");
+			return apiKey ? { provider: "openrouter", apiKey } : null;
+		}
+		case "gemini": {
+			const apiKey = getEnvApiKey("google") ?? $env.GOOGLE_API_KEY;
+			return apiKey ? { provider: "gemini", apiKey } : null;
+		}
 	}
-
-	// Auto-detect: GPT hosted image generation, then Antigravity, OpenRouter, Gemini.
-	const openAI = await findOpenAIHostedImageCredentials(modelRegistry, activeModel, sessionId);
-	if (openAI) return openAI;
-
-	if (modelRegistry) {
-		const antigravity = await findAntigravityCredentials(modelRegistry, sessionId);
-		if (antigravity) return antigravity;
-	}
-
-	const openRouterKey = getEnvApiKey("openrouter");
-	if (openRouterKey) return { provider: "openrouter", apiKey: openRouterKey };
-
-	const geminiKey = getEnvApiKey("google");
-	if (geminiKey) return { provider: "gemini", apiKey: geminiKey };
-
-	const googleKey = $env.GOOGLE_API_KEY;
-	if (googleKey) return { provider: "gemini", apiKey: googleKey };
-
-	return null;
 }
 
 async function loadImageFromPath(imagePath: string, cwd: string): Promise<InlineImageData> {
@@ -939,10 +991,14 @@ export const imageGenTool: CustomTool<typeof imageGenSchema, ImageGenToolDetails
 	async execute(_toolCallId, params, _onUpdate, ctx, signal) {
 		return untilAborted(signal, async () => {
 			const sessionId = ctx.sessionManager.getSessionId();
-			const apiKey = await findImageApiKey(ctx.modelRegistry, ctx.model, sessionId);
+			let apiKey: ImageApiKey | null = null;
+			for (const provider of imageProviderOrder(ctx.model, params.provider ?? preferredImageProvider)) {
+				apiKey = await findImageApiKey(provider, ctx.modelRegistry, ctx.model, sessionId);
+				if (apiKey) break;
+			}
 			if (!apiKey) {
 				throw new Error(
-					"No image API credentials found. Use a GPT Responses/Codex model with OpenAI credentials, login with google-antigravity, or set OPENROUTER_API_KEY, GEMINI_API_KEY, or GOOGLE_API_KEY.",
+					"No image API credentials found. Connect a Codex (ChatGPT) subscription, use a GPT Responses model with OpenAI credentials, login with google-antigravity, or set OPENROUTER_API_KEY, GEMINI_API_KEY, or GOOGLE_API_KEY.",
 				);
 			}
 
@@ -1269,7 +1325,11 @@ export async function getImageGenTools(
 	modelRegistry?: ModelRegistry,
 	activeModel?: Model,
 ): Promise<Array<CustomTool<typeof imageGenSchema, ImageGenToolDetails>>> {
-	const apiKey = await findImageApiKey(modelRegistry, activeModel);
+	let apiKey: ImageApiKey | null = null;
+	for (const provider of imageProviderOrder(activeModel)) {
+		apiKey = await findImageApiKey(provider, modelRegistry, activeModel);
+		if (apiKey) break;
+	}
 	if (!apiKey) return [];
 	return [imageGenTool];
 }
@@ -1278,7 +1338,11 @@ export async function getImageGenToolsWithRegistry(
 	modelRegistry: ModelRegistry,
 	activeModel?: Model,
 ): Promise<Array<CustomTool<typeof imageGenSchema, ImageGenToolDetails>>> {
-	const apiKey = await findImageApiKey(modelRegistry, activeModel);
+	let apiKey: ImageApiKey | null = null;
+	for (const provider of imageProviderOrder(activeModel)) {
+		apiKey = await findImageApiKey(provider, modelRegistry, activeModel);
+		if (apiKey) break;
+	}
 	if (!apiKey) return [];
 	return [imageGenTool];
 }

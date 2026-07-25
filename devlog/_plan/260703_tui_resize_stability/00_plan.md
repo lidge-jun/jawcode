@@ -1,0 +1,182 @@
+# 260703 — TUI resize/scroll corruption: stabilization slice map
+
+## Loop continuity (LOOP-CONTINUITY-01)
+
+Previous cycle: 260703 WP5 closed the multiplexer first-overflow materialization and
+termux height-diff goldens (devlog/_plan/260702_tui_stabilization/60). Its D conclusion:
+remaining corruption classes are policy-inherent (scrollback retention) or unfixed
+structural gaps. This session's RCA (user screenshot: rows with horizontally-shifted
+fragments, LEFT-cropped lines, floating right-aligned "jaw" labels; worst while resizing
+or scrolling during streaming) identified four mechanisms:
+
+- **R1 — terminal reflow vs immutable scrollback.** Width changes make reflowing
+  terminals rewrap screen+scrollback. Frame lines are widely FULL-WIDTH padded
+  (`padToWidth(..., lineWidth)` in `packages/coding-agent/src/tui/output-block.ts`,
+  right-aligned labels in `composer-footer.ts:105`), so every padded line wraps into two
+  rows on any width shrink. Renderer never repairs scrollback by policy (3J forbidden
+  after committed history, `tui.ts` fullRender). Left-cropped fragments = wrap tails.
+- **R2 — resize race → stale-width writes.** Streaming renders every 16ms read
+  `process.stdout.columns` at render time; a render firing between the physical PTY
+  resize and the Node resize event writes lines truncated to the OLD width. With DECAWM
+  never disabled (no `CSI ?7l` anywhere in the repo), those writes physically wrap,
+  inserting real rows and permanently desyncing the diff path's relative cursor moves
+  (`#hardwareCursorRow` bookkeeping, no DSR/CPR re-sync). widthChanged compares stale
+  values, so that render takes the diff path.
+- **R3 — no autowrap guard + no cursor verification.** Any single overwide write (stale
+  width or `Bun.stringWidth` vs terminal divergence) starts undetectable drift until the
+  next absolute repaint; rows scrolled out during the drift window become permanent
+  scrollback garbage.
+- **R4 — user-observed healing on submit.** The submit path stabilizes because
+  `realignOverflowedFrame()` resets all drift-prone bookkeeping and
+  `compactViewportFill()` forces an absolute repaint, plus committed components shorten
+  the frame. The healing half (absolute repaint + bookkeeping resync) is generalizable to
+  more triggers; the realign/commit half is turn-boundary-only (preconditions:
+  markable backlog, no overlay, commit lane).
+
+External second opinions in flight (results folded in as they land): Codex gpt-5.5 xhigh
+RCA (xterm-headless repro probes), ChatGPT Pro review with tui.ts/terminal.ts/
+insert-history.ts attached.
+
+GPT Pro round 1 (full text: session scratchpad `gpt-pro-answer.md`; conversation is being
+continued per-WP with the pushed GitHub commits): confirmed R1–R3, re-ranked R2+R3 as the
+dominant live-corruption mechanism, and added two findings of its own — (R5) a concrete
+no-resize hazard: `#scrollOutCommittedRows()` mutates the terminal with DECSTBM
+mid-`#doRender` while the already-captured locals (`hardwareCursorRow`,
+`prevViewportTop`) and `#previousLines` (non-widened case) stay stale, so the same-pass
+relative diff can paint fragments without any resize; and (R6) exact-width writes are a
+deferred-wrap hazard — with DECAWM on, never write a printable cell into the last
+column. Recommended minimum patch: DECAWM off + fresh ioctl size + post-DECSTBM resync.
+
+User evidence round 2 (no resize, no scroll): right-aligned `Thinking … +3 lines` /
+`jaw` labels drifting to random indents mid-stream; a tool line wrapping with tail
+`evlo…`. Consistent with ambiguous-width mismatch (`…` `§` `✔` are East Asian AMBIGUOUS:
+Bun.stringWidth 1 vs CJK-configured terminals 2) on full-width padded lines → R3.
+
+User evidence round 3: the corrupted band renders like a block PINNED AT THE TOP that
+re-asserts itself and interferes with native scrollback scrolling while streaming; same
+sentences duplicated 2–4× at different wrap offsets. Points at the commit-lane
+scroll-region machinery (R5) + per-frame absolute repaints fighting user scroll —
+raises WP3 (scroll-out lane hardening) priority.
+
+## Work-phase slice map (small → certain first; order per GPT Pro round 2 re-rank)
+
+| WP | Slice | Class | Status |
+|----|-------|-------|--------|
+| WP1 | `TUI.resyncViewport()` one-shot absolute repaint primitive + resize flip-back trigger | C2 | DONE (0045e58) |
+| WP2 | DECAWM off + emergency-restore hardening | C2 | DONE (fdb6e46, 3cc2689, ef481ba) |
+| WP3a | scroll-out repaint barrier + liveZoneRepaint + round-4 fixes (overlay flush count, startRow guard) | C2 | DONE (f1078fe + follow-ups in 63a5493) |
+| WP2.5 | ambiguous width through BOTH tables (pi-natives AtomicBool + Bun.stringWidth `ambiguousIsNarrow`) + CPR probe (`JWC_AMBIGUOUS_WIDTH` override) + commit gate + round-5 hardening (grace swallower, stdin gate, fail-closed setter) | C3 | DONE (63a5493, 036d1ab) |
+| WP6a-A | fixed-height streaming preview for tool/thinking blocks | C2 | DONE (036d1ab) |
+| WP3b-min | history-lane gating: canUseHistoryLaneNow + commitLines gate + flushHistoryLane at stream boundaries + mandatory-drain metric | C3 | this cycle (fable adversarial review pending) |
+| WP6a-B | verbose always-expanded parity (gjc port) | C2 | next |
+| WP6b | commit-on-completion (mid-turn commits behind the gate) | C3 | after 6a-B |
+| WP5 | remove full-width literal padding; SGR-bg + EL/ECH with BCE detection, no-bg fallback | C3 | after WP6b |
+| WP4 | render-time PTY size via ioctl(TIOCGWINSZ) + mustAbsoluteNextFrame | C3 | last |
+
+One full PABCD cycle per WP; D of each cycle records evidence and re-enters P.
+
+**Converged order (GPT Pro round 3, 260703 — agreed):** WP2.5 → WP3a → WP6a
+(default/verbose render policy WITHOUT mid-turn commits: fixed-height preview +
+collapsed/expanded-on-completion, commit still at turn boundary) → WP3b-min (history-
+lane gating: no commit/drain while overlay open or off-bottom; queue/batch in mux or
+unknown-bottom during streaming) → WP6b (enable commit-on-completion) → WP5 → WP4.
+WP6 verdict: additive policy layer over the commit lane, materially shrinks the
+corruption surface; semantic caveat — "committed" means "left the diff-rendered frame,
+canonical pixels" but rows may stay PARKED on screen until drained, so WP3b is reduced
+in scope but NOT obsoleted. WP2 verification: both commits correct; two hardening
+follow-ups adopted (blind-restore in the active-terminal emergency branch too — a dead
+ProcessTerminal no-ops #safeWrite and would skip ?7h; test asserting ?7l precedes any
+printable write). Verbose-mode large one-shot commits get batched into one synchronized
+write + resync barrier (WP6b detail). Image lines never go through the insert-history
+lane. Full text: scratchpad `gpt-pro-answer-3.md`.
+
+GPT Pro round 2 (full text: scratchpad `gpt-pro-answer-2.md`) — key deltas beyond the
+re-rank: (a) WP1's flip-back does NOT fully replace a settle repaint — residual misses:
+resize event sampled while process.stdout.columns is stale, coalesced/lost final event,
+same-grid physical changes (font zoom, mux reattach), and the resync guard DROPPING the
+one-shot flag when it refuses (keep it pending instead — fold into WP3a). Deterministic
+alternative: resizeDirtyEpoch + mustAbsoluteNextFrame + fresh size read (→ WP4).
+(b) DECAWM: EL/ECH semantics unaffected; treat tmux as pane-local; image lines are a
+separate row-stability class (isImageLine bypasses width prep — needs its own barrier
+eventually). (c) `✔` is not reliably EAW-A — class the mismatch as
+"ambiguous/emoji/symbol width", probe with §/…/·. Vim prior art: t_u7 CPR ambiwidth
+detection. (d) Commit-lane safety contract (WP3b): skip DECSTBM insertion while
+isViewportAtBottom() === false, queue in virtual history, flush at bottom/agent_end/
+submit/Ctrl+L; be conservative in mux when the hook is undefined.
+
+## WP1 detail
+
+See `10_wp1_resync_viewport.md`.
+
+## OPEN — 260704 duplication after error turns (user repro, post-08fd688 build)
+
+Symptom: after a turn that ends in provider errors (Codex usage-limit → retry
+failure → model fallback line "Default model: anthropic/claude-sonnet-5"), the
+whole block (user msg + error lines) appears TWICE in the buffer; the second
+copy continues with the next successful turn. Commit-on-completion was already
+default-OFF, so the suspects are the BOUNDARY paths on error turns:
+1. realign refusal on error turns (canMarkEntireBacklog false via error-stranded
+   pendingTools?) → commitFinalizedBacklog(markOnly=false) WRITES the backlog
+   while its as-streamed pixels may already be in scrollback (if the frame had
+   overflowed) → classic double-materialization.
+2. retry_fallback / session-reload path calling rebuildChatFromMessages →
+   rebuilt transcript repainted into the frame while the as-streamed copy sits
+   in scrollback (same class as the 083.9 banner-copy bug, but for chat).
+3. agent_end firing twice on error+retry-failure (two agent_end events → double
+   flush/sweep?).
+Next cycle: trace #handleAgentEnd/error paths + retry_fallback_applied +
+rebuildChatFromMessages callers; check pendingTools cleanup on error stop
+reasons; reproduce with a forced provider error in a VirtualTerminal harness.
+fable adversarial review after the fix.
+
+## PRODUCTION-GRADE COMPLETION QUEUE (user directive 260704 — no interims left)
+
+1. **DUP-FIX**: duplication-after-error-turns (OPEN section above) — Opus trace in
+   flight; fix + regression test + fable adversarial review.
+2. **WP6b-v2 top-anchor**: re-anchor the committed block at the scrollback seam
+   (design investigation in flight — commitLines direct-write-then-scroll, S2 drain on
+   B-basis, delete the 260704 shrink-glue, unify flush sites to content-only regions),
+   then flip commit-on-completion default back ON. fable review mandatory.
+3. **WP5.3**: renderer-level bg+erase per GPT Pro round-7 scope (commit path first:
+   bg-active 2K in buildInsertHistorySequence; then liveZoneRepaint/viewportRepaint;
+   never component-embedded EL). Depends on WP6b-v2 landing first (commit path is then
+   the hot path). Goldens: reviewed deltas + TERM=dumb literal-fallback fixture.
+4. Optional hardening (GPT round-7 closeout list): Option B coalesced
+   scroll-out+repaint, bottom observer for the WP3b gate, ✔/emoji width override table.
+
+Verification bar for "production-grade": full tui + affected coding-agent suites green,
+fable adversarial review on each slice, GPT Pro diff verification round, pushed to main.
+
+
+## CLOSEOUT — 260704 (GPT Pro round 8: "functionally closed after the smoke matrix")
+
+All queue items shipped to main (…→ 8bf93d7 → 5031c07 → 4cae482 → 1b3e3e6 → b81faea →
+c0d42ea → this commit):
+
+1. DUP-FIX — heal-and-retry boundary (fable-reviewed; blanket adoption rejected as lossy).
+2. WP6b-v2 → superseded mid-flight by the FINAL FORM: top-flow layout (fill below the
+   transcript) + S5-2 live-zone flush (canonical rewrite + region [1..H-composerRows]
+   scroll; fits-only; realign keeps the overflow regime). Two adversarial reviews:
+   one CONFIRMED find (cluster measure counted the relocated sentinel → last-row loss)
+   fixed; empty-mirror + preamble-order hardenings added.
+3. RESIZE TRANSCRIPT REBUILD (user design): width-settle → 2J/H/3J full replace with
+   the transcript re-rendered at the new width; width-drift re-arm guard. The one
+   history-touching op the immutability policy permits (full replace cannot duplicate).
+4. WP5.3 — bg rows carry EL-at-line-start (the marker IS CSI K; zero-width for Bun and
+   pi-natives) under terminalSupportsBce(); literal-padding fallback otherwise. A2
+   (padToWidth bg branch) de-padded too — last structural reflow amplifier gone.
+
+P0 smoke (tmux, empirical, this machine):
+- Partial-region scroll (top=1) → pushed rows PRESERVED in pane history, no dup/loss ✓
+- 2J/H/3J → pane history fully cleared (history_size 0) → rebuild is dup-free in tmux ✓
+- EL+bg fill: tmux does NOT honor BCE (terminfo bce=NO, probe confirms) → tmux/screen
+  removed from the BCE allowlist + TMUX env fails closed (padding fallback there).
+
+REMAINING (user-side / optional):
+- GUI-terminal smoke matrix: Ghostty, iTerm2, VTE/GNOME, Windows Terminal, Terminal.app
+  (assert: no blank gaps, no dup committed rows, scrollback order, resize rebuild clears
+  old history, bg rows reach EOL). JWC_TUI_BCE=0 / JWC_COMMIT_ON_COMPLETION=0 /
+  JWC_COMMIT_LANE=0 are the per-axis kill switches if a terminal misbehaves.
+- Optional per GPT-8: P2 bottom observer (only if off-bottom scroll-fighting recurs),
+  P3 Option B coalesce (only if top-band flicker is visible), P4 checkmark override
+  (only if drift screenshots recur).

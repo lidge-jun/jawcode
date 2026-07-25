@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Added a `/tone` slash command with persona tone presets (`sarcastic`, `savage`, `deadpan`, `hype`, `uhehe`) plus a `custom` paste-your-own lane, persisted as `identity.tone`/`identity.toneCustom` and rendered as a `## Tone` section in the system prompt identity block (devlog 260702_tone_command).
+
 ## [1.0.0] - 2026-06-16
 
 ### Changed

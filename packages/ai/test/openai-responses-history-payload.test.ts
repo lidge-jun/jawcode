@@ -459,6 +459,35 @@ describe("OpenAI responses history payload", () => {
 		]);
 	});
 
+	it("redacts credentials from Codex replacement history before replay", async () => {
+		const model = getBundledModel("openai-codex", "gpt-5.2-codex") as Model<"openai-codex-responses">;
+		const token = `ghp_${"*".repeat(36)}`;
+		const context: Context = {
+			messages: [
+				{
+					role: "user",
+					content: "summary that should be ignored",
+					providerPayload: createOpenAIResponsesHistoryPayload(
+						"openai-codex",
+						[{ type: "message", role: "user", content: [{ type: "input_text", text: `Token: ${token}` }] }],
+						false,
+					),
+					timestamp: Date.now(),
+				},
+			],
+		};
+
+		const payload = (await captureCodexPayload(model, context)) as { input?: unknown[] };
+
+		expect(payload.input).toEqual([
+			{
+				type: "message",
+				role: "user",
+				content: [{ type: "input_text", text: "Token: [github_token_redacted]" }],
+			},
+		]);
+	});
+
 	it("ignores incompatible native history snapshots across providers", async () => {
 		const model = getBundledModel("github-copilot", "gpt-5.4") as Model<"openai-responses">;
 		const payload = (await captureResponsesPayload(model, codexToCopilotContext)) as { input?: unknown[] };

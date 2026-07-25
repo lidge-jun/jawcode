@@ -1,6 +1,4 @@
 import * as fs from "node:fs";
-import type { AgentMessage } from "@jawcode-dev/agent-core";
-import { countMessageTokensNative, estimateTokens } from "@jawcode-dev/agent-core/compaction";
 import { type Component, truncateToWidth, visibleWidth } from "@jawcode-dev/tui";
 import { formatCount, getProjectDir } from "@jawcode-dev/utils";
 import { $ } from "bun";
@@ -11,10 +9,8 @@ import type { AgentSession } from "../../session/agent-session";
 import { readSessionStrictSkillActiveState, type SkillActiveEntry } from "../../skill-state/active-state";
 import * as git from "../../utils/git";
 import { getSessionAccentAnsi, getSessionAccentHex } from "../../utils/session-color";
-import { resolveModelEncoding } from "../../utils/tokenizer-encoding";
 import { EMPTY_JOBS_SNAPSHOT, type JobsSnapshot } from "../jobs-observer";
 import { sanitizeStatusText } from "../shared";
-import { computeNonMessageTokens } from "../utils/context-usage";
 import { renderSkillHudBar } from "./skill-hud/render";
 import {
 	canReuseCachedPr,
@@ -33,6 +29,7 @@ export interface StatusLineSegmentOptions {
 	path?: { abbreviate?: boolean; maxLength?: number; stripWorkPrefix?: boolean };
 	git?: { showBranch?: boolean; showStaged?: boolean; showUnstaged?: boolean; showUntracked?: boolean };
 	time?: { format?: "12h" | "24h"; showSeconds?: boolean };
+	usage?: { mode?: "used" | "remaining" };
 }
 
 export interface StatusLineSettings {
@@ -44,103 +41,6 @@ export interface StatusLineSettings {
 	showHookStatus?: boolean;
 	showSkillHud?: boolean;
 	sessionAccent?: boolean;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Per-message token cache
-// ═══════════════════════════════════════════════════════════════════════════
-
-/**
- * Symbol-keyed sidecar tagged onto each `AgentMessage` to memoize its
- * `estimateTokens` result. Keyed by message identity (the object itself);
- * a cheap content fingerprint detects in-place mutations (post-hoc error
- * attachment, retry-truncated branch rebuild, etc.) and forces recompute.
- *
- * Cache lives on the message — multiple `StatusLineComponent` instances
- * share it for free, and entries collect with the message itself when the
- * conversation is replaced or compacted.
- */
-const kTokenCache = Symbol("statusLine.tokenCache");
-interface TaggedMessage {
-	[kTokenCache]?: { fingerprint: string; tokens: number };
-}
-
-/**
- * Cheap structural fingerprint mirroring `estimateTokens`'s content walk.
- * O(blocks) — only reads string `.length` and primitives, never copies or
- * serializes content. Any in-place mutation that alters total tokenized
- * content also alters one of the byte-length sums or block counts captured
- * here, forcing the cached `estimateTokens` value to be recomputed.
- */
-function messageFingerprint(msg: AgentMessage): string {
-	const role = (msg as { role?: string }).role ?? "";
-	const ts = (msg as { timestamp?: number }).timestamp ?? 0;
-	let textLen = 0;
-	let blocks = 0;
-	let images = 0;
-	if (role === "bashExecution") {
-		const b = msg as { command?: unknown; output?: unknown };
-		if (typeof b.command === "string") textLen += b.command.length;
-		if (typeof b.output === "string") textLen += b.output.length;
-	} else if (role === "user") {
-		const content = (msg as { content?: unknown }).content;
-		if (typeof content === "string") {
-			textLen += content.length;
-		} else if (Array.isArray(content)) {
-			blocks = content.length;
-			for (const block of content) {
-				if (block?.type === "text" && typeof block.text === "string") textLen += block.text.length;
-			}
-		}
-	} else if (role === "assistant") {
-		const content = (msg as { content?: unknown }).content;
-		if (Array.isArray(content)) {
-			blocks = content.length;
-			for (const block of content) {
-				if (!block || typeof block !== "object") continue;
-				const b = block as { type?: string; text?: string; thinking?: string; name?: string; arguments?: unknown };
-				if (b.type === "text" && typeof b.text === "string") textLen += b.text.length;
-				else if (b.type === "thinking" && typeof b.thinking === "string") textLen += b.thinking.length;
-				else if (b.type === "toolCall") {
-					if (typeof b.name === "string") textLen += b.name.length;
-					// Argument bytes vary; a length proxy is enough to detect in-place edits.
-					textLen += b.arguments === undefined ? 0 : JSON.stringify(b.arguments).length;
-				}
-			}
-		}
-	} else if (role === "toolResult" || role === "hookMessage") {
-		const content = (msg as { content?: unknown }).content;
-		if (typeof content === "string") {
-			textLen += content.length;
-		} else if (Array.isArray(content)) {
-			blocks = content.length;
-			for (const block of content) {
-				if (!block || typeof block !== "object") continue;
-				const b = block as { type?: string; text?: string };
-				if (b.type === "text" && typeof b.text === "string") textLen += b.text.length;
-				else if (b.type === "image") images++;
-			}
-		}
-	} else if (role === "branchSummary" || role === "compactionSummary") {
-		const s = (msg as { summary?: unknown }).summary;
-		if (typeof s === "string") textLen += s.length;
-	}
-	return `${role}:${ts}:${textLen}:${blocks}:${images}`;
-}
-
-/**
- * Token count for a single message, using the per-message sidecar cache.
- * The caller MUST skip caching for the last message during streaming —
- * it may still be growing and its tokens belong recomputed each refresh.
- */
-function tokensForMessage(msg: AgentMessage, encoding?: import("@jawcode-dev/natives").Encoding): number {
-	const fp = messageFingerprint(msg);
-	const tagged = msg as TaggedMessage;
-	const cached = tagged[kTokenCache];
-	if (cached && cached.fingerprint === fp) return cached.tokens;
-	const tokens = encoding ? countMessageTokensNative(msg, encoding) : estimateTokens(msg);
-	tagged[kTokenCache] = { fingerprint: fp, tokens };
-	return tokens;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -184,21 +84,6 @@ export class StatusLineComponent implements Component {
 	} | null = null;
 	#usageFetchedAt = 0;
 	#usageInFlight = false;
-	// Context breakdown — incremental cache. Replaces the previous 2-second
-	// TTL design (which re-walked every message on each refresh and produced
-	// ~1.1 s sync freezes on 2,000+ message sessions because `updateEditorTopBorder`
-	// is called on every agent event in event-controller). The new scheme
-	// caches by message-object identity (a Symbol-keyed sidecar on each
-	// message) plus a cheap content fingerprint, so in-place mutations of
-	// an existing message (post-hoc error attachment, retry-truncated
-	// branch rebuild, replaceMessages with the same length) are detected
-	// and recomputed.
-	// Cached non-message total (system prompt + tools + skills). Invalidated
-	// when the inputs-identity fingerprint changes (model swap, skill toggle,
-	// tool registration).
-	#nonMessageTokensCache: number | undefined;
-	#nonMessageInputsKey: string | undefined;
-
 	constructor(private readonly session: AgentSession) {
 		this.#settings = {
 			preset: settings.get("statusLine.preset"),
@@ -585,52 +470,20 @@ export class StatusLineComponent implements Component {
 	}
 
 	/**
-	 * Compute the (cached) used-tokens / context-window totals for the
-	 * status-line context% segment. Exposed (non-private) so unit tests can
-	 * verify the incremental-cache invariants; not part of any external
-	 * API.
+	 * Read the session-owned context snapshot. Status rendering must never
+	 * maintain an independent token heuristic.
 	 */
-	getCachedContextBreakdown(): { usedTokens: number; contextWindow: number } {
-		const messages = this.session.messages ?? [];
-		const contextWindow = this.session.model?.contextWindow ?? 0;
-
-		// 1) Non-message tokens (system prompt + tools + skills). Refresh only
-		//    when the inputs identity fingerprint changes — usually never
-		//    during a streaming turn. ~10-30 ms when it does refresh.
-		const inputsKey = this.#computeNonMessageInputsKey();
-		const encoding = this.session.model ? resolveModelEncoding(this.session.model) : undefined;
-		if (this.#nonMessageTokensCache === undefined || this.#nonMessageInputsKey !== inputsKey) {
-			this.#nonMessageTokensCache = computeNonMessageTokens(this.session, encoding);
-			this.#nonMessageInputsKey = inputsKey;
-		}
-
-		let messagesTokens = 0;
-		const lastIdx = messages.length - 1;
-		for (let i = 0; i < messages.length; i++) {
-			messagesTokens +=
-				i === lastIdx
-					? encoding
-						? countMessageTokensNative(messages[i], encoding)
-						: estimateTokens(messages[i])
-					: tokensForMessage(messages[i], encoding);
-		}
-
-		const usedTokens = this.#nonMessageTokensCache + messagesTokens;
-		return { usedTokens, contextWindow };
-	}
-
-	/**
-	 * Build an identity fingerprint for the non-message inputs (system prompt,
-	 * tools, skills). When this changes, the non-message token cache must be
-	 * recomputed. Cheap: just lengths + first-string-length. Doesn't need to
-	 * be cryptographically unique — only stable for the same inputs.
-	 */
-	#computeNonMessageInputsKey(): string {
-		const sp = this.session.systemPrompt ?? [];
-		const tools = this.session.agent?.state?.tools ?? [];
-		const skills = this.session.skills ?? [];
-		const modelId = this.session.model?.id ?? "";
-		return `${modelId}|${sp.length}:${sp[0]?.length ?? 0}|${tools.length}|${skills.length}`;
+	getCachedContextBreakdown(): {
+		usedTokens: number | null;
+		contextWindow: number;
+		source: "provider_anchor" | "heuristic" | "unknown";
+	} {
+		const usage = this.session.getContextUsage();
+		return {
+			usedTokens: usage?.tokens ?? null,
+			contextWindow: usage?.contextWindow ?? this.session.model?.contextWindow ?? 0,
+			source: usage?.source ?? "unknown",
+		};
 	}
 
 	#buildSegmentContext(width: number): SegmentContext {
@@ -654,10 +507,9 @@ export class StatusLineComponent implements Component {
 		};
 
 		// Context usage — aligned with /context command so both surfaces report the same value
-		const breakdown = this.getCachedContextBreakdown();
-		const contextTokens = breakdown.usedTokens;
-		const contextWindow = breakdown.contextWindow || state.model?.contextWindow || 0;
-		const contextPercent = contextWindow > 0 ? (contextTokens / contextWindow) * 100 : 0;
+		const contextUsage = this.session.getContextUsage();
+		const contextWindow = contextUsage?.contextWindow ?? state.model?.contextWindow ?? 0;
+		const contextPercent = contextUsage?.percent ?? null;
 
 		return {
 			session: this.session,

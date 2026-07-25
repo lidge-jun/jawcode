@@ -1,0 +1,2 @@
+PASS
+Single point most likely to break first if implemented as written: Cluster A still-running async job retention/addressability remains the first likely implementation trap, because the resolved ARCH-A1/ARCH-A2 plan text now matches real compact-failure and persistence contracts, while teardown behavior still has to avoid accidentally cancelling retained running jobs during AgentSession.dispose.

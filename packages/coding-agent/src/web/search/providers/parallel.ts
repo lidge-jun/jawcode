@@ -139,7 +139,7 @@ async function searchWithAuthStorage(
 				max_chars_per_result: 10_000,
 			},
 		}),
-		signal: withHardTimeout(params.signal),
+		signal: withHardTimeout(params.signal, "api"),
 	});
 	if (!response.ok) {
 		throw parseParallelErrorResponse(response.status, await response.text());

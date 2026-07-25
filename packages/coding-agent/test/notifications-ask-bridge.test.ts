@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { type AskBridgeServer, bridgeAsk } from "../src/notifications/ask-bridge";
+import { type AskBridgeServer, bridgeAsk, isAskChatRedirectResult } from "../src/notifications/ask-bridge";
 
 class FakeBridgeServer implements AskBridgeServer {
 	readonly enqueued: Array<{
@@ -33,6 +33,12 @@ class FakeBridgeServer implements AskBridgeServer {
 }
 
 describe("ask bridge", () => {
+	it("distinguishes chat redirects from cancellations and ordinary answers", () => {
+		expect(isAskChatRedirectResult({ kind: "chat" })).toBe(true);
+		expect(isAskChatRedirectResult(undefined)).toBe(false);
+		expect(isAskChatRedirectResult("chat")).toBe(false);
+	});
+
 	it("returns the local answer and resolves locally when local wins", async () => {
 		const server = new FakeBridgeServer();
 		const dismiss = new AbortController();

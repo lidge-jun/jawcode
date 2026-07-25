@@ -3,6 +3,7 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { Settings } from "../src/config/settings";
+import { NOTIFICATION_CHILD_SESSION_ENV } from "../src/notifications/config";
 import { readNotificationDiscoveryRecord } from "../src/notifications/discovery";
 import type { NotificationLoopbackServer } from "../src/notifications/server";
 import { maybeStartNotificationServer } from "../src/notifications/session-lifecycle";
@@ -14,6 +15,8 @@ const ENV_KEYS = [
 	"GJC_NOTIFICATIONS_TOKEN",
 	"JWC_NOTIFICATIONS_CHAT_ID",
 	"GJC_NOTIFICATIONS_CHAT_ID",
+	"JWC_SPAWNED_BY_SESSION",
+	"GJC_SPAWNED_BY_SESSION",
 ] as const;
 
 const savedEnv = new Map<string, string | undefined>();
@@ -73,6 +76,35 @@ describe("notification session lifecycle", () => {
 		});
 		expect(server).toBeNull();
 		expect(cleanups.size).toBe(0);
+	});
+
+	it("suppresses child sessions when depth metadata is missing", async () => {
+		for (const childSignal of [{ parentTaskPrefix: "1-Worker" }, { currentAgentType: "executor" }]) {
+			const { registerCleanup, cleanups } = cleanupCollector();
+			const server = await maybeStartNotificationServer({
+				settings: enabledSettings(),
+				sessionId: "session-child-fallback",
+				cwd: "/tmp/does-not-matter",
+				...childSignal,
+				registerCleanup,
+			});
+			expect(server).toBeNull();
+			expect(cleanups.size).toBe(0);
+		}
+	});
+
+	it("consumes and suppresses a JWC-spawned child marker", async () => {
+		const { registerCleanup, cleanups } = cleanupCollector();
+		Bun.env[NOTIFICATION_CHILD_SESSION_ENV] = "parent-session";
+		const server = await maybeStartNotificationServer({
+			settings: enabledSettings(),
+			sessionId: "session-process-child",
+			cwd: "/tmp/does-not-matter",
+			registerCleanup,
+		});
+		expect(server).toBeNull();
+		expect(cleanups.size).toBe(0);
+		expect(Bun.env[NOTIFICATION_CHILD_SESSION_ENV]).toBeUndefined();
 	});
 
 	it("starts the server, writes discovery, and registers a stop cleanup when enabled", async () => {

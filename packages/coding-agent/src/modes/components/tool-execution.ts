@@ -44,6 +44,12 @@ function ensureInvalidate(component: unknown): Component {
 
 const FULL_TRANSCRIPT_JSON_LIMIT = Number.MAX_SAFE_INTEGER;
 
+// 260703 WP6a — fixed-height window for RUNNING tool blocks: head rows kept
+// (separator + title), then an elision marker, then the output tail. Total
+// visible body while streaming: HEAD + 1 + TAIL rows.
+const STREAMING_PREVIEW_HEAD = 2;
+const STREAMING_PREVIEW_TAIL = 5;
+
 function cloneToolArgs<T>(args: T): T {
 	if (args === null || args === undefined) return args;
 	try {
@@ -536,7 +542,29 @@ export class ToolExecutionComponent extends Container {
 		}
 		const lines = super.render(width);
 		this.#expandedLineCountsByWidth.set(width, lines.length);
-		return this.#applyFocusMarker(lines);
+		return this.#applyFocusMarker(this.#capStreamingPreview(lines));
+	}
+
+	/**
+	 * 260703 WP6a — while a tool is RUNNING, its block renders as a
+	 * fixed-height window (head rows + elision marker + output tail) instead
+	 * of growing with every streamed chunk. Keeps the live zone from
+	 * overflowing the viewport during long tool runs (which disables the
+	 * commit lane and arms the overflow machinery — the corruption surface).
+	 * ctrl+o expansion and the transcript overlay bypass the cap; completed
+	 * results render unchanged. bash/eval renderers already self-cap via
+	 * previewLines, so their output stays under the threshold (no double-cap).
+	 */
+	#capStreamingPreview(lines: string[]): string[] {
+		if (!this.#isPartial || this.#expanded || this.#fullTranscript) return lines;
+		const max = STREAMING_PREVIEW_HEAD + 1 + STREAMING_PREVIEW_TAIL;
+		if (lines.length <= max) return lines;
+		const hidden = lines.length - STREAMING_PREVIEW_HEAD - STREAMING_PREVIEW_TAIL;
+		return [
+			...lines.slice(0, STREAMING_PREVIEW_HEAD),
+			` ${theme.fg("dim", `… +${hidden} lines`)}`,
+			...lines.slice(lines.length - STREAMING_PREVIEW_TAIL),
+		];
 	}
 
 	setShowImages(show: boolean): void {

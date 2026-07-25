@@ -30,7 +30,7 @@ const NEXT_HINTS: Record<string, string> = {
 	P: "Present the plan draft and wait for approval. When approved, run `jwc orchestrate a`.",
 	A: "Run the audit subagents. On PASS + user approval, run `jwc orchestrate b`.",
 	B: "Implement the plan. On verification DONE, run `jwc orchestrate c`.",
-	C: "Run the gates. All green → run `jwc orchestrate d` yourself.",
+	C: "Run the gates. If render artifacts changed, run the render-grounding loop (run/observe/fix) and record with `jwc orchestrate verdict --render-observed`. All green → run `jwc orchestrate d` yourself.",
 	D: "Summarize the cycle, then run `jwc orchestrate d`.",
 };
 
@@ -39,7 +39,7 @@ const HOTL_HINTS: Record<string, string> = {
 	P: 'HOTL: Finalize the plan and run `jwc orchestrate a` immediately. Record checkpoint with `jwc goal update --evidence "plan finalized"`. Do NOT wait for user approval.',
 	A: "HOTL: Run audit subagents. On PASS, run `jwc orchestrate b` immediately with checkpoint. Do NOT wait for user approval.",
 	B: "HOTL: Implement the plan. On verification DONE, run `jwc orchestrate c` immediately with checkpoint. Do NOT wait for user approval.",
-	C: "HOTL: Run the gates. All green → run `jwc orchestrate d` yourself.",
+	C: "HOTL: Run the gates. If render artifacts changed, run the render-grounding loop and record with `jwc orchestrate verdict --render-observed`. All green → run `jwc orchestrate d` yourself.",
 	D: "HOTL: Summarize, then run `jwc orchestrate d`. If goal has remaining work, re-enter `jwc orchestrate p` for the next cycle.",
 };
 
@@ -66,6 +66,10 @@ export function buildPabcdStageContent(
 	if (stage === "B") {
 		const verification = ctx.verification_status ?? "pending";
 		if (verification !== "done") gateChips.push(`verification=${verification}`);
+	}
+	if (stage === "C") {
+		const render = ctx.render_grounding_status;
+		if (render === "pending") gateChips.push(`render=${render}`);
 	}
 	const gates = gateChips.length > 0 ? ` · ${gateChips.join(" · ")}` : "";
 

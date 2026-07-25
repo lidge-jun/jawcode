@@ -61,6 +61,9 @@ export interface EditToolPerFileResult {
 	oldText?: string;
 	/** Source-of-truth content after the edit; `undefined` for delete operations. */
 	newText?: string;
+	/** Set when oversized `oldText`/`newText` snapshots were dropped to bound the
+	 * persisted session JSONL. The ACP diff for this file degrades to text-only. */
+	snapshotsPruned?: boolean;
 }
 
 export interface EditToolDetails {

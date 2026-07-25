@@ -3,7 +3,9 @@
  */
 import type { AgentTool, AgentToolUpdateCallback } from "@jawcode-dev/agent-core";
 import type { Static, TSchema } from "@jawcode-dev/ai";
+import { toolWireSchema } from "@jawcode-dev/ai/utils/schema";
 import type { Theme } from "../../modes/theme/theme";
+import { allowedToolArgKeysFromWireSchema, rejectUnknownToolArgs, requireRecordToolArgs } from "../../tools/jtd-utils";
 import { applyToolProxy } from "../tool-proxy";
 import type { CustomTool, CustomToolContext } from "./types";
 
@@ -31,7 +33,13 @@ export class CustomToolAdapter<TParams extends TSchema = TSchema, TDetails = any
 		onUpdate?: AgentToolUpdateCallback<TDetails, TParams>,
 		context?: CustomToolContext,
 	) {
-		return this.tool.execute(toolCallId, params, onUpdate, context ?? this.getContext(), signal);
+		const recordArgs = requireRecordToolArgs(params, this.name);
+		if (this.strict) {
+			const allowed = allowedToolArgKeysFromWireSchema(toolWireSchema(this.tool));
+			if (allowed) rejectUnknownToolArgs(recordArgs, allowed, this.name);
+		}
+		const args = recordArgs as Static<TParams>;
+		return this.tool.execute(toolCallId, args, onUpdate, context ?? this.getContext(), signal);
 	}
 
 	/**

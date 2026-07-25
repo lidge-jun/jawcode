@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
 import type { Message } from "@jawcode-dev/ai";
-import { ResidentBlobMissingError } from "@jawcode-dev/coding-agent/session/blob-store";
 import { SessionManager } from "@jawcode-dev/coding-agent/session/session-manager";
 import { MemorySessionStorage } from "@jawcode-dev/coding-agent/session/session-storage";
 
@@ -40,7 +39,7 @@ function assistantMessage(): Message {
 }
 
 describe("SessionManager resident ownership", () => {
-	it("throws ResidentBlobMissingError for missing resident image data sentinels", async () => {
+	it("recovers missing resident image data sentinels with a bounded placeholder", async () => {
 		const storage = new MemorySessionStorage();
 		const sessionFile = "/sessions/missing-image-data.jsonl";
 		const messageEntry = {
@@ -67,18 +66,12 @@ describe("SessionManager resident ownership", () => {
 
 		const session = await SessionManager.open(sessionFile, "/sessions", storage);
 
-		expect(() => session.getEntry("msg-image-data")).toThrow(ResidentBlobMissingError);
-		try {
-			session.getEntry("msg-image-data");
-		} catch (err) {
-			expect(err).toBeInstanceOf(ResidentBlobMissingError);
-			expect((err as ResidentBlobMissingError).kind).toBe("imageData");
-			expect((err as ResidentBlobMissingError).sessionId).toBe("sess-resident-ownership");
-			expect((err as ResidentBlobMissingError).sessionFile).toBe(sessionFile);
-		}
+		expect(JSON.stringify(session.getEntry("msg-image-data"))).toContain(
+			"[Session resident imageData blob missing:",
+		);
 	});
 
-	it("throws ResidentBlobMissingError for missing resident provider image URL sentinels", async () => {
+	it("recovers missing resident provider image URL sentinels with a bounded placeholder", async () => {
 		const storage = new MemorySessionStorage();
 		const sessionFile = "/sessions/missing-image-url.jsonl";
 		const messageEntry = {
@@ -115,7 +108,9 @@ describe("SessionManager resident ownership", () => {
 
 		const session = await SessionManager.open(sessionFile, "/sessions", storage);
 
-		expect(() => session.getEntry("msg-image-url")).toThrow(ResidentBlobMissingError);
+		expect(JSON.stringify(session.getEntry("msg-image-url"))).toContain(
+			"[Session resident imageUrl blob missing:",
+		);
 	});
 
 	it("keeps durable persisted missing image blob refs non-throwing on historical load", async () => {
@@ -158,23 +153,15 @@ describe("SessionManager resident ownership", () => {
 		expect(JSON.stringify(session.captureState().fileEntries)).not.toContain("payloadpayload");
 	});
 
-	it("fails closed when restoring an organically captured resident text snapshot after store reset", async () => {
+	it("recovers an organically captured resident text snapshot after store reset", async () => {
 		const storage = new MemorySessionStorage();
 		const session = SessionManager.create("/cwd", "/sessions", storage);
 		session.appendCustomEntry("large-custom", { arbitraryPayload: "organic".repeat(120_000) });
 		session.appendMessage(assistantMessage());
 		const snapshot = session.captureState();
-		const ownerSessionId = session.getHeader()?.id;
-
 		await session.newSession();
 
-		expect(() => session.restoreState(snapshot)).toThrow(ResidentBlobMissingError);
-		try {
-			session.restoreState(snapshot);
-		} catch (err) {
-			expect(err).toBeInstanceOf(ResidentBlobMissingError);
-			expect((err as ResidentBlobMissingError).kind).toBe("text");
-			expect((err as ResidentBlobMissingError).sessionId).toBe(ownerSessionId);
-		}
+		session.restoreState(snapshot);
+		expect(JSON.stringify(session.getEntries())).toContain("[Session resident text blob missing:");
 	});
 });

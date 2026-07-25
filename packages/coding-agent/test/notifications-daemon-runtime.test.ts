@@ -2,8 +2,9 @@ import { describe, expect, it } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { writeDaemonControl } from "../src/notifications/daemon-control";
+import { clearDaemonControl, readDaemonControl, writeDaemonControl } from "../src/notifications/daemon-control";
 import { runManagedDaemon } from "../src/notifications/daemon-runtime";
+import { NOTIFICATION_DAEMON_GENERATION } from "../src/notifications/protocol";
 import { fingerprintSecret, readTransportOwner, writeTransportOwner } from "../src/notifications/transport-state";
 
 const TOKEN = "BOT:TOKEN";
@@ -52,6 +53,7 @@ describe("runManagedDaemon (10.030 smoke)", () => {
 		try {
 			await writeTransportOwner(agentDir, {
 				version: 1,
+				generation: NOTIFICATION_DAEMON_GENERATION,
 				ownerId: "d1",
 				pid: 111,
 				startedAt: 1_000,
@@ -75,6 +77,51 @@ describe("runManagedDaemon (10.030 smoke)", () => {
 			const owner = await readTransportOwner(agentDir);
 			expect(owner?.ownerId).toBe("d1"); // d2 deferred; owner unchanged
 			expect(owner?.pid).toBe(111);
+		} finally {
+			await fs.rm(agentDir, { recursive: true, force: true });
+		}
+	});
+
+	it("reloads a stale live generation before claiming and polling", async () => {
+		const agentDir = await tmpAgentDir();
+		const alive = new Set([111, 222]);
+		let observedReload = false;
+		try {
+			await writeTransportOwner(agentDir, {
+				version: 1,
+				ownerId: "old",
+				pid: 111,
+				startedAt: 1_000,
+				heartbeatAt: 1_000,
+				tokenFingerprint: fingerprintSecret(TOKEN),
+				chatIdFingerprint: fingerprintSecret(CHAT),
+			});
+			const result = await runManagedDaemon({
+				agentDir,
+				token: TOKEN,
+				chatId: CHAT,
+				ownerId: "replacement",
+				pid: 222,
+				now: () => 1_500,
+				maxTicks: 2,
+				heartbeatTtlMs: 20_000,
+				pidAlive: pid => alive.has(pid),
+				sleep: async () => {
+					const control = await readDaemonControl(agentDir);
+					if (!control) return;
+					observedReload = control.kind === "reload" && control.targetOwnerId === "old";
+					alive.delete(111);
+					await clearDaemonControl(agentDir);
+				},
+				fetchImpl: fetchOk(),
+			});
+			expect(result.outcome).toBe("max-ticks");
+			expect(observedReload).toBe(true);
+			expect(await readTransportOwner(agentDir)).toMatchObject({
+				ownerId: "replacement",
+				pid: 222,
+				generation: NOTIFICATION_DAEMON_GENERATION,
+			});
 		} finally {
 			await fs.rm(agentDir, { recursive: true, force: true });
 		}

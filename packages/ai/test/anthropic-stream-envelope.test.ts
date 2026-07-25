@@ -531,6 +531,7 @@ describe("anthropic stream envelope handling", () => {
 
 		expect(result.stopReason).toBe("error");
 		expect(result.errorMessage).toContain("Refusal (no details provided)");
+		expect(result.errorKind).toBe("provider_safety_stop");
 		expect(result.errorMessage).not.toContain("An unknown error occurred");
 		expect(countEvents(events, "error")).toBe(1);
 		expect(countEvents(events, "done")).toBe(0);
@@ -597,14 +598,20 @@ describe("anthropic stream envelope handling", () => {
 			await stream.result();
 		}
 
-		const cacheControls = payloads.map(payload => {
+		const automaticCacheControls = payloads.map(payload => {
+			return (payload as { cache_control?: { ttl?: string; type: string } }).cache_control;
+		});
+		const messageCacheControls = payloads.map(payload => {
 			const messages = (payload as { messages: Array<{ content: unknown }> }).messages;
 			const content = messages.at(-1)?.content;
 			if (!Array.isArray(content)) return undefined;
 			return (content.at(-1) as { cache_control?: { ttl?: string; type: string } } | undefined)?.cache_control;
 		});
-		expect(cacheControls[0]).toEqual({ type: "ephemeral", ttl: "1h" });
-		expect(cacheControls[1]).toEqual({ type: "ephemeral" });
-		expect(cacheControls[2]).toEqual({ type: "ephemeral" });
+		expect(automaticCacheControls[0]).toEqual({ type: "ephemeral", ttl: "1h" });
+		expect(messageCacheControls[0]).toBeUndefined();
+		expect(automaticCacheControls[1]).toEqual({ type: "ephemeral" });
+		expect(messageCacheControls[1]).toBeUndefined();
+		expect(automaticCacheControls[2]).toBeUndefined();
+		expect(messageCacheControls[2]).toEqual({ type: "ephemeral" });
 	});
 });

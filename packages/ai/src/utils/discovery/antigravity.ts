@@ -17,7 +17,12 @@ const ANTIGRAVITY_DISCOVERY_DENYLIST = new Set([
 	"gemini-2.5-flash-thinking",
 	"gemini-3-pro-low",
 	"gemini-2.5-pro",
+	"gemini-3.1-pro-high",
 ]);
+
+export function isAntigravityDiscoveryModelDenied(modelId: string): boolean {
+	return ANTIGRAVITY_DISCOVERY_DENYLIST.has(modelId);
+}
 
 /**
  * Raw model metadata returned by Antigravity's `fetchAvailableModels` endpoint.
@@ -214,7 +219,7 @@ export async function fetchAntigravityDiscoveryModels(
 		const models: Model<"google-gemini-cli">[] = [];
 
 		for (const [modelId, model] of Object.entries(parsed.models ?? {})) {
-			if (ANTIGRAVITY_DISCOVERY_DENYLIST.has(modelId)) {
+			if (isAntigravityDiscoveryModelDenied(modelId)) {
 				continue;
 			}
 			if (model.isInternal === true) {

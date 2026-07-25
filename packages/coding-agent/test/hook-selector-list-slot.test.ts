@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { HookSelectorComponent } from "@jawcode-dev/coding-agent/modes/components/hook-selector";
 import { getThemeByName, setThemeInstance } from "@jawcode-dev/coding-agent/modes/theme/theme";
+import type { AutocompleteProvider } from "@jawcode-dev/tui";
 import { CURSOR_MARKER } from "@jawcode-dev/tui";
 
 beforeAll(async () => {
@@ -10,6 +11,30 @@ beforeAll(async () => {
 
 const TITLE = "Interview question";
 const OPTIONS = ["1. Alpha", "2. Beta", "3. Gamma", "4. Delta"];
+
+const pathAutocompleteProvider: AutocompleteProvider = {
+	async getSuggestions(lines, cursorLine, cursorCol) {
+		const textBeforeCursor = (lines[cursorLine] ?? "").slice(0, cursorCol);
+		if (!textBeforeCursor.endsWith("@")) return null;
+		return {
+			prefix: "@",
+			items: [{ value: "src/app.ts", label: "src/app.ts" }],
+		};
+	},
+	applyCompletion(lines, cursorLine, cursorCol, item) {
+		const line = lines[cursorLine] ?? "";
+		const before = line.slice(0, cursorCol - 1);
+		const after = line.slice(cursorCol);
+		const completed = `@${item.value}`;
+		const nextLines = [...lines];
+		nextLines[cursorLine] = `${before}${completed}${after}`;
+		return {
+			lines: nextLines,
+			cursorLine,
+			cursorCol: before.length + completed.length,
+		};
+	},
+};
 
 function renderText(component: HookSelectorComponent, width = 80): string {
 	return Bun.stripANSI(component.render(width).join("\n"));
@@ -73,6 +98,30 @@ describe("HookSelectorComponent output panel (082.3 v2)", () => {
 		component.handleInput("i");
 		component.handleInput("\r");
 		expect(submitted).toEqual(["hi"]);
+	});
+
+	it("applies @ autocomplete before submitting output-panel text", async () => {
+		const submitted: string[] = [];
+		const component = new HookSelectorComponent(
+			TITLE,
+			OPTIONS,
+			() => {},
+			() => {},
+			{
+				wrapFocused: true,
+				customInputListSlot: true,
+				listSlotCustomInput: { onSubmit: text => submitted.push(text) },
+				autocompleteProvider: pathAutocompleteProvider,
+			},
+		);
+		for (let i = 0; i < 4; i++) component.handleInput("\x1b[B");
+		component.handleInput("@");
+		await Bun.sleep(0);
+		component.handleInput("\r");
+		expect(submitted).toEqual([]);
+
+		component.handleInput("\r");
+		expect(submitted).toEqual(["@src/app.ts"]);
 	});
 
 	it("inserts bare j/k while typing in the output panel", () => {

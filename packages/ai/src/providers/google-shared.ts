@@ -18,7 +18,7 @@ import type {
 	Tool,
 	ToolCall,
 } from "../types";
-import { normalizeSystemPrompts } from "../utils";
+import { normalizeSystemPrompts, sanitizeJsonStrings } from "../utils";
 import { AssistantMessageEventStream } from "../utils/event-stream";
 import { finalizeErrorMessage, type RawHttpRequestDump, withHttpStatus } from "../utils/http-inspector";
 import { normalizeSchemaForCCA, normalizeSchemaForGoogle, toolWireSchema } from "../utils/schema";
@@ -46,6 +46,43 @@ export type {
 export { normalizeSchemaForGoogle };
 
 type GoogleApiType = "google-generative-ai" | "google-gemini-cli" | "google-vertex";
+export const PROVIDER_SAFETY_STOP = "provider_safety_stop";
+
+export function isGoogleCandidateSafetyStopReason(reason: string): boolean {
+	switch (reason) {
+		case "SAFETY":
+		case "IMAGE_SAFETY":
+		case "PROHIBITED_CONTENT":
+		case "IMAGE_PROHIBITED_CONTENT":
+		case "SPII":
+		case "BLOCKLIST":
+		case "RECITATION":
+		case "IMAGE_RECITATION":
+		case "MODEL_ARMOR":
+			return true;
+		default:
+			return false;
+	}
+}
+
+export function isGooglePromptSafetyStopReason(reason: string): boolean {
+	switch (reason) {
+		case "SAFETY":
+		case "IMAGE_SAFETY":
+		case "PROHIBITED_CONTENT":
+		case "BLOCKLIST":
+		case "MODEL_ARMOR":
+		case "JAILBREAK":
+			return true;
+		default:
+			return false;
+	}
+}
+
+export function getGooglePromptBlockReason(promptFeedback: { blockReason?: unknown } | undefined): string | undefined {
+	const blockReason = promptFeedback?.blockReason;
+	return typeof blockReason === "string" && blockReason.length > 0 ? blockReason : undefined;
+}
 
 /**
  * Thinking level for Gemini 3 models. Mirrors Google's `ThinkingLevel` enum values.
@@ -232,7 +269,7 @@ export function convertMessages<T extends GoogleApiType>(model: Model<T>, contex
 					const part: Part = {
 						functionCall: {
 							name: block.name,
-							args: block.arguments ?? {},
+							args: sanitizeJsonStrings(block.arguments ?? {}) as Record<string, unknown>,
 							...(requiresToolCallId(model.id) ? { id: block.id } : {}),
 						},
 					};
@@ -461,7 +498,7 @@ export function pushToolCallEvents(
 	stream.push({
 		type: "toolcall_delta",
 		contentIndex,
-		delta: JSON.stringify(toolCall.arguments),
+		delta: JSON.stringify(sanitizeJsonStrings(toolCall.arguments)),
 		partial: output,
 	});
 	stream.push({ type: "toolcall_end", contentIndex, toolCall, partial: output });
@@ -601,9 +638,24 @@ export async function consumeGoogleStream<T extends GoogleApiType>(args: {
 		}
 
 		if (candidate?.finishReason) {
-			output.stopReason = mapStopReason(candidate.finishReason);
-			if (output.content.some(b => b.type === "toolCall")) {
-				output.stopReason = "toolUse";
+			if (isGoogleCandidateSafetyStopReason(candidate.finishReason)) {
+				output.errorKind = PROVIDER_SAFETY_STOP;
+				output.stopReason = "error";
+			} else if (output.errorKind !== PROVIDER_SAFETY_STOP) {
+				output.stopReason = mapStopReason(candidate.finishReason);
+				if (output.stopReason === "stop" && output.content.some(b => b.type === "toolCall")) {
+					output.stopReason = "toolUse";
+				}
+			}
+		}
+
+		const blockReason = getGooglePromptBlockReason(chunk.promptFeedback);
+		if (blockReason) {
+			if (isGooglePromptSafetyStopReason(blockReason)) {
+				output.errorKind = PROVIDER_SAFETY_STOP;
+				output.stopReason = "error";
+			} else if (output.errorKind !== PROVIDER_SAFETY_STOP) {
+				output.stopReason = "error";
 			}
 		}
 

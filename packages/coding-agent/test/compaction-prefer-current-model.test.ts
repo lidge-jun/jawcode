@@ -96,5 +96,75 @@ describe("compaction prefers the current session model over modelRoles.default",
 		expect(compactSpy).toHaveBeenCalled();
 		const [, firstCandidate] = compactSpy.mock.calls[0]!;
 		expect(`${firstCandidate.provider}/${firstCandidate.id}`).toBe(`${currentModel.provider}/${currentModel.id}`);
+
+		// Cache-friendly prefix is offered to the session model itself…
+		const [, , , , , sessionModelOptions] = compactSpy.mock.calls[0]!;
+		expect(sessionModelOptions?.cachePrefix?.modelKey).toBe(compactionModule.summaryModelKey(currentModel));
+	});
+
+	it("never passes the cache prefix to a fallback model", async () => {
+		const currentModel = getBundledModel("anthropic", "claude-sonnet-4-5");
+		const defaultRoleModel = getBundledModel("openai", "gpt-5");
+		if (!currentModel || !defaultRoleModel) {
+			throw new Error("Expected bundled test models to exist");
+		}
+
+		const settings = Settings.isolated({ "compaction.keepRecentTokens": 1 });
+		settings.setModelRole("default", `${defaultRoleModel.provider}/${defaultRoleModel.id}`);
+
+		const agent = new Agent({
+			initialState: {
+				model: currentModel,
+				systemPrompt: ["Test"],
+				tools: [],
+				messages: [],
+			},
+		});
+
+		authStorage = await AuthStorage.create(path.join(tempDir.path(), "testauth.db"));
+		// Only the fallback provider has credentials, so compaction must route to it.
+		authStorage.setRuntimeApiKey(defaultRoleModel.provider, "openai-token");
+		modelRegistry = new ModelRegistry(authStorage, path.join(tempDir.path(), "models.yml"));
+
+		session = new AgentSession({
+			agent,
+			sessionManager: SessionManager.inMemory(),
+			settings,
+			modelRegistry,
+		});
+		session.subscribe(() => {});
+
+		for (const [userText, assistantText] of [
+			["first question", "first answer"],
+			["second question", "second answer"],
+		] as const) {
+			const user = userMsg(userText);
+			const assistant = assistantMsg(assistantText);
+			session.agent.appendMessage(user);
+			session.sessionManager.appendMessage(user);
+			session.agent.appendMessage(assistant);
+			session.sessionManager.appendMessage(assistant);
+		}
+
+		const compactSpy = vi.spyOn(compactionModule, "compact").mockImplementation(async (preparation, model) => ({
+			summary: "ok",
+			shortSummary: "ok short",
+			firstKeptEntryId: preparation.firstKeptEntryId,
+			tokensBefore: 1,
+			details: { provider: model.provider },
+		}));
+
+		await session.compact();
+
+		expect(compactSpy).toHaveBeenCalled();
+		for (const call of compactSpy.mock.calls) {
+			const [, candidate, , , , candidateOptions] = call;
+			if (`${candidate.provider}/${candidate.id}` === `${currentModel.provider}/${currentModel.id}`) continue;
+			expect(candidateOptions?.cachePrefix).toBeUndefined();
+		}
+		const usedFallback = compactSpy.mock.calls.some(
+			([, candidate]) => `${candidate.provider}/${candidate.id}` !== `${currentModel.provider}/${currentModel.id}`,
+		);
+		expect(usedFallback).toBe(true);
 	});
 });

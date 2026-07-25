@@ -29,6 +29,7 @@ import applyPatchGrammar from "./modes/apply-patch.lark" with { type: "text" };
 import { executePatchSingle, type PatchEditEntry, type PatchParams, patchEditSchema } from "./modes/patch";
 import { executeReplaceSingle, type ReplaceEditEntry, type ReplaceParams, replaceEditSchema } from "./modes/replace";
 import { type EditToolDetails, type EditToolPerFileResult, getLspBatchRequest, type LspBatchRequest } from "./renderer";
+import { pruneOversizedEditSnapshots } from "./snapshot-details";
 
 export { DEFAULT_EDIT_MODE, type EditMode, normalizeEditMode } from "../utils/edit-mode";
 export * from "./apply-patch";
@@ -44,6 +45,7 @@ export * from "./modes/patch";
 export * from "./modes/replace";
 export * from "./normalize";
 export * from "./renderer";
+export * from "./snapshot-details";
 export * from "./streaming";
 
 type TInput =
@@ -182,14 +184,14 @@ async function executeApplyPatchPerFile(
 
 	return {
 		content: [{ type: "text", text: contentTexts.join("\n") }],
-		details: {
+		details: pruneOversizedEditSnapshots({
 			diff: perFileResults
 				.map(r => r.diff)
 				.filter(Boolean)
 				.join("\n"),
 			firstChangedLine: perFileResults.find(r => r.firstChangedLine)?.firstChangedLine,
 			perFileResults,
-		},
+		}),
 	};
 }
 
@@ -257,13 +259,13 @@ async function executeSinglePathEntries(
 
 	return {
 		content: [{ type: "text", text: contentTexts.join("\n") }],
-		details: {
+		details: pruneOversizedEditSnapshots({
 			diff: diffTexts.join("\n"),
 			firstChangedLine,
 			path: metadataPath ?? path,
 			...(hasFirstOldText ? { oldText: firstOldText } : {}),
 			...(hasLastNewText ? { newText: lastNewText } : {}),
-		},
+		}),
 		// Any per-entry failure marks the aggregate result as an error so the
 		// renderer takes the error branch instead of falling through to the
 		// streaming-edit preview (which displays the *proposed* diff and looks

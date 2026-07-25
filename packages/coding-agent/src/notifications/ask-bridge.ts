@@ -17,6 +17,19 @@ export interface AskBridgeServer {
 	setOnRemoteResolved(callback: (actionId: string, value: string) => void): void;
 }
 
+/**
+ * Distinct ask outcome used when the user leaves the dialog to continue the
+ * question in chat. Keeping this separate from `undefined` prevents callers
+ * from treating a chat handoff as cancellation.
+ */
+export interface AskChatRedirectResult {
+	kind: "chat";
+}
+
+export function isAskChatRedirectResult(value: unknown): value is AskChatRedirectResult {
+	return typeof value === "object" && value !== null && "kind" in value && value.kind === "chat";
+}
+
 export interface BridgeAskOptions<T> {
 	actionId: string;
 	prompt: string;

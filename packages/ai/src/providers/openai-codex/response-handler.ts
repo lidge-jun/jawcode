@@ -1,4 +1,5 @@
 import { toNumber } from "../../utils";
+import { isInvalidatedOAuthTokenError } from "../../utils/oauth/auth-errors";
 
 export type CodexRateLimit = {
 	used_percent?: number;
@@ -67,7 +68,7 @@ export async function parseCodexError(response: Response): Promise<CodexErrorInf
 
 	return {
 		message,
-		status: response.status,
+		status: isInvalidatedOAuthTokenError(message) ? 401 : response.status,
 		friendlyMessage,
 		rateLimits,
 		raw: raw,

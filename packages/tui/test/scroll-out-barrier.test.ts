@@ -1,0 +1,206 @@
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { type Component, TUI, ViewportFill } from "@jawcode-dev/tui";
+import { VirtualTerminal } from "./virtual-terminal";
+
+/**
+ * 260703 WP3a — scroll-out repaint barrier. A DECSTBM scroll-out inside
+ * #doRender (live-zone growth / overlay flush) shifts physical rows and
+ * restores the cursor to a CLAMPED screen row while the relative diff lanes
+ * still compute moves from the unclamped captured locals against unrotated
+ * mirrors. The barrier finishes every such pass with the absolute viewport
+ * repaint. Plan: devlog/_plan/260703_tui_resize_stability/30_wp3a.
+ */
+
+let previousTerm: string | undefined;
+
+beforeEach(() => {
+	previousTerm = process.env.TERM;
+	process.env.TERM = "xterm-256color";
+});
+
+afterEach(() => {
+	if (previousTerm === undefined) {
+		delete process.env.TERM;
+	} else {
+		process.env.TERM = previousTerm;
+	}
+});
+
+class MutableContent implements Component {
+	#lines: string[];
+	constructor(lines: string[]) {
+		this.#lines = [...lines];
+	}
+	setLines(lines: string[]): void {
+		this.#lines = [...lines];
+	}
+	invalidate(): void {}
+	render(_width: number): string[] {
+		return [...this.#lines];
+	}
+}
+
+class ComposerStub implements Component {
+	invalidate(): void {}
+	render(_width: number): string[] {
+		return ["[status]", "> input"];
+	}
+}
+
+async function flushRender(term: VirtualTerminal): Promise<void> {
+	await new Promise<void>(resolve => process.nextTick(resolve));
+	await Bun.sleep(17);
+	await term.flush();
+}
+
+function lines(prefix: string, count: number): string[] {
+	return Array.from({ length: count }, (_, i) => `${prefix}-${i}`);
+}
+
+function setup(rows: number, contentLines: string[]): { term: VirtualTerminal; content: MutableContent; tui: TUI } {
+	const term = new VirtualTerminal(40, rows);
+	const content = new MutableContent(contentLines);
+	const tui = new TUI(term);
+	// 260704 S5-2 top-flow frame: content above the fill.
+	tui.addChild(content);
+	tui.addChild(new ViewportFill());
+	tui.addChild(new ComposerStub());
+	tui.start();
+	return { term, content, tui };
+}
+
+describe("scroll-out repaint barrier (260703 WP3a)", () => {
+	it("a commit emits one atomic region flush and the pass stays coherent", async () => {
+		const { term, content, tui } = setup(12, lines("live", 2));
+		await flushRender(term);
+		term.clearWriteLog();
+		expect(tui.commitLines(["committed-0", "committed-1"])).toBe(true);
+		await term.flush();
+
+		const writes = term.getWriteLog().join("");
+		// The flush is a DECSTBM region op with canonical absolute rewrites…
+		expect(writes).toContain("\x1b[1;");
+		expect(writes).toMatch(/\x1b\[\d+;1H\x1b\[2K/);
+
+		// …and the following growth render still lands correctly.
+		content.setLines(lines("live", 9));
+		tui.requestRender();
+		await flushRender(term);
+		const buffer = term.getScrollBuffer();
+		expect(buffer.indexOf("committed-1")).toBe(buffer.indexOf("committed-0") + 1);
+		expect(term.getViewport().at(-1)).toBe("> input");
+		tui.stop();
+	});
+
+	it("no logical row is duplicated across scrollback+viewport by growth scroll-outs", async () => {
+		const { term, content, tui } = setup(10, lines("live", 2));
+		await flushRender(term);
+		expect(tui.commitLines(["c-0", "c-1", "c-2"])).toBe(true);
+		await term.flush();
+
+		// Stream growth in steps so several scroll-out passes fire.
+		for (let n = 3; n <= 7; n++) {
+			content.setLines(lines("live", n));
+			tui.requestRender();
+			await flushRender(term);
+		}
+
+		// getScrollBuffer() is the ENTIRE physical buffer (scrollback rows plus
+		// the live viewport) — the uniqueness domain for duplication checks.
+		const all = term.getScrollBuffer().filter(l => l.trim() !== "");
+		for (const marker of ["c-0", "c-1", "c-2", "live-0", "live-6", "> input"]) {
+			const count = all.filter(l => l === marker).length;
+			expect(`${marker}:${count}`).toBe(`${marker}:1`);
+		}
+		// Committed rows kept their order.
+		const i0 = all.indexOf("c-0");
+		expect(all.indexOf("c-1")).toBe(i0 + 1);
+		expect(all.indexOf("c-2")).toBe(i0 + 2);
+		tui.stop();
+	});
+
+	it("overlay + ordinary committed rows + growth: flushed fully, never erased or duplicated", async () => {
+		const { term, content, tui } = setup(12, lines("live", 2));
+		await flushRender(term);
+		expect(tui.commitLines(["c-0", "c-1"])).toBe(true);
+		await term.flush();
+
+		// Ordinary (non-parked) committed rows, then an overlay opens…
+		const overlay = {
+			render: () => ["OVERLAY"],
+			invalidate: () => {},
+		};
+		tui.showOverlay(overlay, { anchor: "bottom-center", width: 10 });
+		await flushRender(term);
+
+		// …and the live zone grows while it is open: the growth scroll-out
+		// fires with the overlay present. Bottom-aligned committed rows need
+		// flushBottom (not #committedScreenRows) scrolls to cross row 1 —
+		// the round-4 review found the shorter count left tail rows for the
+		// full repaint to erase.
+		content.setLines(lines("live", 6));
+		tui.requestRender();
+		await flushRender(term);
+
+		const all = term.getScrollBuffer().filter(l => l.trim() !== "" && l.trim() !== "OVERLAY");
+		for (const marker of ["c-0", "c-1"]) {
+			const count = all.filter(l => l === marker).length;
+			expect(`${marker}:${count}`).toBe(`${marker}:1`);
+		}
+		const i0 = all.indexOf("c-0");
+		expect(all.indexOf("c-1")).toBe(i0 + 1);
+		tui.stop();
+	});
+
+	it("a subsequent pass without a scroll-out returns to the diff path", async () => {
+		const { term, content, tui } = setup(12, lines("live", 2));
+		await flushRender(term);
+		expect(tui.commitLines(["committed-0"])).toBe(true);
+		await term.flush();
+
+		// Growth pass → barrier (absolute).
+		content.setLines(lines("live", 4));
+		tui.requestRender();
+		await flushRender(term);
+
+		// Same-height content change → no fill shrink, no scroll-out: the
+		// cheap relative diff must be back (no ESC[H absolute home).
+		term.clearWriteLog();
+		content.setLines([...lines("live", 3), "live-3-changed"]);
+		tui.requestRender();
+		await flushRender(term);
+
+		const writes = term.getWriteLog().join("");
+		expect(writes.includes("\x1b[H")).toBe(false);
+		expect(term.getViewport().some(l => l === "live-3-changed")).toBe(true);
+		tui.stop();
+	});
+});
+
+describe("committed-block glue on live-zone shrink (260703 WP6b follow-up)", () => {
+	it("no blank gap opens between successive commits when the live zone shrinks between them", async () => {
+		const { term, content, tui } = setup(14, lines("live", 8));
+		await flushRender(term);
+		// Tool A completes: its collapsed block commits at the current fill bottom.
+		expect(tui.commitLines(["tool-A"])).toBe(true);
+		await term.flush();
+
+		// The live preview collapses: live zone shrinks 8 → 2, fill grows by 6.
+		content.setLines(lines("live", 2));
+		tui.requestRender();
+		await flushRender(term);
+
+		// Tool B commits: it must land DIRECTLY below tool-A, not 6 rows lower.
+		expect(tui.commitLines(["tool-B"])).toBe(true);
+		await term.flush();
+		tui.requestRender();
+		await flushRender(term);
+
+		const buffer = term.getScrollBuffer();
+		const iA = buffer.indexOf("tool-A");
+		const iB = buffer.indexOf("tool-B");
+		expect(iA).toBeGreaterThanOrEqual(0);
+		expect(iB).toBe(iA + 1);
+		tui.stop();
+	});
+});

@@ -9,6 +9,7 @@ export default class JawInterview extends Command {
 		quick: Flags.boolean({ description: "Seed a quick jaw-interview run" }),
 		standard: Flags.boolean({ description: "Seed a standard jaw-interview run" }),
 		deep: Flags.boolean({ description: "Seed a deep jaw-interview run" }),
+		trace: Flags.boolean({ description: "Run a bounded trace evidence pre-step before interview questions" }),
 		threshold: Flags.string({ description: "Override ambiguity threshold for kickoff" }),
 		"threshold-source": Flags.string({ description: "Describe the threshold override source" }),
 		"session-id": Flags.string({

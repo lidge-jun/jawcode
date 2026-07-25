@@ -16,6 +16,7 @@ export enum NotifyProtocol {
 export type TerminalId = "kitty" | "ghostty" | "wezterm" | "iterm2" | "vscode" | "alacritty" | "base" | "trueColor";
 
 const SIXEL_DCS_START_REGEX = /\x1bP(?:[0-9;]*)q/u;
+const KITTY_GRAPHICS_CONTROL_REGEX = /\x1b_G(?:[a-z]=|;)/u;
 /** Terminal capability details used for rendering and protocol selection. */
 export class TerminalInfo {
 	constructor(
@@ -30,6 +31,9 @@ export class TerminalInfo {
 		if (!this.imageProtocol) return false;
 		if (this.imageProtocol === ImageProtocol.Sixel) {
 			return SIXEL_DCS_START_REGEX.test(line.slice(0, 128));
+		}
+		if (this.imageProtocol === ImageProtocol.Kitty) {
+			return KITTY_GRAPHICS_CONTROL_REGEX.test(line.slice(0, 128));
 		}
 		return line.slice(0, 64).includes(this.imageProtocol);
 	}
@@ -47,20 +51,77 @@ export class TerminalInfo {
 	}
 }
 
+/**
+ * 260703 WP5.2 — BCE (back color erase): whether erase ops (EL/ED/2K) paint
+ * the CURRENT background color instead of the default. Consumed by WP5.3's
+ * renderer-level "SGR bg + erase" row painting, which replaces full-width
+ * literal space padding (the reflow-amplifier class). Detection is
+ * env-based, no terminfo/infocmp subprocess (absent on minimal systems):
+ * `JWC_TUI_BCE=0|1` overrides; TERM dumb/empty → false; every terminal
+ * family we can name honors BCE → allowlist by TERM prefix or a recognized
+ * TERMINAL_ID; unknown → false (fail closed: the literal-padding fallback is
+ * today's behavior, so a false negative costs nothing).
+ */
+const BCE_TERM_PREFIX = /^(xterm|linux|rxvt|st-|st$|alacritty|kitty|wezterm|ghostty|foot|vte|konsole|iterm)/i;
+
+export function terminalSupportsBce(env: Record<string, string | undefined> = process.env): boolean {
+	const override = env.JWC_TUI_BCE;
+	if (override === "0" || override === "false") return false;
+	if (override === "1" || override === "true") return true;
+	// 260704 tmux smoke (P0): tmux/screen declare bce=NO in terminfo and the
+	// empirical probe confirms EL-erased cells stay DEFAULT-bg inside tmux —
+	// bg rows there must keep the literal-padding fallback (visually correct;
+	// the outer-terminal reflow hazard doesn't apply since the mux owns pane
+	// wrapping). TMUX env catches sessions where TERM was overridden.
+	if (isUnderTerminalMultiplexer(env)) return false;
+	const term = env.TERM?.trim() ?? "";
+	if (!term || term === "dumb") return false;
+	if (BCE_TERM_PREFIX.test(term)) return true;
+	return TERMINAL_ID !== "base";
+}
+
 export function isNotificationSuppressed(): boolean {
 	const value = $env.PI_NOTIFICATIONS;
 	if (!value) return false;
 	return value === "off" || value === "0" || value === "false";
 }
 
-function getForcedImageProtocol(): ImageProtocol | null | undefined {
-	const raw = $env.PI_FORCE_IMAGE_PROTOCOL?.trim().toLowerCase();
+const MULTIPLEXER_DISABLED_ENV_VALUES = new Set(["0", "false", "off", "no"]);
+
+function multiplexerEnvEnabled(value: string | undefined): boolean {
+	const normalized = value?.trim().toLowerCase();
+	return normalized !== undefined && normalized.length > 0 && !MULTIPLEXER_DISABLED_ENV_VALUES.has(normalized);
+}
+
+/** Detect terminal multiplexers that intercept graphics and hyperlink escapes. */
+export function isUnderTerminalMultiplexer(env: NodeJS.ProcessEnv = process.env): boolean {
+	if (
+		multiplexerEnvEnabled(env.TMUX) ||
+		multiplexerEnvEnabled(env.TMUX_PANE) ||
+		multiplexerEnvEnabled(env.STY) ||
+		multiplexerEnvEnabled(env.ZELLIJ) ||
+		multiplexerEnvEnabled(env.JWC_TMUX_LAUNCHED) ||
+		multiplexerEnvEnabled(env.GJC_TMUX_LAUNCHED)
+	) {
+		return true;
+	}
+	const term = env.TERM?.trim().toLowerCase() ?? "";
+	return term.startsWith("tmux") || term.startsWith("screen");
+}
+
+function getForcedImageProtocol(env: NodeJS.ProcessEnv = process.env): ImageProtocol | null | undefined {
+	const raw = env.PI_FORCE_IMAGE_PROTOCOL?.trim().toLowerCase();
 	if (!raw) return undefined;
 	if (raw === "kitty") return ImageProtocol.Kitty;
 	if (raw === "iterm2" || raw === "iterm") return ImageProtocol.Iterm2;
 	if (raw === "sixel") return ImageProtocol.Sixel;
 	if (raw === "off" || raw === "none" || raw === "0" || raw === "false") return null;
 	return null;
+}
+
+/** Whether image protocol selection was explicitly configured, including off. */
+export function isImageProtocolForced(env: NodeJS.ProcessEnv = process.env): boolean {
+	return getForcedImageProtocol(env) !== undefined;
 }
 
 function parseMajorMinorVersion(versionRaw?: string): { major: number; minor: number } | null {
@@ -95,7 +156,7 @@ function getFallbackImageProtocol(terminalId: TerminalId): ImageProtocol | null 
 	if (!process.stdout.isTTY) return null;
 	if (terminalId === "vscode" || terminalId === "alacritty") return null;
 	const term = process.env.TERM?.toLowerCase() ?? "";
-	if (term.includes("screen") || term.includes("tmux") || term.includes("ghostty")) {
+	if (term.includes("ghostty")) {
 		return ImageProtocol.Kitty;
 	}
 	return null;
@@ -178,10 +239,10 @@ export const TERMINAL = (() => {
 			);
 		}
 	}
-	// tmux and screen multiplexers do not reliably forward OSC 8 hyperlinks
+	const underMultiplexer = isUnderTerminalMultiplexer();
+	// Multiplexers do not reliably forward OSC 8 hyperlinks
 	// to the outer terminal, so force them off regardless of detected terminal.
-	const term = process.env.TERM?.toLowerCase() ?? "";
-	if (resolved.hyperlinks && (process.env.TMUX || term.startsWith("tmux") || term.startsWith("screen"))) {
+	if (resolved.hyperlinks && underMultiplexer) {
 		resolved = new TerminalInfo(
 			resolved.id,
 			resolved.imageProtocol,
@@ -189,6 +250,12 @@ export const TERMINAL = (() => {
 			false,
 			resolved.notifyProtocol,
 		);
+	}
+	// Raw Kitty/iTerm2 graphics are not end-to-end safe through multiplexers.
+	// Suppress automatic detection; an explicit PI_FORCE_IMAGE_PROTOCOL value is
+	// the only opt-in for a chain known to forward graphics correctly.
+	if (resolved.imageProtocol && forcedImageProtocol === undefined && underMultiplexer) {
+		resolved = new TerminalInfo(resolved.id, null, resolved.trueColor, resolved.hyperlinks, resolved.notifyProtocol);
 	}
 	return resolved;
 })();
@@ -222,6 +289,23 @@ export interface ImageRenderOptions {
 	maxWidthCells?: number;
 	maxHeightCells?: number;
 	preserveAspectRatio?: boolean;
+	/** Kitty-only stable image id. Defaults to a content hash. */
+	imageId?: number;
+	/** Kitty-only stable placement id. Persistent components should allocate one per instance. */
+	placementId?: number;
+	/** Kitty-only test/custom sink for the one-time transmit sequence. */
+	onTransmit?: (sequence: string) => void;
+}
+
+/** Derive a stable non-zero kitty image id from the base64 payload. */
+export function kittyImageId(base64Data: string): number {
+	let hash = 0x811c9dc5;
+	for (let i = 0; i < base64Data.length; i++) {
+		hash ^= base64Data.charCodeAt(i);
+		hash = Math.imul(hash, 0x01000193);
+	}
+	hash >>>= 0;
+	return hash === 0 ? 1 : hash;
 }
 
 // Default cell dimensions - updated by TUI when terminal responds to query
@@ -276,6 +360,59 @@ export function encodeKitty(
 	}
 
 	return chunks.join("");
+}
+
+const transmittedKittyImageIds = new Set<number>();
+
+/** Forget uploaded kitty image ids, primarily for terminal restarts and tests. */
+export function resetKittyTransmissions(): void {
+	transmittedKittyImageIds.clear();
+}
+
+let kittyTransmitWriter: (sequence: string) => void = sequence => {
+	if (process.stdout.isTTY) process.stdout.write(sequence);
+};
+
+export function setKittyTransmitWriter(writer: (sequence: string) => void): void {
+	kittyTransmitWriter = writer;
+}
+
+/** Upload kitty image data without creating a placement. */
+export function encodeKittyTransmit(base64Data: string, imageId: number): string {
+	const CHUNK_SIZE = 4096;
+	const params = ["a=t", "f=100", "q=2", `i=${imageId}`];
+
+	if (base64Data.length <= CHUNK_SIZE) {
+		return `\x1b_G${params.join(",")};${base64Data}\x1b\\`;
+	}
+
+	const chunks: string[] = [];
+	let offset = 0;
+	let isFirst = true;
+	while (offset < base64Data.length) {
+		const chunk = base64Data.slice(offset, offset + CHUNK_SIZE);
+		const isLast = offset + CHUNK_SIZE >= base64Data.length;
+		if (isFirst) {
+			chunks.push(`\x1b_G${params.join(",")},m=1;${chunk}\x1b\\`);
+			isFirst = false;
+		} else if (isLast) {
+			chunks.push(`\x1b_Gm=0;${chunk}\x1b\\`);
+		} else {
+			chunks.push(`\x1b_Gm=1;${chunk}\x1b\\`);
+		}
+		offset += CHUNK_SIZE;
+	}
+	return chunks.join("");
+}
+
+/** Place previously uploaded kitty image data without moving the cursor. */
+export function encodeKittyPlacement(options: {
+	imageId: number;
+	placementId: number;
+	columns: number;
+	rows: number;
+}): string {
+	return `\x1b_Ga=p,i=${options.imageId},p=${options.placementId},c=${options.columns},r=${options.rows},C=1,q=2\x1b\\`;
 }
 
 export function encodeITerm2(
@@ -485,11 +622,18 @@ export function getImageDimensions(base64Data: string, mimeType: string): ImageD
 	return null;
 }
 
+export interface RenderedImage {
+	sequence: string;
+	rows: number;
+	/** True when the sequence does not move the cursor or carry pixel data. */
+	cursorNeutral?: boolean;
+}
+
 export function renderImage(
 	base64Data: string,
 	imageDimensions: ImageDimensions,
 	options: ImageRenderOptions = {},
-): { sequence: string; rows: number } | null {
+): RenderedImage | null {
 	if (!TERMINAL.imageProtocol) {
 		return null;
 	}
@@ -498,11 +642,17 @@ export function renderImage(
 	const fit = calculateImageFit(imageDimensions, options, cellDims);
 
 	if (TERMINAL.imageProtocol === ImageProtocol.Kitty) {
-		const sequence = encodeKitty(base64Data, {
-			columns: fit.columns,
+		const imageId = options.imageId ?? kittyImageId(base64Data);
+		const placementId = options.placementId ?? 1;
+		if (!transmittedKittyImageIds.has(imageId)) {
+			(options.onTransmit ?? kittyTransmitWriter)(encodeKittyTransmit(base64Data, imageId));
+			transmittedKittyImageIds.add(imageId);
+		}
+		return {
+			sequence: encodeKittyPlacement({ imageId, placementId, columns: fit.columns, rows: fit.rows }),
 			rows: fit.rows,
-		});
-		return { sequence, rows: fit.rows };
+			cursorNeutral: true,
+		};
 	}
 
 	if (TERMINAL.imageProtocol === ImageProtocol.Sixel) {

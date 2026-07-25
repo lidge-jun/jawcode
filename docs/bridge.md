@@ -233,7 +233,7 @@ continue to report typed unsupported results instead of silent defaults:
 
 ## SDK Usage
 
-`@gajae-code/bridge-client` exposes `BridgeClient` with handshake, command
+`@jawcode-dev/bridge-client` exposes `BridgeClient` with handshake, command
 helpers mirroring the full RPC command catalog, an `events()` async generator,
 controller/UI/host-callback helpers, and an idempotency-key helper. The bridge
 session-control surface remains fail-closed by default, so against an
@@ -245,7 +245,7 @@ explicitly enabled.
 
 > Response typing: in this experimental version, `command()` and the typed
 > command helpers return `Promise<unknown>`. Callers narrow the response
-> themselves. Importing `@gajae-code/coding-agent` internal `rpc-types` into the
+> themselves. Importing `@jawcode-dev/coding-agent` internal `rpc-types` into the
 > SDK is intentionally avoided to preserve the package boundary; stable shared
 > protocol response types are tracked as follow-up work.
 

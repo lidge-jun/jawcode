@@ -1,5 +1,6 @@
 import { $env } from "@jawcode-dev/utils";
 import type { ResponseInput } from "openai/resources/responses/responses";
+import { redactSensitiveCredentials } from "./providers/transform-messages";
 import type { CacheRetention, OpenAIResponsesHistoryPayload, ProviderPayload } from "./types";
 
 type OpenAIResponsesReplayItem = ResponseInput[number];
@@ -8,7 +9,53 @@ export { isRecord } from "@jawcode-dev/utils";
 export function normalizeSystemPrompts(systemPrompt: readonly string[] | string | undefined | null): string[] {
 	if (systemPrompt === undefined || systemPrompt === null) return [];
 	const prompts = Array.isArray(systemPrompt) ? systemPrompt : typeof systemPrompt === "string" ? [systemPrompt] : [];
-	return prompts.map(prompt => prompt.toWellFormed()).filter(prompt => prompt.length > 0);
+	return prompts.map(prompt => redactSensitiveCredentials(prompt.toWellFormed())).filter(prompt => prompt.length > 0);
+}
+
+export function sanitizeJsonStrings(value: unknown): unknown {
+	return sanitizeJsonStringsInner(value, new WeakMap<object, unknown>());
+}
+
+/** Serialize tool arguments as a JSON object suitable for provider wire payloads. */
+export function serializeToolArguments(value: unknown): string {
+	let candidate = value;
+	if (typeof candidate === "string") {
+		const trimmed = candidate.trim();
+		if (!trimmed) return "{}";
+		try {
+			candidate = JSON.parse(trimmed);
+		} catch {
+			return "{}";
+		}
+	}
+
+	if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return "{}";
+	try {
+		return JSON.stringify(sanitizeJsonStrings(candidate));
+	} catch {
+		return "{}";
+	}
+}
+
+function sanitizeJsonStringsInner(value: unknown, seen: WeakMap<object, unknown>): unknown {
+	if (typeof value === "string") return value.toWellFormed();
+	if (!value || typeof value !== "object") return value;
+	const cached = seen.get(value);
+	if (cached !== undefined) return cached;
+	if (Array.isArray(value)) {
+		const sanitized: unknown[] = [];
+		seen.set(value, sanitized);
+		for (const item of value) {
+			sanitized.push(sanitizeJsonStringsInner(item, seen));
+		}
+		return sanitized;
+	}
+	const sanitized: Record<string, unknown> = {};
+	seen.set(value, sanitized);
+	for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+		sanitized[key] = sanitizeJsonStringsInner(val, seen);
+	}
+	return sanitized;
 }
 
 export function toNumber(value: unknown): number | undefined {
@@ -84,10 +131,43 @@ export function truncateResponseItemId(id: string, prefix: string): string {
 	return `${prefix}_${Bun.hash(id).toString(36)}`;
 }
 
-export function sanitizeOpenAIResponsesHistoryItemsForReplay(items: Array<Record<string, unknown>>): ResponseInput {
+interface OpenAIResponsesReplaySanitizeOptions {
+	supportsImageDetailOriginal?: boolean;
+}
+
+function clampReplayItemImageDetail(
+	item: Record<string, unknown>,
+	supportsImageDetailOriginal: boolean,
+): Record<string, unknown> {
+	if (supportsImageDetailOriginal) return item;
+	if (item.type === "input_image" && item.detail === "original") {
+		return { ...item, detail: "auto" };
+	}
+	if (item.type !== "message" || !Array.isArray(item.content)) return item;
+
+	let changed = false;
+	const content = item.content.map(part => {
+		if (!part || typeof part !== "object" || Array.isArray(part)) return part;
+		const record = part as Record<string, unknown>;
+		if (record.type !== "input_image" || record.detail !== "original") return part;
+		changed = true;
+		return { ...record, detail: "auto" };
+	});
+	return changed ? { ...item, content } : item;
+}
+
+export function sanitizeOpenAIResponsesHistoryItemsForReplay(
+	items: Array<Record<string, unknown>>,
+	options: OpenAIResponsesReplaySanitizeOptions = {},
+): ResponseInput {
 	const normalizedCallIds = new Map<string, string>();
+	const supportsImageDetailOriginal = options.supportsImageDetailOriginal !== false;
 	return items.flatMap(item => {
-		const sanitized = sanitizeOpenAIResponsesHistoryItemForReplay(item, normalizedCallIds);
+		const sanitized = sanitizeOpenAIResponsesHistoryItemForReplay(
+			item,
+			normalizedCallIds,
+			supportsImageDetailOriginal,
+		);
 		return sanitized ? [sanitized] : [];
 	});
 }
@@ -95,16 +175,35 @@ export function sanitizeOpenAIResponsesHistoryItemsForReplay(items: Array<Record
 function sanitizeOpenAIResponsesHistoryItemForReplay(
 	item: Record<string, unknown>,
 	normalizedCallIds: Map<string, string>,
+	supportsImageDetailOriginal: boolean,
 ): OpenAIResponsesReplayItem | undefined {
 	if (item.type === "item_reference") return undefined;
 
-	// providerPayload stores raw output items; replay strips item ids and keeps only normalized call_id.
-	const { id: _id, ...sanitizedItem } = item;
+	// providerPayload stores raw output items; replay strips fields that are output-only.
+	const { id: _id, ...itemWithoutId } = item;
+	const sanitizedItem =
+		item.type === "image_generation_call"
+			? sanitizeImageGenerationCallForResponsesInput(itemWithoutId)
+			: itemWithoutId;
 	if (typeof item.call_id === "string") {
 		sanitizedItem.call_id = normalizeReplayedResponsesHistoryCallId(item.call_id, normalizedCallIds);
 	}
 
-	return sanitizedItem as unknown as OpenAIResponsesReplayItem;
+	return clampReplayItemImageDetail(sanitizedItem, supportsImageDetailOriginal) as unknown as OpenAIResponsesReplayItem;
+}
+
+function sanitizeImageGenerationCallForResponsesInput(item: Record<string, unknown>): Record<string, unknown> {
+	// These output fields are not part of the Responses input replay schema.
+	const {
+		action: _action,
+		background: _background,
+		output_format: _outputFormat,
+		quality: _quality,
+		revised_prompt: _revisedPrompt,
+		size: _size,
+		...inputSafeItem
+	} = item;
+	return inputSafeItem;
 }
 
 function normalizeReplayedResponsesHistoryCallId(value: string, normalizedValues: Map<string, string>): string {

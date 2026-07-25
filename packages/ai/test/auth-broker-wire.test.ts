@@ -92,6 +92,16 @@ describe("auth-broker wire surface", () => {
 		}
 	});
 
+	test("GET /v1/snapshot accepts login-sourced API keys", async () => {
+		await storage!.set("custom-host", { type: "api_key", key: "sk-custom", source: "login" });
+
+		const client = new AuthBrokerClient({ url: handle!.url, token });
+		const snapshotResult = await client.fetchSnapshot();
+		if (snapshotResult.status !== 200) throw new Error("expected snapshot");
+		const entry = snapshotResult.snapshot.credentials.find(candidate => candidate.provider === "custom-host");
+		expect(entry?.credential).toEqual({ type: "api_key", key: "sk-custom", source: "login" });
+	});
+
 	test("GET /v1/snapshot returns generation headers and 304 for unchanged long-poll", async () => {
 		const res = await fetch(`${handle!.url}/v1/snapshot`, {
 			headers: { Authorization: `Bearer ${token}` },

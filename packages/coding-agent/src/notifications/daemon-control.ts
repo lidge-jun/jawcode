@@ -61,10 +61,15 @@ export async function clearDaemonControl(agentDir: string): Promise<void> {
 export function decideDaemonControl(input: {
 	current: TransportOwnerState | null;
 	request: DaemonControlRequest | null;
+	/** Owner id of the daemon process evaluating the request. Non-owners must never honor it. */
+	executingOwnerId?: string;
 }): DaemonControlDecision {
 	const { current, request } = input;
 	if (!request) return { action: "ignore", reason: "no-request" };
 	if (!current) return { action: "ignore", reason: "owner-mismatch" };
+	if (input.executingOwnerId !== undefined && input.executingOwnerId !== current.ownerId) {
+		return { action: "ignore", reason: "owner-mismatch" };
+	}
 	if (request.targetOwnerId !== current.ownerId) return { action: "ignore", reason: "owner-mismatch" };
 	if (request.requestedAt < current.startedAt) return { action: "ignore", reason: "stale-request" };
 	return request.kind === "stop"

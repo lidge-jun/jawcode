@@ -251,7 +251,7 @@ async function callPerplexityApi(
 			"Content-Type": "application/json",
 		},
 		body: JSON.stringify(request),
-		signal: withHardTimeout(signal),
+		signal: withHardTimeout(signal, "llm"),
 	});
 
 	if (!response.ok) {
@@ -370,7 +370,7 @@ async function callPerplexityOAuth(
 				skip_search_enabled: true,
 			},
 		}),
-		signal: withHardTimeout(params.signal),
+		signal: withHardTimeout(params.signal, "llm"),
 	});
 
 	if (!response.ok) {

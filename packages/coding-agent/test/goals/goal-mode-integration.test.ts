@@ -98,6 +98,10 @@ async function toolNamesFor(harness: GoalHarness): Promise<string[]> {
 	return (await createTools(harness.toolSession, harness.session.getActiveToolNames())).map(tool => tool.name);
 }
 
+function disableCompletionGuardForHarness(harness: GoalHarness): void {
+	harness.toolSession.cwd = "";
+}
+
 describe("InteractiveMode goal mode integration", () => {
 	let harness: GoalHarness;
 
@@ -198,7 +202,11 @@ describe("InteractiveMode goal mode integration", () => {
 		expect(harness.mode.planModeEnabled).toBe(false);
 	});
 
-	it("rejects a new /goal objective while paused", async () => {
+	it("replaces a paused goal via direct /goal text", async () => {
+		let submittedText: string | undefined;
+		harness.mode.onInputCallback = input => {
+			submittedText = input.text;
+		};
 		await harness.mode.handleGoalModeCommand("Ship the release");
 		vi.spyOn(harness.mode, "showHookSelector").mockResolvedValue("Pause");
 		await harness.mode.handleGoalModeCommand();
@@ -206,12 +214,63 @@ describe("InteractiveMode goal mode integration", () => {
 
 		await harness.mode.handleGoalModeCommand("Replace the objective");
 
-		expect(showWarning).toHaveBeenCalledWith(
+		const state = harness.session.getGoalModeState();
+		expect(showWarning).not.toHaveBeenCalledWith(
 			"Resume the current goal first, or drop it before setting a new objective.",
 		);
-		expect(harness.session.getGoalModeState()?.enabled).toBe(false);
-		expect(harness.session.getGoalModeState()?.goal.objective).toBe("Ship the release");
-		expect(harness.session.getGoalModeState()?.goal.status).toBe("paused");
+		expect(state?.enabled).toBe(true);
+		expect(state?.goal.objective).toBe("Replace the objective");
+		expect(state?.goal.status).toBe("active");
+		expect(submittedText).toBe("Replace the objective");
+		expect((await readGoalPlan(harness.tempDir.path()))?.brief).toBe("Replace the objective");
+	});
+
+	it("replaces a paused goal via /goal set and submits the objective", async () => {
+		let submittedText: string | undefined;
+		harness.mode.onInputCallback = input => {
+			submittedText = input.text;
+		};
+		await harness.mode.handleGoalModeCommand("Ship the release");
+		vi.spyOn(harness.mode, "showHookSelector").mockResolvedValue("Pause");
+		await harness.mode.handleGoalModeCommand();
+		const showWarning = vi.spyOn(harness.mode, "showWarning");
+
+		await harness.mode.handleGoalModeCommand("set Replace the objective");
+
+		const state = harness.session.getGoalModeState();
+		expect(showWarning).not.toHaveBeenCalledWith(
+			"Resume the current goal first, or drop it before setting a new objective.",
+		);
+		expect(state?.enabled).toBe(true);
+		expect(state?.goal.objective).toBe("Replace the objective");
+		expect(state?.goal.status).toBe("active");
+		expect(submittedText).toBe("Replace the objective");
+		expect((await readGoalPlan(harness.tempDir.path()))?.brief).toBe("Replace the objective");
+	});
+
+	it("replaces a paused goal via /goal plan and submits only the planning prompt", async () => {
+		let submittedText: string | undefined;
+		harness.mode.onInputCallback = input => {
+			submittedText = input.text;
+		};
+		await harness.mode.handleGoalModeCommand("Ship the release");
+		vi.spyOn(harness.mode, "showHookSelector").mockResolvedValue("Pause");
+		await harness.mode.handleGoalModeCommand();
+		const showWarning = vi.spyOn(harness.mode, "showWarning");
+
+		await harness.mode.handleGoalModeCommand("plan choose next target");
+
+		const goal = harness.session.getGoalModeState()?.goal;
+		expect(showWarning).not.toHaveBeenCalledWith(
+			"Resume the current goal first, or drop it before starting goal planning.",
+		);
+		expect(goal?.status).toBe("active");
+		expect(goal?.objective).toContain(GOAL_PLAN_PENDING_BRIEF);
+		expect(goal?.objective).toContain("hint: choose next target");
+		expect(submittedText).toContain("AI-driven goal planning is active.");
+		expect(submittedText).toContain("Hint: choose next target");
+		expect(submittedText).not.toBe(goal?.objective);
+		expect((await readGoalPlan(harness.tempDir.path()))?.brief).toContain("hint: choose next target");
 	});
 
 	it("resumes the paused goal via the bare /goal menu", async () => {
@@ -394,6 +453,7 @@ describe("InteractiveMode goal mode integration", () => {
 
 		const goalTool = harness.session.getToolByName("goal");
 		if (!goalTool) throw new Error("goal tool not registered");
+		disableCompletionGuardForHarness(harness);
 		await goalTool.execute("call-id", { op: "complete" });
 
 		// completeGoalFromTool sets state.mode="exiting". The deferred completed-exit
@@ -464,6 +524,7 @@ describe("InteractiveMode goal mode integration", () => {
 			throw new Error("Expected goal tool to be active");
 		}
 
+		disableCompletionGuardForHarness(harness);
 		const result = await goalTool.execute("call-1", { op: "complete" });
 		const completionText = JSON.stringify(result.content);
 

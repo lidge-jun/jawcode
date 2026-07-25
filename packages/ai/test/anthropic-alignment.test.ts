@@ -18,7 +18,7 @@ import {
 	stripClaudeToolPrefix,
 } from "@jawcode-dev/ai/providers/anthropic";
 import { getEnvApiKey } from "@jawcode-dev/ai/stream";
-import type { Context, Model, TJsonSchema, Tool } from "@jawcode-dev/ai/types";
+import type { CacheRetention, Context, Model, TJsonSchema, Tool } from "@jawcode-dev/ai/types";
 import * as z from "zod/v4";
 import { withEnv } from "./helpers";
 
@@ -57,6 +57,7 @@ type CaptureAnthropicOptions = {
 	temperature?: number;
 	topP?: number;
 	topK?: number;
+	cacheRetention?: CacheRetention;
 };
 
 function captureAnthropicPayload(
@@ -75,6 +76,7 @@ function captureAnthropicPayload(
 		temperature: options?.temperature,
 		topP: options?.topP,
 		topK: options?.topK,
+		cacheRetention: options?.cacheRetention,
 		onPayload: payload => resolve(payload),
 	});
 	return promise;
@@ -127,7 +129,7 @@ describe("Anthropic request fingerprint alignment", () => {
 		});
 	});
 
-	it("places the automatic Anthropic cache breakpoint on the last ordered system prompt", async () => {
+	it("places top-level automatic caching and an explicit breakpoint on the last ordered system prompt", async () => {
 		const payload = (await captureAnthropicPayload(
 			ANTHROPIC_MODEL,
 			{
@@ -135,12 +137,46 @@ describe("Anthropic request fingerprint alignment", () => {
 				messages: [{ role: "user", content: "variable context", timestamp: Date.now() }],
 			},
 			{ isOAuth: false },
-		)) as { system?: Array<{ type: string; text?: string; cache_control?: unknown }> };
+		)) as { cache_control?: unknown; system?: Array<{ type: string; text?: string; cache_control?: unknown }> };
 
+		expect(payload.cache_control).toEqual({ type: "ephemeral" });
 		expect(payload.system).toEqual([
 			{ type: "text", text: "stable system" },
 			{ type: "text", text: "stable durable context", cache_control: { type: "ephemeral" } },
 		]);
+	});
+
+	it("reserves the final-turn cache slot for native Anthropic automatic caching", async () => {
+		const readFileTool: Tool = {
+			name: "read_file",
+			description: "Read a file",
+			parameters: { type: "object", properties: {}, required: [] },
+		};
+		const payload = (await captureAnthropicPayload(
+			ANTHROPIC_MODEL,
+			{
+				systemPrompt: ["stable system"],
+				messages: [
+					{ role: "user", content: "previous turn", timestamp: Date.now() },
+					{ role: "user", content: "current turn", timestamp: Date.now() },
+				],
+				tools: [readFileTool],
+			},
+			{ isOAuth: false },
+		)) as {
+			cache_control?: unknown;
+			system?: Array<{ cache_control?: unknown }>;
+			tools?: Array<{ cache_control?: unknown }>;
+			messages: Array<{ content: unknown }>;
+		};
+
+		expect(payload.cache_control).toEqual({ type: "ephemeral" });
+		expect(payload.tools?.[0]?.cache_control).toEqual({ type: "ephemeral" });
+		expect(payload.system?.[0]?.cache_control).toEqual({ type: "ephemeral" });
+		expect(payload.messages[0]?.content).toEqual([
+			{ type: "text", text: "previous turn", cache_control: { type: "ephemeral" } },
+		]);
+		expect(payload.messages[1]?.content).toBe("current turn");
 	});
 
 	it("uses Bearer auth for non-Anthropic API bases with api-key credentials", () => {
@@ -982,7 +1018,7 @@ describe("Anthropic request fingerprint alignment", () => {
 		expect(payload.thinking).toBeUndefined();
 	});
 
-	it("sends disabled thinking for reasoning models when thinking is explicitly disabled", async () => {
+	it("omits thinking for reasoning models when thinking is explicitly disabled", async () => {
 		const payload = (await captureAnthropicPayload(
 			ANTHROPIC_MODEL,
 			{
@@ -992,7 +1028,7 @@ describe("Anthropic request fingerprint alignment", () => {
 			{ thinkingEnabled: false },
 		)) as { thinking?: { type?: string } };
 
-		expect(payload.thinking).toEqual({ type: "disabled" });
+		expect(payload.thinking).toBeUndefined();
 	});
 
 	it("drops temperature and sampling params for Opus 4.7 without enabled thinking", async () => {

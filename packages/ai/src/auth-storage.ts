@@ -32,6 +32,7 @@ import { codexRankingStrategy, openaiCodexUsageProvider } from "./usage/openai-c
 import { xaiUsageProvider } from "./usage/xai";
 import { zaiUsageProvider } from "./usage/zai";
 import { getOAuthApiKey, getOAuthProvider, refreshOAuthToken } from "./utils/oauth";
+import { loginDeepInfra } from "./utils/oauth/deepinfra";
 import { loginDeepSeek } from "./utils/oauth/deepseek";
 import { loginOpenAICodexDevice } from "./utils/oauth/openai-codex";
 import type {
@@ -49,6 +50,7 @@ import type {
 export type ApiKeyCredential = {
 	type: "api_key";
 	key: string;
+	source?: "login";
 };
 
 export type OAuthCredential = {
@@ -1359,7 +1361,7 @@ export class AuthStorage {
 	): Promise<void> {
 		let credentials: OAuthCredentials;
 		const saveApiKeyCredential = async (apiKey: string): Promise<void> => {
-			const newCredential: ApiKeyCredential = { type: "api_key", key: apiKey };
+			const newCredential: ApiKeyCredential = { type: "api_key", key: apiKey, source: "login" };
 			await this.set(provider, newCredential);
 		};
 		// Local CLI token import policy: an explicit `local` request forces the
@@ -1511,6 +1513,11 @@ export class AuthStorage {
 				await saveApiKeyCredential(apiKey);
 				return;
 			}
+			case "deepinfra": {
+				const apiKey = await loginDeepInfra(ctrl);
+				await saveApiKeyCredential(apiKey);
+				return;
+			}
 			case "deepseek": {
 				const apiKey = await loginDeepSeek(ctrl);
 				await saveApiKeyCredential(apiKey);
@@ -1519,13 +1526,7 @@ export class AuthStorage {
 			case "xai": {
 				await this.remove(provider);
 				const { loginXai } = await import("./utils/oauth/xai");
-				credentials = await loginXai(
-					{
-						...ctrl,
-						onManualCodeInput: ctrl.onManualCodeInput ?? manualCodeInput,
-					},
-					{ importLocal },
-				);
+				credentials = await loginXai(ctrl, { importLocal });
 				break;
 			}
 			case "fireworks": {
@@ -3430,9 +3431,10 @@ function normalizeStoredIdentityKey(identityKey: string | null | undefined): str
 
 function serializeCredential(provider: string, credential: AuthCredential): SerializedCredentialRecord | null {
 	if (credential.type === "api_key") {
+		const data = credential.source === "login" ? { key: credential.key, source: "login" } : { key: credential.key };
 		return {
 			credentialType: "api_key",
-			data: JSON.stringify({ key: credential.key }),
+			data: JSON.stringify(data),
 			identityKey: null,
 		};
 	}
@@ -3460,7 +3462,8 @@ function deserializeCredential(row: AuthRow): AuthCredential | null {
 	if (row.credential_type === "api_key") {
 		const data = parsed as Record<string, unknown>;
 		if (typeof data.key === "string") {
-			return { type: "api_key", key: data.key };
+			const source = data.source === "login" ? "login" : undefined;
+			return source ? { type: "api_key", key: data.key, source } : { type: "api_key", key: data.key };
 		}
 	}
 	if (row.credential_type === "oauth") {

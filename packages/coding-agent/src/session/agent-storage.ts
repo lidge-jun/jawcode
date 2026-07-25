@@ -8,6 +8,12 @@ import {
 	type StoredAuthCredential,
 } from "@jawcode-dev/ai";
 import { getAgentDbPath, isRecord, logger } from "@jawcode-dev/utils";
+import {
+	initializeModelPerformanceSchema,
+	type ModelPerformanceSample,
+	type ModelPerformanceStats,
+	ModelPerformanceStore,
+} from "../config/model-performance";
 import type { RawSettings as Settings } from "../config/settings";
 
 /** Row shape for settings table queries */
@@ -23,7 +29,7 @@ type ModelUsageRow = {
 };
 
 /** Bump when schema changes require migration */
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 const SQLITE_NOW_EPOCH = "CAST(strftime('%s','now') AS INTEGER)";
 
 /** Singleton instances per database path */
@@ -41,6 +47,7 @@ export class AgentStorage {
 	#listSettingsStmt: Statement;
 	#upsertModelUsageStmt: Statement;
 	#listModelUsageStmt: Statement;
+	#modelPerformance: ModelPerformanceStore;
 	#modelUsageCache: string[] | null = null;
 
 	private constructor(dbPath: string) {
@@ -63,6 +70,7 @@ export class AgentStorage {
 
 		// Create AuthCredentialStore with our open database
 		this.#authStore = new SqliteAuthCredentialStore(this.#db);
+		this.#modelPerformance = new ModelPerformanceStore(this.#db);
 
 		this.#listSettingsStmt = this.#db.prepare("SELECT key, value FROM settings");
 		this.#upsertModelUsageStmt = this.#db.prepare(
@@ -90,6 +98,7 @@ CREATE TABLE IF NOT EXISTS model_usage (
 
 CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY);
 `);
+		initializeModelPerformanceSchema(this.#db);
 
 		const settingsInfo = this.#db.prepare("PRAGMA table_info(settings)").all() as Array<{ name?: string }>;
 		const hasSettingsTable = settingsInfo.length > 0;
@@ -239,6 +248,27 @@ FROM model_usage_legacy
 		throw lastError ?? new Error("Failed to open database after retries");
 	}
 
+	/** @internal Close one test database (or every singleton when omitted). */
+	static resetInstance(dbPath?: string): void {
+		if (dbPath !== undefined) {
+			const storage = instances.get(dbPath);
+			if (!storage) return;
+			storage.#close();
+			instances.delete(dbPath);
+			return;
+		}
+		for (const storage of instances.values()) storage.#close();
+		instances.clear();
+	}
+
+	#close(): void {
+		this.#listSettingsStmt.finalize();
+		this.#upsertModelUsageStmt.finalize();
+		this.#listModelUsageStmt.finalize();
+		this.#modelPerformance.close();
+		this.#authStore.close();
+	}
+
 	/**
 	 * Retrieves all settings from storage (legacy, for migration only).
 	 * Settings are now stored in config.yml. This method is only used
@@ -302,6 +332,25 @@ FROM model_usage_legacy
 		} catch (error) {
 			logger.warn("AgentStorage failed to get model usage order", { error: String(error) });
 			return [];
+		}
+	}
+
+	/** Fold one completed provider request into persistent per-model aggregates. */
+	recordModelPerformance(modelKey: string, sample: ModelPerformanceSample): void {
+		try {
+			this.#modelPerformance.record(modelKey, sample);
+		} catch (error) {
+			logger.warn("AgentStorage failed to record model performance", { modelKey, error: String(error) });
+		}
+	}
+
+	/** Return persistent latency and error-rate aggregates keyed by provider/model. */
+	getModelPerformance(): Map<string, ModelPerformanceStats> {
+		try {
+			return this.#modelPerformance.getAll();
+		} catch (error) {
+			logger.warn("AgentStorage failed to read model performance", { error: String(error) });
+			return new Map();
 		}
 	}
 

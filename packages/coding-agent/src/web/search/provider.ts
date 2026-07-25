@@ -174,11 +174,32 @@ const MODEL_PROVIDER_TO_SEARCH: Record<string, SearchProviderId> = {
 };
 
 /** Preferred provider set via settings (default: auto) */
+let chainCache = new WeakMap<AuthStorage, Map<string, SearchProviderId[]>>();
+
+function authStorageGeneration(storage: AuthStorage): number {
+	return storage.getGeneration();
+}
+
+function resolveChainCacheKey(
+	storage: AuthStorage,
+	preferredProvider: SearchProviderId | "auto",
+	activeModelProvider: string | undefined,
+): string {
+	return `${preferredProvider}\0${activeModelProvider?.toLowerCase() ?? ""}\0${authStorageGeneration(storage)}`;
+}
+
+export function clearResolvedChainCache(): void {
+	chainCache = new WeakMap<AuthStorage, Map<string, SearchProviderId[]>>();
+}
+
 let preferredProvId: SearchProviderId | "auto" = "auto";
 
 /** Set the preferred web search provider from settings */
 export function setPreferredSearchProvider(provider: SearchProviderId | "auto"): void {
-	preferredProvId = provider;
+	if (preferredProvId !== provider) {
+		preferredProvId = provider;
+		clearResolvedChainCache();
+	}
 }
 
 /**
@@ -208,6 +229,17 @@ export async function resolveProviderChain(
 	preferredProvider: SearchProviderId | "auto" = preferredProvId,
 	activeModelProvider?: string,
 ): Promise<SearchProvider[]> {
+	const cacheKey = resolveChainCacheKey(authStorage, preferredProvider, activeModelProvider);
+	const storageCache = chainCache.get(authStorage);
+	const cachedChain = storageCache?.get(cacheKey);
+	if (cachedChain) {
+		const providers: SearchProvider[] = [];
+		for (const id of cachedChain) {
+			providers.push(await getSearchProvider(id));
+		}
+		return providers;
+	}
+
 	const chain: SearchProviderId[] = [];
 
 	if (preferredProvider !== "auto") {
@@ -227,6 +259,13 @@ export async function resolveProviderChain(
 
 	// DuckDuckGo is the permissionless terminal fallback (deduped).
 	if (!chain.includes("duckduckgo")) chain.push("duckduckgo");
+
+	let nextStorageCache = storageCache;
+	if (!nextStorageCache) {
+		nextStorageCache = new Map<string, SearchProviderId[]>();
+		chainCache.set(authStorage, nextStorageCache);
+	}
+	nextStorageCache.set(cacheKey, chain);
 
 	const providers: SearchProvider[] = [];
 	for (const id of chain) {

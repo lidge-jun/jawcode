@@ -33,6 +33,14 @@ import { toolResult } from "./tool-result";
 import { clampTimeout, TOOL_TIMEOUTS } from "./tool-timeouts";
 
 export const BASH_DEFAULT_PREVIEW_LINES = 10;
+/**
+ * 260702 F2b — collapsed/pending command block cap. Multi-line commands (for
+ * loops, heredocs) previously rendered uncapped in the live preview, so a big
+ * transient box physically scrolled during the run and its completion
+ * collapse left a residue band that tall (only the OUTPUT was capped). The
+ * command block now folds past this many lines unless expanded.
+ */
+export const BASH_COMMAND_PREVIEW_LINES = 4;
 
 const BASH_ENV_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const DEFAULT_AUTO_BACKGROUND_THRESHOLD_MS = 60_000;
@@ -106,10 +114,6 @@ interface ManagedBashJobHandle {
 
 function normalizeResultOutput(result: BashResult | BashInteractiveResult): string {
 	return result.output || "";
-}
-
-function isInteractiveResult(result: BashResult | BashInteractiveResult): result is BashInteractiveResult {
-	return "timedOut" in result;
 }
 
 /**
@@ -279,11 +283,11 @@ export class BashTool implements AgentTool<BashToolSchema, BashToolDetails> {
 	}
 
 	#buildResultText(result: BashResult | BashInteractiveResult, timeoutSec: number, outputText: string): string {
+		if (result.timedOut) {
+			throw new ToolError(formatTimedOutResult(normalizeResultOutput(result), timeoutSec));
+		}
 		if (result.cancelled) {
 			throw new ToolError(normalizeResultOutput(result) || "Command aborted");
-		}
-		if (isInteractiveResult(result) && result.timedOut) {
-			throw new ToolError(formatTimedOutResult(normalizeResultOutput(result), timeoutSec));
 		}
 		if (result.exitCode === undefined) {
 			throw new ToolError(`${outputText}\n\nCommand failed: missing exit status`);
@@ -959,6 +963,7 @@ export class BashTool implements AgentTool<BashToolSchema, BashToolDetails> {
 					output: outputText,
 					exitCode,
 					cancelled: false,
+					timedOut: false,
 					truncated: finalOutput.truncated,
 					totalLines: outputLineCount,
 					totalBytes: outputByteLen,
@@ -1012,14 +1017,14 @@ export class BashTool implements AgentTool<BashToolSchema, BashToolDetails> {
 					onChunk: streamTailUpdates(tailBuffer, onUpdate),
 					onMinimizedSave: originalText => saveBashOriginalArtifact(this.session, originalText),
 				});
+		if (result.timedOut) {
+			throw new ToolError(formatTimedOutResult(normalizeResultOutput(result), timeoutSec));
+		}
 		if (result.cancelled) {
 			if (signal?.aborted) {
 				throw new ToolAbortError(normalizeResultOutput(result) || "Command aborted");
 			}
 			throw new ToolError(normalizeResultOutput(result) || "Command aborted");
-		}
-		if (isInteractiveResult(result) && result.timedOut) {
-			throw new ToolError(formatTimedOutResult(normalizeResultOutput(result), timeoutSec));
 		}
 		return this.#buildCompletedResult(result, timeoutSec, {
 			requestedTimeoutSec,
@@ -1119,8 +1124,20 @@ export function createShellRenderer<TArgs>(config: ShellRendererConfig<TArgs>) {
 		renderCall(args: TArgs, options: RenderResultOptions, uiTheme: Theme): Component {
 			const renderArgs = toBashRenderArgs(args, config);
 			const cmdText = formatBashCommand(renderArgs);
+			// 260702 F2b: the no-result pending state renders the raw command —
+			// a multi-line for-loop/heredoc embeds newlines in the status line,
+			// so it must fold like the result view or the live preview transient
+			// stays uncapped (B-verify finding 2).
+			const cmdTextLines = cmdText.split("\n");
+			const foldedCmdText =
+				cmdTextLines.length > BASH_COMMAND_PREVIEW_LINES
+					? [
+							...cmdTextLines.slice(0, BASH_COMMAND_PREVIEW_LINES),
+							uiTheme.fg("dim", `… +${cmdTextLines.length - BASH_COMMAND_PREVIEW_LINES} command lines`),
+						].join("\n")
+					: cmdText;
 			const title = config.resolveTitle(args, options);
-			const text = renderStatusLine({ icon: "pending", title, description: cmdText }, uiTheme);
+			const text = renderStatusLine({ icon: "pending", title, description: foldedCmdText }, uiTheme);
 			return new Text(text, 0, 0);
 		},
 
@@ -1211,12 +1228,25 @@ export function createShellRenderer<TArgs>(config: ShellRendererConfig<TArgs>) {
 					if (timeoutLine) outputLines.push(timeoutLine);
 					if (warningLine) outputLines.push(warningLine);
 
+					// 260702 F2b: fold long multi-line commands unless expanded —
+					// bounds the live preview height so the collapse residue stays
+					// small (see BASH_COMMAND_PREVIEW_LINES).
+					const displayCmdLines =
+						!expanded && cmdLines && cmdLines.length > BASH_COMMAND_PREVIEW_LINES
+							? [
+									...cmdLines.slice(0, BASH_COMMAND_PREVIEW_LINES),
+									uiTheme.fg(
+										"dim",
+										`… +${cmdLines.length - BASH_COMMAND_PREVIEW_LINES} command lines (ctrl+o to expand)`,
+									),
+								]
+							: cmdLines;
 					return outputBlock.render(
 						{
 							header,
 							state: options.isPartial ? "pending" : isError ? "error" : "success",
 							sections: [
-								{ lines: cmdLines ?? [] },
+								{ lines: displayCmdLines ?? [] },
 								{ label: uiTheme.fg("toolTitle", "Output"), lines: outputLines },
 							],
 							width,

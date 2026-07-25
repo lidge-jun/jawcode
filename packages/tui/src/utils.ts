@@ -2,13 +2,16 @@ import {
 	Ellipsis,
 	type ExtractSegmentsResult,
 	extractSegments as nativeExtractSegments,
+	setAmbiguousWidthWide as nativeSetAmbiguousWidthWide,
 	sliceWithWidth as nativeSliceWithWidth,
 	truncateToWidth as nativeTruncateToWidth,
+	visibleWidth as nativeVisibleWidth,
 	wrapTextWithAnsi as nativeWrapTextWithAnsi,
 	type SliceResult,
 } from "@jawcode-dev/natives";
 import { getDefaultTabWidth, getIndentation } from "@jawcode-dev/utils";
 import { renderMetrics } from "./metrics";
+import { terminalSupportsBce } from "./terminal-capabilities";
 
 export { Ellipsis } from "@jawcode-dev/natives";
 
@@ -37,14 +40,18 @@ export function truncateToWidth(
 	// Guard nullish napi inputs: napi-rs 3 on the Windows prebuilt rejects
 	// `null` for `Option<u8>` (Ellipsis) / `Option<bool>` (pad) (issue #848),
 	// and `maxWidth` is a required `u32` that throws on `null`/`undefined`
-	// everywhere. Pass concrete defaults that mirror the Rust `unwrap_or`s.
+	// everywhere. The `text` arg is a required `String` that likewise throws on
+	// `null`/`undefined` on every platform, which crashed renderers that passed
+	// an optional/possibly-undefined field. Pass concrete defaults that mirror
+	// the Rust `unwrap_or`s.
+	const safeText = typeof text === "string" ? text : String(text ?? "");
 	const safeWidth = Number.isFinite(maxWidth) ? Math.max(0, Math.trunc(maxWidth)) : 0;
 	let resolvedEllipsis: Ellipsis | null | undefined | string = ellipsisKind;
 	if (typeof resolvedEllipsis === "string") {
 		resolvedEllipsis = resolvedEllipsis === "" ? Ellipsis.Omit : Ellipsis.Unicode;
 	}
 	return nativeTruncateToWidth(
-		text,
+		safeText,
 		safeWidth,
 		resolvedEllipsis ?? Ellipsis.Unicode,
 		pad ?? false,
@@ -105,6 +112,35 @@ function normalizeForWidth(str: string): string {
 	const normalized = str.normalize("NFC");
 	return normalized === str ? str : normalized;
 }
+
+const HANGUL_TONE_MARK_REGEX = /[\u302e\u302f]/u;
+
+/**
+ * East Asian Ambiguous width policy (260703 WP2.5). Terminals resolve EAW-A
+ * characters (…, §, ·) by context — 1 cell in non-CJK setups, 2 in
+ * CJK-leaning ones. The TUI probes the terminal at startup (CPR round-trip)
+ * and mirrors the answer BOTH into Bun.stringWidth (visibleWidth below) and
+ * into the native width table (pi-natives — truncate/wrap/slice/segments),
+ * so padding and truncation can never disagree about a character's width.
+ */
+let ambiguousIsNarrow = true;
+
+export function setAmbiguousWidthMode(mode: "narrow" | "wide"): void {
+	try {
+		// Native first, JS only on success — fail CLOSED. A partial version
+		// mismatch (setter missing while older slice/truncate still load)
+		// must never produce JS-wide/native-narrow layout: wide is only ever
+		// entered with both tables switched together.
+		nativeSetAmbiguousWidthWide(mode === "wide");
+		ambiguousIsNarrow = mode === "narrow";
+	} catch {
+		ambiguousIsNarrow = true;
+	}
+}
+
+export function getAmbiguousWidthMode(): "narrow" | "wide" {
+	return ambiguousIsNarrow ? "narrow" : "wide";
+}
 export function visibleWidthRaw(str: string): number {
 	if (!str) {
 		return 0;
@@ -130,9 +166,15 @@ export function visibleWidthRaw(str: string): number {
 	}
 
 	const normalized = normalizeForWidth(str);
-	const sw = typeof Bun !== "undefined" ? Bun.stringWidth : (s: string) => s.length;
-	if (tabCount === 0) return sw(normalized);
-	return sw(normalized.replaceAll("\t", " ".repeat(getDefaultTabWidth())));
+	const text = tabCount === 0 ? normalized : normalized.replaceAll("\t", " ".repeat(getDefaultTabWidth()));
+	// Bun counts Hangul tone marks as standalone wide glyphs while the native
+	// wrapper correctly keeps them in the preceding Hangul grapheme. Transcript
+	// rebuilds must use the same width decision as wrapping or Korean prose is
+	// padded and reflowed against a different row boundary.
+	if (HANGUL_TONE_MARK_REGEX.test(text)) return nativeVisibleWidth(text, getDefaultTabWidth());
+	const sw =
+		typeof Bun !== "undefined" ? (s: string) => Bun.stringWidth(s, { ambiguousIsNarrow }) : (s: string) => s.length;
+	return sw(text);
 }
 
 /**
@@ -357,12 +399,32 @@ export function moveWordRight(text: string, cursor: number): number {
  * @param bgFn - Background color function
  * @returns Line with background applied and padded to width
  */
+/**
+ * 260704 WP5.3 — zero-width row-background marker (APC; terminals ignore
+ * it). A line carrying this marker asks the RENDERER to paint the row's
+ * background to end-of-line at write time (SGR bg + EL under BCE) instead
+ * of storing full-width literal spaces — the padding that terminal reflow
+ * shreds on every width change and that amplified the ambiguous-width
+ * overflows. Kept out of component strings' cell model so overlay
+ * compositing and width math are untouched (ANSI passthrough).
+ */
+// The marker IS the erase op: placed right after the background SGR
+// activates (line start, cursor at column 1), EL paints the entire row in
+// the active background before content draws over it. CSI K is zero-width
+// for Bun.stringWidth AND the pi-natives helpers (ANSI passthrough), so
+// width math and overlay compositing are untouched — the two objections to
+// end-of-line EL embedding do not apply at the START of the line.
+export const ROW_BG_MARKER = "\x1b[K";
+
 export function applyBackgroundToLine(line: string, width: number, bgFn: (text: string) => string): string {
-	// Calculate padding needed
+	if (terminalSupportsBce()) {
+		// WP5.3: no trailing cells — the write path paints the remainder via
+		// EL while the row's background is still active (BCE).
+		return bgFn(ROW_BG_MARKER + line);
+	}
+	// Fallback (no BCE): literal padding, today's behavior.
 	const visibleLen = visibleWidth(line);
 	const paddingNeeded = Math.max(0, width - visibleLen);
-
-	// Apply background to content + padding
 	const withPadding = line + padding(paddingNeeded);
 	return bgFn(withPadding);
 }

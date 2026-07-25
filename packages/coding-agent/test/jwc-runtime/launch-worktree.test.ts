@@ -176,6 +176,22 @@ describe("default launch worktrees", () => {
 		expect(run("git", ["branch", "--show-current"], expectedPath)).toBe("feature/demo");
 	});
 
+	it("reports actionable diagnostics when a launch worktree path targets a different branch", async () => {
+		const repo = await createRepo("gjc-launch-target-mismatch-worktree-");
+		const planned = planLaunchWorktree(repo, { enabled: true, detached: false, name: "feature/demo" });
+		const ensured = ensureLaunchWorktree(planned);
+		expect(ensured.enabled && ensured.reused).toBe(false);
+		if (!planned.enabled) throw new Error("expected worktree plan");
+
+		const mismatchPlan = { ...planned, branchName: "feature/other" };
+		expect(() => ensureLaunchWorktree(mismatchPlan)).toThrow(/worktree_target_mismatch:/);
+		expect(() => ensureLaunchWorktree(mismatchPlan)).toThrow(/existing=branch:refs\/heads\/feature\/demo/);
+		expect(() => ensureLaunchWorktree(mismatchPlan)).toThrow(
+			/remove_or_prune_the_existing_worktree_or_choose_a_different_--worktree_name/,
+		);
+		expect(mismatchPlan.worktreePath).toContain(".jawcode-worktrees");
+	});
+
 	it("keeps launch worktree slugs collision-resistant for similar branch names", async () => {
 		const repo = await createRepo("gjc-launch-collision-worktree-");
 		const slashPlan = planLaunchWorktree(repo, { enabled: true, detached: false, name: "feature/demo" });

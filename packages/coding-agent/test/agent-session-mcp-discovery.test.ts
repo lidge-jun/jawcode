@@ -336,7 +336,7 @@ describe("AgentSession MCP discovery", () => {
 		});
 		sessions.push(session);
 
-		expect(session.getDiscoverableMCPTools().map(tool => tool.name)).toEqual(["mcp__docs_search"]);
+		expect(session.getDiscoverableTools({ source: "mcp" }).map(tool => tool.name)).toEqual(["mcp__docs_search"]);
 		expect(session.getActiveToolNames()).toEqual(["read", "mcp__local_inline_tool"]);
 
 		await session.refreshMCPTools([
@@ -345,7 +345,7 @@ describe("AgentSession MCP discovery", () => {
 
 		expect(session.getActiveToolNames()).toEqual(["read", "mcp__local_inline_tool"]);
 		expect(session.getToolByName("mcp__local_inline_tool")).toBe(localTool);
-		expect(session.getDiscoverableMCPTools().map(tool => tool.name)).toEqual(["mcp__docs_search"]);
+		expect(session.getDiscoverableTools({ source: "mcp" }).map(tool => tool.name)).toEqual(["mcp__docs_search"]);
 	});
 
 	it("keeps MCP tools hidden by default and activates discovered selections additively", async () => {
@@ -382,7 +382,7 @@ describe("AgentSession MCP discovery", () => {
 		sessions.push(session);
 
 		expect(session.getActiveToolNames()).toEqual(["read"]);
-		expect(session.getDiscoverableMCPTools().map(tool => tool.name)).toEqual([
+		expect(session.getDiscoverableTools({ source: "mcp" }).map(tool => tool.name)).toEqual([
 			"mcp__docs_search",
 			"mcp__slack_send_message",
 		]);
@@ -890,7 +890,7 @@ describe("AgentSession MCP discovery", () => {
 	});
 
 	// ── Findings #2: legacy MCP discovery shapes ───────────────────────────────
-	it("getDiscoverableMCPTools returns the legacy MCP shape with `description` populated", () => {
+	it("getDiscoverableTools returns the generic MCP shape with `summary` populated", () => {
 		const readTool = createBasicTool("read", "Read");
 		const docsSearchTool = createMcpTool("mcp__docs_search", "docs", "search", "Search internal docs", ["query"]);
 		const toolRegistry = new Map([
@@ -911,13 +911,12 @@ describe("AgentSession MCP discovery", () => {
 		});
 		sessions.push(session);
 
-		const discoverable = session.getDiscoverableMCPTools();
+		const discoverable = session.getDiscoverableTools({ source: "mcp" });
 		expect(discoverable).toHaveLength(1);
 		const entry = discoverable[0]!;
 		expect(entry.name).toBe("mcp__docs_search");
-		expect(entry.description).toBe("Search internal docs");
-		// Legacy shape must NOT carry `summary` — back-compat callers expect `description`.
-		expect((entry as { summary?: string }).summary).toBeUndefined();
+		expect(entry.summary).toBe("Search internal docs");
+		expect(entry.source).toBe("mcp");
 	});
 
 	it("getDiscoverableMCPSearchIndex documents expose tool.description (legacy shape)", () => {

@@ -35,6 +35,7 @@ export const PABCD_MAX_A_ROUNDS = 3;
 
 export type PabcdAuditVerdict = "pending" | "pass" | "fail";
 export type PabcdVerificationVerdict = "pending" | "done" | "needs_fix";
+export type PabcdRenderGroundingStatus = "pending" | "observed" | "not_applicable";
 export type PabcdAuditMode = "solo" | "dual";
 export type PabcdAuditLens = "planner" | "architect";
 
@@ -66,6 +67,7 @@ export interface PabcdCtx {
 	verification_status?: PabcdVerificationVerdict;
 	b_review_override?: PabcdReviewOverride;
 	c_route_synthesis_ref?: string;
+	render_grounding_status?: PabcdRenderGroundingStatus;
 	user_approved?: boolean;
 	deliberate?: boolean;
 	actor_namespace_id?: string;
@@ -155,6 +157,14 @@ export function canTransitionPabcd(
 			};
 		}
 	}
+	// c → d soft warning: render grounding explicitly pending but unresolved.
+	// WARNING ONLY — never blocks the transition (ok stays true).
+	if (from === "c" && to === "d" && ctx?.render_grounding_status === "pending") {
+		return {
+			ok: true,
+			reason: `Warning: render_grounding_status is 'pending'. If the work-phase produced a render artifact (HTML, SVG, chart, UI), run the render-grounding loop and record the verdict with --render-observed before advancing. Proceeding anyway.`,
+		};
+	}
 	return { ok: true };
 }
 
@@ -224,6 +234,7 @@ export const NativePabcdEnvelopeSchema = z
 				verification_status: z.enum(["pending", "done", "needs_fix"]).optional(),
 				b_review_override: z.unknown().optional(),
 				c_route_synthesis_ref: z.string().optional(),
+				render_grounding_status: z.enum(["pending", "observed", "not_applicable"]).optional(),
 				user_approved: z.boolean().optional(),
 				deliberate: z.boolean().optional(),
 				actor_namespace_id: z.string().optional(),

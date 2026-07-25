@@ -316,65 +316,6 @@ export function searchDiscoverableTools(
 
 // ─── Legacy MCP-specific shims (back-compat wrappers) ────────────────────────
 
-/** @deprecated Use getDiscoverableTool */
-export function getDiscoverableMCPTool(tool: AgentTool): DiscoverableMCPTool | null {
-	const toolRecord = tool as AgentTool & {
-		label?: string;
-		description?: string;
-		mcpServerName?: string;
-		mcpToolName?: string;
-		parameters?: unknown;
-	};
-	if (!isMCPBridgeTool(toolRecord)) return null;
-	return {
-		name: tool.name,
-		label: typeof toolRecord.label === "string" ? toolRecord.label : tool.name,
-		description: typeof toolRecord.description === "string" ? toolRecord.description : "",
-		serverName: typeof toolRecord.mcpServerName === "string" ? toolRecord.mcpServerName : undefined,
-		mcpToolName: typeof toolRecord.mcpToolName === "string" ? toolRecord.mcpToolName : undefined,
-		schemaKeys: getSchemaPropertyKeys(toolRecord.parameters),
-	};
-}
-
-/** @deprecated Use collectDiscoverableTools with source filter */
-export function collectDiscoverableMCPTools(tools: Iterable<AgentTool>): DiscoverableMCPTool[] {
-	const discoverable: DiscoverableMCPTool[] = [];
-	for (const tool of tools) {
-		const metadata = getDiscoverableMCPTool(tool);
-		if (metadata) {
-			discoverable.push(metadata);
-		}
-	}
-	return discoverable;
-}
-
-/** @deprecated Use selectDiscoverableToolNamesByServer */
-export function selectDiscoverableMCPToolNamesByServer(
-	tools: Iterable<DiscoverableMCPTool>,
-	serverNames: ReadonlySet<string>,
-): string[] {
-	if (serverNames.size === 0) return [];
-	return Array.from(tools)
-		.filter(tool => tool.serverName !== undefined && serverNames.has(tool.serverName))
-		.map(tool => tool.name);
-}
-
-/** @deprecated Use summarizeDiscoverableTools */
-export function summarizeDiscoverableMCPTools(tools: DiscoverableMCPTool[]): DiscoverableMCPToolSummary {
-	const serverToolCounts = new Map<string, number>();
-	for (const tool of tools) {
-		if (!tool.serverName) continue;
-		serverToolCounts.set(tool.serverName, (serverToolCounts.get(tool.serverName) ?? 0) + 1);
-	}
-	const servers = Array.from(serverToolCounts.entries())
-		.sort(([left], [right]) => left.localeCompare(right))
-		.map(([name, toolCount]) => ({ name, toolCount }));
-	return {
-		servers,
-		toolCount: tools.length,
-	};
-}
-
 /** @deprecated Use buildDiscoverableToolSearchIndex.
  *  Builds an index whose documents preserve the legacy `description` field on each tool while
  *  also carrying the generic `summary` (set from `description`) so the index remains usable

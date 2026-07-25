@@ -11,7 +11,7 @@
  * measurement must normalize those sequences before calling Bun.stringWidth.
  */
 import { describe, expect, it } from "bun:test";
-import { Ellipsis, sliceWithWidth, truncateToWidth, visibleWidth } from "@jawcode-dev/tui/utils";
+import { Ellipsis, sliceWithWidth, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "@jawcode-dev/tui/utils";
 
 describe("visibleWidth — Hangul width parity", () => {
 	it("single compatibility jamo is 2 cells", () => {
@@ -61,6 +61,12 @@ describe("visibleWidth — Hangul width parity", () => {
 		expect(visibleWidth("하")).toBe(2);
 		expect(visibleWidth("한")).toBe(2);
 		expect(visibleWidth("한글")).toBe(4);
+	});
+
+	it("keeps Hangul tone-mark prose aligned with native wrapping", () => {
+		const toneMarkedSyllable = "가\u302e";
+		expect(wrapTextWithAnsi(`${toneMarkedSyllable}X`, 2)).toEqual([toneMarkedSyllable, "X"]);
+		expect(visibleWidth(toneMarkedSyllable)).toBe(2);
 	});
 
 	it("mixed ASCII + syllable + jamo strings add correctly", () => {

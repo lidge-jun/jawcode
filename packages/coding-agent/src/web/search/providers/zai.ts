@@ -79,7 +79,7 @@ async function callZaiTool(apiKey: string, args: Record<string, unknown>, signal
 				arguments: args,
 			},
 		}),
-		signal: withHardTimeout(signal),
+		signal: withHardTimeout(signal, "api"),
 	});
 
 	if (!response.ok) {

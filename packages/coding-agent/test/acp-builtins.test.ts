@@ -455,6 +455,78 @@ describe("ACP builtin slash commands", () => {
 		}
 	});
 
+	it("replacement goal commands replace paused mode and rewrite durable planning files", async () => {
+		const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "acp-goal-plan-replace-paused-"));
+		try {
+			const { output, runtime, session, fakeSessionManager } = createRuntime();
+			runtime.cwd = cwd;
+			fakeSessionManager._cwd = cwd;
+
+			await executeAcpBuiltinSlashCommand("/goal paused source", runtime);
+			await session.goalRuntime.pauseGoal();
+
+			const directResult = await executeAcpBuiltinSlashCommand("/goal replacement after pause", runtime);
+
+			expect(directResult).toEqual({ prompt: "replacement after pause" });
+			expect(output).not.toContain("Resume the current goal first, or drop it before setting a new objective.");
+			expect(output).not.toContain("Resume the current goal first, or drop it before starting goal planning.");
+			expect(session.getGoalModeState()?.enabled).toBe(true);
+			expect(session.getGoalModeState()?.goal.status).toBe("active");
+			expect(session.getGoalModeState()?.goal.objective).toBe("replacement after pause");
+			expect((await readGoalPlan(cwd))?.brief).toBe("replacement after pause");
+
+			await session.goalRuntime.pauseGoal();
+
+			const setResult = await executeAcpBuiltinSlashCommand("/goal set set replacement after pause", runtime);
+
+			expect(setResult).toEqual({ prompt: "set replacement after pause" });
+			expect(session.getGoalModeState()?.enabled).toBe(true);
+			expect(session.getGoalModeState()?.goal.status).toBe("active");
+			expect(session.getGoalModeState()?.goal.objective).toBe("set replacement after pause");
+			expect((await readGoalPlan(cwd))?.brief).toBe("set replacement after pause");
+
+			await session.goalRuntime.pauseGoal();
+
+			const goalplanResult = await executeAcpBuiltinSlashCommand("/goalplan paused planning hint", runtime);
+
+			expect(goalplanResult).toEqual(
+				expect.objectContaining({ prompt: expect.stringContaining("AI-driven goal planning") }),
+			);
+			expect(session.getGoalModeState()?.enabled).toBe(true);
+			expect(session.getGoalModeState()?.goal.status).toBe("active");
+			expect(session.getGoalModeState()?.goal.objective).toContain(GOAL_PLAN_PENDING_BRIEF);
+			expect(session.getGoalModeState()?.goal.objective).toContain("hint: paused planning hint");
+			expect((await readGoalPlan(cwd))?.brief).toContain("hint: paused planning hint");
+
+			await session.goalRuntime.pauseGoal();
+
+			const dashedResult = await executeAcpBuiltinSlashCommand("/goal-plan dashed paused planning hint", runtime);
+
+			expect(dashedResult).toEqual(
+				expect.objectContaining({ prompt: expect.stringContaining("AI-driven goal planning") }),
+			);
+			expect(session.getGoalModeState()?.goal.objective).toContain("hint: dashed paused planning hint");
+			expect((await readGoalPlan(cwd))?.brief).toContain("hint: dashed paused planning hint");
+
+			await session.goalRuntime.pauseGoal();
+
+			const subcommandPlanResult = await executeAcpBuiltinSlashCommand(
+				"/goal plan subcommand paused planning hint",
+				runtime,
+			);
+
+			expect(subcommandPlanResult).toEqual(
+				expect.objectContaining({ prompt: expect.stringContaining("AI-driven goal planning") }),
+			);
+			expect(session.getGoalModeState()?.goal.objective).toContain("hint: subcommand paused planning hint");
+			expect((await readGoalPlan(cwd))?.brief).toContain("hint: subcommand paused planning hint");
+			expect(output).not.toContain("Resume the current goal first, or drop it before setting a new objective.");
+			expect(output).not.toContain("Resume the current goal first, or drop it before starting goal planning.");
+		} finally {
+			await fs.rm(cwd, { recursive: true, force: true });
+		}
+	});
+
 	// /jobs
 	it("jobs: shows informative message when snapshot is null", async () => {
 		const { output, runtime } = createRuntime();

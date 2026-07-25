@@ -282,6 +282,61 @@ describe("AuthStorage OAuth refresh race", () => {
 		await expect(second).resolves.toBe("access-rotated");
 		expect(refreshCalls).toBe(1);
 	});
+
+	test("coalesces rotating-token refreshes across AuthStorage instances", async () => {
+		if (!authStorage) throw new Error("test setup failed");
+
+		const secondStore = await SqliteAuthCredentialStore.open(path.join(tempDir, "agent.db"));
+		const secondStorage = new AuthStorage(secondStore);
+		const expires = Date.now() - 60_000;
+		const refreshedExpires = Date.now() + 60 * 60_000;
+		const refreshStarted = Promise.withResolvers<void>();
+		const allowRefresh = Promise.withResolvers<void>();
+		let refreshCalls = 0;
+
+		oauthUtils.registerOAuthProvider({
+			id: "unit-oauth-process-mutex",
+			name: "Unit OAuth Process Mutex",
+			sourceId: "auth-storage-oauth-refresh-race-test",
+			async login() {
+				return { access: "unused", refresh: "unused", expires: refreshedExpires };
+			},
+			async refreshToken(credentials) {
+				refreshCalls += 1;
+				refreshStarted.resolve();
+				await allowRefresh.promise;
+				return {
+					...credentials,
+					access: "access-rotated",
+					refresh: "refresh-rotated",
+					expires: refreshedExpires,
+				};
+			},
+			getApiKey(credentials) {
+				return credentials.access;
+			},
+		});
+
+		try {
+			await authStorage.set("unit-oauth-process-mutex", [
+				{ type: "oauth", access: "access-old", refresh: "refresh-old", expires },
+			]);
+			await secondStorage.reload();
+
+			const first = authStorage.getApiKey("unit-oauth-process-mutex", "first-session");
+			const second = secondStorage.getApiKey("unit-oauth-process-mutex", "second-session");
+
+			await refreshStarted.promise;
+			allowRefresh.resolve();
+
+			await expect(first).resolves.toBe("access-rotated");
+			await expect(second).resolves.toBe("access-rotated");
+			expect(refreshCalls).toBe(1);
+		} finally {
+			secondStorage.close();
+		}
+	});
+
 	test("invalidating a session-sticky OAuth credential rotates the retry to another active credential", async () => {
 		if (!authStorage) throw new Error("test setup failed");
 

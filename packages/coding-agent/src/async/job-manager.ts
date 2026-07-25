@@ -749,6 +749,30 @@ export class AsyncJobManager {
 		return this.#filterJobs(this.#jobs.values(), filter);
 	}
 
+	hasRetainedControlState(filter?: AsyncJobFilter): boolean {
+		const ownerId = filter?.ownerId;
+		for (const rec of this.#subagentRecords.values()) {
+			if (!ownerId || rec.ownerId === ownerId) return true;
+		}
+		for (const descriptor of this.#resumeDescriptors.values()) {
+			if (!ownerId || descriptor.ownerId === ownerId) return true;
+		}
+		for (const entry of this.#resumeQueue) {
+			if (!ownerId || entry.ownerId === ownerId) return true;
+		}
+		return false;
+	}
+
+	isEmptyForDisposal(): boolean {
+		return (
+			this.#jobs.size === 0 &&
+			this.#deliveries.length === 0 &&
+			this.#inFlightDeliveries.length === 0 &&
+			this.#ownerCleanups.size === 0 &&
+			!this.hasRetainedControlState()
+		);
+	}
+
 	/**
 	 * Append a sanitized process-stream chunk for a background job. Called from
 	 * the unthrottled bash-executor capture hook (`onRawChunk`) so monitor sees
@@ -885,8 +909,13 @@ export class AsyncJobManager {
 	 * Run and clear every registered cleanup for the given filter. Idempotent
 	 * and error-isolated: a throwing cleanup does not prevent siblings from
 	 * running and never escalates to the caller.
+	 *
+	 * By default this also purges owner-scoped subagent control state, preserving
+	 * the historical teardown behavior used by explicit cancellation paths. A
+	 * normal session release can disable that purge so running/paused subagents
+	 * remain addressable after the owning AgentSession instance is torn down.
 	 */
-	runOwnerCleanups(filter?: AsyncJobFilter): void {
+	runOwnerCleanups(filter?: AsyncJobFilter, options?: { purgeSubagentState?: boolean }): void {
 		const ownerId = filter?.ownerId;
 		const targets: Array<[string, Set<() => void>]> = [];
 		if (ownerId) {
@@ -910,7 +939,26 @@ export class AsyncJobManager {
 				}
 			}
 		}
-		this.#purgeOwnerSubagentState(ownerId);
+		if (options?.purgeSubagentState !== false) {
+			this.#purgeOwnerSubagentState(ownerId);
+		}
+	}
+
+	/**
+	 * Release a session owner without cancelling or clearing its retained jobs.
+	 *
+	 * This is the AgentSession.dispose() boundary: stop owner-scoped timers so
+	 * they cannot enqueue fresh work, make a bounded best-effort delivery pass
+	 * for already-terminal jobs, and leave still-running jobs/subagent records in
+	 * the manager for background/background-panel control surfaces.
+	 */
+	async releaseOwnerForSessionDispose(
+		filter: { ownerId: string },
+		options?: { timeoutMs?: number },
+	): Promise<{ drained: boolean; deliveryState: AsyncJobDeliveryState }> {
+		this.runOwnerCleanups(filter, { purgeSubagentState: false });
+		const drained = await this.drainDeliveries({ timeoutMs: options?.timeoutMs ?? 3_000, filter });
+		return { drained, deliveryState: this.getDeliveryState(filter) };
 	}
 
 	getDeliveryState(filter?: AsyncJobFilter): AsyncJobDeliveryState {
@@ -967,6 +1015,33 @@ export class AsyncJobManager {
 			...this.#deliveries.filter(delivery => !this.isDeliverySuppressed(delivery.jobId)),
 		);
 		return before - this.#deliveries.length;
+	}
+
+	acknowledgeDeliveriesForOwner(filter: { ownerId: string }): number {
+		const ownerId = filter.ownerId;
+		const jobIds = new Set<string>();
+		for (const delivery of this.#deliveries) {
+			if (delivery.ownerId === ownerId) jobIds.add(delivery.jobId);
+		}
+		for (const delivery of this.#inFlightDeliveries) {
+			if (delivery.ownerId === ownerId) jobIds.add(delivery.jobId);
+		}
+		return this.acknowledgeDeliveries(Array.from(jobIds));
+	}
+
+	/**
+	 * Destructively abandon all async work owned by a session that is replacing
+	 * its transcript (new session, handoff, branch switch).
+	 *
+	 * Unlike normal AgentSession.dispose(), replacement teardown must not let an
+	 * already-terminal async result from the abandoned transcript retry into the
+	 * replacement transcript. Suppress owner deliveries first, then cancel still-
+	 * running jobs; unrelated owners remain untouched.
+	 */
+	cancelOwnerForReplacement(filter: { ownerId: string }): void {
+		this.runOwnerCleanups(filter);
+		this.acknowledgeDeliveriesForOwner(filter);
+		this.cancelAll(filter);
 	}
 
 	/**

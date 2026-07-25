@@ -229,5 +229,11 @@ describe("SessionManager close/appendMessage race", () => {
 			});
 		}).not.toThrow();
 		await expect(settle(sm.flush(), storage)).resolves.toBeUndefined();
+
+		const sessionFile = sm.getSessionFile();
+		if (!sessionFile) throw new Error("Expected persisted session file");
+		const persisted = storage.readTextSync(sessionFile);
+		expect(persisted).toContain("during-close");
+		expect(persisted).toContain("after-close");
 	});
 });

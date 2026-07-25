@@ -109,6 +109,7 @@ Providers:
   kagi              Kagi
   tavily            Tavily
   zai               Z.AI (GLM Coding Plan)
+  deepinfra         DeepInfra
   deepseek          DeepSeek
   xai               xAI
   nanogpt           NanoGPT

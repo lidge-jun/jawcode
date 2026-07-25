@@ -51,6 +51,7 @@ import { resolveResumableSession, type SessionInfo, SessionManager } from "./ses
 import { formatModelOnboardingGuidance } from "./setup/model-onboarding-guidance";
 import { executeBuiltinSlashCommand } from "./slash-commands/builtin-registry";
 import { resolvePromptInput } from "./system-prompt";
+import { createTelemetryExportConfig, initTelemetryExport, isTelemetryExportEnabled } from "./telemetry-export";
 import type { LspStartupServerInfo } from "./tools";
 import { getDisplayChangelogEntries, getNewEntries } from "./utils/changelog";
 import type { EventBus } from "./utils/event-bus";
@@ -919,6 +920,15 @@ export async function runRootCommand(
 	sessionOptions.modelRegistry = modelRegistry;
 	sessionOptions.hasUI = isInteractive || mode === "rpc-ui";
 	sessionOptions.settings = settingsInstance;
+
+	await logger.time("initTelemetryExport", initTelemetryExport);
+	if (isTelemetryExportEnabled()) {
+		sessionOptions.telemetry = createTelemetryExportConfig(sessionOptions.telemetry);
+	}
+	if (parsedArgs.verbose) {
+		// --verbose: session-scoped render-mode override (not persisted).
+		settingsInstance.override("tool.renderMode", "verbose");
+	}
 
 	// Handle CLI --api-key as runtime override (not persisted). Validate before
 	// MCP discovery so a fatal CLI-argument error cannot leave CLI-owned MCP

@@ -242,10 +242,107 @@ function makeAntigravityCtx(modelRegistry: Partial<ModelRegistry>): CustomToolCo
 }
 
 describe("providers.image settings schema", () => {
-	it("accepts antigravity and does not include openai-codex", () => {
+	it("accepts antigravity and openai-codex", () => {
 		const values = SETTINGS_SCHEMA["providers.image"].values as readonly string[];
 		expect(values).toContain("antigravity");
-		expect(values).not.toContain("openai-codex");
+		expect(values).toContain("openai-codex");
+	});
+});
+
+describe("imageGenTool provider routing", () => {
+	it("honors a per-request provider over the configured preference", async () => {
+		setPreferredImageProvider("antigravity");
+		Bun.env.OPENROUTER_API_KEY = "request-openrouter-key";
+		let requestUrl: string | undefined;
+		const captured = { authorization: null as string | null };
+
+		const fetchMock: typeof fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+			requestUrl = input.toString();
+			captured.authorization = new Headers(init?.headers).get("authorization");
+			return new Response(
+				JSON.stringify({
+					choices: [
+						{
+							message: {
+								images: [`data:image/png;base64,${Buffer.from("openrouter-image").toString("base64")}`],
+							},
+						},
+					],
+				}),
+				{ status: 200, headers: { "content-type": "application/json" } },
+			);
+		}) as unknown as typeof fetch;
+		fetchMock.preconnect = originalFetch.preconnect;
+		global.fetch = fetchMock;
+
+		const ctx: CustomToolContext = {
+			sessionManager: {
+				getCwd: () => "/tmp",
+				getSessionId: () => "test-session",
+			} as unknown as ReadonlySessionManager,
+			modelRegistry: {} as ModelRegistry,
+			model: undefined,
+			isIdle: () => true,
+			hasQueuedMessages: () => false,
+			abort: () => {},
+		};
+
+		const result = await imageGenTool.execute(
+			"call-provider-override",
+			{ subject: "a cat", provider: "openrouter" },
+			undefined,
+			ctx,
+		);
+		generatedImagePaths.push(...(result.details?.imagePaths ?? []));
+
+		expect(requestUrl).toBe("https://openrouter.ai/api/v1/chat/completions");
+		expect(captured.authorization).toBe("Bearer request-openrouter-key");
+		expect(result.details?.provider).toBe("openrouter");
+	});
+
+	it("falls back when a Codex credential lacks a subscription account claim", async () => {
+		const antigravityCredential = JSON.stringify({ token: "fallback-token", projectId: "fallback-project" });
+		let requestUrl: string | undefined;
+		const fetchMock: typeof fetch = (async (input: string | URL | Request) => {
+			requestUrl = input.toString();
+			return antigravitySseResponse();
+		}) as unknown as typeof fetch;
+		fetchMock.preconnect = originalFetch.preconnect;
+		global.fetch = fetchMock;
+
+		const codexModel = {
+			api: "openai-codex-responses",
+			provider: "openai-codex",
+			id: "gpt-5.5",
+			name: "GPT-5.5",
+			baseUrl: "https://chatgpt.com/backend-api",
+		} as Model;
+		const ctx = makeAntigravityCtx({
+			find: (provider: string, id: string) =>
+				provider === "openai-codex" && id === codexModel.id ? codexModel : undefined,
+			getAll: () => [codexModel],
+			getApiKey: async () => "plain-openai-key",
+			authStorage: {
+				getOAuthAccess: async () => undefined,
+			} as unknown as ModelRegistry["authStorage"],
+			getApiKeyForProvider: async (provider: string) => {
+				if (provider === "openai-codex") return "plain-openai-key";
+				if (provider === "google-antigravity") return antigravityCredential;
+				return undefined;
+			},
+		});
+
+		const result = await imageGenTool.execute(
+			"call-codex-fallback",
+			{ subject: "a cat", provider: "openai-codex" },
+			undefined,
+			ctx,
+		);
+		generatedImagePaths.push(...(result.details?.imagePaths ?? []));
+
+		expect(requestUrl).toBe(ANTIGRAVITY_URL);
+		expect(result.details?.provider).toBe("antigravity");
+		expect(result.details?.imageCount).toBe(1);
 	});
 });
 

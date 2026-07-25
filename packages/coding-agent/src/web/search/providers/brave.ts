@@ -85,7 +85,7 @@ async function callBraveSearch(
 			Accept: "application/json",
 			"X-Subscription-Token": apiKey,
 		},
-		signal: withHardTimeout(params.signal),
+		signal: withHardTimeout(params.signal, "api"),
 	});
 
 	if (!response.ok) {

@@ -8,6 +8,12 @@ import { isSilentAbort } from "../../session/messages";
 import { resolveImageOptions } from "../../tools/render-utils";
 
 /**
+ * 260703 WP6a — visible rows of the LIVE streaming thinking tail; the rest
+ * collapses behind a `Thinking … +K lines` marker until ctrl+o expands it.
+ */
+const THINKING_STREAM_TAIL_LINES = 4;
+
+/**
  * Component that renders a complete assistant message
  */
 export class AssistantMessageComponent extends Container {
@@ -287,9 +293,31 @@ export class AssistantMessageComponent extends Container {
 					if (hasVisibleContentAfter) {
 						this.#contentContainer.addChild(new Spacer(1));
 					}
-				} else if (this.#thinkingExpanded || isStreamingTail) {
+				} else if (this.#thinkingExpanded) {
 					// Thinking traces in thinkingText color, italic; cached by identity (10.013).
 					this.#contentContainer.addChild(this.#renderThinkingBlock(content));
+					if (hasVisibleContentAfter) {
+						this.#contentContainer.addChild(new Spacer(1));
+					}
+				} else if (isStreamingTail) {
+					// 260703 WP6a — the live streaming tail renders as a fixed-height
+					// window (marker + last N lines) instead of the full trace, so
+					// long thinking cannot overflow the live zone while streaming.
+					// Built fresh each update (the block mutates every message_update
+					// so the identity cache would never hit). ctrl+o expands in full.
+					const thinkingLines = content.thinking.trim().split("\n");
+					const tail = thinkingLines.slice(-THINKING_STREAM_TAIL_LINES);
+					const hidden = thinkingLines.length - tail.length;
+					if (hidden > 0) {
+						this.#contentContainer.addChild(
+							new Text(
+								`${theme.italic(theme.fg("thinkingText", "Thinking"))} ${theme.fg("dim", `… +${hidden} lines`)}`,
+								1,
+								0,
+							),
+						);
+					}
+					this.#contentContainer.addChild(new Text(theme.italic(theme.fg("thinkingText", tail.join("\n"))), 1, 0));
 					if (hasVisibleContentAfter) {
 						this.#contentContainer.addChild(new Spacer(1));
 					}

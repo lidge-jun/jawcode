@@ -1,6 +1,7 @@
 // ============================================================================
 // High-level API
 // ============================================================================
+import { serializeOAuthRefresh } from "./refresh-serialization";
 import type {
 	OAuthCredentials,
 	OAuthProvider,
@@ -8,6 +9,9 @@ import type {
 	OAuthProviderInfo,
 	OAuthProviderInterface,
 } from "./types";
+
+export * from "./auth-errors";
+export * from "./refresh-serialization";
 
 const builtInOAuthProviders: OAuthProviderInfo[] = [
 	{
@@ -58,6 +62,11 @@ const builtInOAuthProviders: OAuthProviderInfo[] = [
 	{
 		id: "cerebras",
 		name: "Cerebras",
+		available: true,
+	},
+	{
+		id: "deepinfra",
+		name: "DeepInfra",
 		available: true,
 	},
 	{
@@ -238,7 +247,22 @@ const customOAuthProviders = new Map<string, OAuthProviderInterface>();
  * Register a custom OAuth provider.
  */
 export function registerOAuthProvider(provider: OAuthProviderInterface): void {
-	customOAuthProviders.set(provider.id, provider);
+	const refreshToken = provider.refreshToken?.bind(provider);
+	const getApiKey = provider.getApiKey?.bind(provider);
+	const registered: OAuthProviderInterface = {
+		id: provider.id,
+		name: provider.name,
+		...(provider.sourceId === undefined ? {} : { sourceId: provider.sourceId }),
+		login: callbacks => provider.login(callbacks),
+		...(refreshToken
+			? {
+					refreshToken: (credentials: OAuthCredentials) =>
+						serializeOAuthRefresh(provider.id, credentials, () => refreshToken(credentials)),
+				}
+			: {}),
+		...(getApiKey ? { getApiKey: (credentials: OAuthCredentials) => getApiKey(credentials) } : {}),
+	};
+	customOAuthProviders.set(provider.id, registered);
 }
 
 /**
@@ -263,7 +287,7 @@ export function unregisterOAuthProviders(sourceId: string): void {
  * Refresh token for any OAuth provider.
  * Saves the new credentials and returns the new access token.
  */
-export async function refreshOAuthToken(
+async function refreshOAuthTokenUnshared(
 	provider: OAuthProvider,
 	credentials: OAuthCredentials,
 ): Promise<OAuthCredentials> {
@@ -335,6 +359,7 @@ export async function refreshOAuthToken(
 		case "huggingface":
 		case "opencode-zen":
 		case "opencode-go":
+		case "deepinfra":
 		case "cerebras":
 		case "fireworks":
 		case "firepass":
@@ -366,6 +391,10 @@ export async function refreshOAuthToken(
 			throw new Error(`Unknown OAuth provider: ${provider}`);
 	}
 	return newCredentials;
+}
+
+export function refreshOAuthToken(provider: OAuthProvider, credentials: OAuthCredentials): Promise<OAuthCredentials> {
+	return serializeOAuthRefresh(provider, credentials, () => refreshOAuthTokenUnshared(provider, credentials));
 }
 function getPerplexityJwtExpiryMs(token: string): number | undefined {
 	const parts = token.split(".");
@@ -449,6 +478,15 @@ export async function getOAuthApiKey(
 			})
 		: creds.access;
 	return { newCredentials: creds, apiKey };
+}
+
+/**
+ * Resolve the canonical provider that owns persisted OAuth credentials.
+ * Login variants may have distinct flow ids while sharing one credential
+ * authority; callers must normalize before reading, writing, or deleting.
+ */
+export function resolveOAuthStorageProvider(provider: OAuthProviderId): OAuthProviderId {
+	return provider === "openai-codex-device" ? "openai-codex" : provider;
 }
 
 /**

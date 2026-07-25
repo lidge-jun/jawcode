@@ -11,6 +11,11 @@ import { systemPromptCapability } from "./capability/system-prompt";
 import { type SkillsSettings, settings } from "./config/settings";
 import { type ContextFile, loadCapability, type SystemPrompt as SystemPromptFile } from "./discovery";
 import { loadSkills, type Skill } from "./extensibility/skills";
+import toneDeadpan from "./prompts/identity/tone-deadpan.md" with { type: "text" };
+import toneHype from "./prompts/identity/tone-hype.md" with { type: "text" };
+import toneSarcastic from "./prompts/identity/tone-sarcastic.md" with { type: "text" };
+import toneSavage from "./prompts/identity/tone-savage.md" with { type: "text" };
+import toneUhehe from "./prompts/identity/tone-uhehe.md" with { type: "text" };
 import customSystemPromptTemplate from "./prompts/system/custom-system-prompt.md" with { type: "text" };
 import projectPromptTemplate from "./prompts/system/project-prompt.md" with { type: "text" };
 import systemPromptTemplate from "./prompts/system/system-prompt.md" with { type: "text" };
@@ -295,27 +300,41 @@ export async function loadProjectContextFiles(
 	return dedupeExactContextFiles(files);
 }
 
+/** Static tone preset bodies keyed by `identity.tone` (non-custom values). */
+const TONE_PRESETS: Record<string, string> = {
+	sarcastic: toneSarcastic,
+	savage: toneSavage,
+	deadpan: toneDeadpan,
+	hype: toneHype,
+	uhehe: toneUhehe,
+};
+
 /**
  * Render the agent identity block from `identity.*` settings (name, emoji,
- * vibe, language). Returns null when no field is set or when the settings
- * singleton is not initialized (bare SDK/embedding paths), so the hard-edited
- * Jaw baseline prompt is used unchanged.
+ * vibe, language, tone). Returns null when no field is set or when the
+ * settings singleton is not initialized (bare SDK/embedding paths), so the
+ * hard-edited Jaw baseline prompt is used unchanged.
  */
 export function renderIdentityBlock(): string | null {
 	let name: string | undefined;
 	let emoji: string | undefined;
 	let vibe: string | undefined;
 	let language: string | undefined;
+	let tone: string | undefined;
+	let toneCustom: string | undefined;
 	try {
 		name = settings.get("identity.name");
 		emoji = settings.get("identity.emoji");
 		vibe = settings.get("identity.vibe");
 		language = settings.get("identity.language");
+		tone = settings.get("identity.tone");
+		toneCustom = settings.get("identity.toneCustom");
 	} catch {
 		// Settings not initialized — no identity block.
 		return null;
 	}
-	if (!name && !emoji && !vibe && !language) return null;
+	const toneBody = tone === "custom" ? toneCustom?.trim() : tone ? TONE_PRESETS[tone]?.trim() : undefined;
+	if (!name && !emoji && !vibe && !language && !toneBody) return null;
 
 	const lines: string[] = ["# Identity"];
 	if (name || emoji) {
@@ -333,6 +352,9 @@ export function renderIdentityBlock(): string | null {
 			lines.push("", "## Vibe");
 			for (const line of vibeLines) lines.push(`- ${line}`);
 		}
+	}
+	if (toneBody) {
+		lines.push("", "## Tone", toneBody);
 	}
 	if (language) {
 		lines.push("", `Respond in ${language} unless the user writes in another language.`);

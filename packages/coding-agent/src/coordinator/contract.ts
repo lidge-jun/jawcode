@@ -10,6 +10,7 @@ export const COORDINATOR_MCP_TOOL_NAMES = [
 	"jwc_coordinator_read_artifact",
 	"jwc_coordinator_read_coordination_status",
 	"jwc_coordinator_start_session",
+	"jwc_coordinator_stop_session",
 	"jwc_coordinator_send_prompt",
 	"jwc_coordinator_submit_question_answer",
 	"jwc_coordinator_read_turn",

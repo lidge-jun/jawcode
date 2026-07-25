@@ -283,6 +283,8 @@ export class ModelSelectorComponent extends Container {
 	#selectedProfileMenuIndex = 0;
 	#selectedPresetHeaderIndex = 0;
 	#currentProfileName?: string;
+	#currentModel?: Model;
+	#currentThinkingLevel?: ThinkingLevel;
 	#selectedThinkingIndex: number = 0;
 
 	// Tab state
@@ -291,13 +293,18 @@ export class ModelSelectorComponent extends Container {
 
 	constructor(
 		tui: TUI,
-		_currentModel: Model | undefined,
+		currentModel: Model | undefined,
 		settings: Settings,
 		modelRegistry: ModelRegistry,
 		scopedModels: ReadonlyArray<ScopedModelItem>,
 		onSelect: RoleSelectCallback,
 		onCancel: () => void,
-		options?: { temporaryOnly?: boolean; initialSearchInput?: string; currentProfileName?: string },
+		options?: {
+			temporaryOnly?: boolean;
+			initialSearchInput?: string;
+			currentProfileName?: string;
+			currentThinkingLevel?: ThinkingLevel;
+		},
 	) {
 		super();
 
@@ -310,6 +317,8 @@ export class ModelSelectorComponent extends Container {
 		this.#temporaryOnly = options?.temporaryOnly ?? false;
 		const initialSearchInput = options?.initialSearchInput;
 		this.#currentProfileName = options?.currentProfileName;
+		this.#currentModel = currentModel;
+		this.#currentThinkingLevel = options?.currentThinkingLevel;
 
 		// Load current role assignments from settings
 		this.#loadRoleModels();
@@ -348,7 +357,7 @@ export class ModelSelectorComponent extends Container {
 		// Create search input
 		this.#searchInput = new Input();
 		if (initialSearchInput) {
-			this.#searchInput.setValue(initialSearchInput);
+			this.#setSearchInputValue(initialSearchInput);
 		}
 		this.#searchInput.onSubmit = () => {
 			if (this.#isTwoPane() && this.#activePaneId === "profiles") {
@@ -947,10 +956,35 @@ export class ModelSelectorComponent extends Container {
 		return this.#getVisibleProfiles().length > 0;
 	}
 
+	#setSearchInputValue(value: string): void {
+		this.#searchInput.setValue(value);
+		// Input#setValue preserves its old cursor, so explicitly move a prefill to the end.
+		this.#searchInput.handleInput("\x05");
+	}
+
+	#formatCurrentModelLabel(): string | undefined {
+		if (!this.#currentModel) return undefined;
+		const selector = `${this.#currentModel.provider}/${this.#currentModel.id}`;
+		if (!this.#currentThinkingLevel || this.#currentThinkingLevel === ThinkingLevel.Inherit) return selector;
+		return `${selector} (${getThinkingLevelMetadata(this.#currentThinkingLevel).label})`;
+	}
+
 	/** ALL tab body: preset controls above the normal filtered model list. */
 	#renderAllTabRows(): void {
 		const currentProfileName = this.#currentProfileName ?? this.#settings.get("modelProfile.default") ?? "none";
 		this.#listContainer.addChild(new Text(theme.fg("muted", `Current preset: ${currentProfileName}`), 0, 0));
+		const currentModelLabel = this.#formatCurrentModelLabel();
+		if (currentModelLabel) {
+			this.#listContainer.addChild(new Text(theme.fg("muted", `Current session: ${currentModelLabel}`), 0, 0));
+		}
+		for (const role of JWC_MODEL_ASSIGNMENT_TARGET_IDS) {
+			const assignment = this.#roles[role];
+			if (!assignment) continue;
+			const label = JWC_MODEL_ASSIGNMENT_TARGETS[role].tag ?? role.toUpperCase();
+			this.#listContainer.addChild(
+				new Text(theme.fg("dim", `  ${label}: ${this.#formatRoleAssignment(assignment)}`), 0, 0),
+			);
+		}
 
 		const detailsPrefix =
 			this.#activePaneId === "profiles" && this.#selectedPresetHeaderIndex === 0
@@ -1577,9 +1611,19 @@ export class ModelSelectorComponent extends Container {
 		return this.#searchInput;
 	}
 
-	refreshFromSettings(options?: { currentProfileName?: string }): void {
+	refreshFromSettings(options?: {
+		currentProfileName?: string;
+		currentModel?: Model;
+		currentThinkingLevel?: ThinkingLevel;
+	}): void {
 		if (options?.currentProfileName !== undefined) {
 			this.#currentProfileName = options.currentProfileName;
+		}
+		if (options && "currentModel" in options) {
+			this.#currentModel = options.currentModel;
+		}
+		if (options && "currentThinkingLevel" in options) {
+			this.#currentThinkingLevel = options.currentThinkingLevel;
 		}
 		this.#roles = {};
 		this.#loadRoleModels();

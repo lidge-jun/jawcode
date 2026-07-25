@@ -239,4 +239,27 @@ describe("AgentSession message pipeline", () => {
 		expect(customMessages[0]?.content).toContain("ping");
 		expect(agent.state.messages.at(-1)).toBe(customMessages[0]);
 	});
+
+	it("does not surface a ghost IRC message when reply generation fails", async () => {
+		const agent = createAgent();
+		const session = new AgentSession({
+			agent,
+			sessionManager: SessionManager.inMemory(),
+			settings: Settings.isolated({ "compaction.enabled": false }),
+			modelRegistry: {} as never,
+		});
+		sessions.push(session);
+		vi.spyOn(session, "runEphemeralTurn").mockRejectedValue(new Error("model unavailable"));
+		const ircEvents: AgentSessionEvent[] = [];
+		session.subscribe(event => {
+			if (event.type === "irc_message") ircEvents.push(event);
+		});
+
+		await expect(session.respondAsBackground({ from: "0-Main", message: "ping" })).rejects.toThrow(
+			"model unavailable",
+		);
+
+		expect(ircEvents).toEqual([]);
+		expect(agent.state.messages.filter(message => message.role === "custom")).toEqual([]);
+	});
 });

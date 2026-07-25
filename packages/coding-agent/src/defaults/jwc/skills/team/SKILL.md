@@ -60,6 +60,10 @@ requiring a separate linked execution loop up front. jwc team supports current-w
 - **Escalation:** use a new explicit follow-up task only when later manual work still needs a persistent single-owner fix/verification loop.
 - **Deprecation:** nested team execution commands have been removed. Use plain `jwc team ...` for coordinated execution.
 
+### Candidate Population / League Runs
+
+When Team is used for an open-ended optimization loop, treat workers as isolated solo builders for candidate strategies. Assign one candidate per lane/worker/worktree with its own hypothesis, allowed patch surface, and evidence contract. Do not use co-authoring, shared editing of one candidate, majority voting, or worker self-ranking as selection. The leader evaluates all completed candidates on the same instances with the plan's deterministic selection rule, keeps best-so-far, records losing evidence, and hands the result back to Goal or planning for the next generation.
+
 ### Team + Goal bridge
 
 Use `$goal` for durable leader-owned goal/ledger tracking and `$team` for parallel visible tmux execution lanes. When Team is launched with an active `.jwc/goal/goals.json`, worker task/status context may include leader-owned Goal context: `.jwc/goal/goals.json`, `.jwc/goal/ledger.jsonl`, the active goal id, jwc goal mode, and the `fresh_leader_goal_get_required` checkpoint policy.
@@ -113,6 +117,21 @@ Before launching `jwc team`, require a grounded context snapshot:
 Do not start the worker pane until this gate is satisfied; if forced to proceed quickly, state explicit scope/risk limitations in the launch report.
 
 For simple read-only brownfield lookups during intake, follow active session guidance: when `USE_GJC_EXPLORE_CMD` is enabled, prefer `jwc explore` with narrow, concrete prompts; otherwise use the richer normal explore path and fall back normally if `jwc explore` is unavailable.
+
+## Delegation Economy (DISPATCH-ECONOMY-01)
+
+- **DEFAULT:** Decide worker dispatch on three axes:
+  - **Specifiability:** Can the task packet state its inputs, outputs, and decision boundary completely?
+  - **Verifiability:** Can the return be checked mechanically through anchors, figures, or reproduction commands?
+  - **Judgment ownership:** Collapse/crux VERDICTS stay with the team leader; re-derivation, standardized implementation, research, and audits are dispatchable to worker panes or researcher lanes.
+- A slice that fails any axis stays with the leader. Complexity or importance is NOT an axis: a hard derivation that passes all three axes is dispatchable, and a trivial slice whose packet cannot state its decision boundary is not.
+- On the output side, the leader must give every return an accept/reject/merge disposition with a one-line rationale BEFORE dispatching the next wave; wave-granular disposition is allowed.
+- Returns must carry verbatim anchors: file:line quotes, exact figures, and URLs. A paraphrase-only summary creates correlated blind spots between the leader and reviewer.
+- Prefer batch waves followed by a single synthesis over drip-feed worker dispatch.
+- Speculative dispatch of LATER-phase work is default-OFF. The one exception is phase-invariant EXTERNAL research that reads no repo state; quarantine its return as `candidate — unverified` and discard it by default when the plan is amended.
+- Pre-context Intake Gate step 5 is a CURRENT-task intake evidence dispatch and is therefore outside speculative-dispatch scope; the default-OFF clause applies only to dispatching LATER-phase work.
+
+Adopted 2026-07-11 from an adversarial fork-debate + Tier-2 arXiv claim ledger (10 papers, evidence grades recorded; codexclaw devlog 260711_dispatch_economy_docs_site). Adapted port — see pabcd_initiative skills/dev-pabcd §7.1 for the canonical wording.
 
 ## Follow-up Staffing Contract
 

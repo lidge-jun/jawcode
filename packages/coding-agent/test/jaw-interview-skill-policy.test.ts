@@ -106,4 +106,14 @@ describe("jaw-interview SKILL.md policy markers (042)", () => {
 		expect(skill).toContain("hashline `§path`");
 		expect(skill).toContain("Do not emit target-less edit payloads");
 	});
+
+	it("keeps implementation wording inside the interview phase (10.059)", () => {
+		// "implementation"/"구현" wording describes the eventual target, not in-phase permission.
+		expect(skill).toContain("describing the eventual target of the work, not as permission to implement now");
+		expect(skill).toContain("I won't implement during jaw-interview");
+		expect(skill).toContain("While still in jaw-interview, do not implement");
+		expect(skill).toContain("Implementation requires an explicit phase transition after the interview");
+		// JWC-native wording references the native plan stage, not the upstream skill name.
+		expect(skill).toContain("orchestrate P");
+	});
 });

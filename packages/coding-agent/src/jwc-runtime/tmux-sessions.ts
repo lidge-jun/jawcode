@@ -1,5 +1,6 @@
 import {
 	buildJwcTmuxExactOptionTarget,
+	buildJwcTmuxExactSessionTarget,
 	buildJwcTmuxProfileCommands,
 	buildJwcTmuxSessionName,
 	GJC_TMUX_BRANCH_OPTION,
@@ -32,7 +33,7 @@ function runTmux(args: string[], env: NodeJS.ProcessEnv = process.env): string {
 
 function tryKillSession(sessionName: string, env: NodeJS.ProcessEnv): void {
 	try {
-		runTmux(["kill-session", "-t", `=${sessionName}`], env);
+		runTmux(["kill-session", "-t", buildJwcTmuxExactSessionTarget(sessionName, { env })], env);
 	} catch {
 		// Best-effort cleanup only; preserve the original create/tag failure.
 	}
@@ -142,7 +143,7 @@ export function createJwcTmuxSession(env: NodeJS.ProcessEnv = process.env): JwcT
 
 function readProfileForExactTarget(sessionName: string, env: NodeJS.ProcessEnv): string {
 	return runTmux(
-		["show-options", "-qv", "-t", buildJwcTmuxExactOptionTarget(sessionName), GJC_TMUX_PROFILE_OPTION],
+		["show-options", "-qv", "-t", buildJwcTmuxExactOptionTarget(sessionName, { env }), GJC_TMUX_PROFILE_OPTION],
 		env,
 	).trim();
 }
@@ -152,18 +153,21 @@ export function removeJwcTmuxSession(sessionName: string, env: NodeJS.ProcessEnv
 	if (readProfileForExactTarget(session.name, env) !== GJC_TMUX_PROFILE_VALUE) {
 		throw new Error(`gjc_tmux_session_not_managed:${sessionName}`);
 	}
-	runTmux(["kill-session", "-t", `=${session.name}`], env);
+	runTmux(["kill-session", "-t", buildJwcTmuxExactSessionTarget(session.name, { env })], env);
 	return session;
 }
 
 export function attachJwcTmuxSession(sessionName: string, env: NodeJS.ProcessEnv = process.env): never {
 	const session = statusJwcTmuxSession(sessionName, env);
 	const tmuxCommand = resolveJwcTmuxCommand(env);
-	const result = Bun.spawnSync([tmuxCommand, "attach-session", "-t", `=${session.name}`], {
-		stdin: "inherit",
-		stdout: "inherit",
-		stderr: "inherit",
-		env,
-	});
+	const result = Bun.spawnSync(
+		[tmuxCommand, "attach-session", "-t", buildJwcTmuxExactSessionTarget(session.name, { env })],
+		{
+			stdin: "inherit",
+			stdout: "inherit",
+			stderr: "inherit",
+			env,
+		},
+	);
 	process.exit(result.exitCode ?? 1);
 }

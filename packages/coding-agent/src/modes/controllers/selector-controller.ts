@@ -1,9 +1,17 @@
 import { ThinkingLevel } from "@jawcode-dev/agent-core";
 import { getOAuthProviders } from "@jawcode-dev/ai/utils/oauth";
 import type { OAuthProvider } from "@jawcode-dev/ai/utils/oauth/types";
-import type { Component, OverlayHandle, SelectItem } from "@jawcode-dev/tui";
-import { Container, Input, Loader, SelectList, Spacer, Text } from "@jawcode-dev/tui";
+import type {
+	CommandPaletteEntry,
+	CommandPaletteTheme,
+	Component,
+	OverlayHandle,
+	SelectItem,
+	SlashCommand,
+} from "@jawcode-dev/tui";
+import { CommandPalette, Container, Input, Loader, SelectList, Spacer, Text } from "@jawcode-dev/tui";
 import { APP_NAME, getAgentDbPath, getProjectDir } from "@jawcode-dev/utils";
+import type { AppKeybinding } from "../../config/keybindings";
 import { activateModelProfile } from "../../config/model-profile-activation";
 import { resolveOAuthProviderId } from "../../config/oauth-provider-aliases";
 import { settings } from "../../config/settings";
@@ -19,6 +27,7 @@ import {
 } from "../../extensibility/plugins/marketplace";
 import { DynamicBorder } from "../../modes/components/dynamic-border";
 import { type HelpCatalogEntry, HelpSelectorComponent } from "../../modes/components/help-selector";
+import { appKey } from "../../modes/components/keybinding-hints";
 import { QuotaPanelComponent } from "../../modes/components/quota-panel";
 import {
 	getAvailableThemes,
@@ -33,7 +42,7 @@ import {
 	setTheme,
 	theme,
 } from "../../modes/theme/theme";
-import type { InteractiveModeContext } from "../../modes/types";
+import type { CommandPaletteAction, InteractiveModeContext } from "../../modes/types";
 import { resolveResumableSession, type SessionInfo, SessionManager } from "../../session/session-manager";
 import { FileSessionStorage } from "../../session/session-storage";
 import {
@@ -94,6 +103,54 @@ function formatProviderOnboardingCommandGuide(): string {
 	].join("\n");
 }
 
+function getCommandPaletteTheme(): CommandPaletteTheme {
+	return {
+		border: text => theme.fg("border", text),
+		title: text => theme.bold(theme.fg("accent", text)),
+		queryPrefix: text => theme.fg("accent", text),
+		selectedPrefix: text => theme.fg("accent", text),
+		selectedText: text => theme.bold(text),
+		description: text => theme.fg("dim", text),
+		muted: text => theme.fg("muted", text),
+		cursor: theme.nav.cursor,
+	};
+}
+
+function buildCommandPaletteEntries(
+	keybindings: InteractiveModeContext["keybindings"],
+	commands: SlashCommand[],
+	actions: CommandPaletteAction[],
+	executeSlashCommand: (name: string) => Promise<void>,
+): { entries: CommandPaletteEntry[]; handlers: Map<string, () => void | Promise<void>> } {
+	const seenCommands = new Set<string>();
+	const handlers = new Map<string, () => void | Promise<void>>();
+	const entries: CommandPaletteEntry[] = actions.map(action => {
+		const id = `action:${action.id}`;
+		handlers.set(id, action.handler);
+		return {
+			id,
+			label: action.label,
+			description: action.id,
+			keybinding: appKey(keybindings, action.id as AppKeybinding) || undefined,
+			searchText: action.id,
+		};
+	});
+
+	for (const command of commands) {
+		if (seenCommands.has(command.name)) continue;
+		seenCommands.add(command.name);
+		const id = `command:${command.name}`;
+		entries.push({
+			id,
+			label: `/${command.name}`,
+			description: command.description ?? "Slash command",
+			searchText: command.name,
+		});
+		handlers.set(id, () => executeSlashCommand(command.name));
+	}
+	return { entries, handlers };
+}
+
 export class SelectorController {
 	constructor(private ctx: InteractiveModeContext) {}
 
@@ -122,6 +179,45 @@ export class SelectorController {
 		this.ctx.editorContainer.addChild(component);
 		this.ctx.ui.setFocus(focus);
 		this.ctx.ui.requestRender();
+	}
+
+	showCommandPalette(
+		commands: SlashCommand[],
+		actions: CommandPaletteAction[],
+		executeSlashCommand: (name: string) => Promise<void>,
+	): void {
+		const { entries, handlers } = buildCommandPaletteEntries(
+			this.ctx.keybindings,
+			commands,
+			actions,
+			executeSlashCommand,
+		);
+		let overlayHandle: OverlayHandle | undefined;
+		let closed = false;
+		const close = () => {
+			if (closed) return;
+			closed = true;
+			overlayHandle?.hide();
+			overlayHandle = undefined;
+		};
+		const palette = new CommandPalette(entries, getCommandPaletteTheme(), {
+			onCancel: close,
+			onChange: () => this.ctx.ui.requestRender(),
+			onSelect: entry => {
+				const handler = handlers.get(entry.id);
+				close();
+				void Promise.resolve()
+					.then(() => handler?.())
+					.catch(error => this.ctx.showError(error instanceof Error ? error.message : String(error)));
+			},
+		});
+		overlayHandle = this.ctx.ui.showOverlay(palette, {
+			anchor: "center",
+			width: "80%",
+			maxHeight: "80%",
+			margin: 1,
+		});
+		this.ctx.ui.setFocus(palette);
 	}
 
 	showProviderOnboarding(): void {
@@ -256,8 +352,9 @@ export class SelectorController {
 	/** 083.4: dropdown for /effort — pick a reasoning effort (thinking level). */
 	showEffortSelector(): void {
 		const levels: SelectItem[] = [
+			{ value: "inherit", label: "inherit", description: "Use the configured default" },
 			{ value: "off", label: "off", description: "No reasoning" },
-			{ value: "min", label: "minimal", description: "Very brief reasoning (~1k tokens)" },
+			{ value: "minimal", label: "minimal", description: "Very brief reasoning (~1k tokens)" },
 			{ value: "low", label: "low", description: "Light reasoning (~2k tokens)" },
 			{ value: "medium", label: "medium", description: "Moderate reasoning (~8k tokens)" },
 			{ value: "high", label: "high", description: "Deep reasoning (~16k tokens)" },
@@ -274,9 +371,24 @@ export class SelectorController {
 			if (currentIndex >= 0) list.setSelectedIndex(currentIndex);
 			list.onSelect = item => {
 				done();
-				this.ctx.session.setThinkingLevel(item.value as ThinkingLevel);
+				const selectedLevel = item.value as ThinkingLevel;
+				const configuredDefault = this.ctx.settings.get("defaultThinkingLevel");
+				const levelToApply = selectedLevel === ThinkingLevel.Inherit ? configuredDefault : selectedLevel;
+				this.ctx.session.setThinkingLevel(levelToApply);
+				if (selectedLevel !== ThinkingLevel.Inherit) {
+					this.ctx.settings.set("defaultThinkingLevel", selectedLevel);
+					void this.ctx.notifyConfigChanged?.();
+				}
 				this.ctx.statusLine.invalidate();
-				this.ctx.showStatus(`Reasoning effort set to ${this.ctx.session.thinkingLevel ?? "off"}.`);
+				const selectedLabel =
+					selectedLevel === ThinkingLevel.Inherit
+						? `inherit (configured default: ${configuredDefault})`
+						: selectedLevel;
+				const scopeLabel =
+					selectedLevel === ThinkingLevel.Inherit ? "Reasoning effort" : "Default reasoning effort";
+				this.ctx.showStatus(
+					`${scopeLabel} set to ${selectedLabel}. Effective effort: ${this.ctx.session.thinkingLevel ?? "off"}.`,
+				);
 				this.ctx.ui.requestRender();
 			};
 			list.onCancel = () => {
@@ -858,7 +970,10 @@ export class SelectorController {
 					try {
 						if (selection.kind === "preset") {
 							await this.#applyModelAssignmentPreset(selection);
-							modelSelector.refreshFromSettings();
+							modelSelector.refreshFromSettings({
+								currentModel: this.ctx.session.model,
+								currentThinkingLevel: this.ctx.session.thinkingLevel,
+							});
 							this.ctx.ui.requestRender();
 							return;
 						}
@@ -872,7 +987,11 @@ export class SelectorController {
 								},
 								{ persistDefault: selection.setDefault },
 							);
-							modelSelector.refreshFromSettings({ currentProfileName: selection.profileName });
+							modelSelector.refreshFromSettings({
+								currentProfileName: selection.profileName,
+								currentModel: this.ctx.session.model,
+								currentThinkingLevel: this.ctx.session.thinkingLevel,
+							});
 							this.ctx.statusLine.invalidate();
 							this.ctx.updateEditorBorderColor();
 							this.ctx.showStatus(
@@ -901,7 +1020,10 @@ export class SelectorController {
 							if (thinkingLevel && thinkingLevel !== ThinkingLevel.Inherit) {
 								this.ctx.session.setThinkingLevel(thinkingLevel);
 							}
-							modelSelector.refreshFromSettings();
+							modelSelector.refreshFromSettings({
+								currentModel: this.ctx.session.model,
+								currentThinkingLevel: this.ctx.session.thinkingLevel,
+							});
 							this.ctx.statusLine.invalidate();
 							this.ctx.updateEditorBorderColor();
 							this.ctx.showStatus(`Default model: ${selectedSelector ?? model.id}`);
@@ -919,7 +1041,10 @@ export class SelectorController {
 							this.ctx.settings.set("task.agentModelOverrides", nextOverrides);
 							this.ctx.settings.override("task.agentModelOverrides", nextOverrides);
 							this.ctx.settings.getStorage()?.recordModelUsage(`${model.provider}/${model.id}`);
-							modelSelector.refreshFromSettings();
+							modelSelector.refreshFromSettings({
+								currentModel: this.ctx.session.model,
+								currentThinkingLevel: this.ctx.session.thinkingLevel,
+							});
 							this.ctx.showStatus(`${role} agent model: ${value}`);
 							this.ctx.ui.requestRender();
 						}
@@ -927,6 +1052,8 @@ export class SelectorController {
 						modelSelector.refreshFromSettings({
 							currentProfileName:
 								this.ctx.session.getActiveModelProfile?.() ?? this.ctx.settings.get("modelProfile.default"),
+							currentModel: this.ctx.session.model,
+							currentThinkingLevel: this.ctx.session.thinkingLevel,
 						});
 						this.ctx.ui.requestRender();
 						this.ctx.showError(error instanceof Error ? error.message : String(error));
@@ -940,6 +1067,7 @@ export class SelectorController {
 					...options,
 					currentProfileName:
 						this.ctx.session.getActiveModelProfile?.() ?? this.ctx.settings.get("modelProfile.default"),
+					currentThinkingLevel: this.ctx.session.thinkingLevel,
 				},
 			);
 			return { component: modelSelector, focus: modelSelector };

@@ -96,6 +96,7 @@ const serviceProviderMap: Record<string, KeyResolver> = {
 	"opencode-go": "OPENCODE_API_KEY",
 	"opencode-zen": "OPENCODE_API_KEY",
 	cursor: "CURSOR_ACCESS_TOKEN",
+	deepinfra: "DEEPINFRA_API_KEY",
 	deepseek: "DEEPSEEK_API_KEY",
 	"openai-codex": "OPENAI_CODEX_OAUTH_TOKEN",
 	"azure-openai": "AZURE_OPENAI_API_KEY",
@@ -722,6 +723,7 @@ function mapOptionsForApi<TApi extends Api>(
 				toolChoice: mapOpenAiToolChoice(options?.toolChoice),
 				serviceTier: options?.serviceTier,
 				reasoningSummary: options?.hideThinkingSummary ? null : undefined,
+				textVerbosity: options?.textVerbosity,
 			});
 
 		case "azure-openai-responses":
@@ -741,6 +743,7 @@ function mapOptionsForApi<TApi extends Api>(
 				serviceTier: options?.serviceTier,
 				preferWebsockets: options?.preferWebsockets,
 				reasoningSummary: options?.hideThinkingSummary ? null : undefined,
+				textVerbosity: options?.textVerbosity,
 			});
 
 		case "google-generative-ai": {

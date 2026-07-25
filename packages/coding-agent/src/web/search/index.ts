@@ -18,8 +18,9 @@ import { discoverAuthStorage } from "../../sdk";
 import type { ToolSession } from "../../tools";
 import { formatAge } from "../../tools/render-utils";
 import { throwIfAborted } from "../../tools/tool-errors";
-import { getSearchProviderLabel, resolveProviderChain, type SearchProvider } from "./provider";
-import { setSearchHardTimeoutMs } from "./providers/utils";
+import { getSearchProviderLabel, resolveProviderChain, type SearchParams, type SearchProvider } from "./provider";
+import { applyConfiguredSearchTimeout } from "./providers/utils";
+
 import { renderSearchCall, renderSearchResult, type SearchRenderDetails } from "./render";
 import type { SearchProviderId, SearchResponse } from "./types";
 import { SearchProviderError } from "./types";
@@ -35,13 +36,20 @@ export const webSearchSchema = z.object({
 	depth: z
 		.enum(["fast", "deep"])
 		.describe(
-			"Search depth tier. fast (default) = synchronous 60s, quick results. deep = async 180s with heavier reasoning models for complex multi-hop research queries.",
+			"Search depth tier. fast (default) uses provider-class timeouts: short direct APIs, longer LLM search; deep = async 180s with heavier reasoning models for complex multi-hop research queries.",
 		)
 		.optional(),
 });
 
 /** Deep tier hard timeout — 3× the standard 60s (075 design: AsyncJob + heavier models need room). */
 export const DEEP_SEARCH_TIMEOUT_MS = 180_000;
+
+export const DDG_HEDGE_DELAY_MS = 750;
+let ddgHedgeDelayMs = DDG_HEDGE_DELAY_MS;
+
+export function setDdgHedgeDelayMs(ms?: number): void {
+	ddgHedgeDelayMs = typeof ms === "number" && Number.isFinite(ms) && ms >= 0 ? ms : DDG_HEDGE_DELAY_MS;
+}
 
 export type SearchToolParams = z.infer<typeof webSearchSchema>;
 
@@ -146,14 +154,83 @@ interface ExecuteSearchOptions {
 	sessionModel?: string;
 	/** Session model provider (e.g. "openai-codex"). */
 	sessionModelProvider?: string;
-	/** "deep" = 180s async; "fast" (default) = 60s sync. */
+	/** "deep" = 180s async; "fast" (default) = provider-class sync timeouts. */
 	depth?: "fast" | "deep" | undefined;
-	/** Timeout override for providers (deep = 180_000, fast = default 60_000). */
+	/** Explicit timeout override for providers; deep passes 180_000, fast uses provider class defaults. */
 	timeoutMs?: number | undefined;
 	/** Reasoning effort from settings (080). */
 	reasoningEffort?: string | undefined;
 	/** Search context size from settings (080, codex only). */
 	searchContextSize?: string | undefined;
+}
+
+interface ProviderAttempt {
+	provider: SearchProvider;
+	response: SearchResponse;
+}
+
+function buildProviderSearchParams(
+	params: SearchQueryParams,
+	options: ExecuteSearchOptions,
+	signal: AbortSignal | undefined,
+): SearchParams {
+	return {
+		query: params.query.replace(/202\d/g, String(new Date().getFullYear())), // LUL
+		limit: params.limit,
+		recency: params.recency,
+		systemPrompt: webSearchSystemPrompt,
+		maxOutputTokens: params.max_tokens,
+		numSearchResults: params.num_search_results,
+		temperature: params.temperature,
+		signal,
+		authStorage: options.authStorage,
+		sessionId: options.sessionId,
+		sessionModel: options.sessionModel,
+		sessionModelProvider: options.sessionModelProvider,
+		depth: options.depth,
+		timeoutMs: options.timeoutMs,
+		reasoningEffort: options.reasoningEffort as "none" | "low" | "medium" | "high" | undefined,
+		searchContextSize: options.searchContextSize as "low" | "medium" | "high" | undefined,
+	};
+}
+
+async function searchProvider(
+	provider: SearchProvider,
+	params: SearchQueryParams,
+	options: ExecuteSearchOptions,
+	signal: AbortSignal | undefined,
+): Promise<ProviderAttempt> {
+	const response = await provider.search(buildProviderSearchParams(params, options, signal));
+	return { provider, response };
+}
+
+function formatSearchSuccess(attempt: ProviderAttempt): {
+	content: Array<{ type: "text"; text: string }>;
+	details: SearchRenderDetails;
+} {
+	const text = formatForLLM(attempt.response);
+	return {
+		content: [{ type: "text" as const, text }],
+		details: { response: attempt.response },
+	};
+}
+
+async function waitForDdgHedgeDelay(signal: AbortSignal | undefined): Promise<void> {
+	if (ddgHedgeDelayMs <= 0) return;
+	if (!signal) {
+		await Bun.sleep(ddgHedgeDelayMs);
+		return;
+	}
+	throwIfAborted(signal);
+	const done = Promise.withResolvers<void>();
+	const onAbort = () => done.resolve();
+	signal.addEventListener("abort", onAbort, { once: true });
+	try {
+		await Promise.race([Bun.sleep(ddgHedgeDelayMs), done.promise]);
+	} finally {
+		signal.removeEventListener("abort", onAbort);
+	}
+	throwIfAborted(signal);
 }
 
 /** Execute web search */
@@ -162,7 +239,7 @@ async function executeSearch(
 	params: SearchQueryParams,
 	options: ExecuteSearchOptions,
 ): Promise<{ content: Array<{ type: "text"; text: string }>; details: SearchRenderDetails }> {
-	const { authStorage, sessionId, signal, activeModelProvider, sessionModel, sessionModelProvider } = options;
+	const { authStorage, signal, activeModelProvider } = options;
 	// Pass `params.provider` straight through: when omitted (the normal model-facing
 	// path) it is `undefined`, so `resolveProviderChain` applies the settings-configured
 	// preferred provider. Coalescing to "auto" here would silently bypass that preference.
@@ -170,36 +247,30 @@ async function executeSearch(
 
 	const failures: Array<{ provider: SearchProvider; error: unknown }> = [];
 	let lastProvider = providers[0];
-	for (const provider of providers) {
+	const duckDuckGoIndex = providers.findIndex(provider => provider.id === "duckduckgo");
+	let hedgeController: AbortController | undefined;
+	let hedgePromise: Promise<ProviderAttempt> | undefined;
+
+	if (duckDuckGoIndex > 0) {
+		const duckDuckGo = providers[duckDuckGoIndex];
+		hedgeController = new AbortController();
+		const hedgeSignal = signal ? AbortSignal.any([signal, hedgeController.signal]) : hedgeController.signal;
+		hedgePromise = (async () => {
+			await waitForDdgHedgeDelay(hedgeSignal);
+			return searchProvider(duckDuckGo, params, options, hedgeSignal);
+		})();
+		void hedgePromise.catch(() => undefined);
+	}
+
+	for (const [index, provider] of providers.entries()) {
 		lastProvider = provider;
 		try {
-			const response = await provider.search({
-				query: params.query.replace(/202\d/g, String(new Date().getFullYear())), // LUL
-				limit: params.limit,
-				recency: params.recency,
-				systemPrompt: webSearchSystemPrompt,
-				maxOutputTokens: params.max_tokens,
-				numSearchResults: params.num_search_results,
-				temperature: params.temperature,
-				signal,
-				authStorage,
-				sessionId,
-				// Session-model parity (074): providers use this when session's
-				// provider matches theirs (e.g. codex-spark → codex, claude → anthropic).
-				sessionModel,
-				sessionModelProvider,
-				depth: options.depth,
-				timeoutMs: options.timeoutMs,
-				reasoningEffort: options.reasoningEffort as "none" | "low" | "medium" | "high" | undefined,
-				searchContextSize: options.searchContextSize as "low" | "medium" | "high" | undefined,
-			});
-
-			const text = formatForLLM(response);
-
-			return {
-				content: [{ type: "text" as const, text }],
-				details: { response },
-			};
+			if (index === duckDuckGoIndex && hedgePromise) {
+				return formatSearchSuccess(await hedgePromise);
+			}
+			const attempt = await searchProvider(provider, params, options, signal);
+			hedgeController?.abort();
+			return formatSearchSuccess(attempt);
 		} catch (error) {
 			// Surface user-initiated cancellation immediately so the session sees
 			// a clean abort instead of a generic "all providers failed" message.
@@ -288,11 +359,9 @@ export class WebSearchTool implements AgentTool<typeof webSearchSchema, SearchRe
 		);
 		const sessionModel = this.#session.model?.id;
 
-		// 10.058: apply the configurable hard timeout (seconds) before any provider
-		// round-trip so no-arg withHardTimeout() call sites pick up the runtime value.
-		// setSearchHardTimeoutMs clamps to [5s, 600s] and ignores non-finite input.
-		const settingsTimeoutSec = this.#session.settings?.get("web_search.timeout") as number | undefined;
-		if (typeof settingsTimeoutSec === "number") setSearchHardTimeoutMs(settingsTimeoutSec * 1000);
+		// Apply explicit user timeout overrides without letting schema defaults
+		// collapse provider class defaults back into one uniform ceiling.
+		applyConfiguredSearchTimeout(this.#session.settings);
 
 		// Settings-driven defaults (080): LLM params > settings > hardcoded defaults.
 		const settingsDepth = this.#session.settings?.get("web_search.depth") as "fast" | "deep" | undefined;
@@ -378,6 +447,7 @@ export const webSearchCustomTool: CustomTool<typeof webSearchSchema, SearchRende
 	) {
 		const authStorage = ctx.modelRegistry?.authStorage ?? (await discoverAuthStorage());
 		const sessionId = ctx.sessionManager.getSessionId();
+		applyConfiguredSearchTimeout(ctx.settings);
 		// Settings-driven defaults (080) — mirror the AgentTool path.
 		const settingsDepth = ctx.settings?.get("web_search.depth") as "fast" | "deep" | undefined;
 		const depth = params.depth ?? settingsDepth ?? "fast";

@@ -168,7 +168,10 @@ describe("FullTranscriptOverlayComponent", () => {
 		expect(lines).toHaveLength(6);
 		expect(lines[0]).toContain("Full transcript");
 		expect(lines[1]).toContain("short transcript");
-		expect(lines[2]).toBe(" ".repeat(80));
+		// 260703 WP5.1: filler rows carry no cells — the overlay compositor
+		// pads to the overlay width; full-width literal spaces were the
+		// reflow-amplifier class WP5 removes.
+		expect(lines[2]).toBe("");
 		expect(lines.at(-1)).toContain("ctrl+t/q/esc close");
 	});
 

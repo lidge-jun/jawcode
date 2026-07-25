@@ -7,7 +7,7 @@ const repoRoot = path.join(import.meta.dir, "..");
 const ZERO_SHA = /^0+$/;
 const PACKAGE_SCOPES = ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"] as const;
 
-interface PackageManifest {
+export interface PackageManifest {
 	name?: string;
 	scripts?: Record<string, string>;
 	dependencies?: Record<string, string>;
@@ -16,36 +16,43 @@ interface PackageManifest {
 	optionalDependencies?: Record<string, string>;
 }
 
-interface WorkspacePackage {
+export interface WorkspacePackage {
 	name: string;
 	dir: string;
 	manifest: PackageManifest;
 }
 
-interface Task {
+export interface Task {
 	key: string;
 	description: string;
 	command: readonly string[];
+	cwd?: string;
 }
 
-const dryRun = process.argv.includes("--dry-run");
-const changedPaths = await getChangedPaths();
-const workspaces = await getWorkspacePackages();
-const tasks = planTasks(changedPaths, workspaces);
+async function main(): Promise<void> {
+	const dryRun = process.argv.includes("--dry-run");
+	const changedPaths = await getChangedPaths();
+	const workspaces = await getWorkspacePackages();
+	const tasks = planTasks(changedPaths, workspaces);
 
-printPlan(changedPaths, tasks);
+	printPlan(changedPaths, tasks);
 
-if (dryRun) {
-	process.exit(0);
-}
-
-for (const task of tasks) {
-	console.log(`\n::group::${task.description}`);
-	const exitCode = await runCommand(task.command);
-	console.log("::endgroup::");
-	if (exitCode !== 0) {
-		process.exit(exitCode);
+	if (dryRun) {
+		return;
 	}
+
+	for (const task of tasks) {
+		console.log(`\n::group::${task.description}`);
+		const exitCode = await runCommand(task.command, task.cwd ?? repoRoot);
+		console.log("::endgroup::");
+		if (exitCode !== 0) {
+			process.exit(exitCode);
+		}
+	}
+}
+
+if (import.meta.main) {
+	await main();
 }
 
 function printPlan(paths: readonly string[], plannedTasks: readonly Task[]): void {
@@ -60,7 +67,8 @@ function printPlan(paths: readonly string[], plannedTasks: readonly Task[]): voi
 	}
 	console.log("Planned tasks:");
 	for (const task of plannedTasks) {
-		console.log(` - ${task.description}: ${task.command.join(" ")}`);
+		const where = task.cwd ? ` (cwd: ${path.relative(repoRoot, task.cwd) || "."})` : "";
+		console.log(` - ${task.description}: ${task.command.join(" ")}${where}`);
 	}
 }
 
@@ -178,7 +186,7 @@ function readStringMap(value: unknown): Record<string, string> | undefined {
 	return Object.fromEntries(entries);
 }
 
-function planTasks(paths: readonly string[], packages: readonly WorkspacePackage[]): Task[] {
+export function planTasks(paths: readonly string[], packages: readonly WorkspacePackage[]): Task[] {
 	const tasks = new Map<string, Task>();
 	const touchedPackages = findTouchedPackages(paths, packages);
 	const rootPackageReleaseHarnessOnly = isRootPackageReleaseHarnessOnly(paths);
@@ -188,6 +196,7 @@ function planTasks(paths: readonly string[], packages: readonly WorkspacePackage
 	const rustChanged = paths.some(isRustPath);
 	const installChanged = paths.some(isInstallPath);
 	const publishChanged = paths.some(isReleasePublishPath);
+	const jwcSdkPackageChanged = paths.some(changedPath => changedPath.startsWith("packages/jwc/"));
 	const toolingScriptChanged = paths.some(isToolingScriptPath);
 	const needsNativeRuntime = paths.some(isCodingAgentRuntimePath) || fullWorkspace;
 	const workflowHarnessOnly = paths.length > 0 && paths.every(isWorkflowHarnessPath);
@@ -208,10 +217,10 @@ function planTasks(paths: readonly string[], packages: readonly WorkspacePackage
 		}
 		for (const workspacePackage of affectedPackages) {
 			if (workspacePackage.manifest.scripts?.check) {
-				add(tasks, `check:${workspacePackage.name}`, `Check ${workspacePackage.name}`, ["bun", "--cwd", workspacePackage.dir, "run", "check"]);
+				add(tasks, `check:${workspacePackage.name}`, `Check ${workspacePackage.name}`, packageScriptCommand("check"), resolvePackageCwd(workspacePackage.dir));
 			}
 			if (workspacePackage.manifest.scripts?.test) {
-				add(tasks, `test:${workspacePackage.name}`, `Test ${workspacePackage.name}`, ["bun", "--cwd", workspacePackage.dir, "run", "test"]);
+				add(tasks, `test:${workspacePackage.name}`, `Test ${workspacePackage.name}`, packageScriptCommand("test"), resolvePackageCwd(workspacePackage.dir));
 			}
 		}
 	}
@@ -223,14 +232,31 @@ function planTasks(paths: readonly string[], packages: readonly WorkspacePackage
 		add(tasks, "release-publish-contract", "Release publish contract tests", ["bun", "run", "test:release"]);
 		add(tasks, "release-publish-dry-run", "Release publish dry-run", ["bun", "scripts/ci-release-publish.ts", "--dry-run"]);
 	}
+	if (jwcSdkPackageChanged) {
+		addNativeBuild(tasks);
+		add(
+			tasks,
+			"jwc-sdk-build-node",
+			"Build Node SDK bundle",
+			packageScriptCommand("build:node"),
+			resolvePackageCwd("packages/jwc"),
+		);
+		add(
+			tasks,
+			"jwc-sdk-package-smoke",
+			"Packed SDK smoke",
+			["node", "scripts/smoke-packed-sdk.mjs"],
+			resolvePackageCwd("packages/jwc"),
+		);
+	}
 
 	if (pythonChanged) {
 		add(tasks, "python-lint", "Python lint", ["bun", "run", "lint:py"]);
 		add(tasks, "python-test", "Python tests", ["bun", "run", "test:py"]);
 	}
 	if (webChanged) {
-		add(tasks, "jwc-web-typecheck", "jwc web typecheck", ["bun", "--cwd=python/robojwc/web", "run", "typecheck"]);
-		add(tasks, "jwc-web-build", "jwc web build", ["bun", "--cwd=python/robojwc/web", "run", "build"]);
+		add(tasks, "jwc-web-typecheck", "jwc web typecheck", packageScriptCommand("typecheck"), resolvePackageCwd("python/robojwc/web"));
+		add(tasks, "jwc-web-build", "jwc web build", packageScriptCommand("build"), resolvePackageCwd("python/robojwc/web"));
 	}
 	if (rustChanged) {
 		add(tasks, "rust-check", "Rust check", ["bun", "run", "check:rs"]);
@@ -244,6 +270,7 @@ function planTasks(paths: readonly string[], packages: readonly WorkspacePackage
 	}
 	if (paths.some(isWorkflowOrScriptPath)) {
 		add(tasks, "affected-dry-run", "Affected CI selector self-check", ["bun", "scripts/ci-dev-affected.ts", "--dry-run"]);
+		add(tasks, "affected-selftest", "Affected CI selector unit tests", ["bun", "test", "scripts/ci-dev-affected.test.ts"]);
 		if (paths.some(isWorkflowPath)) {
 			add(tasks, "workflow-yaml-parse", "Workflow YAML parse check", ["bun", "scripts/check-workflow-yaml.ts"]);
 		}
@@ -253,13 +280,21 @@ function planTasks(paths: readonly string[], packages: readonly WorkspacePackage
 }
 
 
+export function packageScriptCommand(script: string): readonly string[] {
+	return ["bun", "run", script];
+}
+
+export function resolvePackageCwd(dir: string): string {
+	return path.join(repoRoot, dir);
+}
+
 function addNativeBuild(tasks: Map<string, Task>): void {
 	add(tasks, "native-linux-x64", "Build linux x64 native addons", ["bash", "-lc", 'TARGET_VARIANTS="baseline modern" bun scripts/ci-build-native.ts']);
 }
 
-function add(tasks: Map<string, Task>, key: string, description: string, command: readonly string[]): void {
+function add(tasks: Map<string, Task>, key: string, description: string, command: readonly string[], cwd?: string): void {
 	if (!tasks.has(key)) {
-		tasks.set(key, { key, description, command });
+		tasks.set(key, { key, description, command, cwd });
 	}
 }
 
@@ -359,7 +394,7 @@ function isWorkflowPath(changedPath: string): boolean {
 }
 
 function isWorkflowHarnessPath(changedPath: string): boolean {
-	return isWorkflowPath(changedPath) || changedPath === "scripts/ci-dev-affected.ts" || changedPath === "scripts/check-workflow-yaml.ts";
+	return isWorkflowPath(changedPath) || changedPath === "scripts/ci-dev-affected.ts" || changedPath === "scripts/ci-dev-affected.test.ts" || changedPath === "scripts/check-workflow-yaml.ts";
 }
 
 function isToolingScriptPath(changedPath: string): boolean {
@@ -378,10 +413,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-async function runCommand(command: readonly string[]): Promise<number> {
+export async function runCommand(command: readonly string[], cwd: string = repoRoot): Promise<number> {
 	const [head, ...rest] = command;
 	const proc = Bun.spawn([head, ...rest], {
-		cwd: repoRoot,
+		cwd,
 		env: process.env,
 		stdin: "inherit",
 		stdout: "inherit",

@@ -526,6 +526,14 @@ export interface FuzzyFindResult {
 export declare function getSupportedLanguages(): Array<string>
 
 /**
+ * Read the CURRENT terminal size for `fd` directly from the kernel.
+ *
+ * Returns `null` when `fd` is not a TTY, the ioctl fails, the reported
+ * size is degenerate (0 rows/cols), or the platform has no `TIOCGWINSZ`.
+ */
+export declare function getTtyWinsize(fd: number): TtyWinsize | null
+
+/**
  * Get work profile data from the last N seconds.
  *
  * Always-on profiling - no need to start/stop. Just call this to get
@@ -1223,6 +1231,24 @@ export interface PtyStartOptions {
 export declare function readImageFromClipboard(): Promise<ClipboardImage | undefined | null>
 
 /**
+ * Build a ranked tree-sitter tag map for a file or directory; returns a
+ * promise resolved on a worker thread.
+ */
+export declare function repoMap(options: RepoMapOptions): Promise<string>
+
+/** Options for `repoMap`: path scope and approximate token budget. */
+export interface RepoMapOptions {
+  /** Single file or directory to map. */
+  path: string
+  /** Approximate output token budget; defaults to 4096. */
+  budget?: number
+  /** Optional cancellation handle. */
+  signal?: unknown
+  /** Wall-clock timeout for the worker task in milliseconds. */
+  timeoutMs?: number
+}
+
+/**
  * Search content for a pattern (one-shot, compiles pattern each time).
  * For repeated searches with the same pattern, use [`grep`] with file filters.
  *
@@ -1270,6 +1296,12 @@ export interface SearchResult {
   /** Error message, if any. */
   error?: string
 }
+
+/**
+ * Select the East Asian Ambiguous width policy for all text measurement.
+ * `wide=true` renders EAW-A characters as 2 cells (CJK context).
+ */
+export declare function setAmbiguousWidthWide(wide: boolean): void
 
 /** Options for executing a shell command via brush-core. */
 export interface ShellExecuteOptions {
@@ -1403,6 +1435,14 @@ export declare function supportsLanguage(lang: string): boolean
  * Pads with spaces when requested.
  */
 export declare function truncateToWidth(text: string, maxWidth: number, ellipsisKind: Ellipsis | undefined | null, pad: boolean | undefined | null, tabWidth: number): string
+
+/** Terminal size as reported by the kernel (`TIOCGWINSZ`). */
+export interface TtyWinsize {
+  /** Rows in character cells. */
+  rows: number
+  /** Columns in character cells. */
+  cols: number
+}
 
 /**
  * Calculate visible width of text, excluding ANSI escape sequences.
