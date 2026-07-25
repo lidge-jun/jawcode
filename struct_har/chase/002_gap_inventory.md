@@ -119,10 +119,10 @@ Executor v2 (260614): **011 YES**, **008/026 RISKY**; **018 registry TS+Py lande
 
 | 축 | range | 신규 카드 |
 |---|---|---|
-| GJC | `20c299eb..79b42377` (54 commits) | [10.066](./10.066_gjc_chase_composer_command_model_selector_ux.md) · [10.067](./10.067_gjc_chase_goal_plan_skill_state_refresh.md) · [10.068](./10.068_gjc_chase_tmux_telegram_session_resilience.md) · [10.069](./_fin/10/10.069_gjc_chase_provider_search_docs_model_support.md) ✅ _fin |
-| OMP | `b6c9747d4..0ea6ea630` (433 commits) | [20.031](./20.031_omp_chase_native_search_pipeline.md) · [20.032](./20.032_omp_chase_ai_thinking_catalog_speech.md) · [20.033](./20.033_omp_chase_session_patch_rewind_integrity.md) · [20.034](./20.034_omp_chase_tui_collab_browser_resilience.md) · [20.035](./_fin/20/20.035_omp_chase_tool_schema_task_tts_stats.md) ✅ _fin |
-| GJC | `79b42377..db7938e1` (34 commits) | [10.070](./10.070_gjc_chase_workflow_intent_state_artifacts.md) · [10.071](./10.071_gjc_chase_search_utils_edit_safety.md) · [10.072](./10.072_gjc_chase_model_selector_tmux_cmux_ux.md) · [10.073](./10.073_gjc_chase_rpc_session_notifications_lifecycle.md) |
-| OMP | `0ea6ea630..d0c1890a6` (216 commits) | [20.036](./20.036_omp_chase_ai_catalog_auth_usage.md) · [20.037](./20.037_omp_chase_session_async_plan_integrity.md) · [20.038](./20.038_omp_chase_hashline_tool_plugin_task_safety.md) · [20.039](./20.039_omp_chase_tui_terminal_render_resilience.md) · [20.040](./20.040_omp_chase_robomp_iso_sandbox_release.md) |
+| GJC | `20c299eb..79b42377` (54 commits) | [10.066](./_fin/10/10.066_gjc_chase_composer_command_model_selector_ux.md) · [10.067](./10.067_gjc_chase_goal_plan_skill_state_refresh.md) · [10.068](./_fin/10/10.068_gjc_chase_tmux_telegram_session_resilience.md) · [10.069](./_fin/10/10.069_gjc_chase_provider_search_docs_model_support.md) ✅ _fin |
+| OMP | `b6c9747d4..0ea6ea630` (433 commits) | [20.031](./20.031_omp_chase_native_search_pipeline.md) · [20.032](./20.032_omp_chase_ai_thinking_catalog_speech.md) · [20.033](./_fin/20/20.033_omp_chase_session_patch_rewind_integrity.md) · [20.034](./20.034_omp_chase_tui_collab_browser_resilience.md) · [20.035](./_fin/20/20.035_omp_chase_tool_schema_task_tts_stats.md) ✅ _fin |
+| GJC | `79b42377..db7938e1` (34 commits) | [10.070](./10.070_gjc_chase_workflow_intent_state_artifacts.md) · [10.071](./_fin/10/10.071_gjc_chase_search_utils_edit_safety.md) · [10.072](./10.072_gjc_chase_model_selector_tmux_cmux_ux.md) · [10.073](./10.073_gjc_chase_rpc_session_notifications_lifecycle.md) |
+| OMP | `0ea6ea630..d0c1890a6` (216 commits) | [20.036](./20.036_omp_chase_ai_catalog_auth_usage.md) · [20.037](./_fin/20/20.037_omp_chase_session_async_plan_integrity.md) · [20.038](./_fin/20/20.038_omp_chase_hashline_tool_plugin_task_safety.md) · [20.039](./20.039_omp_chase_tui_terminal_render_resilience.md) · [20.040](./20.040_omp_chase_robomp_iso_sandbox_release.md) |
 
 ## 260613–14 jwc 독자 성과 (chase 비대상 완료)
 
