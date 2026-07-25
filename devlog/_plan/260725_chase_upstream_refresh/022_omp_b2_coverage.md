@@ -162,8 +162,8 @@ Observed proof:
 
 ```text
 delta_count=539
-cited_count=422
-no_card_count=117
+cited_count=421
+no_card_count=118
 set_diff_count=0
 set_diff=[]
 ```
