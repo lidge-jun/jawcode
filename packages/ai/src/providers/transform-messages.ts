@@ -301,6 +301,7 @@ export function transformMessages<TApi extends Api>(
 				index === latestAssistantIndex &&
 				model.api === "anthropic-messages" &&
 				assistantMsg.api === "anthropic-messages";
+			const isAnthropicReplay = model.api === "anthropic-messages";
 			// Aborted/errored messages may contain partially-streamed thinking blocks.
 			// Anthropic requires thinking/redacted_thinking bytes in replayed assistant
 			// messages to match the original response exactly; stripping a signature,
@@ -315,7 +316,10 @@ export function transformMessages<TApi extends Api>(
 				model.api === "anthropic-messages" &&
 				assistantMsg.api === "anthropic-messages";
 
-			const transformedContent = assistantMsg.content.flatMap(block => {
+			const transformedContent = assistantMsg.content.flatMap<AssistantMessage["content"][number]>(block => {
+				if (block.type === "anthropicServerTool") {
+					return isAnthropicReplay && assistantMsg.provider === model.provider ? [block] : [];
+				}
 				if (block.type === "thinking") {
 					if (hasPartialThinking || dropLatestAssistantThinking) return [];
 					const sanitized = block;

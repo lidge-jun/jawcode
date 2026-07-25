@@ -58,6 +58,25 @@ export function getStreamFirstEventTimeoutMs(
 	return normalizeIdleTimeoutMs($env.PI_STREAM_FIRST_EVENT_TIMEOUT_MS, fallback);
 }
 
+/**
+ * Resolves the OpenAI-family first-event timeout without collapsing the zero
+ * disable sentinel. OpenAI-specific env takes precedence over the global env,
+ * followed by the model fallback and the resolved idle timeout floor.
+ */
+export function getOpenAIStreamFirstEventTimeoutMs(
+	idleTimeoutMs?: number,
+	fallbackMs: number = DEFAULT_STREAM_FIRST_EVENT_TIMEOUT_MS,
+): number | undefined {
+	const openAIOverride = $env.PI_OPENAI_STREAM_FIRST_EVENT_TIMEOUT_MS;
+	if (openAIOverride !== undefined) {
+		return normalizeIdleTimeoutMs(openAIOverride, fallbackMs) ?? 0;
+	}
+	const base = normalizeIdleTimeoutMs($env.PI_STREAM_FIRST_EVENT_TIMEOUT_MS, fallbackMs);
+	if (base === undefined || base <= 0) return 0;
+	if (idleTimeoutMs === undefined || idleTimeoutMs <= 0) return base;
+	return Math.max(base, idleTimeoutMs);
+}
+
 export type Watchdog = NodeJS.Timeout | undefined;
 
 const dummyWatchdog = setTimeout(() => {}, 1);

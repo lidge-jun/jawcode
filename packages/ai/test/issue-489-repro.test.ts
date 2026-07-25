@@ -123,10 +123,12 @@ describe("opencode-go qwen3.7-max keeps anthropic-messages transport (issue #489
 	test("dynamic discovery still enriches matching-transport models", async () => {
 		// A genuinely openai-completions opencode-go model should still pick up
 		// dynamic metadata (pricing/limits) without transport regressions.
+		// (qwen3.6-plus moved to anthropic-messages in the catalog; glm-5.2 stays
+		// on chat completions per OPENCODE_GO_API_OVERRIDES.)
 		const discovered: Model<"openai-completions">[] = [
 			{
-				id: "qwen3.6-plus",
-				name: "Qwen3.6 Plus",
+				id: "glm-5.2",
+				name: "GLM-5.2",
 				api: "openai-completions",
 				provider: "opencode-go",
 				baseUrl: "https://opencode.ai/zen/go/v1",
@@ -147,7 +149,7 @@ describe("opencode-go qwen3.7-max keeps anthropic-messages transport (issue #489
 			"online",
 		);
 
-		const qwen = models.find(m => m.id === "qwen3.6-plus");
+		const qwen = models.find(m => m.id === "glm-5.2");
 		expect(qwen?.api).toBe("openai-completions");
 		expect(qwen?.baseUrl).toBe("https://opencode.ai/zen/go/v1");
 		expect(qwen?.cost.input).toBe(9);

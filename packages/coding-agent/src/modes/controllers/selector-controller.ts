@@ -1569,7 +1569,7 @@ export class SelectorController {
 				},
 				opts,
 			);
-			await this.ctx.session.modelRegistry.refresh();
+			await this.ctx.session.modelRegistry.refreshProvider(providerId, "online");
 			this.ctx.chatContainer.addChild(new Spacer(1));
 			this.ctx.chatContainer.addChild(
 				new Text(theme.fg("success", `${theme.status.success} Successfully logged in to ${providerId}`), 1, 0),

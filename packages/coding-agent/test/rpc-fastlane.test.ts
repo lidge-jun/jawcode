@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test, vi } from "bun:test";
 import type { AgentMessage } from "@jawcode-dev/agent-core";
 import {
 	createRpcCommandScheduler,
@@ -169,5 +169,24 @@ describe("RPC fast-lane read snapshots", () => {
 
 		messages.push({ type: "assistant", content: "later" } as unknown as AgentMessage);
 		expect(response.data.messages).toHaveLength(1);
+	});
+});
+
+describe("RPC login refresh", () => {
+	test("refreshes only the authenticated provider online", async () => {
+		const login = vi.fn(async () => {});
+		const refreshProvider = vi.fn(async () => {});
+		const session = {
+			modelRegistry: {
+				authStorage: { login },
+				refreshProvider,
+			},
+		} as unknown as RpcCommandDispatchContext["session"];
+		const context = { ...dispatchContext([]), session };
+
+		const response = await dispatchRpcCommand({ type: "login", providerId: "openai-codex" }, context);
+
+		expect(response.success).toBe(true);
+		expect(refreshProvider).toHaveBeenCalledWith("openai-codex", "online");
 	});
 });

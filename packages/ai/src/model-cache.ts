@@ -6,7 +6,10 @@ import { Database } from "bun:sqlite";
 import { getModelDbPath } from "@jawcode-dev/utils";
 import type { Api, Model } from "./types";
 
-const CACHE_SCHEMA_VERSION = 3;
+// v4 invalidates rows that may contain request headers. Header names are
+// provider-defined, so every cached header value must be treated as a possible
+// credential and re-derived from live configuration instead.
+const CACHE_SCHEMA_VERSION = 4;
 
 interface CacheRow {
 	provider_id: string;
@@ -48,6 +51,7 @@ function getDb(dbPath?: string): Database {
 	}
 	const db = new Database(resolvedPath, { create: true });
 	db.run("PRAGMA busy_timeout = 3000");
+	db.run("PRAGMA secure_delete = ON");
 	db.run("PRAGMA journal_mode = WAL");
 	db.run(`
 		CREATE TABLE IF NOT EXISTS model_cache (
@@ -71,7 +75,12 @@ function migrateCacheSchema(db: Database): void {
 	if (!columns.some(column => column.name === "static_fingerprint")) {
 		db.run("ALTER TABLE model_cache ADD COLUMN static_fingerprint TEXT NOT NULL DEFAULT ''");
 	}
-	db.run("UPDATE model_cache SET version = ? WHERE version = 2", [CACHE_SCHEMA_VERSION]);
+	db.run("DELETE FROM model_cache WHERE version != ?", [CACHE_SCHEMA_VERSION]);
+}
+
+function omitHeaders<TApi extends Api>(model: Model<TApi>): Model<TApi> {
+	const { headers: _headers, ...cachedModel } = model;
+	return cachedModel;
 }
 
 export function readModelCache<TApi extends Api>(
@@ -86,7 +95,7 @@ export function readModelCache<TApi extends Api>(
 		if (!row || row.version !== CACHE_SCHEMA_VERSION) {
 			return null;
 		}
-		const models = JSON.parse(row.models) as Model<TApi>[];
+		const models = (JSON.parse(row.models) as Model<TApi>[]).map(omitHeaders);
 		const ageMs = now() - row.updated_at;
 		const fresh = Number.isFinite(ageMs) && ageMs >= 0 && ageMs <= ttlMs;
 		return {
@@ -120,7 +129,7 @@ export function writeModelCache<TApi extends Api>(
 				updatedAt,
 				authoritative ? 1 : 0,
 				staticFingerprint,
-				JSON.stringify(models),
+				JSON.stringify(models.map(omitHeaders)),
 			],
 		);
 	} catch {

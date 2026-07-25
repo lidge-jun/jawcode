@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { getStreamFirstEventTimeoutMs, getStreamIdleTimeoutMs } from "../src/utils/idle-iterator";
+import {
+	getOpenAIStreamFirstEventTimeoutMs,
+	getStreamFirstEventTimeoutMs,
+	getStreamIdleTimeoutMs,
+} from "../src/utils/idle-iterator";
 
 /**
  * Per-provider fallback overrides on the stream-watchdog helpers.
@@ -14,6 +18,7 @@ const ENV_KEYS = [
 	"PI_STREAM_IDLE_TIMEOUT_MS",
 	"PI_OPENAI_STREAM_IDLE_TIMEOUT_MS",
 	"PI_STREAM_FIRST_EVENT_TIMEOUT_MS",
+	"PI_OPENAI_STREAM_FIRST_EVENT_TIMEOUT_MS",
 ] as const;
 
 const originalEnv: Partial<Record<(typeof ENV_KEYS)[number], string | undefined>> = {};
@@ -23,6 +28,32 @@ beforeEach(() => {
 		originalEnv[key] = Bun.env[key];
 		delete Bun.env[key];
 	}
+});
+
+describe("getOpenAIStreamFirstEventTimeoutMs(idleTimeoutMs, fallbackMs)", () => {
+	it("preserves a zero compat fallback", () => {
+		expect(getOpenAIStreamFirstEventTimeoutMs(300_000, 0)).toBe(0);
+	});
+
+	it("preserves an OpenAI-specific env zero", () => {
+		Bun.env.PI_OPENAI_STREAM_FIRST_EVENT_TIMEOUT_MS = "0";
+		expect(getOpenAIStreamFirstEventTimeoutMs(300_000, 100_000)).toBe(0);
+	});
+
+	it("keeps the global env precedence below the OpenAI-specific env", () => {
+		Bun.env.PI_STREAM_FIRST_EVENT_TIMEOUT_MS = "42";
+		Bun.env.PI_OPENAI_STREAM_FIRST_EVENT_TIMEOUT_MS = "84";
+		expect(getOpenAIStreamFirstEventTimeoutMs(300_000, 100_000)).toBe(84);
+	});
+
+	it("preserves a global env zero when no OpenAI override exists", () => {
+		Bun.env.PI_STREAM_FIRST_EVENT_TIMEOUT_MS = "0";
+		expect(getOpenAIStreamFirstEventTimeoutMs(300_000, 100_000)).toBe(0);
+	});
+
+	it("keeps the positive idle floor fallback", () => {
+		expect(getOpenAIStreamFirstEventTimeoutMs(300_000, 100_000)).toBe(300_000);
+	});
 });
 
 afterEach(() => {

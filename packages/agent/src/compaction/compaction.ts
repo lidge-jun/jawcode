@@ -436,6 +436,8 @@ function collectMessageFragments(message: AgentMessage): { fragments: string[]; 
 				} else if (block.type === "toolCall") {
 					fragments.push(block.name);
 					fragments.push(JSON.stringify(block.arguments));
+				} else if (block.type === "anthropicServerTool") {
+					fragments.push(JSON.stringify(block.block));
 				}
 			}
 			break;

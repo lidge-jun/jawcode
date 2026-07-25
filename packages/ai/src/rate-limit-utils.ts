@@ -23,7 +23,7 @@ const OPENROUTER_DAILY_FREE_LIMIT_PATTERN = /\bfree[-_ ]models[-_ ]per[-_ ]day\b
 // ZAI reports durable token exhaustion as "[1310][Weekly/Monthly Limit Exhausted...]".
 // Keep this explicit so generic "rate limit exhausted, retry..." throttles remain retryable.
 const USAGE_LIMIT_PATTERN =
-	/usage.?limit|usage_limit_reached|usage_not_included|limit_reached|weekly\/monthly\s+limit\s+exhausted|quota.?(?:exceeded|reached|insufficient)|resource.?exhausted|insufficient.?(?:balance|quota)|(?:run\s+)?out[-_ ]of[-_ ]credits|personal-team-blocked/i;
+	/usage.?limit|usage_limit_reached|usage_not_included|limit_reached|weekly\/monthly\s+limit\s+exhausted|quota.?(?:exceeded|reached|insufficient)|resource.?exhausted|insufficient.?(?:balance|quota)|balance.?exhausted|(?:run\s+)?out[-_ ]of[-_ ]credits|personal-team-blocked/i;
 
 function matchesPersistentUsageLimit(errorMessage: string): boolean {
 	return (
@@ -101,5 +101,24 @@ export function calculateRateLimitBackoffMs(reason: RateLimitReason): number {
 }
 
 export function isUsageLimitError(errorMessage: string): boolean {
-	return matchesPersistentUsageLimit(errorMessage);
+	return (
+		matchesPersistentUsageLimit(errorMessage) || (/\b402\b/.test(errorMessage) && isOpaqueStatusBody(errorMessage))
+	);
+}
+
+export function isUsageLimitStatus(status: number | undefined): boolean {
+	return status === 429 || status === 402;
+}
+
+export function isUsageLimitOutcome(status: number | undefined, message?: string): boolean {
+	if (message && matchesPersistentUsageLimit(message)) return true;
+	if (!isUsageLimitStatus(status)) return false;
+	return message === undefined || isOpaqueStatusBody(message);
+}
+
+export function isOpaqueStatusBody(message: string): boolean {
+	const cleaned = message
+		.replace(/\b(?:429|402)\b/g, "")
+		.replace(/\b(?:http|https|status|error|code|response|message)\b/gi, "");
+	return !/[a-z\d]{3,}/i.test(cleaned);
 }

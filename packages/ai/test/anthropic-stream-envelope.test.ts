@@ -208,6 +208,78 @@ afterEach(() => {
 });
 
 describe("anthropic stream envelope handling", () => {
+	it("preserves validated web-search call/result blocks from the native stream", async () => {
+		vi.spyOn(Messages.prototype, "create").mockImplementation(
+			() =>
+				createMockRequest([
+					{
+						type: "message_start",
+						message: {
+							id: "msg_search",
+							usage: {
+								input_tokens: 4,
+								output_tokens: 0,
+								cache_read_input_tokens: 0,
+								cache_creation_input_tokens: 0,
+							},
+						},
+					},
+					{
+						type: "content_block_start",
+						index: 0,
+						content_block: { type: "server_tool_use", id: "srvtoolu_1", name: "web_search" },
+					},
+					{
+						type: "content_block_delta",
+						index: 0,
+						delta: { type: "input_json_delta", partial_json: '{"query":"JWC"}' },
+					},
+					{ type: "content_block_stop", index: 0 },
+					{
+						type: "content_block_start",
+						index: 1,
+						content_block: {
+							type: "web_search_tool_result",
+							tool_use_id: "srvtoolu_1",
+							content: [{ encrypted_content: "ciphertext" }],
+						},
+					},
+					{ type: "content_block_stop", index: 1 },
+					{
+						type: "message_delta",
+						delta: { stop_reason: "end_turn" },
+						usage: {
+							input_tokens: 4,
+							output_tokens: 8,
+							cache_read_input_tokens: 0,
+							cache_creation_input_tokens: 0,
+						},
+					},
+					{ type: "message_stop" },
+				]) as never,
+		);
+
+		const stream = streamAnthropic(model, context, { apiKey: "sk-ant-test" });
+		for await (const _event of stream) {
+			// drain
+		}
+		const result = await stream.result();
+		expect(result.content).toEqual([
+			{
+				type: "anthropicServerTool",
+				block: { type: "server_tool_use", id: "srvtoolu_1", name: "web_search", input: { query: "JWC" } },
+			},
+			{
+				type: "anthropicServerTool",
+				block: {
+					type: "web_search_tool_result",
+					tool_use_id: "srvtoolu_1",
+					content: [{ encrypted_content: "ciphertext" }],
+				},
+			},
+		]);
+	});
+
 	it("ignores duplicate message_start envelopes without resetting streamed text", async () => {
 		vi.spyOn(Messages.prototype, "create").mockImplementation(
 			() => createMockRequest(createTextSuccessEvents("hello", { duplicateMessageStart: true })) as never,

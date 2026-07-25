@@ -87,6 +87,23 @@ const toolUseBlockSchema = z.object({
 	cache_control: cacheControlSchema.optional(),
 });
 
+const webSearchServerToolUseBlockSchema = z
+	.object({
+		type: z.literal("server_tool_use"),
+		id: z.string().min(1),
+		name: z.literal("web_search"),
+		input: z.record(z.string(), z.unknown()).nullable().optional(),
+	})
+	.loose();
+
+const webSearchToolResultBlockSchema = z
+	.object({
+		type: z.literal("web_search_tool_result"),
+		tool_use_id: z.string().min(1),
+		content: z.unknown(),
+	})
+	.loose();
+
 const toolResultContentBlockSchema = z.discriminatedUnion("type", [textBlockSchema, imageBlockSchema]);
 
 const toolResultBlockSchema = z.object({
@@ -126,9 +143,32 @@ const assistantContentBlockSchema = z.union([
 		thinkingBlockSchema,
 		redactedThinkingBlockSchema,
 		toolUseBlockSchema,
+		webSearchServerToolUseBlockSchema,
+		webSearchToolResultBlockSchema,
 	]),
 	unknownContentBlockSchema,
 ]);
+
+export type AnthropicWebSearchHistoryBlock =
+	| z.infer<typeof webSearchServerToolUseBlockSchema>
+	| z.infer<typeof webSearchToolResultBlockSchema>;
+
+/** Narrow only the complete web-search history variants JWC can replay atomically. */
+export function isAnthropicWebSearchHistoryBlock(block: {
+	type: string;
+	name?: unknown;
+	id?: unknown;
+	tool_use_id?: unknown;
+	content?: unknown;
+}): block is AnthropicWebSearchHistoryBlock {
+	if (block.type === "server_tool_use") {
+		return block.name === "web_search" && typeof block.id === "string" && block.id.length > 0;
+	}
+	if (block.type === "web_search_tool_result") {
+		return typeof block.tool_use_id === "string" && block.tool_use_id.length > 0 && Object.hasOwn(block, "content");
+	}
+	return false;
+}
 
 export const userMessageSchema = z.object({
 	role: z.literal("user"),

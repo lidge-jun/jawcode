@@ -395,7 +395,7 @@ export async function dispatchRpcCommand(
 						return new Promise<string>(() => {});
 					},
 				});
-				await session.modelRegistry.refresh();
+				await session.modelRegistry.refreshProvider(resolvedProviderId, "online");
 				return rpcSuccess(id, "login", { providerId: command.providerId });
 			} catch (err: unknown) {
 				return rpcError(id, "login", err instanceof Error ? err.message : String(err));

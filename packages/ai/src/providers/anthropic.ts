@@ -23,6 +23,7 @@ import { calculateCost } from "../models";
 import { isUsageLimitError } from "../rate-limit-utils";
 import { getEnvApiKey, OUTPUT_FALLBACK_BUFFER } from "../stream";
 import type {
+	AnthropicServerToolContent,
 	Api,
 	AssistantMessage,
 	CacheRetention,
@@ -67,6 +68,7 @@ import { resolveRetryBudget } from "../utils/retry-budget";
 import { COMBINATOR_KEYS, NO_STRICT, toolWireSchema } from "../utils/schema";
 import { spillToDescription } from "../utils/schema/spill";
 import { notifyRawSseEvent, wrapFetchForSseDebug } from "../utils/sse-debug";
+import { isAnthropicWebSearchHistoryBlock } from "./anthropic-messages-server-schema";
 import {
 	buildCopilotDynamicHeaders,
 	hasCopilotVisionInput,
@@ -491,6 +493,7 @@ const ANTHROPIC_BUILTIN_TOOL_NAMES = new Set(["web_search", "code_execution", "t
 export const applyClaudeToolPrefix = (name: string, prefixOverride: string = claudeToolPrefix) => {
 	if (!prefixOverride) return name;
 	if (ANTHROPIC_BUILTIN_TOOL_NAMES.has(name.toLowerCase())) return name;
+	if (name.startsWith(prefixOverride)) return name;
 	return `${prefixOverride}${name}`;
 };
 
@@ -1118,6 +1121,7 @@ export const streamAnthropic: StreamFunction<"anthropic-messages"> = (
 				| ThinkingContent
 				| RedactedThinkingContent
 				| TextContent
+				| (AnthropicServerToolContent & { partialJson: string })
 				| (ToolCall & { partialJson: string })
 			) & { index: number };
 			const blocks = output.content as Block[];
@@ -1132,8 +1136,14 @@ export const streamAnthropic: StreamFunction<"anthropic-messages"> = (
 				// finalize the orphaned block so no internal stream fields leak into output.
 				const orphaned = blocksByAnthropicIndex.get(anthropicIndex);
 				if (orphaned) {
-					if (orphaned.type === "toolCall" && orphaned.partialJson.trim()) {
-						orphaned.arguments = parseStreamingJson(orphaned.partialJson);
+					if (
+						(orphaned.type === "toolCall" ||
+							(orphaned.type === "anthropicServerTool" && orphaned.block.type === "server_tool_use")) &&
+						orphaned.partialJson.trim()
+					) {
+						const input = parseStreamingJson(orphaned.partialJson);
+						if (orphaned.type === "toolCall") orphaned.arguments = input;
+						else orphaned.block.input = input;
 					}
 					delete (orphaned as { index?: number }).index;
 					delete (orphaned as { partialJson?: string }).partialJson;
@@ -1253,6 +1263,16 @@ export const streamAnthropic: StreamFunction<"anthropic-messages"> = (
 								};
 								output.content.push(block);
 								trackBlockByAnthropicIndex(event.index, block);
+							} else if (isAnthropicWebSearchHistoryBlock(event.content_block)) {
+								streamedReplayUnsafeContent = true;
+								const block: Block = {
+									type: "anthropicServerTool",
+									block: { ...event.content_block },
+									partialJson: "",
+									index: event.index,
+								};
+								output.content.push(block);
+								trackBlockByAnthropicIndex(event.index, block);
 							} else if (event.content_block.type === "tool_use") {
 								streamedReplayUnsafeContent = true;
 								const block: Block = {
@@ -1298,7 +1318,10 @@ export const streamAnthropic: StreamFunction<"anthropic-messages"> = (
 								}
 							} else if (event.delta.type === "input_json_delta") {
 								const { block, contentIndex: index } = getBlockByAnthropicIndex(event.index);
-								if (block && block.type === "toolCall") {
+								if (block?.type === "anthropicServerTool" && block.block.type === "server_tool_use") {
+									block.partialJson += event.delta.partial_json;
+									block.block.input = parseStreamingJson(block.partialJson);
+								} else if (block && block.type === "toolCall") {
 									block.partialJson += event.delta.partial_json;
 									block.arguments = parseStreamingJson(block.partialJson);
 									stream.push({
@@ -1345,6 +1368,11 @@ export const streamAnthropic: StreamFunction<"anthropic-messages"> = (
 										toolCall: block,
 										partial: output,
 									});
+								} else if (block.type === "anthropicServerTool") {
+									if (block.block.type === "server_tool_use" && block.partialJson.trim()) {
+										block.block.input = parseStreamingJson(block.partialJson);
+									}
+									delete (block as { partialJson?: string }).partialJson;
 								}
 							}
 						} else if (event.type === "message_delta") {
@@ -2285,6 +2313,8 @@ export function convertAnthropicMessages(
 						type: "redacted_thinking",
 						data: block.data,
 					});
+				} else if (block.type === "anthropicServerTool") {
+					blocks.push(block.block as ContentBlockParam);
 				} else if (block.type === "toolCall") {
 					blocks.push({
 						type: "tool_use",

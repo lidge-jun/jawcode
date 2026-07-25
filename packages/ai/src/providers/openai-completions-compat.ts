@@ -4,12 +4,16 @@ type OpenAIReasoningEffort = "minimal" | "low" | "medium" | "high" | "xhigh" | "
 type ResolvedToolStrictMode = NonNullable<OpenAICompat["toolStrictMode"]> | "mixed";
 
 export type ResolvedOpenAICompat = Required<
-	Omit<OpenAICompat, "openRouterRouting" | "vercelGatewayRouting" | "extraBody" | "toolStrictMode">
+	Omit<
+		OpenAICompat,
+		"openRouterRouting" | "vercelGatewayRouting" | "extraBody" | "toolStrictMode" | "streamFirstEventTimeoutMs"
+	>
 > & {
 	openRouterRouting?: OpenAICompat["openRouterRouting"];
 	vercelGatewayRouting?: OpenAICompat["vercelGatewayRouting"];
 	extraBody?: OpenAICompat["extraBody"];
 	toolStrictMode: ResolvedToolStrictMode;
+	streamFirstEventTimeoutMs?: OpenAICompat["streamFirstEventTimeoutMs"];
 };
 
 function detectStrictModeSupport(provider: string, baseUrl: string): boolean {

@@ -337,6 +337,7 @@ function mergeDynamicModels<TApi extends Api>(
 interface AuthoritativeTransport<TApi extends Api> {
 	api: TApi;
 	baseUrl: string;
+	headers?: Record<string, string>;
 }
 
 function buildAuthoritativeTransportById<TApi extends Api>(
@@ -344,7 +345,7 @@ function buildAuthoritativeTransportById<TApi extends Api>(
 ): Map<string, AuthoritativeTransport<TApi>> {
 	const transports = new Map<string, AuthoritativeTransport<TApi>>();
 	for (const model of models) {
-		transports.set(model.id, { api: model.api, baseUrl: model.baseUrl });
+		transports.set(model.id, { api: model.api, baseUrl: model.baseUrl, headers: model.headers });
 	}
 	return transports;
 }
@@ -359,11 +360,19 @@ function restoreAuthoritativeTransports<TApi extends Api>(
 	let repaired = false;
 	const restoredModels = models.map(model => {
 		const transport = authoritativeTransports.get(model.id);
-		if (!transport || (model.api === transport.api && model.baseUrl === transport.baseUrl)) {
+		if (
+			!transport ||
+			(model.api === transport.api && model.baseUrl === transport.baseUrl && model.headers === transport.headers)
+		) {
 			return model;
 		}
 		repaired = true;
-		return enrichModelThinking({ ...model, api: transport.api, baseUrl: transport.baseUrl });
+		return enrichModelThinking({
+			...model,
+			api: transport.api,
+			baseUrl: transport.baseUrl,
+			headers: transport.headers,
+		});
 	});
 	return { models: restoredModels, repaired };
 }

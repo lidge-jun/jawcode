@@ -4,11 +4,13 @@ import type {
 	Tool as OpenAITool,
 	ResponseCreateParamsStreaming,
 	ResponseInput,
+	ResponseStreamEvent,
 } from "openai/resources/responses/responses";
 import packageJson from "../../package.json" with { type: "json" };
 import { getEnvApiKey } from "../stream";
 import type {
 	AssistantMessage,
+	AssistantMessageEvent,
 	CacheRetention,
 	Context,
 	FetchImpl,
@@ -35,8 +37,8 @@ import { AssistantMessageEventStream } from "../utils/event-stream";
 import { finalizeErrorMessage, type RawHttpRequestDump, rewriteCopilotError } from "../utils/http-inspector";
 import {
 	createWatchdog,
+	getOpenAIStreamFirstEventTimeoutMs,
 	getOpenAIStreamIdleTimeoutMs,
-	getStreamFirstEventTimeoutMs,
 	iterateWithIdleTimeout,
 } from "../utils/idle-iterator";
 import { parseGitHubCopilotApiKey } from "../utils/oauth/github-copilot";
@@ -116,6 +118,34 @@ export interface OpenAIResponsesOptions extends StreamOptions {
 const OPENAI_RESPONSES_PROVIDER_SESSION_STATE_PREFIX = "openai-responses:";
 const OPENAI_RESPONSES_FIRST_EVENT_TIMEOUT_MESSAGE =
 	"OpenAI responses stream timed out while waiting for the first event";
+const OPENAI_RESPONSES_MAX_SAFE_STREAM_RETRIES = 1;
+
+class OpenAIResponsesIncompleteStreamError extends Error {}
+
+class ReplayBufferedResponsesEventStream extends AssistantMessageEventStream {
+	readonly #target: AssistantMessageEventStream;
+	readonly #shouldForward: () => boolean;
+
+	constructor(target: AssistantMessageEventStream, shouldForward: () => boolean) {
+		super();
+		this.#target = target;
+		this.#shouldForward = shouldForward;
+	}
+
+	override push(event: AssistantMessageEvent): void {
+		if (!this.#shouldForward()) {
+			super.push(event);
+			return;
+		}
+		this.flush();
+		this.#target.push(event);
+	}
+
+	flush(): void {
+		for (const event of this.queue) this.#target.push(event);
+		this.queue.length = 0;
+	}
+}
 const OPENAI_DEFAULT_BASE_URL = "https://api.openai.com/v1";
 const OPENAI_DEFAULT_BASE_URL_HOST = "api.openai.com";
 
@@ -187,6 +217,64 @@ function isOpenAIResponsesProgressEvent(event: unknown): boolean {
 	return typeof type === "string" && OPENAI_RESPONSES_PROGRESS_EVENT_TYPES.has(type);
 }
 
+function getCompatFirstEventTimeoutMs(model: Model<"openai-responses">): number | undefined {
+	return model.compat?.streamFirstEventTimeoutMs;
+}
+
+function isReplayUnsafeOpenAIResponsesEvent(event: ResponseStreamEvent): boolean {
+	switch (event.type) {
+		case "response.output_text.delta":
+		case "response.refusal.delta":
+		case "response.reasoning_summary_text.delta":
+		case "response.reasoning_text.delta":
+		case "response.function_call_arguments.delta":
+		case "response.custom_tool_call_input.delta":
+			return event.delta.length > 0;
+		case "response.reasoning_summary_part.done":
+		case "response.output_item.done":
+			return true;
+		default:
+			return false;
+	}
+}
+
+function isRetryableOpenAIResponsesStreamFailure(error: unknown): boolean {
+	if (error instanceof OpenAIResponsesIncompleteStreamError || error instanceof SyntaxError) return true;
+	return error instanceof Error && /(?:SSE|stream).*(?:JSON|parse)|JSON.*(?:SSE|stream)/i.test(error.message);
+}
+
+function hasSignedReasoningPayload(item: { type?: unknown; encrypted_content?: unknown }): boolean {
+	return item.type === "reasoning" && typeof item.encrypted_content === "string" && item.encrypted_content.length > 0;
+}
+
+async function* projectTerminalSignedReasoning(
+	source: AsyncIterable<ResponseStreamEvent>,
+	onEvent: (event: ResponseStreamEvent) => void,
+): AsyncGenerator<ResponseStreamEvent> {
+	const openedReasoningIds = new Set<string>();
+	for await (const event of source) {
+		if (event.type === "response.output_item.added" && event.item.type === "reasoning" && event.item.id) {
+			openedReasoningIds.add(event.item.id);
+		}
+		if (
+			event.type === "response.output_item.done" &&
+			hasSignedReasoningPayload(event.item) &&
+			event.item.id &&
+			!openedReasoningIds.has(event.item.id)
+		) {
+			const projected = {
+				type: "response.output_item.added",
+				output_index: event.output_index,
+				item: event.item,
+			} as ResponseStreamEvent;
+			onEvent(projected);
+			yield projected;
+		}
+		onEvent(event);
+		yield event;
+	}
+}
+
 interface OpenAIResponsesProviderSessionState extends ProviderSessionState {
 	nativeHistoryReplayWarmed: boolean;
 }
@@ -248,7 +336,7 @@ export const streamOpenAIResponses: StreamFunction<"openai-responses"> = (
 		const startTime = Date.now();
 		let firstTokenTime: number | undefined;
 
-		const output: AssistantMessage = createInitialResponsesAssistantMessage(
+		let output: AssistantMessage = createInitialResponsesAssistantMessage(
 			"openai-responses",
 			model.provider,
 			model.id,
@@ -278,7 +366,14 @@ export const streamOpenAIResponses: StreamFunction<"openai-responses"> = (
 			const premiumRequestsTotal = copilotPremiumRequests;
 			const providerSessionState = getOpenAIResponsesProviderSessionState(model, options?.providerSessionState);
 			const { params } = buildParams(model, context, options, providerSessionState, baseUrl);
-			const idleTimeoutMs = options?.streamIdleTimeoutMs ?? getOpenAIStreamIdleTimeoutMs();
+			const compatTimeouts = model.compat as
+				| (OpenAICompat & { streamFirstEventTimeoutMs?: number; streamIdleTimeoutMs?: number })
+				| undefined;
+			const idleTimeoutMs =
+				options?.streamIdleTimeoutMs ?? getOpenAIStreamIdleTimeoutMs(compatTimeouts?.streamIdleTimeoutMs);
+			const firstEventTimeoutMs =
+				options?.streamFirstEventTimeoutMs ??
+				getOpenAIStreamFirstEventTimeoutMs(idleTimeoutMs, getCompatFirstEventTimeoutMs(model));
 			options?.onPayload?.(params);
 			rawRequestDump = {
 				provider: model.provider,
@@ -288,45 +383,89 @@ export const streamOpenAIResponses: StreamFunction<"openai-responses"> = (
 				url: `${baseUrl}/responses`,
 				body: params,
 			};
-			const openaiStream = await callWithCopilotModelRetry(
-				async () => {
-					const { data, response, request_id } = await client.responses
-						.create(params, { signal: requestSignal })
-						.withResponse();
-					await notifyProviderResponse(options, response, model, request_id);
-					return data;
-				},
-				{ provider: model.provider, signal: requestSignal },
-			);
-			const firstEventWatchdog = createWatchdog(
-				options?.streamFirstEventTimeoutMs ?? getStreamFirstEventTimeoutMs(idleTimeoutMs),
-				() => abortTracker.abortLocally(firstEventTimeoutAbortError),
-			);
+			const openResponsesStream = () =>
+				callWithCopilotModelRetry(
+					async () => {
+						const { data, response, request_id } = await client.responses
+							.create(params, { signal: requestSignal })
+							.withResponse();
+						await notifyProviderResponse(options, response, model, request_id);
+						return data;
+					},
+					{ provider: model.provider, signal: requestSignal },
+				);
 			if (premiumRequestsTotal !== undefined) output.usage.premiumRequests = premiumRequestsTotal;
 			stream.push({ type: "start", partial: output });
 
-			const nativeOutputItems: Array<Record<string, unknown>> = [];
-			await processResponsesStream(
-				iterateWithIdleTimeout(openaiStream, {
-					idleTimeoutMs,
-					watchdog: firstEventWatchdog,
-					errorMessage: "OpenAI responses stream stalled while waiting for the next event",
-					onIdle: () => requestAbortController.abort(),
-					abortSignal: options?.signal,
-					isProgressItem: isOpenAIResponsesProgressEvent,
-				}),
-				output,
-				stream,
-				model,
-				{
-					onFirstToken: () => {
-						if (!firstTokenTime) firstTokenTime = Date.now();
-					},
-					onOutputItemDone: item => {
-						nativeOutputItems.push(structuredCloneJSON<unknown>(item) as unknown as Record<string, unknown>);
-					},
-				},
-			);
+			let nativeOutputItems: Array<Record<string, unknown>> = [];
+			let retryAttempt = 0;
+			while (true) {
+				const attemptOutput = createInitialResponsesAssistantMessage("openai-responses", model.provider, model.id);
+				const attemptNativeOutputItems: Array<Record<string, unknown>> = [];
+				let sawReplayUnsafeOutput = false;
+				let sawTerminalEvent = false;
+				const attemptStream = new ReplayBufferedResponsesEventStream(stream, () => sawReplayUnsafeOutput);
+				const openaiStream = await openResponsesStream();
+				const firstEventWatchdog = createWatchdog(firstEventTimeoutMs, () =>
+					abortTracker.abortLocally(firstEventTimeoutAbortError),
+				);
+				const observed = projectTerminalSignedReasoning(openaiStream, event => {
+					if (isReplayUnsafeOpenAIResponsesEvent(event)) sawReplayUnsafeOutput = true;
+					if (event.type === "response.completed" || event.type === "response.failed" || event.type === "error") {
+						sawTerminalEvent = true;
+					}
+				});
+				try {
+					await processResponsesStream(
+						iterateWithIdleTimeout(observed, {
+							idleTimeoutMs,
+							watchdog: firstEventWatchdog,
+							errorMessage: "OpenAI responses stream stalled while waiting for the next event",
+							onIdle: () => requestAbortController.abort(),
+							abortSignal: options?.signal,
+							isProgressItem: isOpenAIResponsesProgressEvent,
+						}),
+						attemptOutput,
+						attemptStream,
+						model,
+						{
+							onFirstToken: () => {
+								if (!firstTokenTime) firstTokenTime = Date.now();
+							},
+							onOutputItemDone: item => {
+								attemptNativeOutputItems.push(
+									structuredCloneJSON<unknown>(item) as unknown as Record<string, unknown>,
+								);
+							},
+						},
+					);
+					if (!sawTerminalEvent) {
+						throw new OpenAIResponsesIncompleteStreamError(
+							"OpenAI responses stream ended before a terminal event",
+						);
+					}
+				} catch (error) {
+					if (
+						isRetryableOpenAIResponsesStreamFailure(error) &&
+						!requestSignal.aborted &&
+						!options?.signal?.aborted &&
+						!abortTracker.getLocalAbortReason() &&
+						!sawReplayUnsafeOutput &&
+						retryAttempt < OPENAI_RESPONSES_MAX_SAFE_STREAM_RETRIES
+					) {
+						retryAttempt++;
+						if (options?.providerRetryWait) await options.providerRetryWait(500, options.signal);
+						continue;
+					}
+					attemptStream.flush();
+					output = attemptOutput;
+					throw error;
+				}
+				attemptStream.flush();
+				output = attemptOutput;
+				nativeOutputItems = attemptNativeOutputItems;
+				break;
+			}
 			if (premiumRequestsTotal !== undefined) output.usage.premiumRequests = premiumRequestsTotal;
 
 			const firstEventTimeoutError = abortTracker.getLocalAbortReason();

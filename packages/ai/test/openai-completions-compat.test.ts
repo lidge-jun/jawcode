@@ -72,6 +72,7 @@ describe("openai-completions compatibility", () => {
 			supportsImageDetailOriginal: true,
 			supportsReasoningSummary: true,
 			includeEncryptedReasoning: true,
+			streamFirstEventTimeoutMs: 15_000,
 			supportsDeveloperRole: true,
 			supportsMultipleSystemMessages: true,
 			supportsReasoningEffort: true,

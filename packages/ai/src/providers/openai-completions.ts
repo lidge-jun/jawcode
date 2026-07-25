@@ -47,6 +47,7 @@ import {
 } from "../utils/http-inspector";
 import {
 	createWatchdog,
+	getOpenAIStreamFirstEventTimeoutMs,
 	getOpenAIStreamIdleTimeoutMs,
 	getStreamFirstEventTimeoutMs,
 	iterateWithIdleTimeout,
@@ -530,7 +531,8 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions"> = (
 				}
 			}
 			const firstEventWatchdog = createWatchdog(
-				options?.streamFirstEventTimeoutMs ?? getStreamFirstEventTimeoutMs(idleTimeoutMs),
+				options?.streamFirstEventTimeoutMs ??
+					getOpenAIStreamFirstEventTimeoutMs(idleTimeoutMs, model.compat?.streamFirstEventTimeoutMs),
 				() => abortTracker.abortLocally(firstEventTimeoutAbortError),
 			);
 			if (premiumRequestsTotal !== undefined) {
