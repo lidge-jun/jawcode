@@ -80,3 +80,59 @@
 | [20.029](./20.029_omp_chase_stats_sync_worker_perf.md) | JWC packages/stats peer 부재 |
 
 > OMP 20.* 카드는 설계상 전부 reference-only(1:1 port ❌)이므로, ①로 분류돼도 "그대로 복사"가 아니라 "JWC식 재설계 후 채택"을 뜻한다.
+
+## 2026-07-25 신규 카드 tier 배정 (autonomy bucket 매핑: A≈①, C≈②, B≈③)
+
+### ① 기능 결정 없이 따라갈 수 있음 (A bucket, 15장)
+
+| NNN | 스코프 |
+|---|---|
+| [10.110](./10.110_gjc_chase_sdk_acp_bridge_lifecycle.md) | SDK/ACP/bridge lifecycle |
+| [10.112](./10.112_gjc_chase_notifications_telegram_daemon.md) | notifications/Telegram daemon |
+| [10.116](./10.116_gjc_chase_natives_windows_platform.md) | natives/Windows/platform |
+| [10.117](./10.117_gjc_chase_ci_release_docs_test_evidence.md) | CI/release/docs evidence-fill |
+| [20.081](./20.081_omp_chase_ai_catalog_stream_auth.md) | AI catalog/stream/auth |
+| [20.082](./20.082_omp_chase_session_context_settings_persistence.md) | session/context/settings |
+| [20.083](./20.083_omp_chase_tool_fs_shell_git_safety.md) | tool/fs/shell/git safety |
+| [20.087](./20.087_omp_chase_native_diff_search_memory_perf.md) | native diff/search/memory perf |
+| [20.088](./20.088_omp_chase_release_build_platform_ci.md) | release/build/platform/CI |
+| [20.089](./20.089_omp_chase_runtime_stats_logging_collab.md) | runtime/stats/logging/collab |
+| [20.102](./20.102_omp_chase_error_notifications_terminal_title.md) | error notifications/terminal title |
+| [20.107](./20.107_omp_chase_compaction_retry_history_resilience.md) | compaction/history resilience |
+| [20.109](./20.109_omp_chase_tools_platform_runtime_hardening.md) | tool/platform runtime hardening |
+| [20.122](./20.122_omp_chase_tui_tool_lifecycle.md) | TUI/tool lifecycle |
+| [20.124](./20.124_omp_chase_ai_provider_stream_integrity.md) | AI/provider stream integrity |
+
+### ② 기능 결정 필요 (C bucket, 17장)
+
+| NNN | 스코프 |
+|---|---|
+| [10.108](./10.108_gjc_chase_security_network_authority.md) | security/network authority |
+| [10.111](./10.111_gjc_chase_workflow_interview_handoff_agents.md) | workflow/interview/handoff/agents |
+| [10.113](./10.113_gjc_chase_tui_cli_terminal_interaction.md) | TUI/CLI/terminal interaction |
+| [10.114](./10.114_gjc_chase_ai_models_providers_retry.md) | AI/models/providers/retry |
+| [20.084](./20.084_omp_chase_task_subagent_advisor_launch.md) | task/subagent/advisor/launch |
+| [20.086](./20.086_omp_chase_extensions_mcp_lsp_dap_browser.md) | extensions/MCP/LSP/DAP/browser |
+| [20.101](./20.101_omp_chase_secret_placeholder_redaction.md) | secret placeholder identity |
+| [20.103](./20.103_omp_chase_workspace_roots_session_lifecycle.md) | workspace roots/session lifecycle |
+| [20.104](./20.104_omp_chase_task_todo_subagent_quiescence.md) | task/todo/subagent quiescence |
+| [20.105](./20.105_omp_chase_providers_oauth_usage_fallback.md) | providers/OAuth/usage/fallback |
+| [20.106](./20.106_omp_chase_prompt_cache_policy_benchmark.md) | prompt-cache policy/benchmarks |
+| [20.108](./20.108_omp_chase_mcp_rpc_acp_protocol_hardening.md) | MCP/RPC/ACP hardening |
+| [20.111](./20.111_omp_chase_tui_export_extensions_status.md) | TUI/exports/extensions |
+| [20.121](./20.121_omp_chase_native_computer_use.md) | native computer use |
+| [20.123](./20.123_omp_chase_native_live_audio_attestation.md) | native live/audio/attestation |
+| [20.125](./20.125_omp_chase_task_rebuild_search_rendering.md) | task/rebuild/search/rendering |
+| [20.126](./20.126_omp_chase_account_usage_launch_stats.md) | account/usage/launch/stats |
+
+### ③ 백로그 / track-only (B bucket, 7장)
+
+| NNN | 사유 |
+|---|---|
+| [10.109](./10.109_gjc_chase_session_storage_migration.md) | 상태 마이그레이션 — 게이트 대기 |
+| [10.115](./10.115_gjc_chase_tools_search_memory_plugins.md) | 대형/참조 |
+| [20.085](./20.085_omp_chase_tui_render_input_markdown.md) | track-only |
+| [20.090](./20.090_omp_chase_robomp_swarm_reference.md) | reference-only |
+| [20.110](./20.110_omp_chase_advisor_hindsight_vibe_runtime.md) | JWC 개념 부재 — 설계 입력 |
+| [20.112](./20.112_omp_chase_misc_runtime_quality.md) | evidence-fill 잔여 |
+| [20.127](./20.127_omp_chase_shell_native_ci.md) | evidence-fill 잔여 |

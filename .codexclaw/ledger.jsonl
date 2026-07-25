@@ -236,3 +236,4 @@
 {"ts":"2026-07-17T07:24:50.221Z","sessionId":"019f6de9-f741-7233-9af9-c1684303685b","from":"C","to":"IDLE","reason":"done","evidence":"WP4 C: 446 focused tests, Biome clean, all 17 A cards implemented across 4 WPs"}
 {"ts":"2026-07-25T14:56:00.444Z","sessionId":"019f99aa-d87c-7c42-831c-747956a1c5be","from":"IDLE","to":"P","reason":"cli"}
 {"ts":"2026-07-25T15:02:36.319Z","sessionId":"019f99aa-d87c-7c42-831c-747956a1c5be","from":"P","to":"A","reason":"cli","evidence":"000_plan.md+001_delta_evidence.md+010_wp2_docs_loop.md"}
+{"ts":"2026-07-25T15:07:43.595Z","sessionId":"019f99aa-d87c-7c42-831c-747956a1c5be","from":"A","to":"B","reason":"cli","evidence":"A-stage audit completed by independent sol reviewer: GO-WITH-FIXES with 4 blockers; all folded into 010_wp2_docs_loop.md per 011_a_audit.md + 012_p_synthesis.md; main judges near-pass, no open residuals"}
