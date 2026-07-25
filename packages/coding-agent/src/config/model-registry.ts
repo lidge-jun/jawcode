@@ -1232,14 +1232,13 @@ export class ModelRegistry {
 	/** Merge custom models with built-in, replacing by provider+id match */
 	#mergeCustomModels(builtInModels: Model<Api>[], customModels: CustomModelOverlay[]): Model<Api>[] {
 		const merged = [...builtInModels];
-		const indexByKey = new Map<string, number>();
-		for (let i = 0; i < merged.length; i += 1) {
-			const m = merged[i];
-			indexByKey.set(`${m.provider}\u0000${m.id}`, i);
-		}
 		for (const customModel of customModels) {
-			const key = `${customModel.provider}\u0000${customModel.id}`;
-			const existingIndex = indexByKey.get(key);
+			const normalizedProvider = customModel.provider.toLowerCase();
+			const normalizedId = customModel.id.toLowerCase();
+			const matchingIndexes = merged.flatMap((model, index) =>
+				model.provider.toLowerCase() === normalizedProvider && model.id.toLowerCase() === normalizedId ? [index] : [],
+			);
+			const existingIndex = matchingIndexes[0];
 			if (existingIndex !== undefined) {
 				const existingModel = merged[existingIndex];
 				merged[existingIndex] = enrichModelThinking({
@@ -1266,9 +1265,11 @@ export class ModelRegistry {
 					requestTransform: customModel.requestTransform,
 					premiumMultiplier: customModel.premiumMultiplier ?? existingModel.premiumMultiplier,
 				} as Model<Api>);
+				for (let i = matchingIndexes.length - 1; i > 0; i -= 1) {
+					merged.splice(matchingIndexes[i]!, 1);
+				}
 			} else {
 				merged.push(finalizeCustomModel(customModel, { useDefaults: true }));
-				indexByKey.set(key, merged.length - 1);
 			}
 		}
 		return merged;
