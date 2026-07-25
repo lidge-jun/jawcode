@@ -4,9 +4,24 @@ import * as z from "zod/v4";
 import browserDescription from "../prompts/tools/browser.md" with { type: "text" };
 import type { ToolSession } from "../sdk";
 import { type BrowserActionStep, compileActionSteps } from "./browser/actions";
-import { acquireBrowser, type BrowserHandle, type BrowserKind, type BrowserKindTag } from "./browser/registry";
+import {
+	acquireBrowser,
+	type BrowserHandle,
+	type BrowserKind,
+	type BrowserKindTag,
+	holdBrowser,
+	releaseBrowser,
+} from "./browser/registry";
 import type { Observation, ScreenshotResult } from "./browser/tab-protocol";
-import { acquireTab, dropHeadlessTabs, getTab, releaseAllTabs, releaseTab, runInTab } from "./browser/tab-supervisor";
+import {
+	type AcquireTabResult,
+	acquireTab,
+	dropHeadlessTabs,
+	getTab,
+	releaseAllTabs,
+	releaseTab,
+	runInTab,
+} from "./browser/tab-supervisor";
 import type { OutputMeta } from "./output-meta";
 import { resolveToCwd } from "./path-utils";
 import { ToolAbortError, ToolError, throwIfAborted } from "./tool-errors";
@@ -185,51 +200,66 @@ export class BrowserTool implements AgentTool<typeof browserSchema, BrowserToolD
 			);
 		}
 
-		const browser = await untilAborted(signal, () =>
-			acquireBrowser(kind, {
-				cwd: this.session.cwd,
-				viewport: params.viewport
-					? {
-							width: params.viewport.width,
-							height: params.viewport.height,
-							deviceScaleFactor: params.viewport.scale,
-						}
-					: undefined,
-				appArgs: params.app?.args,
-				signal,
-			}),
-		);
-
-		const result = await untilAborted(signal, () =>
-			acquireTab(name, browser, {
-				url: params.url,
-				waitUntil: params.wait_until,
-				viewport: params.viewport
-					? {
-							width: params.viewport.width,
-							height: params.viewport.height,
-							deviceScaleFactor: params.viewport.scale,
-						}
-					: undefined,
-				target: params.app?.target,
-				timeoutMs,
-				dialogs: params.dialogs,
-				signal,
-			}),
-		);
-		const tab = result.tab;
-		const url = tab.info.url;
-		const title = tab.info.title ?? "";
-		details.url = url;
-		details.viewport = tab.info.viewport;
-		const verb = result.created ? "Opened" : "Reused";
-		const lines = [
-			`${verb} tab ${JSON.stringify(name)} on ${describeBrowser(browser)}`,
-			`URL: ${url}`,
-			title ? `Title: ${title}` : null,
-		].filter((l): l is string => typeof l === "string");
-		details.result = lines.join("\n");
-		return toolResult(details).text(lines.join("\n")).done();
+		const timeoutSignal = AbortSignal.timeout(timeoutMs);
+		const openSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
+		try {
+			const browser = await untilAborted(openSignal, () =>
+				acquireBrowser(kind, {
+					cwd: this.session.cwd,
+					viewport: params.viewport
+						? {
+								width: params.viewport.width,
+								height: params.viewport.height,
+								deviceScaleFactor: params.viewport.scale,
+							}
+						: undefined,
+					appArgs: params.app?.args,
+					signal: openSignal,
+				}),
+			);
+			holdBrowser(browser);
+			let result: AcquireTabResult;
+			try {
+				result = await untilAborted(openSignal, () =>
+					acquireTab(name, browser, {
+						url: params.url,
+						waitUntil: params.wait_until,
+						viewport: params.viewport
+							? {
+									width: params.viewport.width,
+									height: params.viewport.height,
+									deviceScaleFactor: params.viewport.scale,
+								}
+							: undefined,
+						target: params.app?.target,
+						timeoutMs,
+						dialogs: params.dialogs,
+						signal: openSignal,
+					}),
+				);
+			} catch (error) {
+				await releaseBrowser(browser, { kill: false });
+				throw error;
+			}
+			await releaseBrowser(browser, { kill: false });
+			const tab = result.tab;
+			const url = tab.info.url;
+			const title = tab.info.title ?? "";
+			details.url = url;
+			details.viewport = tab.info.viewport;
+			const verb = result.created ? "Opened" : "Reused";
+			const lines = [
+				`${verb} tab ${JSON.stringify(name)} on ${describeBrowser(browser)}`,
+				`URL: ${url}`,
+				title ? `Title: ${title}` : null,
+			].filter((l): l is string => typeof l === "string");
+			details.result = lines.join("\n");
+			return toolResult(details).text(lines.join("\n")).done();
+		} catch (error) {
+			if (signal?.aborted) throw error instanceof ToolAbortError ? error : new ToolAbortError();
+			if (timeoutSignal.aborted) throw new ToolError(`Browser open timed out after ${timeoutMs}ms`);
+			throw error;
+		}
 	}
 
 	async #close(

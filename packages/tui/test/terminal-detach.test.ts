@@ -136,6 +136,17 @@ function withStdoutProperty<T>(
 }
 
 describe("terminal detach handling", () => {
+	it("restores normal cursor-key and keypad mode on teardown", () => {
+		const terminal = new ProcessTerminal();
+		const writeSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+		try {
+			withStdoutProperty("isTTY", true, () => terminal.stop());
+			expect(writeSpy.mock.calls.some(([chunk]) => chunk === "\x1b[?1l\x1b>")).toBe(true);
+		} finally {
+			writeSpy.mockRestore();
+		}
+	});
+
 	it("swallows ProcessTerminal EIO writes and marks output unavailable", () => {
 		const terminal = new ProcessTerminal();
 		const originalIsTTY = process.stdout.isTTY;

@@ -180,7 +180,7 @@ export class DapClient {
 			proc,
 		);
 
-		const { readable, writeSink, socket } = await connectSocket({ unix: socketPath });
+		const { readable, writeSink, socket } = await connectSocket({ unix: socketPath }, 10_000);
 		const client = new DapClient(adapter, cwd, proc, { readable, writeSink, socket });
 		proc.exited.then(() => client.#handleProcessExit());
 		void client.#startMessageReader();
@@ -604,20 +604,27 @@ function socketToSink(socket: Bun.Socket<undefined>): DapWriteSink {
 }
 
 /** Connect to a unix domain socket and return DAP transport streams. */
-async function connectSocket(options: { unix: string }): Promise<SocketTransport> {
-	const { promise, resolve } = Promise.withResolvers<SocketTransport>();
+export async function connectSocket(options: { unix: string }, timeoutMs: number): Promise<SocketTransport> {
+	const { promise, resolve, reject } = Promise.withResolvers<SocketTransport>();
 	let streamController: ReadableStreamDefaultController<Uint8Array>;
+	let opened = false;
 
 	const readable = new ReadableStream<Uint8Array>({
 		start(controller) {
 			streamController = controller;
 		},
 	});
+	const timer = setTimeout(
+		() => reject(new Error(`Timed out connecting to unix socket ${options.unix} after ${timeoutMs}ms`)),
+		timeoutMs,
+	);
+	void promise.finally(() => clearTimeout(timer)).catch(() => undefined);
 
-	Bun.connect({
+	void Bun.connect({
 		unix: options.unix,
 		socket: {
 			open(socket) {
+				opened = true;
 				resolve({
 					readable,
 					writeSink: socketToSink(socket),
@@ -628,6 +635,7 @@ async function connectSocket(options: { unix: string }): Promise<SocketTransport
 				streamController.enqueue(new Uint8Array(data));
 			},
 			close() {
+				if (!opened) reject(new Error(`Unix socket ${options.unix} closed before opening`));
 				try {
 					streamController.close();
 				} catch {
@@ -635,6 +643,7 @@ async function connectSocket(options: { unix: string }): Promise<SocketTransport
 				}
 			},
 			error(_socket, err) {
+				if (!opened) reject(err);
 				try {
 					streamController.error(err);
 				} catch {
@@ -642,6 +651,8 @@ async function connectSocket(options: { unix: string }): Promise<SocketTransport
 				}
 			},
 		},
+	}).catch(error => {
+		if (!opened) reject(error);
 	});
 
 	return promise;

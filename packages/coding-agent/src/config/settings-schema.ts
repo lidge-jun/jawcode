@@ -1892,6 +1892,16 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
+	"read.renderMarkdown": {
+		type: "boolean",
+		default: false,
+		ui: {
+			tab: "editing",
+			label: "Markdown Previews",
+			description: "Render local Markdown file reads as formatted terminal previews instead of raw source",
+		},
+	},
+
 	"read.summarize.enabled": {
 		type: "boolean",
 		default: true,

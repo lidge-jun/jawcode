@@ -269,6 +269,23 @@ describe("expandInternalUrls", () => {
 		).rejects.toThrow("Failed to resolve memory:// URL in bash command");
 	});
 
+	it("expands an internal URL inside a backtick substitution nested in double quotes", async () => {
+		const skills = [createSkill("valid-skill", "/tmp/skills/valid-skill")];
+		const command = 'echo "`cat skill://valid-skill/SKILL.md`"';
+		const expectedPath = path.join(skills[0].baseDir, "SKILL.md");
+
+		await expect(expandInternalUrls(command, { skills })).resolves.toBe(
+			`echo "\`cat ${shellEscape(expectedPath)}\`"`,
+		);
+	});
+
+	it("keeps an internal URL inside escaped inner quotes in a double-quoted backtick literal", async () => {
+		const skills = [createSkill("valid-skill", "/tmp/skills/valid-skill")];
+		const command = 'echo "`printf %s \\"literal skill://valid-skill/SKILL.md\\"`"';
+
+		await expect(expandInternalUrls(command, { skills })).resolves.toBe(command);
+	});
+
 	it("does not match local:/ inside filesystem paths (e.g. /repo/local:/PLAN.md)", async () => {
 		const command = "cat /repo/local:/PLAN.md";
 		await expect(expandInternalUrls(command, { skills: [] })).resolves.toBe(command);

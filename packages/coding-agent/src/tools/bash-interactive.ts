@@ -34,6 +34,22 @@ function normalizeCaptureChunk(chunk: string): string {
 
 const XtermTerminal = xterm.Terminal;
 
+export const MAX_LIVE_WRITE_QUEUE_CHUNKS = 512;
+
+export function trimLiveWriteQueue(queue: string[], writeOffset: number, writing: boolean): number {
+	if (writeOffset > 0) {
+		queue.splice(0, writeOffset);
+		writeOffset = 0;
+	}
+	const firstPending = writing ? 1 : 0;
+	const overflow = queue.length - firstPending - MAX_LIVE_WRITE_QUEUE_CHUNKS;
+	if (overflow > 0) {
+		queue.splice(firstPending, overflow);
+		queue[firstPending] = `\u001b\\${queue[firstPending]}`;
+	}
+	return writeOffset;
+}
+
 function normalizeInputForPty(data: string, applicationCursorKeysMode: boolean): string {
 	const kitty = parseKittySequence(data);
 	if (kitty?.eventType === 3) {
@@ -131,6 +147,7 @@ class BashInteractiveOverlayComponent implements Component {
 
 	appendOutput(chunk: string): void {
 		this.#writeQueue.push(chunk);
+		this.#writeOffset = trimLiveWriteQueue(this.#writeQueue, this.#writeOffset, this.#writing);
 		this.#drainQueue();
 	}
 

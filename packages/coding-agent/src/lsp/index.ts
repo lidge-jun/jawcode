@@ -12,6 +12,7 @@ import { clampTimeout } from "../tools/tool-timeouts";
 import {
 	ensureFileOpen,
 	getActiveClients,
+	getActiveOrPendingClient,
 	getOrCreateClient,
 	type LspServerStatus,
 	notifySaved,
@@ -19,6 +20,7 @@ import {
 	sendNotification,
 	sendRequest,
 	setIdleTimeout,
+	shutdownClientInstance,
 	syncContent,
 	WARMUP_TIMEOUT_MS,
 	waitForProjectLoaded,
@@ -180,6 +182,7 @@ async function syncFileContent(
 	cwd: string,
 	servers: Array<[string, ServerConfig]>,
 	signal?: AbortSignal,
+	createMissing = true,
 ): Promise<void> {
 	throwIfAborted(signal);
 	await Promise.allSettled(
@@ -188,11 +191,15 @@ async function syncFileContent(
 			if (serverConfig.createClient) {
 				return;
 			}
-			const client = await getOrCreateClient(serverConfig, cwd);
+			const client = createMissing
+				? await getOrCreateClient(serverConfig, cwd)
+				: await getActiveOrPendingClient(serverConfig, cwd, signal);
+			if (!client) return;
 			throwIfAborted(signal);
 			await syncContent(client, absolutePath, content, signal);
 		}),
 	);
+	throwIfAborted(signal);
 }
 
 /**
@@ -208,6 +215,7 @@ async function notifyFileSaved(
 	cwd: string,
 	servers: Array<[string, ServerConfig]>,
 	signal?: AbortSignal,
+	createMissing = true,
 ): Promise<void> {
 	throwIfAborted(signal);
 	await Promise.allSettled(
@@ -216,10 +224,14 @@ async function notifyFileSaved(
 			if (serverConfig.createClient) {
 				return;
 			}
-			const client = await getOrCreateClient(serverConfig, cwd);
+			const client = createMissing
+				? await getOrCreateClient(serverConfig, cwd)
+				: await getActiveOrPendingClient(serverConfig, cwd, signal);
+			if (!client) return;
 			await notifySaved(client, absolutePath, signal);
 		}),
 	);
+	throwIfAborted(signal);
 }
 
 // Cache config per cwd to avoid repeated file I/O
@@ -388,21 +400,24 @@ function isMethodNotFoundError(err: unknown): boolean {
 }
 
 async function reloadServer(client: LspClient, serverName: string, signal?: AbortSignal): Promise<string> {
-	let output = `Restarted ${serverName}`;
-	const reloadMethods = ["rust-analyzer/reloadWorkspace", "workspace/didChangeConfiguration"];
-	for (const method of reloadMethods) {
-		try {
-			await sendRequest(client, method, method.includes("Configuration") ? { settings: {} } : null, signal);
-			output = `Reloaded ${serverName}`;
-			break;
-		} catch {
-			// Method not supported, try next
+	throwIfAborted(signal);
+	try {
+		await sendRequest(client, "rust-analyzer/reloadWorkspace", null, signal);
+		return `Reloaded ${serverName}`;
+	} catch (error) {
+		throwIfAborted(signal);
+		if (!isMethodNotFoundError(error)) throw error;
+	}
+	try {
+		await sendNotification(client, "workspace/didChangeConfiguration", { settings: {} }, signal);
+		return `Reloaded ${serverName}`;
+	} catch (error) {
+		throwIfAborted(signal);
+		if (!(await shutdownClientInstance(client))) {
+			throw new Error(`Failed to restart ${serverName}: server process did not exit after kill`, { cause: error });
 		}
+		return `Restarted ${serverName}`;
 	}
-	if (output.startsWith("Restarted")) {
-		await client.owner.dispose();
-	}
-	return output;
 }
 
 interface WaitForDiagnosticsOptions {
@@ -1007,7 +1022,8 @@ async function runLspWritethrough(
 	const useCustomFormatter = enableFormat && customLinterServers.length > 0;
 
 	// Capture diagnostic versions BEFORE syncing to detect stale diagnostics
-	const minVersions = enableDiagnostics ? await captureDiagnosticVersions(cwd, servers) : undefined;
+	const minVersionsPromise = enableDiagnostics ? captureDiagnosticVersions(cwd, servers) : undefined;
+	let minVersions = useCustomFormatter ? undefined : await minVersionsPromise;
 	let expectedDocumentVersions: ServerVersionMap | undefined;
 
 	let formatter: FileFormatResult | undefined;
@@ -1027,10 +1043,15 @@ async function runLspWritethrough(
 			if (useCustomFormatter) {
 				// Custom linters (e.g. Biome CLI) require on-disk input.
 				await writeContent(content);
-				finalContent = await formatContent(dst, content, cwd, customLinterServers, operationSignal);
+				const [formattedContent, capturedVersions] = await Promise.all([
+					formatContent(dst, content, cwd, customLinterServers, operationSignal),
+					minVersionsPromise,
+				]);
+				finalContent = formattedContent;
+				minVersions = capturedVersions;
 				formatter = finalContent !== content ? FileFormatResult.FORMATTED : FileFormatResult.UNCHANGED;
 				await writeContent(finalContent);
-				await syncFileContent(dst, finalContent, cwd, lspServers, operationSignal);
+				await syncFileContent(dst, finalContent, cwd, lspServers, operationSignal, enableDiagnostics);
 			} else {
 				// 1. Sync original content to LSP servers
 				await syncFileContent(dst, content, cwd, lspServers, operationSignal);
@@ -1055,7 +1076,7 @@ async function runLspWritethrough(
 			}
 
 			// 5. Notify saved to LSP servers
-			await notifyFileSaved(dst, cwd, lspServers, operationSignal);
+			await notifyFileSaved(dst, cwd, lspServers, operationSignal, !useCustomFormatter || enableDiagnostics);
 
 			// 6. Get diagnostics from all servers (wait for fresh results)
 			if (enableDiagnostics) {

@@ -3,7 +3,7 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { Settings } from "../../src/config/settings";
-import { DapClient } from "../../src/dap/client";
+import { connectSocket, DapClient } from "../../src/dap/client";
 import { DapSessionManager } from "../../src/dap/session";
 import type { DapCapabilities, DapClientState, DapEventMessage, DapResolvedAdapter } from "../../src/dap/types";
 import type { ToolSession } from "../../src/tools";
@@ -21,6 +21,15 @@ const TEST_ADAPTER: DapResolvedAdapter = {
 	attachDefaults: {},
 	connectMode: "stdio",
 };
+
+describe("connectSocket unix transport", () => {
+	it("rejects within the requested bound for a nonexistent unix socket", async () => {
+		const socketPath = path.join(os.tmpdir(), `jwc-dap-missing-${process.pid}-${Date.now()}.sock`);
+		const started = Date.now();
+		await expect(connectSocket({ unix: socketPath }, 250)).rejects.toThrow();
+		expect(Date.now() - started).toBeLessThan(1_000);
+	});
+});
 
 type DapEventHandler = (body: unknown, event: DapEventMessage) => void | Promise<void>;
 

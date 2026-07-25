@@ -581,6 +581,29 @@ export async function getOrCreateClient(config: ServerConfig, cwd: string, initT
 	return clientPromise;
 }
 
+/** Return an active or already-starting client without starting a language server. */
+export async function getActiveOrPendingClient(
+	config: ServerConfig,
+	cwd: string,
+	signal?: AbortSignal,
+): Promise<LspClient | undefined> {
+	throwIfAborted(signal);
+	const key = `${config.command}:${cwd}`;
+	const client = clients.get(key);
+	if (client) {
+		client.lastActivity = Date.now();
+		return client;
+	}
+	const pending = clientLocks.get(key);
+	if (!pending) return undefined;
+	try {
+		return await untilAborted(signal, () => pending);
+	} catch {
+		throwIfAborted(signal);
+		return undefined;
+	}
+}
+
 /**
  * Ensure a file is opened in the LSP client.
  * Sends didOpen notification if the file is not already tracked.
@@ -795,24 +818,29 @@ export async function refreshFile(client: LspClient, filePath: string, signal?: 
 /**
  * Shutdown a specific client by key.
  */
-async function shutdownClientInstance(client: LspClient): Promise<void> {
+export async function shutdownClientInstance(client: LspClient): Promise<boolean> {
+	if (clients.get(client.name) === client) clients.delete(client.name);
 	const err = new Error("LSP client shutdown");
 	for (const pending of Array.from(client.pendingRequests.values())) {
 		pending.reject(err);
 	}
 	client.pendingRequests.clear();
 
-	const timeout = Bun.sleep(5_000);
-	const shutdown = sendRequest(client, "shutdown", null).catch(() => {});
-	await Promise.race([shutdown, timeout]);
+	const timeout = Bun.sleep(5_000).then(() => false);
+	const shutdown = sendRequest(client, "shutdown", null).then(
+		() => true,
+		() => false,
+	);
+	const graceful = await Promise.race([shutdown, timeout]);
+	if (graceful) await sendNotification(client, "exit", undefined).catch(() => {});
 	await client.owner.dispose();
+	return (await client.owner.awaitExit({ timeoutMs: 2_000 })).exited;
 }
 
-export async function shutdownClient(key: string): Promise<void> {
+export async function shutdownClient(key: string): Promise<boolean> {
 	const client = clients.get(key);
-	if (!client) return;
-	clients.delete(key);
-	await shutdownClientInstance(client);
+	if (!client) return true;
+	return await shutdownClientInstance(client);
 }
 
 // =============================================================================
@@ -911,7 +939,13 @@ export async function sendRequest(
 /**
  * Send an LSP notification (no response expected).
  */
-export async function sendNotification(client: LspClient, method: string, params: unknown): Promise<void> {
+export async function sendNotification(
+	client: LspClient,
+	method: string,
+	params: unknown,
+	signal?: AbortSignal,
+): Promise<void> {
+	throwIfAborted(signal);
 	const notification: LspJsonRpcNotification = {
 		jsonrpc: "2.0",
 		method,
@@ -919,7 +953,7 @@ export async function sendNotification(client: LspClient, method: string, params
 	};
 
 	client.lastActivity = Date.now();
-	await queueWriteMessage(client, notification);
+	await untilAborted(signal, () => queueWriteMessage(client, notification));
 }
 
 /**

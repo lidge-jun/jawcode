@@ -3,10 +3,10 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@jawcode-dev/agent-core";
 import type { ImageContent, TextContent } from "@jawcode-dev/ai";
-import { glob, type SummaryResult, summarizeCode } from "@jawcode-dev/natives";
+import { type SummaryResult, summarizeCode } from "@jawcode-dev/natives";
 import type { Component } from "@jawcode-dev/tui";
 import { Text } from "@jawcode-dev/tui";
-import { getRemoteDir, logger, prompt, readImageMetadata, untilAborted } from "@jawcode-dev/utils";
+import { getRemoteDir, logger, prompt, readImageMetadata } from "@jawcode-dev/utils";
 import * as z from "zod/v4";
 import { getFileReadCache } from "../edit/file-read-cache";
 import { isNotebookPath, readEditableNotebookText } from "../edit/notebook";
@@ -64,6 +64,7 @@ import {
 } from "./output-meta";
 import {
 	expandPath,
+	findUniqueWorkspaceSuffix,
 	formatPathRelativeToCwd,
 	resolveReadPath,
 	splitInternalUrlSel,
@@ -86,7 +87,7 @@ import {
 	renderTableList,
 	resolveTableRowLookup,
 } from "./sqlite-reader";
-import { ToolAbortError, ToolError, throwIfAborted } from "./tool-errors";
+import { ToolError, throwIfAborted } from "./tool-errors";
 import { toolResult } from "./tool-result";
 
 // Document types converted to markdown via markit.
@@ -101,6 +102,17 @@ const MAX_SUMMARY_LINES = 20_000;
  * covers `bash`/`ssh`/`python`/`js eval` and `read` uniformly.
  */
 const PROSE_SUMMARY_EXTENSIONS = new Set([".md", ".txt"]);
+
+function markLocalMarkdownContentType(
+	details: ReadToolDetails,
+	filePath: string,
+	renderMarkdown: boolean,
+): ReadToolDetails {
+	if (renderMarkdown && path.extname(filePath).toLowerCase() === ".md") {
+		details.contentType = "text/markdown";
+	}
+	return details;
+}
 // Remote mount path prefix (sshfs mounts) - skip fuzzy matching to avoid hangs
 const REMOTE_MOUNT_PREFIX = getRemoteDir() + path.sep;
 
@@ -409,55 +421,11 @@ async function streamLinesFromFile(
 
 // Maximum image file size (20MB) - larger images will be rejected to prevent OOM during serialization
 const MAX_IMAGE_SIZE = MAX_IMAGE_INPUT_BYTES;
-const GLOB_TIMEOUT_MS = 5000;
 
 function isNotFoundError(error: unknown): boolean {
 	if (!error || typeof error !== "object") return false;
 	const code = (error as { code?: string }).code;
 	return code === "ENOENT" || code === "ENOTDIR";
-}
-
-/**
- * Attempt to resolve a non-existent path by finding a unique suffix match within the workspace.
- * Uses a glob suffix pattern so the native engine handles matching directly.
- * Returns null when 0 or >1 candidates match (ambiguous = no auto-resolution).
- */
-async function findUniqueSuffixMatch(
-	rawPath: string,
-	cwd: string,
-	signal?: AbortSignal,
-): Promise<{ absolutePath: string; displayPath: string } | null> {
-	const normalized = rawPath.replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/+$/, "");
-	if (!normalized) return null;
-
-	const timeoutSignal = AbortSignal.timeout(GLOB_TIMEOUT_MS);
-	const combinedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
-
-	let matches: string[];
-	try {
-		const result = await untilAborted(combinedSignal, () =>
-			glob({
-				pattern: `**/${normalized}`,
-				path: cwd,
-				// No fileType filter: matches both files and directories
-				hidden: true,
-			}),
-		);
-		matches = result.matches.map(m => m.path);
-	} catch (error) {
-		if (error instanceof Error && error.name === "AbortError") {
-			if (!signal?.aborted) return null; // timeout — give up silently
-			throw new ToolAbortError();
-		}
-		return null;
-	}
-
-	if (matches.length !== 1) return null;
-
-	return {
-		absolutePath: path.resolve(cwd, matches[0]),
-		displayPath: matches[0],
-	};
 }
 
 function decodeUtf8Text(bytes: Uint8Array): string | null {
@@ -705,7 +673,7 @@ export class ReadTool implements AgentTool<typeof readSchema, ReadToolDetails> {
 			} catch (error) {
 				if (!isNotFoundError(error) || isRemoteMountPath(absolutePath)) continue;
 
-				const suffixMatch = await findUniqueSuffixMatch(candidate.archivePath, this.session.cwd, signal);
+				const suffixMatch = await findUniqueWorkspaceSuffix(candidate.archivePath, this.session.cwd, signal);
 				if (!suffixMatch) continue;
 
 				try {
@@ -750,7 +718,7 @@ export class ReadTool implements AgentTool<typeof readSchema, ReadToolDetails> {
 			} catch (error) {
 				if (!isNotFoundError(error) || isRemoteMountPath(absolutePath)) continue;
 
-				const suffixMatch = await findUniqueSuffixMatch(candidate.sqlitePath, this.session.cwd, signal);
+				const suffixMatch = await findUniqueWorkspaceSuffix(candidate.sqlitePath, this.session.cwd, signal);
 				if (!suffixMatch) continue;
 
 				try {
@@ -984,7 +952,11 @@ export class ReadTool implements AgentTool<typeof readSchema, ReadToolDetails> {
 			try {
 				const bridgeText = await bridgePromise;
 				const bridgeResult = this.#buildInMemoryMultiRangeResult(bridgeText, ranges, {
-					details: { resolvedPath: absolutePath, suffixResolution },
+					details: markLocalMarkdownContentType(
+						{ resolvedPath: absolutePath, suffixResolution },
+						absolutePath,
+						this.session.settings.get("read.renderMarkdown"),
+					),
 					sourcePath: absolutePath,
 					entityLabel: "file",
 					raw: rawSelector,
@@ -1521,7 +1493,7 @@ export class ReadTool implements AgentTool<typeof readSchema, ReadToolDetails> {
 			if (isNotFoundError(error)) {
 				// Attempt unique suffix resolution before falling back to fuzzy suggestions
 				if (!isRemoteMountPath(absolutePath)) {
-					const suffixMatch = await findUniqueSuffixMatch(localReadPath, this.session.cwd, signal);
+					const suffixMatch = await findUniqueWorkspaceSuffix(localReadPath, this.session.cwd, signal);
 					if (suffixMatch) {
 						try {
 							const retryStat = await Bun.file(suffixMatch.absolutePath).stat();
@@ -1920,6 +1892,7 @@ export class ReadTool implements AgentTool<typeof readSchema, ReadToolDetails> {
 			}
 		}
 
+		markLocalMarkdownContentType(details, absolutePath, this.session.settings.get("read.renderMarkdown"));
 		if (suffixResolution) {
 			details.suffixResolution = suffixResolution;
 			// Inline resolution notice into first text block so the model sees the actual path

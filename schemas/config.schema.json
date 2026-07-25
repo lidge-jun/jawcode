@@ -1352,6 +1352,11 @@
 					"description": "Default number of lines returned when agent calls read without a limit",
 					"default": 300
 				},
+				"renderMarkdown": {
+					"type": "boolean",
+					"description": "Render local Markdown file reads as formatted terminal previews instead of raw source",
+					"default": false
+				},
 				"summarize": {
 					"type": "object",
 					"properties": {
