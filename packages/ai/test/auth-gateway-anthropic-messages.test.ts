@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { encodeResponse, encodeStream, parseRequest } from "../src/providers/anthropic-messages-server";
+import { MAX_ANTHROPIC_WEB_SEARCH_HISTORY_BLOCK_BYTES } from "../src/providers/anthropic-messages-server-schema";
 import type { AssistantMessage, AssistantMessageEvent, ToolResultMessage } from "../src/types";
 import { AssistantMessageEventStream } from "../src/utils/event-stream";
 
@@ -92,6 +93,76 @@ describe("anthropic-messages parseRequest", () => {
 			},
 		]);
 		expect(message.content.slice(2).every(block => block.type === "text")).toBe(true);
+	});
+
+	it("degrades mismatched, orphaned, duplicate, reversed, and oversized web-search history", () => {
+		const oversized = "x".repeat(MAX_ANTHROPIC_WEB_SEARCH_HISTORY_BLOCK_BYTES + 1);
+		const cases: Array<{
+			name: string;
+			content: Array<Record<string, unknown>>;
+			expectedPreserved: number;
+			expectedDegraded: number;
+		}> = [
+			{
+				name: "mismatched id",
+				expectedPreserved: 1,
+				expectedDegraded: 1,
+				content: [
+					{ type: "server_tool_use", id: "srvtoolu_1", name: "web_search", input: {} },
+					{ type: "web_search_tool_result", tool_use_id: "srvtoolu_other", content: [] },
+				],
+			},
+			{
+				name: "orphaned result",
+				expectedPreserved: 0,
+				expectedDegraded: 1,
+				content: [{ type: "web_search_tool_result", tool_use_id: "srvtoolu_1", content: [] }],
+			},
+			{
+				name: "duplicate ids",
+				expectedPreserved: 2,
+				expectedDegraded: 2,
+				content: [
+					{ type: "server_tool_use", id: "srvtoolu_1", name: "web_search", input: {} },
+					{ type: "server_tool_use", id: "srvtoolu_1", name: "web_search", input: {} },
+					{ type: "web_search_tool_result", tool_use_id: "srvtoolu_1", content: [] },
+					{ type: "web_search_tool_result", tool_use_id: "srvtoolu_1", content: [] },
+				],
+			},
+			{
+				name: "reversed order",
+				expectedPreserved: 1,
+				expectedDegraded: 1,
+				content: [
+					{ type: "web_search_tool_result", tool_use_id: "srvtoolu_1", content: [] },
+					{ type: "server_tool_use", id: "srvtoolu_1", name: "web_search", input: {} },
+				],
+			},
+			{
+				name: "oversized payload",
+				expectedPreserved: 0,
+				expectedDegraded: 2,
+				content: [
+					{ type: "server_tool_use", id: "srvtoolu_1", name: "web_search", input: { query: oversized } },
+					{ type: "web_search_tool_result", tool_use_id: "srvtoolu_1", content: [] },
+				],
+			},
+		];
+
+		for (const testCase of cases) {
+			const parsed = parseRequest({
+				model: "claude-sonnet-4-5",
+				max_tokens: 128,
+				messages: [{ role: "assistant", content: testCase.content }],
+			});
+			const message = parsed.context.messages[0];
+			expect(message?.role, testCase.name).toBe("assistant");
+			if (message?.role !== "assistant") throw new Error(`expected assistant history: ${testCase.name}`);
+			const preserved = message.content.filter(block => block.type === "anthropicServerTool");
+			const degraded = message.content.filter(block => block.type === "text");
+			expect(preserved, testCase.name).toHaveLength(testCase.expectedPreserved);
+			expect(degraded, testCase.name).toHaveLength(testCase.expectedDegraded);
+		}
 	});
 
 	it("parses system + user + assistant(thinking,text,tool_use) + tool_result", () => {

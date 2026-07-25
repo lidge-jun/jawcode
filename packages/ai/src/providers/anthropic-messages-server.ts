@@ -186,6 +186,8 @@ function walkAssistantContent(
 		if (blocks.length > 0) out.push({ type: "text", text: blocks });
 		return out;
 	}
+	const seenWebSearchCallIds = new Set<string>();
+	const pendingWebSearchCallIds = new Set<string>();
 	for (const block of blocks) {
 		switch (block.type) {
 			case "text":
@@ -209,8 +211,25 @@ function walkAssistantContent(
 				});
 				break;
 			case "server_tool_use":
+				if (
+					isAnthropicWebSearchHistoryBlock(block) &&
+					block.type === "server_tool_use" &&
+					!seenWebSearchCallIds.has(block.id)
+				) {
+					out.push({ type: "anthropicServerTool", block: { ...block } });
+					seenWebSearchCallIds.add(block.id);
+					pendingWebSearchCallIds.add(block.id);
+				} else {
+					warnUnknownBlockType("assistant", block.type);
+					out.push({ type: "text", text: describeUnknownBlock(block) });
+				}
+				break;
 			case "web_search_tool_result":
-				if (isAnthropicWebSearchHistoryBlock(block)) {
+				if (
+					isAnthropicWebSearchHistoryBlock(block) &&
+					block.type === "web_search_tool_result" &&
+					pendingWebSearchCallIds.delete(block.tool_use_id)
+				) {
 					out.push({ type: "anthropicServerTool", block: { ...block } });
 				} else {
 					warnUnknownBlockType("assistant", block.type);
