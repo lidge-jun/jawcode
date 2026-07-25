@@ -53,6 +53,14 @@ export interface ShouldReuseCachedExtractionInput {
 
 export function shouldReuseCachedExtraction(input: ShouldReuseCachedExtractionInput): boolean;
 
+export interface CachedExtractionMatchesEmbeddedInput {
+	targetPath: string;
+	embeddedPath: string;
+	targetStat: { size: number; isFile(): boolean };
+}
+
+export function cachedExtractionMatchesEmbedded(input: CachedExtractionMatchesEmbeddedInput): boolean;
+
 export interface ExtractEmbeddedAddonFileInput {
 	targetPath: string;
 	embeddedPath: string;

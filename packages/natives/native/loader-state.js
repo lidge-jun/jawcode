@@ -238,7 +238,21 @@ export function shouldReuseCachedExtraction({ targetStat, embeddedPayloadByteSiz
 }
 
 /**
- * Extract an embedded addon unless an existing target has the same byte size.
+ * Cheap pre-filter for {@link extractEmbeddedAddonFile}: a same-size regular file
+ * still has to survive the exact byte comparison before it is reused, so an
+ * equal-size stale or corrupted target can never be served.
+ * @param {{ targetPath: string; embeddedPath: string; targetStat: { size: number; isFile(): boolean } }} input
+ * @returns {boolean}
+ */
+export function cachedExtractionMatchesEmbedded({ targetPath, embeddedPath, targetStat }) {
+	if (!targetStat.isFile()) return false;
+	const targetBuffer = fs.readFileSync(targetPath);
+	const embeddedBuffer = fs.readFileSync(embeddedPath);
+	return targetBuffer.equals(embeddedBuffer);
+}
+
+/**
+ * Extract an embedded addon unless an existing target has identical contents.
  * @param {{ targetPath: string; embeddedPath: string; embeddedPayloadByteSize: number }} input
  * @returns {string}
  */
@@ -250,7 +264,10 @@ export function extractEmbeddedAddonFile({ targetPath, embeddedPath, embeddedPay
 		// A missing or un-stattable target must be replaced.
 	}
 
-	if (shouldReuseCachedExtraction({ targetStat, embeddedPayloadByteSize })) {
+	if (
+		shouldReuseCachedExtraction({ targetStat, embeddedPayloadByteSize }) &&
+		cachedExtractionMatchesEmbedded({ targetPath, embeddedPath, targetStat })
+	) {
 		return targetPath;
 	}
 
