@@ -66,9 +66,7 @@ describe("SessionManager resident ownership", () => {
 
 		const session = await SessionManager.open(sessionFile, "/sessions", storage);
 
-		expect(JSON.stringify(session.getEntry("msg-image-data"))).toContain(
-			"[Session resident imageData blob missing:",
-		);
+		expect(JSON.stringify(session.getEntry("msg-image-data"))).toContain("[Session resident imageData blob missing:");
 	});
 
 	it("recovers missing resident provider image URL sentinels with a bounded placeholder", async () => {
@@ -108,9 +106,7 @@ describe("SessionManager resident ownership", () => {
 
 		const session = await SessionManager.open(sessionFile, "/sessions", storage);
 
-		expect(JSON.stringify(session.getEntry("msg-image-url"))).toContain(
-			"[Session resident imageUrl blob missing:",
-		);
+		expect(JSON.stringify(session.getEntry("msg-image-url"))).toContain("[Session resident imageUrl blob missing:");
 	});
 
 	it("keeps durable persisted missing image blob refs non-throwing on historical load", async () => {

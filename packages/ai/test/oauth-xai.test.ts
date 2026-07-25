@@ -113,7 +113,9 @@ describe("xAI OAuth login provider", () => {
 	});
 
 	it("rejects OAuth discovery endpoints outside x.ai", async () => {
-		global.fetch = vi.fn(async () => discoveryResponse({ token_endpoint: "https://evil.example/oauth2/token" })) as unknown as typeof fetch;
+		global.fetch = vi.fn(async () =>
+			discoveryResponse({ token_endpoint: "https://evil.example/oauth2/token" }),
+		) as unknown as typeof fetch;
 
 		await expect(discoverXaiOAuthEndpoints()).rejects.toThrow(/unexpected endpoint/i);
 	});

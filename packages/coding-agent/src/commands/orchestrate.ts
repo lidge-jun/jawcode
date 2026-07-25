@@ -32,7 +32,8 @@ export default class Orchestrate extends Command {
 			description: "With verdict in stage c: record that no render artifacts require grounding",
 		}),
 		"render-pending": Flags.boolean({
-			description: "With verdict in stage c: mark render grounding in-scope (arms the c→d soft warning until resolved)",
+			description:
+				"With verdict in stage c: mark render grounding in-scope (arms the c→d soft warning until resolved)",
 		}),
 		"user-approved": Flags.boolean({ description: "Explicit user approval override for a gated transition" }),
 		shared: Flags.boolean({

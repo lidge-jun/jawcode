@@ -167,18 +167,13 @@ function parseDeviceAuthorization(payload: unknown): XaiDeviceAuthorization {
 		deviceCode,
 		userCode,
 		verificationUri: validateXaiEndpoint(verificationUri),
-		verificationUriComplete: verificationUriComplete
-			? validateXaiEndpoint(verificationUriComplete)
-			: undefined,
+		verificationUriComplete: verificationUriComplete ? validateXaiEndpoint(verificationUriComplete) : undefined,
 		expiresInSeconds: value.expires_in,
 		intervalSeconds,
 	};
 }
 
-async function requestXaiDeviceAuthorization(
-	endpoint: string,
-	signal?: AbortSignal,
-): Promise<XaiDeviceAuthorization> {
+async function requestXaiDeviceAuthorization(endpoint: string, signal?: AbortSignal): Promise<XaiDeviceAuthorization> {
 	const response = await fetch(endpoint, {
 		method: "POST",
 		headers: {

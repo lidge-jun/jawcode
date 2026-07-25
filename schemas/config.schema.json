@@ -542,6 +542,7 @@
 		"defaultThinkingLevel": {
 			"type": "string",
 			"enum": [
+				"off",
 				"minimal",
 				"low",
 				"medium",
@@ -2145,6 +2146,7 @@
 					"enum": [
 						"auto",
 						"openai",
+						"openai-codex",
 						"gemini",
 						"openrouter",
 						"antigravity"

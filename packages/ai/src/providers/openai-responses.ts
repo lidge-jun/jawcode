@@ -558,10 +558,7 @@ function buildCustomToolWireNameMap(tools: readonly Tool[] | undefined): Readonl
 	return map.size > 0 ? map : undefined;
 }
 
-function resolveReplayCustomToolName(
-	wireName: string,
-	wireNameMap: ReadonlyMap<string, string> | undefined,
-): string {
+function resolveReplayCustomToolName(wireName: string, wireNameMap: ReadonlyMap<string, string> | undefined): string {
 	return wireNameMap?.get(wireName) ?? (wireName === "apply_patch" ? "edit" : wireName);
 }
 
@@ -659,7 +656,9 @@ function convertConversationMessages(
 				const sanitizedItems = sanitizeOpenAIResponsesHistoryItemsForReplay(historyItems, {
 					supportsImageDetailOriginal,
 				});
-				messages.push(...adaptResponsesReplayItemsForModel(sanitizedItems, supportsCustomToolCalls, customToolWireNameMap));
+				messages.push(
+					...adaptResponsesReplayItemsForModel(sanitizedItems, supportsCustomToolCalls, customToolWireNameMap),
+				);
 				knownCallIds = collectKnownCallIds(messages);
 				if (supportsCustomToolCalls) {
 					for (const id of collectCustomCallIds(messages)) customCallIds.add(id);

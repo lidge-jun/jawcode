@@ -189,7 +189,10 @@ function sanitizeOpenAIResponsesHistoryItemForReplay(
 		sanitizedItem.call_id = normalizeReplayedResponsesHistoryCallId(item.call_id, normalizedCallIds);
 	}
 
-	return clampReplayItemImageDetail(sanitizedItem, supportsImageDetailOriginal) as unknown as OpenAIResponsesReplayItem;
+	return clampReplayItemImageDetail(
+		sanitizedItem,
+		supportsImageDetailOriginal,
+	) as unknown as OpenAIResponsesReplayItem;
 }
 
 function sanitizeImageGenerationCallForResponsesInput(item: Record<string, unknown>): Record<string, unknown> {

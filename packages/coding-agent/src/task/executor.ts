@@ -7,7 +7,13 @@
 import { createHash } from "node:crypto";
 import * as fs from "node:fs/promises";
 import path from "node:path";
-import type { AgentEvent, AgentIdentity, AgentMessage, AgentTelemetryConfig, ThinkingLevel } from "@jawcode-dev/agent-core";
+import type {
+	AgentEvent,
+	AgentIdentity,
+	AgentMessage,
+	AgentTelemetryConfig,
+	ThinkingLevel,
+} from "@jawcode-dev/agent-core";
 import { recordHandoff, resolveTelemetry } from "@jawcode-dev/agent-core";
 import { estimateMessageTokensHeuristic } from "@jawcode-dev/agent-core/compaction";
 import type { Message, Model } from "@jawcode-dev/ai";

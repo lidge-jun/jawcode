@@ -92,7 +92,16 @@ interface ParsedArgs {
 }
 
 function parseArgs(argv: string[]): ParsedArgs | { error: string } {
-	const parsed: ParsedArgs = { positional: [], deliberate: false, json: false, userApproved: false, renderObserved: false, renderNotApplicable: false, renderPending: false, complete: false };
+	const parsed: ParsedArgs = {
+		positional: [],
+		deliberate: false,
+		json: false,
+		userApproved: false,
+		renderObserved: false,
+		renderNotApplicable: false,
+		renderPending: false,
+		complete: false,
+	};
 	for (let i = 0; i < argv.length; i++) {
 		const arg = argv[i];
 		switch (arg) {
@@ -403,13 +412,20 @@ async function recordVerdict(cwd: string, args: ParsedArgs): Promise<Orchestrate
 	if (args.renderObserved || args.renderNotApplicable || args.renderPending) {
 		const picked = [args.renderObserved, args.renderNotApplicable, args.renderPending].filter(Boolean).length;
 		if (picked > 1) {
-			return { stderr: "--render-observed, --render-not-applicable, and --render-pending are mutually exclusive\n", status: 2 };
+			return {
+				stderr: "--render-observed, --render-not-applicable, and --render-pending are mutually exclusive\n",
+				status: 2,
+			};
 		}
 		const current = await readCurrent(cwd, args.sessionId);
 		if ("error" in current) return { stderr: `${current.error}\n`, status: 2 };
-		if (!current.envelope) return { stderr: "no active pabcd state — nothing to record a verdict against\n", status: 1 };
+		if (!current.envelope)
+			return { stderr: "no active pabcd state — nothing to record a verdict against\n", status: 1 };
 		if (current.envelope.current_phase !== "c") {
-			return { stderr: `render grounding verdicts apply only in stage c (current: ${current.envelope.current_phase})\n`, status: 1 };
+			return {
+				stderr: `render grounding verdicts apply only in stage c (current: ${current.envelope.current_phase})\n`,
+				status: 1,
+			};
 		}
 		const renderStatus: PabcdRenderGroundingStatus = args.renderObserved
 			? "observed"
