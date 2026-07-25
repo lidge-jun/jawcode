@@ -12,6 +12,9 @@ import type { Context, Model, OpenAICompat } from "@jawcode-dev/ai/types";
 
 const compat: Required<OpenAICompat> = {
 	supportsStore: true,
+	supportsImageDetailOriginal: true,
+	supportsReasoningSummary: true,
+	includeEncryptedReasoning: true,
 	supportsDeveloperRole: false,
 	supportsMultipleSystemMessages: true,
 	supportsReasoningEffort: false,

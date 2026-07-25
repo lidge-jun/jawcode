@@ -14,6 +14,9 @@ const emptyUsage: Usage = {
 
 const compat: Required<OpenAICompat> = {
 	supportsStore: true,
+	supportsImageDetailOriginal: true,
+	supportsReasoningSummary: true,
+	includeEncryptedReasoning: true,
 	supportsDeveloperRole: true,
 	supportsMultipleSystemMessages: true,
 	supportsReasoningEffort: true,
