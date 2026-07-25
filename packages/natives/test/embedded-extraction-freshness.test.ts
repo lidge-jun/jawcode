@@ -3,7 +3,11 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { extractEmbeddedAddonFile, shouldReuseCachedExtraction } from "../native/loader-state.js";
+import {
+	cachedExtractionMatchesEmbedded,
+	extractEmbeddedAddonFile,
+	shouldReuseCachedExtraction,
+} from "../native/loader-state.js";
 
 const tempDirs: string[] = [];
 
@@ -26,7 +30,33 @@ describe("shouldReuseCachedExtraction", () => {
 });
 
 describe("extractEmbeddedAddonFile", () => {
-	it("does not rewrite a matching-size cached extraction", async () => {
+	it("rejects a non-regular target even with a matching byte size", async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "jwc-embedded-addon-"));
+		tempDirs.push(tempDir);
+		const embeddedPath = path.join(tempDir, "embedded.node");
+		const targetPath = path.join(tempDir, "cache", "addon.node");
+		await fs.writeFile(embeddedPath, "payload");
+		await fs.mkdir(targetPath, { recursive: true });
+
+		const targetStat = await fs.stat(targetPath);
+		expect(cachedExtractionMatchesEmbedded({ targetPath, embeddedPath, targetStat })).toBe(false);
+	});
+
+	it("does not rewrite a byte-identical cached extraction", async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "jwc-embedded-addon-"));
+		tempDirs.push(tempDir);
+		const embeddedPath = path.join(tempDir, "embedded.node");
+		const targetPath = path.join(tempDir, "cache", "addon.node");
+		await fs.mkdir(path.dirname(targetPath));
+		await fs.writeFile(embeddedPath, "same payload");
+		await fs.writeFile(targetPath, "same payload");
+
+		extractEmbeddedAddonFile({ targetPath, embeddedPath, embeddedPayloadByteSize: 11 });
+
+		expect(await fs.readFile(targetPath, "utf8")).toBe("same payload");
+	});
+
+	it("rewrites an equal-size cached extraction whose bytes differ", async () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "jwc-embedded-addon-"));
 		tempDirs.push(tempDir);
 		const embeddedPath = path.join(tempDir, "embedded.node");
@@ -37,7 +67,7 @@ describe("extractEmbeddedAddonFile", () => {
 
 		extractEmbeddedAddonFile({ targetPath, embeddedPath, embeddedPayloadByteSize: 11 });
 
-		expect(await fs.readFile(targetPath, "utf8")).toBe("old payload");
+		expect(await fs.readFile(targetPath, "utf8")).toBe("new payload");
 	});
 
 	it("rewrites a missing or mismatched cached extraction", async () => {
