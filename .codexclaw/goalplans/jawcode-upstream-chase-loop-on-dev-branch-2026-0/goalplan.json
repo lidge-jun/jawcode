@@ -1,0 +1,103 @@
+{
+  "objective": "Jawcode upstream-chase loop on dev branch (2026-07-25). Outcome: (1) Refresh upstream chase — pull struct_har/gjc_origin (gajae-code) and struct_har/omp_origin (oh-my-pi) clones, compute commit deltas since last anchors (GJC 3ddf26079, OMP b0d04e517, both refreshed 2026-07-17), and document them as diff-level chase cards under struct_har/chase/ (10.NNN for GJC, 20.NNN for OMP) via parallel gpt-5.6-sol subagents in a docs-first cycle, updating the MOCs and 007_follow_index. (2) Implement every autonomous card (import/adapt/evidence-fill — no user decision needed) through persisted PABCD cycles, committing each completed B step; leave C/direction-decision cards untouched for the user. (3) Close implemented cards to struct_har/chase/_fin/10|20 with header evidence per repo convention. (4) Push dev to origin and merge dev into main, then push main — push+merge pre-approved by the user in this session. DONE = hash-set coverage of new upstream commits documented, autonomous cards implemented with gates green (bun run check:ts, focused tests, verify-g002-gates, rebrand-inventory --strict, check-visible-definitions), _fin moves complete, dev pushed, main merged and pushed with exact SHAs reported. BLOCKED = upstream remote unreachable. NEEDS_HUMAN = card requires product/direction decision. UNSAFE = anything touching TUI visual identity or release/publish flows. Out of scope: C decision cards, TUI visual identity, npm release. Housekeeping already landed: main merged into dev (3162bf8), post-merge gate repair (a446321) with all required gates green. First work-phase: chase refresh + docs loop.",
+  "slug": "jawcode-upstream-chase-loop-on-dev-branch-2026-0",
+  "createdAt": "2026-07-25T14:54:57.007Z",
+  "updatedAt": "2026-07-25T14:54:57.008Z",
+  "activeWorkPhaseId": "wp2",
+  "workPhases": [
+    {
+      "id": "wp1",
+      "title": "Housekeeping: commit state, switch to dev, merge main into dev, repair post-merge gates",
+      "status": "done",
+      "tasks": [
+        { "id": "wp1-t1", "title": "Commit dirty .codexclaw state on main", "status": "done" },
+        { "id": "wp1-t2", "title": "Checkout dev and merge main (conflicts: .jwc/goal, bun.lock, jaw-interview SKILL.md, verify-g002-gates.ts)", "status": "done" },
+        { "id": "wp1-t3", "title": "Repair post-merge gate failures (generateTitle revert, compat props, cursor import, g002 version sentinel, test isolation)", "status": "done" }
+      ],
+      "criteriaIds": ["c1"]
+    },
+    {
+      "id": "wp2",
+      "title": "Chase refresh + docs loop: pull gjc_origin/omp_origin, compute deltas since anchors, write diff-level cards via sol subagents",
+      "status": "in_progress",
+      "tasks": [
+        { "id": "wp2-t1", "title": "Pull struct_har/gjc_origin and struct_har/omp_origin to current upstream heads", "status": "pending" },
+        { "id": "wp2-t2", "title": "Compute commit deltas since anchors (GJC 3ddf26079, OMP b0d04e517) with hash-set evidence", "status": "pending" },
+        { "id": "wp2-t3", "title": "Write/update chase cards (10.NNN/20.NNN) + MOC + 007_follow_index via parallel sol subagents", "status": "pending" }
+      ],
+      "criteriaIds": ["c2"]
+    },
+    {
+      "id": "wp3",
+      "title": "Autonomous implementation PABCD cycles for A/import/adapt cards (no user decision needed)",
+      "status": "pending",
+      "tasks": [
+        { "id": "wp3-t1", "title": "Classify refreshed cards: autonomous vs decision-required", "status": "pending" },
+        { "id": "wp3-t2", "title": "Run one PABCD cycle per autonomous unit, committing each B step", "status": "pending" }
+      ],
+      "criteriaIds": ["c3"]
+    },
+    {
+      "id": "wp4",
+      "title": "_fin reconciliation: header evidence, Decision Slots, archive moves, MOC/index updates, full gates",
+      "status": "pending",
+      "tasks": [
+        { "id": "wp4-t1", "title": "Move implemented cards to _fin with evidence headers", "status": "pending" },
+        { "id": "wp4-t2", "title": "Run full required gates green", "status": "pending" }
+      ],
+      "criteriaIds": ["c4"]
+    },
+    {
+      "id": "wp5",
+      "title": "Push dev, merge dev into main, push main (user pre-approved), report exact SHAs",
+      "status": "pending",
+      "tasks": [
+        { "id": "wp5-t1", "title": "git push origin dev", "status": "pending" },
+        { "id": "wp5-t2", "title": "merge dev into main and push main", "status": "pending" }
+      ],
+      "criteriaIds": ["c5"]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "c1",
+      "scenario": "dev contains all of main plus kiro work, required gates green after merge",
+      "expectedEvidence": "merge commit SHA + check:ts/g002/rebrand/visible-definitions/default-jwc-definitions gate output",
+      "capturedEvidence": "merge 3162bf8; hygiene edce2e4; revert e88acae; gate repair a446321; check:ts PASS, g002 PASS, rebrand --strict PASS, visible-definitions PASS, default-jwc-definitions 21/21 PASS",
+      "status": "met"
+    },
+    {
+      "id": "c2",
+      "scenario": "New upstream commits since 2026-07-17 anchors are documented as diff-level chase cards",
+      "expectedEvidence": "git rev-list hash-set counts for both upstreams, new/updated 10.NNN/20.NNN cards, MOC + 007_follow_index updates",
+      "capturedEvidence": "",
+      "status": "open"
+    },
+    {
+      "id": "c3",
+      "scenario": "All autonomous (non-decision) cards implemented via persisted PABCD cycles",
+      "expectedEvidence": "cxc orchestrate transitions per cycle, implementation commits, focused tests + check:ts green",
+      "capturedEvidence": "",
+      "status": "open"
+    },
+    {
+      "id": "c4",
+      "scenario": "Implemented cards archived to _fin with evidence; full gates green",
+      "expectedEvidence": "_fin moves in git log, header ✅ markers, gate output",
+      "capturedEvidence": "",
+      "status": "open"
+    },
+    {
+      "id": "c5",
+      "scenario": "dev pushed to origin, main merged and pushed",
+      "expectedEvidence": "git push output + exact local/remote SHAs for dev and main",
+      "capturedEvidence": "",
+      "status": "open"
+    }
+  ],
+  "host": {
+    "armed": false,
+    "armedAt": null,
+    "source": "none"
+  }
+}

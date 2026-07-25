@@ -234,3 +234,4 @@
 {"ts":"2026-07-17T07:00:41.117Z","sessionId":"019f6de9-f741-7233-9af9-c1684303685b","from":"A","to":"B","reason":"cli","evidence":"WP4 A: self-audit, TUI targets concrete, independent of WP1-3"}
 {"ts":"2026-07-17T07:24:50.160Z","sessionId":"019f6de9-f741-7233-9af9-c1684303685b","from":"B","to":"C","reason":"cli","evidence":"WP4 B: 4 cards. 10.091(14f,83t), 10.092(11f,51t), 10.094(23f,243t), 20.057(5f,69t). Total 446 tests. Committed."}
 {"ts":"2026-07-17T07:24:50.221Z","sessionId":"019f6de9-f741-7233-9af9-c1684303685b","from":"C","to":"IDLE","reason":"done","evidence":"WP4 C: 446 focused tests, Biome clean, all 17 A cards implemented across 4 WPs"}
+{"ts":"2026-07-25T14:56:00.444Z","sessionId":"019f99aa-d87c-7c42-831c-747956a1c5be","from":"IDLE","to":"P","reason":"cli"}
