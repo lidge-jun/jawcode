@@ -66,6 +66,22 @@ export function isIdleCheckerActiveForTests(): boolean {
 	return idleCheckInterval !== null;
 }
 
+/**
+ * Test-only seam for the process-exit crash-recovery invariant: a stale exit
+ * may only evict the registry entry that still belongs to the exited client.
+ */
+export function __testSeedClientForExitRace(key: string, client: LspClient): void {
+	clients.set(key, client);
+}
+
+export function __testEvictOnProcessExit(key: string, client: LspClient): void {
+	if (clients.get(key) === client) clients.delete(key);
+}
+
+export function __testGetRegisteredClient(key: string): LspClient | undefined {
+	return clients.get(key);
+}
+
 // =============================================================================
 // Client Capabilities
 // =============================================================================
@@ -496,8 +512,14 @@ export async function getOrCreateClient(config: ServerConfig, cwd: string, initT
 
 		// Register crash recovery - remove client on process exit
 		proc.exited.then(async () => {
-			clients.delete(key);
-			clientLocks.delete(key);
+			// Identity-safe removal: a stale process exit (e.g. after a reload
+			// already replaced this client) must not evict the newer client or
+			// its startup lock from the registry.
+			if (clients.get(key) === client) clients.delete(key);
+			// clientLocks needs no handling here: a still-pending startup promise
+			// rejects on init failure and its own finally deletes the lock; after
+			// startup the lock is already gone. Deleting unconditionally could
+			// evict a NEWER client's startup lock.
 			client.resolveProjectLoaded();
 
 			// Reject any pending requests — the server is gone, they will never complete.
