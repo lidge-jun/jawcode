@@ -14,6 +14,7 @@ import { APP_NAME, ENGINE_NAME, MIN_BUN_VERSION, procmgr, VERSION } from "@jawco
 installH2Fetch();
 
 import { warnIfMacOSNoFileLimitTooLow } from "./cli/nofile-limit";
+
 warnIfMacOSNoFileLimitTooLow();
 
 // Strip macOS malloc-stack-logging env vars before any subprocess is spawned.

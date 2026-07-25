@@ -293,10 +293,7 @@ import type {
 } from "./session-manager";
 import { getLatestCompactionEntry } from "./session-manager";
 import { ToolChoiceQueue } from "./tool-choice-queue";
-import {
-	pruneSupersededMaintenanceReminders,
-	pruneSupersededVolatileProjectContext,
-} from "./volatile-context-pruning";
+import { pruneSupersededMaintenanceReminders, pruneSupersededVolatileProjectContext } from "./volatile-context-pruning";
 import { YieldQueue } from "./yield-queue";
 
 /** Session-specific events that extend the core AgentEvent */
@@ -4277,10 +4274,10 @@ export class AgentSession {
 		const previousSystemPrompt = [...this.agent.state.systemPrompt];
 		const previousAppliedToolSignature = this.#lastAppliedToolSignature;
 		const previousSessionDefaultSelections = new Map(
-			Array.from(
-				this.#sessionDefaultSelectedMCPToolNames,
-				([sessionFile, toolNames]): [string, string[]] => [sessionFile, [...toolNames]],
-			),
+			Array.from(this.#sessionDefaultSelectedMCPToolNames, ([sessionFile, toolNames]): [string, string[]] => [
+				sessionFile,
+				[...toolNames],
+			]),
 		);
 		const existingNames = Array.from(this.#toolRegistry.keys());
 		try {
@@ -6644,8 +6641,7 @@ export class AgentSession {
 		this.#closeCodexProviderSessionsForHistoryRewrite();
 		return {
 			prunedCount: result.prunedCount + customUpdates.length,
-			tokensSaved:
-				result.tokensSaved + Math.ceil((volatileContext.bytesSaved + singletonReminders.bytesSaved) / 4),
+			tokensSaved: result.tokensSaved + Math.ceil((volatileContext.bytesSaved + singletonReminders.bytesSaved) / 4),
 		};
 	}
 
