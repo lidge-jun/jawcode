@@ -203,14 +203,15 @@ describe("executePython session lifecycle", () => {
 		const liveKernel = new FakeKernel(okResult, { onExecute: options => options?.onChunk?.("recovered\n") });
 		let startCount = 0;
 
-		PythonKernel.start = async (options?: { deadlineMs?: number }) => {
+		PythonKernel.start = async () => {
 			startCount += 1;
 			if (startCount === 1) return deadKernel as unknown as PythonKernel;
 			if (startCount === 2) {
-				// Simulate a wedged kernel startup: hang past the replacement-owned deadline.
-				const remaining = options?.deadlineMs === undefined ? 0 : options.deadlineMs - Date.now();
-				await Bun.sleep(Math.max(0, remaining) + 200);
-				throw Object.assign(new Error("startup wedged"), { name: "TimeoutError" });
+				// Simulate a wedged kernel startup that NEVER settles and ignores the
+				// deadline entirely (e.g. a stuck availability subprocess): the
+				// replacement-owned envelope must still bound the wait.
+				await new Promise(() => {});
+				throw new Error("unreachable");
 			}
 			return liveKernel as unknown as PythonKernel;
 		};
