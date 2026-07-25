@@ -29,6 +29,10 @@ class FakeKernel {
 		return this.#alive;
 	}
 
+	markDead(): void {
+		this.#alive = false;
+	}
+
 	async execute(code: string, options?: KernelExecuteOptions): Promise<KernelExecuteResult> {
 		this.executeCalls.push(code);
 		this.#onExecute?.(options);
@@ -96,6 +100,38 @@ describe("executePython session lifecycle", () => {
 		expect(deadKernel.executeCalls).toEqual([]);
 		expect(liveKernel.executeCalls).toEqual(["print('restart')"]);
 		expect(result.output).toContain("live");
+	});
+
+	it("coalesces concurrent replacement of one dead session generation", async () => {
+		const deadKernel = new FakeKernel(okResult);
+		const replacement = new FakeKernel(okResult);
+		const replacementStarted = Promise.withResolvers<void>();
+		const releaseReplacement = Promise.withResolvers<void>();
+		let startCount = 0;
+
+		PythonKernel.start = async () => {
+			startCount += 1;
+			if (startCount === 1) return deadKernel as unknown as PythonKernel;
+			replacementStarted.resolve();
+			await releaseReplacement.promise;
+			return replacement as unknown as PythonKernel;
+		};
+
+		await executePython("print('setup')", { sessionId: "session-concurrent-restart" });
+		deadKernel.markDead();
+		const executions = Array.from({ length: 8 }, (_, index) =>
+			executePython(`print('${index}')`, { sessionId: "session-concurrent-restart" }),
+		);
+		await replacementStarted.promise;
+		await Promise.resolve();
+
+		expect(deadKernel.shutdownCalls).toBe(1);
+		expect(startCount).toBe(2);
+
+		releaseReplacement.resolve();
+		await Promise.all(executions);
+
+		expect(replacement.executeCalls).toHaveLength(8);
 	});
 
 	it("resets the session kernel when requested", async () => {

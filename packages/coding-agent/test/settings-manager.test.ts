@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -158,6 +158,24 @@ describe("Settings", () => {
 			const savedSettings = await readSettings();
 			expect(savedSettings.defaultThinkingLevel).toBe(Effort.High);
 		});
+	});
+
+	it("cancels a pending debounced save when the singleton is reset", async () => {
+		const settings = await Settings.init({ cwd: projectDir, agentDir });
+		const write = vi.spyOn(Bun, "write");
+		vi.useFakeTimers();
+
+		try {
+			settings.set("defaultThinkingLevel", Effort.High);
+			resetSettingsForTest();
+			vi.advanceTimersByTime(100);
+			await Promise.resolve();
+
+			expect(write).not.toHaveBeenCalled();
+		} finally {
+			vi.useRealTimers();
+			write.mockRestore();
+		}
 	});
 
 	describe("model role overrides", () => {

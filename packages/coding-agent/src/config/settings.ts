@@ -848,7 +848,7 @@ export class Settings {
 	// ─────────────────────────────────────────────────────────────────────────
 
 	#queueSave(): void {
-		if (!this.#persist || !this.#configPath) return;
+		if (this.#savesCancelled || !this.#persist || !this.#configPath) return;
 
 		if (this.#saveTimer) clearTimeout(this.#saveTimer);
 		this.#saveTimer = setTimeout(() => {
@@ -858,7 +858,7 @@ export class Settings {
 	}
 
 	async #saveNow(options: { throwOnError?: boolean } = {}): Promise<void> {
-		if (!this.#persist || !this.#configPath || this.#modified.size === 0) return;
+		if (this.#savesCancelled || !this.#persist || !this.#configPath || this.#modified.size === 0) return;
 
 		const configPath = this.#configPath;
 		const patches = [...this.#modified.values()];
@@ -899,6 +899,18 @@ export class Settings {
 		}
 
 		this.#rebuildMerged();
+	}
+
+	#savesCancelled = false;
+
+	/**
+	 * Test-reset is currently the only Settings discard path. Keep cancellation
+	 * private until production gains an explicit Settings disposal lifecycle.
+	 */
+	cancelPendingSavesForTest(): void {
+		this.#savesCancelled = true;
+		clearTimeout(this.#saveTimer);
+		this.#saveTimer = undefined;
 	}
 
 	// ─────────────────────────────────────────────────────────────────────────
@@ -1018,6 +1030,7 @@ export function isSettingsInitialized(): boolean {
  * @internal
  */
 export function resetSettingsForTest(): void {
+	globalInstance?.cancelPendingSavesForTest();
 	globalInstance = null;
 	globalInstancePromise = null;
 }
