@@ -229,6 +229,39 @@ function selectEmbeddedAddonFile(selectedVariant) {
 	return embeddedAddon.files.find(file => file.variant === "baseline") || null;
 }
 
+/**
+ * @param {{ targetStat: { size: number } | null; embeddedPayloadByteSize: number }} input
+ * @returns {boolean}
+ */
+export function shouldReuseCachedExtraction({ targetStat, embeddedPayloadByteSize }) {
+	return targetStat !== null && targetStat.size === embeddedPayloadByteSize;
+}
+
+/**
+ * Extract an embedded addon unless an existing target has the same byte size.
+ * @param {{ targetPath: string; embeddedPath: string; embeddedPayloadByteSize: number }} input
+ * @returns {string}
+ */
+export function extractEmbeddedAddonFile({ targetPath, embeddedPath, embeddedPayloadByteSize }) {
+	let targetStat = null;
+	try {
+		targetStat = fs.statSync(targetPath);
+	} catch {
+		// A missing or un-stattable target must be replaced.
+	}
+
+	if (shouldReuseCachedExtraction({ targetStat, embeddedPayloadByteSize })) {
+		return targetPath;
+	}
+
+	fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+	const buffer = fs.readFileSync(embeddedPath);
+	const tempPath = `${targetPath}.tmp.${process.pid}`;
+	fs.writeFileSync(tempPath, buffer);
+	fs.renameSync(tempPath, targetPath);
+	return targetPath;
+}
+
 function maybeExtractEmbeddedAddon(ctx, errors) {
 	if (!ctx.isCompiledBinary || !embeddedAddon) return null;
 	if (embeddedAddon.platformTag !== ctx.platformTag || embeddedAddon.version !== ctx.packageVersion) return null;
@@ -238,19 +271,12 @@ function maybeExtractEmbeddedAddon(ctx, errors) {
 	const targetPath = path.join(ctx.versionedDir, selectedEmbeddedFile.filename);
 
 	try {
-		fs.mkdirSync(ctx.versionedDir, { recursive: true });
-	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
-		errors.push(`embedded addon dir: ${message}`);
-		return null;
-	}
-
-	try {
-		const buffer = fs.readFileSync(selectedEmbeddedFile.filePath);
-		const tempPath = `${targetPath}.tmp.${process.pid}`;
-		fs.writeFileSync(tempPath, buffer);
-		fs.renameSync(tempPath, targetPath);
-		return targetPath;
+		const embeddedPayloadByteSize = fs.statSync(selectedEmbeddedFile.filePath).size;
+		return extractEmbeddedAddonFile({
+			targetPath,
+			embeddedPath: selectedEmbeddedFile.filePath,
+			embeddedPayloadByteSize,
+		});
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
 		errors.push(`embedded addon write (${selectedEmbeddedFile.filename}): ${message}`);

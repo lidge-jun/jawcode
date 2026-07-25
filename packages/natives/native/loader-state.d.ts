@@ -46,4 +46,19 @@ export interface ResolveLoaderCandidatesInput {
 
 export function resolveLoaderCandidates(input: ResolveLoaderCandidatesInput): string[];
 
+export interface ShouldReuseCachedExtractionInput {
+	targetStat: { size: number } | null;
+	embeddedPayloadByteSize: number;
+}
+
+export function shouldReuseCachedExtraction(input: ShouldReuseCachedExtractionInput): boolean;
+
+export interface ExtractEmbeddedAddonFileInput {
+	targetPath: string;
+	embeddedPath: string;
+	embeddedPayloadByteSize: number;
+}
+
+export function extractEmbeddedAddonFile(input: ExtractEmbeddedAddonFileInput): string;
+
 export function loadNative(): Record<string, unknown>;
