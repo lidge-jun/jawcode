@@ -49,6 +49,44 @@ export interface AuthGatewayCommandArgs {
 	};
 }
 
+export interface AuthGatewayModelCatalog {
+	listModels: () => Iterable<Model<Api>>;
+	resolveModel: (id: string) => Model<Api> | undefined;
+}
+
+class AuthGatewayModelResolutionError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "AuthGatewayModelResolutionError";
+	}
+}
+
+export function createAuthGatewayModelCatalog(models: Iterable<Model<Api>>): AuthGatewayModelCatalog {
+	const qualified = new Map<string, Model<Api>>();
+	const bareCandidates = new Map<string, Model<Api>[]>();
+	for (const model of models) {
+		const qualifiedId = `${model.provider}/${model.id}`;
+		if (qualified.has(qualifiedId)) continue;
+		qualified.set(qualifiedId, model);
+		const candidates = bareCandidates.get(model.id) ?? [];
+		candidates.push(model);
+		bareCandidates.set(model.id, candidates);
+	}
+	return {
+		listModels: () => qualified.values(),
+		resolveModel: (id: string) => {
+			const canonical = qualified.get(id);
+			if (canonical) return canonical;
+			const candidates = bareCandidates.get(id) ?? [];
+			if (candidates.length <= 1) return candidates[0];
+			const selectors = candidates.map(model => `${model.provider}/${model.id}`).sort();
+			throw new AuthGatewayModelResolutionError(
+				`Ambiguous bare model id "${id}"; use one of: ${selectors.join(", ")}`,
+			);
+		},
+	};
+}
+
 const ACTIONS: readonly AuthGatewayAction[] = ["serve", "token", "status", "check"];
 
 function getTokenFilePath(): string {
@@ -159,23 +197,22 @@ async function runServe(flags: AuthGatewayCommandArgs["flags"]): Promise<void> {
 	const snapshot = storage.exportSnapshot();
 	const providersWithCreds = new Set<string>();
 	for (const entry of snapshot.credentials) providersWithCreds.add(entry.provider);
-	const modelById = new Map<string, Model<Api>>();
+	const models: Model<Api>[] = [];
 	for (const provider of getBundledProviders()) {
 		if (!providersWithCreds.has(provider)) continue;
 		for (const model of getBundledModels(provider as GeneratedProvider)) {
-			// First-write-wins so a canonical model id collisions across providers
-			// stick to the provider listed first by getBundledProviders.
-			if (!modelById.has(model.id)) modelById.set(model.id, model);
+			models.push(model);
 		}
 	}
+	const catalog = createAuthGatewayModelCatalog(models);
 
 	const handle = startAuthGateway({
 		storage,
 		bind,
 		bearerTokens: gatewayToken ? [gatewayToken] : [],
 		version: VERSION,
-		resolveModel: (id: string) => modelById.get(id),
-		listModels: () => modelById.values(),
+		resolveModel: catalog.resolveModel,
+		listModels: catalog.listModels,
 	});
 	process.stdout.write(`auth-gateway listening on ${handle.url}\n`);
 	if (gatewayToken) {

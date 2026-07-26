@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 import { Effort, type Model } from "@jawcode-dev/ai";
 import {
 	expandRoleAlias,
@@ -15,6 +15,7 @@ import {
 	restoreModelFromSession,
 } from "@jawcode-dev/coding-agent/config/model-resolver";
 import { Settings } from "@jawcode-dev/coding-agent/config/settings";
+import { logger } from "@jawcode-dev/utils";
 
 // Mock models for testing
 const mockModels: Model<"anthropic-messages">[] = [
@@ -612,6 +613,21 @@ describe("resolveCliModel", () => {
 		expect(result.model?.id).toBe("anthropic/claude-sonnet-4.5");
 	});
 
+	test("keeps a configured canonical provider binding ahead of authenticated preference", () => {
+		const authenticated = canonicalVariantModels.find(model => model.provider === "anthropic");
+		expect(authenticated).toBeDefined();
+		const result = resolveCliModel({
+			cliModel: "claude-sonnet-4-5",
+			modelRegistry: {
+				...canonicalRegistry,
+				getAll: () => canonicalVariantModels,
+			} as unknown as Parameters<typeof resolveCliModel>[0]["modelRegistry"],
+			authenticatedModels: authenticated ? [authenticated] : [],
+		});
+
+		expect(result.model?.provider).toBe("github-copilot");
+	});
+
 	test("resolves --model provider/id without --provider", () => {
 		const registry = {
 			getAll: () => allModels,
@@ -625,6 +641,63 @@ describe("resolveCliModel", () => {
 		expect(result.error).toBeUndefined();
 		expect(result.model?.provider).toBe("openai");
 		expect(result.model?.id).toBe("gpt-4o");
+	});
+
+	test("prefers an authenticated provider for a duplicated bare id and emits a diagnostic", () => {
+		const catalogFirst = { ...allModels[0], provider: "cloud-a", id: "gpt-5.5" };
+		const authenticated = { ...allModels[0], provider: "openai-codex", id: "gpt-5.5" };
+		const info = spyOn(logger, "info").mockImplementation(() => {});
+		try {
+			const result = resolveCliModel({
+				cliModel: "gpt-5.5",
+				modelRegistry: { getAll: () => [catalogFirst, authenticated] },
+				authenticatedModels: [authenticated],
+			});
+
+			expect(result.model?.provider).toBe("openai-codex");
+			expect(info).toHaveBeenCalledWith("authenticated model preference changed CLI provider", {
+				selector: "gpt-5.5",
+				catalogProvider: "cloud-a",
+				authenticatedProvider: "openai-codex",
+			});
+		} finally {
+			info.mockRestore();
+		}
+	});
+
+	test("prefers an authenticated provider for a flat slashful id", () => {
+		const catalogFirst = { ...allModels[0], provider: "fireworks", id: "openai/gpt-oss-120b" };
+		const authenticated = { ...allModels[0], provider: "openrouter", id: "openai/gpt-oss-120b" };
+		const result = resolveCliModel({
+			cliModel: "openai/gpt-oss-120b",
+			modelRegistry: { getAll: () => [...allModels, catalogFirst, authenticated] },
+			authenticatedModels: [authenticated],
+		});
+
+		expect(result.model?.provider).toBe("openrouter");
+		expect(result.model?.id).toBe("openai/gpt-oss-120b");
+	});
+
+	test("keeps explicit provider flags and provider/model pins ahead of authenticated preference", () => {
+		const local = { ...allModels[0], provider: "local-proxy", id: "gpt-5.5" };
+		const authenticated = { ...allModels[0], provider: "openai-codex", id: "gpt-5.5" };
+		const registry = { getAll: () => [local, authenticated] };
+
+		expect(
+			resolveCliModel({
+				cliProvider: "local-proxy",
+				cliModel: "gpt-5.5",
+				modelRegistry: registry,
+				authenticatedModels: [authenticated],
+			}).model?.provider,
+		).toBe("local-proxy");
+		expect(
+			resolveCliModel({
+				cliModel: "local-proxy/gpt-5.5",
+				modelRegistry: registry,
+				authenticatedModels: [authenticated],
+			}).model?.provider,
+		).toBe("local-proxy");
 	});
 
 	test("resolves fuzzy patterns within an explicit provider", () => {

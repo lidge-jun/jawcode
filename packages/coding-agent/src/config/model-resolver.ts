@@ -1147,16 +1147,18 @@ export function resolveCliModel(options: {
 	cliProvider?: string;
 	cliModel?: string;
 	modelRegistry: CliModelRegistry;
+	authenticatedModels?: Model<Api>[];
 	preferences?: ModelMatchPreferences;
 }): ResolveCliModelResult {
-	const { cliProvider, cliModel, modelRegistry, preferences } = options;
+	const { cliProvider, cliModel, modelRegistry, authenticatedModels, preferences } = options;
 
 	if (!cliModel) {
 		return { model: undefined, selector: undefined, warning: undefined, error: undefined };
 	}
 
-	const availableModels = modelRegistry.getAll();
-	if (availableModels.length === 0) {
+	const allModels = modelRegistry.getAll();
+	const preferredModels = authenticatedModels ?? allModels;
+	if (allModels.length === 0) {
 		return {
 			model: undefined,
 			selector: undefined,
@@ -1166,7 +1168,7 @@ export function resolveCliModel(options: {
 	}
 
 	const providerMap = new Map<string, string>();
-	for (const model of availableModels) {
+	for (const model of allModels) {
 		providerMap.set(model.provider.toLowerCase(), model.provider);
 	}
 
@@ -1188,11 +1190,11 @@ export function resolveCliModel(options: {
 		// "zai/glm-5" on provider "vercel-ai-gateway" wins over provider "zai"
 		// with id "glm-5", because Array.find returns the first catalog hit.
 		const slashIdx = lower.indexOf("/");
-		let exact: (typeof availableModels)[number] | undefined;
+		let exact: (typeof allModels)[number] | undefined;
 		if (slashIdx !== -1) {
 			const prefix = lower.substring(0, slashIdx);
 			const suffix = trimmedModel.substring(slashIdx + 1);
-			exact = resolveProviderModelReference(prefix, suffix, availableModels);
+			exact = resolveProviderModelReference(prefix, suffix, allModels);
 		}
 		if (!exact && !trimmedModel.includes(":")) {
 			const canonicalMatch = modelRegistry.resolveCanonicalModel?.(trimmedModel, { availableOnly: false });
@@ -1207,7 +1209,20 @@ export function resolveCliModel(options: {
 			}
 		}
 		if (!exact) {
-			exact = availableModels.find(
+			const matchesSelector = (model: Model<Api>): boolean =>
+				model.id.toLowerCase() === lower || `${model.provider}/${model.id}`.toLowerCase() === lower;
+			const catalogFirst = allModels.find(matchesSelector);
+			exact = preferredModels.find(matchesSelector) ?? catalogFirst;
+			if (exact && catalogFirst && exact.provider !== catalogFirst.provider) {
+				logger.info("authenticated model preference changed CLI provider", {
+					selector: trimmedModel,
+					catalogProvider: catalogFirst.provider,
+					authenticatedProvider: exact.provider,
+				});
+			}
+		}
+		if (!exact) {
+			exact = allModels.find(
 				model => model.id.toLowerCase() === lower || `${model.provider}/${model.id}`.toLowerCase() === lower,
 			);
 		}
@@ -1242,7 +1257,7 @@ export function resolveCliModel(options: {
 	}
 
 	if (provider) {
-		const exactProviderMatch = resolveProviderModelReference(provider, pattern, availableModels);
+		const exactProviderMatch = resolveProviderModelReference(provider, pattern, allModels);
 		if (exactProviderMatch) {
 			return {
 				model: exactProviderMatch,
@@ -1254,11 +1269,18 @@ export function resolveCliModel(options: {
 		}
 	}
 
-	const candidates = provider ? availableModels.filter(model => model.provider === provider) : availableModels;
-	const { model, thinkingLevel, warning } = parseModelPattern(pattern, candidates, preferences, {
+	const candidates = provider ? allModels.filter(model => model.provider === provider) : preferredModels;
+	let parsed = parseModelPattern(pattern, candidates, preferences, {
 		allowInvalidThinkingSelectorFallback: false,
 		modelRegistry,
 	});
+	if (!parsed.model && !provider && preferredModels !== allModels) {
+		parsed = parseModelPattern(pattern, allModels, preferences, {
+			allowInvalidThinkingSelectorFallback: false,
+			modelRegistry,
+		});
+	}
+	const { model, thinkingLevel, warning } = parsed;
 
 	if (!model) {
 		const display = provider ? `${provider}/${pattern}` : cliModel;

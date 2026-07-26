@@ -6,6 +6,7 @@ import {
 	type Context,
 	createModelManager,
 	enrichModelThinking,
+	type FetchImpl,
 	getBundledModels,
 	getBundledProviders,
 	googleAntigravityModelManagerOptions,
@@ -14,6 +15,7 @@ import {
 	type ModelManagerOptions,
 	type ModelRefreshStrategy,
 	type ModelRequestTransform,
+	type OpenAICodexAccount,
 	openaiCodexModelManagerOptions,
 	PROVIDER_DESCRIPTORS,
 	readModelCache,
@@ -34,7 +36,7 @@ import type { OAuthCredentials, OAuthLoginCallbacks } from "@jawcode-dev/ai/util
 import { $pickenv, isRecord, logger } from "@jawcode-dev/utils";
 import { parseModelString, resolveProviderModelReference } from "../config/model-resolver";
 import { isValidThemeColor, type ThemeColor } from "../modes/theme/theme";
-import type { AuthStorage, OAuthCredential } from "../session/auth-storage";
+import type { AuthStorage } from "../session/auth-storage";
 import { type ConfigError, ConfigFile } from "./config-file";
 import {
 	buildCanonicalModelIndex,
@@ -63,6 +65,64 @@ export function isAuthenticated(apiKey: string | undefined | null): apiKey is st
 }
 
 const MAX_SESSION_CANONICAL_VARIANTS = 64;
+const CODEX_DISCOVERY_TIMEOUT_MS = 10_000;
+
+export interface ModelRegistryOptions {
+	fetch?: FetchImpl;
+}
+
+function isDefinitiveOAuthRefreshFailure(error: unknown): boolean {
+	const message = error instanceof Error ? error.message : String(error);
+	return (
+		/invalid_grant|invalid_token|revoked|unauthorized|expired.*refresh|refresh.*expired/i.test(message) ||
+		(/\b(401|403)\b/.test(message) && !/timeout|network|fetch failed|ECONNREFUSED/i.test(message))
+	);
+}
+
+async function resolveCodexDiscoveryAccounts(
+	authStorage: AuthStorage,
+	resolvedAccessToken: string,
+	signal: AbortSignal,
+): Promise<readonly OpenAICodexAccount[] | null> {
+	const accounts: OpenAICodexAccount[] = [];
+	const rows = authStorage
+		.exportSnapshot()
+		.credentials.filter(entry => entry.provider === "openai-codex" && entry.credential.type === "oauth");
+	const resolvedTokenBelongsToStoredOAuth = rows.some(
+		row => row.credential.type === "oauth" && row.credential.access === resolvedAccessToken,
+	);
+	for (const row of rows) {
+		if (row.credential.type !== "oauth") continue;
+		const accountId = row.credential.accountId;
+		try {
+			const refreshed = await authStorage.refreshCredentialById(row.id, signal);
+			if (refreshed.credential.type !== "oauth") return null;
+			accounts.push({ accessToken: refreshed.credential.access, accountId: refreshed.credential.accountId });
+		} catch (error) {
+			if (!isDefinitiveOAuthRefreshFailure(error)) return null;
+			const message = error instanceof Error ? error.message : String(error);
+			authStorage.disableCredentialById(row.id, `oauth refresh failed: ${message}`);
+			logger.warn("Codex account quarantined after definitive OAuth refresh failure", {
+				credentialId: row.id,
+				accountId,
+				error: message,
+			});
+		}
+	}
+	if (!resolvedTokenBelongsToStoredOAuth && !accounts.some(account => account.accessToken === resolvedAccessToken)) {
+		accounts.push({ accessToken: resolvedAccessToken });
+	}
+	return accounts;
+}
+
+async function resolveCodexDiscoverySeedToken(authStorage: AuthStorage): Promise<string | undefined> {
+	const resolvedFallback = await authStorage.peekApiKey("openai-codex");
+	if (resolvedFallback) return resolvedFallback;
+	const storedOAuth = authStorage
+		.exportSnapshot()
+		.credentials.find(entry => entry.provider === "openai-codex" && entry.credential.type === "oauth");
+	return storedOAuth?.credential.type === "oauth" ? storedOAuth.credential.access : undefined;
+}
 
 function envAvailabilityFingerprint(): string {
 	return Object.entries(process.env)
@@ -641,31 +701,6 @@ function extractGoogleOAuthToken(value: string | undefined): string | undefined 
 	return value;
 }
 
-function getOAuthCredentialsForProvider(authStorage: AuthStorage, provider: string): OAuthCredential[] {
-	const providerEntry = authStorage.getAll()[provider];
-	if (!providerEntry) {
-		return [];
-	}
-	const entries = Array.isArray(providerEntry) ? providerEntry : [providerEntry];
-	return entries.filter((entry): entry is OAuthCredential => entry.type === "oauth");
-}
-
-function resolveOAuthAccountIdForAccessToken(
-	authStorage: AuthStorage,
-	provider: string,
-	accessToken: string,
-): string | undefined {
-	const oauthCredentials = getOAuthCredentialsForProvider(authStorage, provider);
-	const matchingCredential = oauthCredentials.find(credential => credential.access === accessToken);
-	if (matchingCredential) {
-		return matchingCredential.accountId;
-	}
-	if (oauthCredentials.length === 1) {
-		return oauthCredentials[0].accountId;
-	}
-	return undefined;
-}
-
 function mergeCompat<TBase extends object, TOverride extends object>(
 	baseCompat: TBase | null | undefined,
 	overrideCompat: TOverride | null | undefined,
@@ -1026,6 +1061,7 @@ export class ModelRegistry {
 	#cacheDbPath?: string;
 	#suppressedSelectors: Map<string, number> = new Map();
 	#backgroundRefresh?: Promise<void>;
+	#fetch: FetchImpl;
 	#lastDiscoveryWarnings: Map<string, string> = new Map();
 	// Runtime extension model overlays — persist across refresh() cycles so that
 	// models registered by extensions survive the model selector's offline reload.
@@ -1043,7 +1079,9 @@ export class ModelRegistry {
 	constructor(
 		readonly authStorage: AuthStorage,
 		modelsPath?: string,
+		options: ModelRegistryOptions = {},
 	) {
+		this.#fetch = options.fetch ?? fetch;
 		this.#modelsConfigFile = ModelsConfigFile.relocate(modelsPath);
 		this.#cacheDbPath = modelsPath ? path.join(path.dirname(modelsPath), "models.db") : undefined;
 		// Set up fallback resolver for custom provider API keys
@@ -1748,7 +1786,7 @@ export class ModelRegistry {
 	): Promise<Model<Api>[]> {
 		// Skip providers already handled by configured discovery (e.g. user-configured ollama with discovery.type)
 		const configuredDiscoveryProviders = new Set(this.#discoverableProviders.map(p => p.provider));
-		const managerOptions = (await this.#collectBuiltInModelManagerOptions()).filter(opts => {
+		const managerOptions = (await this.#collectBuiltInModelManagerOptions(strategy)).filter(opts => {
 			if (configuredDiscoveryProviders.has(opts.providerId)) {
 				return false;
 			}
@@ -1763,7 +1801,7 @@ export class ModelRegistry {
 		return discoveries.flat();
 	}
 
-	async #collectBuiltInModelManagerOptions(): Promise<ModelManagerOptions<Api>[]> {
+	async #collectBuiltInModelManagerOptions(strategy: ModelRefreshStrategy): Promise<ModelManagerOptions<Api>[]> {
 		const specialProviderDescriptors: Array<{
 			providerId: string;
 			resolveKey: (value: string | undefined) => string | undefined;
@@ -1791,10 +1829,11 @@ export class ModelRegistry {
 				providerId: "openai-codex",
 				resolveKey: value => value,
 				createOptions: accessToken => {
-					const accountId = resolveOAuthAccountIdForAccessToken(this.authStorage, "openai-codex", accessToken);
+					const signal = AbortSignal.timeout(CODEX_DISCOVERY_TIMEOUT_MS);
 					return openaiCodexModelManagerOptions({
-						accessToken,
-						accountId,
+						resolveAccounts: () => resolveCodexDiscoveryAccounts(this.authStorage, accessToken, signal),
+						fetch: this.#fetch,
+						signal,
 					});
 				},
 			},
@@ -1806,10 +1845,13 @@ export class ModelRegistry {
 		const enabledSpecialProviderDescriptors = specialProviderDescriptors.filter(
 			descriptor => !disabledProviders.has(descriptor.providerId),
 		);
-		// Use peekApiKey to avoid OAuth token refresh during discovery.
-		// The token is only needed if the dynamic fetch fires (cache miss),
-		// and failures there are handled gracefully.
-		const peekKey = (descriptor: { providerId: string }) => this.#peekApiKeyForProvider(descriptor.providerId);
+		// Keep ordinary providers on the non-refreshing peek path. Authoritative
+		// Codex discovery only seeds manager construction here; its account resolver
+		// performs the bounded per-account refresh when the dynamic fetch runs.
+		const peekKey = (descriptor: { providerId: string }) =>
+			strategy !== "offline" && descriptor.providerId === "openai-codex"
+				? resolveCodexDiscoverySeedToken(this.authStorage)
+				: this.#peekApiKeyForProvider(descriptor.providerId);
 		const [standardProviderKeys, specialKeys] = await Promise.all([
 			Promise.all(standardProviderDescriptors.map(peekKey)),
 			Promise.all(enabledSpecialProviderDescriptors.map(peekKey)),

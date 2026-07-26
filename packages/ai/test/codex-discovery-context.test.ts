@@ -41,6 +41,13 @@ describe("codex discovery context windows", () => {
 		expect(windows.get("codex-auto-review")).toBe(272000);
 	});
 
+	it("uses a 372K fallback for the GPT-5.6 family only", async () => {
+		const windows = await discover([{ slug: "gpt-5.6" }, { slug: "gpt-5.6-codex" }, { slug: "gpt-5.5" }]);
+		expect(windows.get("gpt-5.6")).toBe(372000);
+		expect(windows.get("gpt-5.6-codex")).toBe(372000);
+		expect(windows.get("gpt-5.5")).toBe(272000);
+	});
+
 	it("keeps supported_in_api=false models — the flag gates the API platform, not this transport", async () => {
 		const windows = await discover([
 			{ slug: "gpt-5.3-codex-spark", context_window: 128000, supported_in_api: false },

@@ -607,6 +607,7 @@ async function buildSessionOptions(
 			cliProvider: parsed.provider,
 			cliModel: parsed.model,
 			modelRegistry,
+			authenticatedModels: modelRegistry.getAvailable(),
 			preferences: modelMatchPreferences,
 		});
 		if (resolved.warning) {
