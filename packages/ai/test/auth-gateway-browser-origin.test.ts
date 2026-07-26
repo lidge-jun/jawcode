@@ -68,12 +68,17 @@ describe("auth-gateway browser-origin guard", () => {
 			contextWindow: 8192,
 			maxTokens: 1024,
 		} satisfies Model<"openai-responses">;
+		const qualifiedId = `${model.provider}/${model.id}`;
+		const resolvedIds: string[] = [];
 		const handle = startAuthGateway({
 			storage,
 			bind: "127.0.0.1:0",
 			bearerTokens: ["secret"],
 			version: "test",
-			resolveModel: id => (id === model.id ? model : undefined),
+			resolveModel: id => {
+				resolvedIds.push(id);
+				return id === qualifiedId || id === model.id ? model : undefined;
+			},
 			listModels: () => [model],
 		});
 
@@ -99,7 +104,7 @@ describe("auth-gateway browser-origin guard", () => {
 			const responsesWithoutAuth = await fetch(`${handle.url}/v1/responses`, {
 				method: "POST",
 				headers: browserHeaders({ "Content-Type": "application/json" }),
-				body: JSON.stringify({ model: model.id, input: "hello" }),
+				body: JSON.stringify({ model: qualifiedId, input: "hello" }),
 			});
 			expect(responsesWithoutAuth.status).toBe(401);
 			expect(responsesWithoutAuth.headers.get("access-control-allow-origin")).toBe("*");
@@ -113,10 +118,49 @@ describe("auth-gateway browser-origin guard", () => {
 			const body = (await modelsWithAuth.json()) as { data: Array<{ id: string; owned_by: string }> };
 			expect(body.data).toEqual([
 				expect.objectContaining({
-					id: model.id,
+					id: qualifiedId,
 					owned_by: "openai",
 				}),
 			]);
+
+			const advertisedRequest = await fetch(`${handle.url}/v1/responses`, {
+				method: "POST",
+				headers: browserHeaders({ Authorization: "Bearer secret", "Content-Type": "application/json" }),
+				body: JSON.stringify({ model: qualifiedId, input: "hello" }),
+			});
+			expect(advertisedRequest.status).toBe(401);
+			expect(resolvedIds).toContain(qualifiedId);
+		} finally {
+			await handle.close();
+			storage.close();
+		}
+	});
+
+	it("returns an explicit client error for an ambiguous bare model id", async () => {
+		const storage = new AuthStorage(makeStore());
+		await storage.reload();
+		const handle = startAuthGateway({
+			storage,
+			bind: "127.0.0.1:0",
+			bearerTokens: ["secret"],
+			version: "test",
+			resolveModel: id => {
+				const error = new Error(
+					`Ambiguous bare model id "${id}"; use one of: provider-a/shared-model, provider-b/shared-model`,
+				);
+				error.name = "AuthGatewayModelResolutionError";
+				throw error;
+			},
+		});
+
+		try {
+			const response = await fetch(`${handle.url}/v1/responses`, {
+				method: "POST",
+				headers: browserHeaders({ Authorization: "Bearer secret", "Content-Type": "application/json" }),
+				body: JSON.stringify({ model: "shared-model", input: "hello" }),
+			});
+			expect(response.status).toBe(400);
+			expect(JSON.stringify(await response.json())).toContain("provider-a/shared-model, provider-b/shared-model");
 		} finally {
 			await handle.close();
 			storage.close();

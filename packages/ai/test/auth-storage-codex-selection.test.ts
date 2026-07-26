@@ -287,6 +287,56 @@ describe("AuthStorage codex oauth ranking", () => {
 		expect(apiKey).toBe("api-acct-solo");
 	});
 
+	test("keeps a Codex session pinned after more than one hour idle", async () => {
+		if (!authStorage) throw new Error("test setup failed");
+		const storage = authStorage;
+		const base = Date.now();
+
+		await storage.set("openai-codex", [
+			{ type: "oauth", ...createCredential("acct-pinned", "pinned@example.com"), expires: base + 24 * HOUR_MS },
+			{ type: "oauth", ...createCredential("acct-sibling", "sibling@example.com"), expires: base + 24 * HOUR_MS },
+		]);
+
+		let clockOffset = 0;
+		vi.spyOn(Date, "now").mockImplementation(() => base + clockOffset);
+		usageByAccount.set(
+			"acct-pinned",
+			createCodexUsageReport({
+				accountId: "acct-pinned",
+				primary: { usedFraction: 0.2, resetInMs: HOUR_MS },
+				secondary: { usedFraction: 0.5, resetInMs: 5 * 24 * HOUR_MS },
+			}),
+		);
+		usageByAccount.set(
+			"acct-sibling",
+			createCodexUsageReport({
+				accountId: "acct-sibling",
+				primary: { usedFraction: 0.9, resetInMs: HOUR_MS },
+				secondary: { usedFraction: 0.5, resetInMs: 5 * 24 * HOUR_MS },
+			}),
+		);
+		expect(await storage.getApiKey("openai-codex", "codex-idle-boundary")).toBe("api-acct-pinned");
+
+		usageByAccount.set(
+			"acct-pinned",
+			createCodexUsageReport({
+				accountId: "acct-pinned",
+				primary: { usedFraction: 0.9, resetInMs: HOUR_MS },
+				secondary: { usedFraction: 0.5, resetInMs: 5 * 24 * HOUR_MS },
+			}),
+		);
+		usageByAccount.set(
+			"acct-sibling",
+			createCodexUsageReport({
+				accountId: "acct-sibling",
+				primary: { usedFraction: 0.2, resetInMs: HOUR_MS },
+				secondary: { usedFraction: 0.5, resetInMs: 5 * 24 * HOUR_MS },
+			}),
+		);
+		clockOffset = 2 * HOUR_MS;
+		expect(await storage.getApiKey("openai-codex", "codex-idle-boundary")).toBe("api-acct-pinned");
+	});
+
 	test("prefers Pro accounts for codex spark models over Plus accounts", async () => {
 		if (!authStorage) throw new Error("test setup failed");
 
@@ -757,5 +807,81 @@ describe("AuthStorage claude oauth ranking", () => {
 
 		const apiKey = await authStorage.getApiKey("anthropic", "session-claude-single");
 		expect(apiKey).toBe("api-acct-solo");
+	});
+
+	test("re-ranks an Anthropic session after more than one hour idle", async () => {
+		if (!authStorage) throw new Error("test setup failed");
+		const storage = authStorage;
+		const base = Date.now();
+
+		await storage.set("anthropic", [
+			{ type: "oauth", ...createCredential("acct-pinned", "pinned@example.com"), expires: base + 24 * HOUR_MS },
+			{ type: "oauth", ...createCredential("acct-sibling", "sibling@example.com"), expires: base + 24 * HOUR_MS },
+		]);
+
+		let clockOffset = 0;
+		vi.spyOn(Date, "now").mockImplementation(() => base + clockOffset);
+		const setUsage = (pinnedPrimary: number, siblingPrimary: number): void => {
+			usageByAccount.set(
+				"acct-pinned",
+				createClaudeUsageReport({
+					accountId: "acct-pinned",
+					primary: { usedFraction: pinnedPrimary, resetInMs: 4 * HOUR_MS },
+					secondary: { usedFraction: 0.5, resetInMs: 5 * 24 * HOUR_MS },
+				}),
+			);
+			usageByAccount.set(
+				"acct-sibling",
+				createClaudeUsageReport({
+					accountId: "acct-sibling",
+					primary: { usedFraction: siblingPrimary, resetInMs: 4 * HOUR_MS },
+					secondary: { usedFraction: 0.5, resetInMs: 5 * 24 * HOUR_MS },
+				}),
+			);
+		};
+
+		setUsage(0.2, 0.9);
+		expect(await storage.getApiKey("anthropic", "anthropic-idle-rerank")).toBe("api-acct-pinned");
+		setUsage(0.9, 0.2);
+		clockOffset = 2 * HOUR_MS;
+		expect(await storage.getApiKey("anthropic", "anthropic-idle-rerank")).toBe("api-acct-sibling");
+	});
+
+	test("keeps an Anthropic session pinned within one hour idle", async () => {
+		if (!authStorage) throw new Error("test setup failed");
+		const storage = authStorage;
+
+		await storage.set("anthropic", [
+			{ type: "oauth", ...createCredential("acct-pinned", "pinned@example.com") },
+			{ type: "oauth", ...createCredential("acct-sibling", "sibling@example.com") },
+		]);
+
+		const base = Date.now();
+		let clockOffset = 0;
+		vi.spyOn(Date, "now").mockImplementation(() => base + clockOffset);
+		const setUsage = (pinnedPrimary: number, siblingPrimary: number): void => {
+			usageByAccount.set(
+				"acct-pinned",
+				createClaudeUsageReport({
+					accountId: "acct-pinned",
+					primary: { usedFraction: pinnedPrimary, resetInMs: 4 * HOUR_MS },
+					secondary: { usedFraction: 0.5, resetInMs: 5 * 24 * HOUR_MS },
+				}),
+			);
+			usageByAccount.set(
+				"acct-sibling",
+				createClaudeUsageReport({
+					accountId: "acct-sibling",
+					primary: { usedFraction: siblingPrimary, resetInMs: 4 * HOUR_MS },
+					secondary: { usedFraction: 0.5, resetInMs: 5 * 24 * HOUR_MS },
+				}),
+			);
+		};
+
+		setUsage(0.2, 0.9);
+		expect(await storage.getApiKey("anthropic", "anthropic-idle-warm")).toBe("api-acct-pinned");
+		setUsage(0.9, 0.2);
+		clockOffset = 30 * 60_000;
+		expect(await storage.getApiKey("anthropic", "anthropic-idle-warm")).toBe("api-acct-pinned");
 	});
 });

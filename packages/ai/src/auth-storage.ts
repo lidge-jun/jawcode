@@ -63,6 +63,8 @@ export type AuthCredentialEntry = AuthCredential | AuthCredential[];
 
 export type AuthStorageData = Record<string, AuthCredentialEntry>;
 
+const ANTHROPIC_SESSION_STICKY_CACHE_WARM_MS = 60 * 60_000;
+
 /**
  * Serialized representation of AuthStorage for passing to subagent workers.
  * Contains only the essential credential data, not runtime state.
@@ -652,7 +654,10 @@ export class AuthStorage {
 	/** Tracks next credential index per provider:type key for round-robin distribution (non-session use). */
 	#providerRoundRobinIndex: Map<string, number> = new Map();
 	/** Tracks the last used credential per provider for a session (used for rate-limit switching). */
-	#sessionLastCredential: Map<string, Map<string, { type: AuthCredential["type"]; index: number }>> = new Map();
+	#sessionLastCredential: Map<
+		string,
+		Map<string, { type: AuthCredential["type"]; index: number; lastUsedAtMs: number }>
+	> = new Map();
 	/** Maps provider:type -> credentialIndex -> blockedUntilMs for temporary backoff. */
 	#credentialBackoff: Map<string, Map<number, number>> = new Map();
 	#usageProviderResolver?: (provider: Provider) => UsageProvider | undefined;
@@ -1043,7 +1048,7 @@ export class AuthStorage {
 	): void {
 		if (!sessionId) return;
 		const sessionMap = this.#sessionLastCredential.get(provider) ?? new Map();
-		sessionMap.set(sessionId, { type, index });
+		sessionMap.set(sessionId, { type, index, lastUsedAtMs: Date.now() });
 		this.#sessionLastCredential.set(provider, sessionMap);
 	}
 
@@ -1051,7 +1056,7 @@ export class AuthStorage {
 	#getSessionCredential(
 		provider: string,
 		sessionId: string | undefined,
-	): { type: AuthCredential["type"]; index: number } | undefined {
+	): { type: AuthCredential["type"]; index: number; lastUsedAtMs: number } | undefined {
 		if (!sessionId) return undefined;
 		return this.#sessionLastCredential.get(provider)?.get(sessionId);
 	}
@@ -2614,13 +2619,15 @@ export class AuthStorage {
 		const checkUsage = strategy !== undefined && (credentials.length > 1 || requiresProModel);
 		const sessionCredential = this.#getSessionCredential(provider, sessionId);
 		const sessionPreferredIndex = sessionCredential?.type === "oauth" ? sessionCredential.index : undefined;
-		// Skip ranking only when the session already has a working preferred credential — re-ranking
-		// mid-session causes account switches that cold-start the server-side prompt cache. New sessions
-		// (no preference) and sessions whose preferred is blocked still rank, so we pick the account
-		// with the most headroom proactively and fall back intelligently when rate-limited.
+		// Anthropic's one-hour prompt-cache lifetime gives its session pin a verified idle boundary.
+		// Other providers retain indefinite stickiness until their cache lifetimes are verified.
+		const sessionPreferredIsWarm =
+			provider !== "anthropic" ||
+			sessionCredential?.type !== "oauth" ||
+			Date.now() - sessionCredential.lastUsedAtMs < ANTHROPIC_SESSION_STICKY_CACHE_WARM_MS;
 		const sessionPreferredIsAvailable =
 			sessionPreferredIndex !== undefined && !this.#isCredentialBlocked(providerKey, sessionPreferredIndex);
-		const shouldRank = checkUsage && (!sessionPreferredIsAvailable || requiresProModel);
+		const shouldRank = checkUsage && (!sessionPreferredIsAvailable || !sessionPreferredIsWarm || requiresProModel);
 		const candidates = shouldRank
 			? await this.#rankOAuthSelections({ providerKey, provider, order, credentials, options, strategy: strategy! })
 			: order
@@ -2628,7 +2635,7 @@ export class AuthStorage {
 					.filter((selection): selection is { credential: OAuthCredential; index: number } => Boolean(selection))
 					.map(selection => ({ selection, usage: null, usageChecked: false }));
 
-		if (sessionPreferredIndex !== undefined && !requiresProModel) {
+		if (!shouldRank && sessionPreferredIndex !== undefined && !requiresProModel) {
 			const sessionPreferredCandidate = candidates.findIndex(
 				candidate =>
 					!this.#isCredentialBlocked(providerKey, candidate.selection.index) &&

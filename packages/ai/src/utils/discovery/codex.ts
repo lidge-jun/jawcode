@@ -1,6 +1,6 @@
 import * as z from "zod/v4";
 import { CODEX_BASE_URL, OPENAI_HEADER_VALUES, OPENAI_HEADERS } from "../../providers/openai-codex/constants";
-import type { Model } from "../../types";
+import type { FetchImpl, Model } from "../../types";
 import { isRecord } from "../../utils";
 
 const DEFAULT_MODEL_LIST_PATHS = ["/codex/models", "/models"] as const;
@@ -11,6 +11,7 @@ const DEFAULT_MODEL_LIST_PATHS = ["/codex/models", "/models"] as const;
  */
 const UNLISTED_CODEX_SLUGS = new Set(["codex-auto-review"]);
 const DEFAULT_CONTEXT_WINDOW = 272_000;
+const GPT_5_6_CONTEXT_WINDOW = 372_000;
 const DEFAULT_MAX_TOKENS = 128_000;
 const DEFAULT_CODEX_CLIENT_VERSION = "0.99.0";
 const NPM_CODEX_LATEST_URL = "https://registry.npmjs.org/@openai%2Fcodex/latest";
@@ -70,9 +71,9 @@ export interface CodexModelDiscoveryOptions {
 	/** Abort signal for network request cancellation. */
 	signal?: AbortSignal;
 	/** Optional fetch implementation override for tests. */
-	fetchFn?: typeof fetch;
+	fetchFn?: FetchImpl;
 	/** Optional registry fetch implementation override for client version lookup. */
-	registryFetchFn?: typeof fetch;
+	registryFetchFn?: FetchImpl;
 }
 
 /**
@@ -177,7 +178,7 @@ function buildCodexHeaders(options: CodexModelDiscoveryOptions): Headers {
 
 async function resolveCodexClientVersion(
 	clientVersion: string | undefined,
-	fetchFn: typeof fetch,
+	fetchFn: FetchImpl,
 	signal: AbortSignal | undefined,
 ): Promise<string> {
 	const normalizedClientVersion = normalizeClientVersion(clientVersion);
@@ -269,7 +270,9 @@ function normalizeCodexModelEntry(entry: unknown, baseUrl: string): NormalizedCo
 	// what the session can actually hold.
 	const reportedWindow = toPositiveInt(payload.context_window);
 	const maxWindow = toPositiveInt(payload.max_context_window);
-	const contextWindow = Math.max(reportedWindow ?? 0, maxWindow ?? 0) || DEFAULT_CONTEXT_WINDOW;
+	const contextWindow =
+		Math.max(reportedWindow ?? 0, maxWindow ?? 0) ||
+		(/^gpt-5\.6(?:-|$)/i.test(slug) ? GPT_5_6_CONTEXT_WINDOW : DEFAULT_CONTEXT_WINDOW);
 	const maxTokens = Math.min(DEFAULT_MAX_TOKENS, contextWindow);
 	const reasoning = supportsReasoning(payload.default_reasoning_level, payload.supported_reasoning_levels);
 	const input = normalizeInputModalities(payload.input_modalities);

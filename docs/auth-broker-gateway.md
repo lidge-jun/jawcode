@@ -106,7 +106,7 @@ jwc auth-gateway status  [--json]
 | `POST` | `/v1/messages` | bearer | Anthropic Messages wire format |
 | `POST` | `/v1/responses` | bearer | OpenAI Responses wire format |
 
-The model id is read from the top-level `model` field. The gateway picks the first bundled `Model<Api>` matching that id and:
+The model id is read from the top-level `model` field. `/v1/models` advertises canonical `provider/model` ids, and every advertised id is directly usable in a request. During the compatibility window, a bare model id also resolves when exactly one credential-backed provider exposes it. A bare id shared by multiple providers is rejected with an explicit ambiguity error naming the qualified candidates; clients must choose one of those candidates.
 
 - **Passthrough fast-path** — when the inbound wire format matches the model’s native API (`openai-chat → openai-completions`, `anthropic-messages → anthropic-messages`, `openai-responses → openai-responses`), the request body is forwarded byte-for-byte with the client `Authorization`/`x-api-key` stripped and replaced by `Authorization: Bearer <resolved-access-token>`. Provider-specific fields (`cache_control`, `service_tier`, tool-choice extensions, …) flow through unmodified. Hop-by-hop headers (RFC 7230) plus `Content-Encoding`/`Content-Length` are stripped from the upstream response.
 - **Translate path** — when the inbound format and the resolved model’s API differ (e.g. `/v1/chat/completions` targeting an Anthropic model, or `/v1/responses` targeting `openai-code-responses` which runs over a websocket transport), the request is parsed against the wire schema, rebuilt into an jwc `Context`, dispatched through `streamSimple()`, and re-encoded back to the inbound format (SSE for streamed responses).

@@ -1,30 +1,53 @@
 import { once } from "@jawcode-dev/utils";
 import type { ModelManagerOptions } from "../model-manager";
 import { Effort } from "../model-thinking";
-import type { Model, ThinkingConfig } from "../types";
-import { fetchCodexModels } from "../utils/discovery/codex";
+import type { FetchImpl, Model, ThinkingConfig } from "../types";
+import { type CodexModelDiscoveryResult, fetchCodexModels } from "../utils/discovery/codex";
 
 // ---------------------------------------------------------------------------
 // OpenAI code provider
 // ---------------------------------------------------------------------------
 
-export interface OpenAICodexModelManagerConfig {
-	accessToken?: string;
+export interface OpenAICodexAccount {
+	accessToken: string;
 	accountId?: string;
+}
+
+export interface OpenAICodexModelManagerConfig {
+	/** @deprecated Prefer resolveAccounts for complete account-scoped discovery. */
+	accessToken?: string;
+	/** @deprecated Prefer resolveAccounts for complete account-scoped discovery. */
+	accountId?: string;
+	resolveAccounts?: () => Promise<readonly OpenAICodexAccount[] | null>;
 	clientVersion?: string;
+	fetch?: FetchImpl;
+	signal?: AbortSignal;
 }
 
 export function openaiCodexModelManagerOptions(
 	config: OpenAICodexModelManagerConfig = {},
 ): ModelManagerOptions<"openai-codex-responses"> {
-	const { accessToken, accountId, clientVersion } = config;
+	const { accessToken, accountId, resolveAccounts, clientVersion, fetch, signal } = config;
+	const accountResolver = resolveAccounts ?? (accessToken ? async () => [{ accessToken, accountId }] : undefined);
 	return {
 		providerId: "openai-codex",
-		...(accessToken
+		...(accountResolver
 			? {
 					fetchDynamicModels: async () => {
-						const result = await fetchCodexModels({ accessToken, accountId, clientVersion });
-						return result?.models ?? null;
+						const accounts = await accountResolver();
+						if (!accounts || accounts.length === 0) return null;
+						const results = await Promise.all(
+							accounts.map(account =>
+								fetchCodexModels({
+									accessToken: account.accessToken,
+									accountId: account.accountId,
+									clientVersion,
+									fetchFn: fetch,
+									signal,
+								}),
+							),
+						);
+						return unionCodexModels(results);
 					},
 					// The backend serves only a handful of live models; bundled legacy
 					// ids (gpt-5, 5.1, 5.2, …) are not usable on this OAuth transport.
@@ -33,6 +56,19 @@ export function openaiCodexModelManagerOptions(
 				}
 			: undefined),
 	};
+}
+
+function unionCodexModels(
+	results: readonly (CodexModelDiscoveryResult | null)[],
+): Model<"openai-codex-responses">[] | null {
+	const byId = new Map<string, Model<"openai-codex-responses">>();
+	for (const result of results) {
+		if (!result) return null;
+		for (const model of result.models) {
+			if (!byId.has(model.id)) byId.set(model.id, model);
+		}
+	}
+	return [...byId.values()];
 }
 
 // ---------------------------------------------------------------------------
