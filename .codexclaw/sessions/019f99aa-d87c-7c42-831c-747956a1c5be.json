@@ -2,7 +2,7 @@
   "phase": "B",
   "sessionId": "019f99aa-d87c-7c42-831c-747956a1c5be",
   "slug": "jawcode-upstream-chase-loop-on-dev-branch-2026-0",
-  "updatedAt": "2026-07-26T08:02:19.664Z",
+  "updatedAt": "2026-07-26T08:03:07.267Z",
   "flags": {
     "interview": false,
     "auditPassed": true,
@@ -16,8 +16,8 @@
   "lastInjectedPhase": "B",
   "orchestrationActive": true,
   "interview": null,
-  "stopBlockPhase": null,
-  "stopBlockCount": 0,
+  "stopBlockPhase": "B",
+  "stopBlockCount": 1,
   "loopArmSeen": true,
   "idleEditNudges": 0
 }
