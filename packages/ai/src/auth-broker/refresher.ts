@@ -11,6 +11,7 @@
  */
 import { logger } from "@jawcode-dev/utils";
 import type { AuthStorage } from "../auth-storage";
+import { OpenAICodexTerminalOAuthError } from "../utils/oauth/openai-codex";
 import { DEFAULT_REFRESH_INTERVAL_MS, DEFAULT_REFRESH_SKEW_MS } from "./types";
 
 export interface AuthBrokerRefresherOptions {
@@ -27,7 +28,7 @@ const INVALID_GRANT_REGEX = /invalid_grant|invalid_token|revoked|unauthorized|ex
 const TRANSIENT_REGEX = /timeout|network|fetch failed|ECONNREFUSED/i;
 const HTTP_401_403_REGEX = /\b(401|403)\b/;
 
-function isDefinitiveFailure(errorMsg: string): boolean {
+function isLegacyDefinitiveFailure(errorMsg: string): boolean {
 	if (INVALID_GRANT_REGEX.test(errorMsg)) return true;
 	if (HTTP_401_403_REGEX.test(errorMsg) && !TRANSIENT_REGEX.test(errorMsg)) return true;
 	return false;
@@ -93,34 +94,42 @@ export class AuthBrokerRefresher {
 			const snapshot = this.#storage.exportSnapshot();
 			const now = this.#now();
 			const deadline = now + this.#refreshSkewMs;
-			const targets: number[] = [];
+			const targets: Array<{ id: number; provider: string }> = [];
 			for (const entry of snapshot.credentials) {
 				if (entry.credential.type !== "oauth") continue;
 				const expires = entry.credential.expires;
 				if (typeof expires !== "number" || !Number.isFinite(expires)) continue;
 				if (expires > deadline) continue;
-				targets.push(entry.id);
+				targets.push({ id: entry.id, provider: entry.provider });
 			}
-			await Promise.all(targets.map(id => this.#refreshOne(id)));
+			await Promise.all(targets.map(target => this.#refreshOne(target.id, target.provider)));
 		} finally {
 			this.#running = false;
 			this.#nextSweepAt = this.#now() + this.#refreshIntervalMs;
 		}
 	}
 
-	async #refreshOne(id: number): Promise<void> {
+	async #refreshOne(id: number, provider: string): Promise<void> {
 		try {
 			await this.#storage.refreshCredentialById(id);
 		} catch (error) {
 			const errorMsg = String(error);
-			if (isDefinitiveFailure(errorMsg)) {
+			// Codex terminal failures are typed at its validated OAuth token
+			// endpoint boundary. Never message-match Codex errors: proxy/WAF/rate
+			// limit text is transient. Other providers retain legacy behavior.
+			const isDefinitiveFailure =
+				provider === "openai-codex"
+					? error instanceof OpenAICodexTerminalOAuthError
+					: isLegacyDefinitiveFailure(errorMsg);
+			if (isDefinitiveFailure) {
 				logger.warn("auth-broker refresh failed definitively; disabling credential", {
 					id,
+					provider,
 					error: errorMsg,
 				});
 				this.#storage.disableCredentialById(id, `auth-broker refresh failed: ${errorMsg}`);
 			} else {
-				logger.debug("auth-broker refresh failed (transient)", { id, error: errorMsg });
+				logger.debug("auth-broker refresh failed (transient)", { id, provider, error: errorMsg });
 			}
 		}
 	}

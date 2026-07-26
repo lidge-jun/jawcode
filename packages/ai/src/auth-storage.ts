@@ -34,7 +34,7 @@ import { zaiUsageProvider } from "./usage/zai";
 import { getOAuthApiKey, getOAuthProvider, refreshOAuthToken } from "./utils/oauth";
 import { loginDeepInfra } from "./utils/oauth/deepinfra";
 import { loginDeepSeek } from "./utils/oauth/deepseek";
-import { loginOpenAICodexDevice } from "./utils/oauth/openai-codex";
+import { loginOpenAICodexDevice, OpenAICodexTerminalOAuthError } from "./utils/oauth/openai-codex";
 import type {
 	LocalTokenImportMode,
 	OAuthController,
@@ -2941,9 +2941,15 @@ export class AuthStorage {
 			const errorMsg = String(error);
 			// Only remove credentials for definitive auth failures
 			// Keep credentials for transient errors (network, 5xx) and block temporarily
+			// Codex has a typed terminal error emitted only after its token endpoint
+			// returns HTTP 400 with validated OAuth JSON. Never fall back to message
+			// matching for Codex: proxy/WAF/rate-limit text must remain transient.
+			// Other providers retain the legacy classifier in this bounded cycle.
 			const isDefinitiveFailure =
-				/invalid_grant|invalid_token|revoked|unauthorized|expired.*refresh|refresh.*expired/i.test(errorMsg) ||
-				(/\b(401|403)\b/.test(errorMsg) && !/timeout|network|fetch failed|ECONNREFUSED/i.test(errorMsg));
+				provider === "openai-codex"
+					? error instanceof OpenAICodexTerminalOAuthError
+					: /invalid_grant|invalid_token|revoked|unauthorized|expired.*refresh|refresh.*expired/i.test(errorMsg) ||
+						(/\b(401|403)\b/.test(errorMsg) && !/timeout|network|fetch failed|ECONNREFUSED/i.test(errorMsg));
 
 			logger.warn("OAuth token refresh failed", {
 				provider,
