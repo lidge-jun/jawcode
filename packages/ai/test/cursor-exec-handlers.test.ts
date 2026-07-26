@@ -111,6 +111,22 @@ describe("Cursor system prompt encoding", () => {
 	});
 });
 describe("Cursor request action encoding", () => {
+	it("passes the exact request model to onPayload", async () => {
+		const { promise, resolve } = Promise.withResolvers<Model<"cursor-agent"> | undefined>();
+		streamCursor(
+			cursorModel,
+			{ messages: [{ role: "user", content: "model", timestamp: 0 }] },
+			{
+				apiKey: "test-token",
+				onPayload: (_payload, model) => {
+					resolve(model as Model<"cursor-agent"> | undefined);
+					throw new Error("stop after capturing Cursor model");
+				},
+			},
+		);
+		expect(await promise).toBe(cursorModel);
+	});
+
 	it("uses a resume action for empty user turns", async () => {
 		const payload = await captureCursorPayload({
 			messages: [{ role: "user", content: "   ", timestamp: 0 }],

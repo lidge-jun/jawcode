@@ -3,8 +3,8 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { $env, $inheritedEnv, $pickenv, extractHttpStatusFromError } from "@jawcode-dev/utils";
 import { getCustomApi } from "./api-registry";
-import type { Effort } from "./model-thinking";
 import {
+	Effort,
 	mapEffortToAnthropicAdaptiveEffort,
 	mapEffortToGoogleThinkingLevel,
 	requireSupportedEffort,
@@ -423,11 +423,17 @@ export function streamSimple<TApi extends Api>(
 
 	// Kimi Code - route to dedicated handler that wraps OpenAI or Anthropic API
 	if (isKimiModel(model)) {
-		// Pass raw SimpleStreamOptions - streamKimi handles mapping internally
+		// kimi-code/kimi-k3 requires reasoning. Keep this explicit until the
+		// catalog exposes mandatory-reasoning metadata; streamKimi must continue
+		// receiving SimpleStreamOptions because it chooses its own API dialect.
+		const kimiOptions =
+			model.id === "kimi-k3" && options?.disableReasoning === true
+				? { ...options, disableReasoning: false, reasoning: model.thinking?.minLevel ?? Effort.Minimal }
+				: options;
 		return streamKimi(model as Model<"openai-completions">, context, {
-			...options,
+			...kimiOptions,
 			apiKey,
-			format: options?.kimiApiFormat ?? "anthropic",
+			format: kimiOptions?.kimiApiFormat ?? "anthropic",
 		});
 	}
 

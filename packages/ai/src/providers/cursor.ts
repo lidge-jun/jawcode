@@ -198,6 +198,22 @@ function parseConnectEndStream(data: Uint8Array): Error | null {
 	}
 }
 
+export function mapH2TransportError(error: unknown, baseUrl: string): unknown {
+	const code = (error as { code?: unknown } | null)?.code;
+	const message = error instanceof Error ? error.message : String(error);
+	if (code === "ERR_HTTP2_ERROR" && /h2 is not supported/i.test(message)) {
+		const mapped = new Error(
+			`Cursor run transport could not negotiate HTTP/2 with ${baseUrl}: "h2 is not supported". ` +
+				"The TLS handshake did not negotiate h2 via ALPN, typically because a TLS-intercepting proxy stripped ALPN. " +
+				"Configure an HTTP/2-capable bridge and set providers.cursor.baseUrl to that bridge URL.",
+			{ cause: error },
+		);
+		mapped.name = "CursorTransportError";
+		return mapped;
+	}
+	return error;
+}
+
 function debugBytes(bytes: Uint8Array, asHex: boolean): string {
 	if (asHex) {
 		return Buffer.from(bytes).toString("hex");
@@ -335,6 +351,22 @@ export const streamCursor: StreamFunction<"cursor-agent"> = (
 		let h2Client: http2.ClientHttp2Session | null = null;
 		let h2Request: http2.ClientHttp2Stream | null = null;
 		let heartbeatTimer: NodeJS.Timeout | null = null;
+		const h2Completion = Promise.withResolvers<void>();
+		let h2Settled = false;
+		let endStreamError: Error | null = null;
+		const settleH2 = (error?: unknown): void => {
+			if (h2Settled) return;
+			h2Settled = true;
+			if (error !== undefined) {
+				h2Completion.reject(error);
+				return;
+			}
+			if (endStreamError) {
+				h2Completion.reject(endStreamError);
+				return;
+			}
+			h2Completion.resolve();
+		};
 
 		try {
 			const apiKey = options?.apiKey;
@@ -356,6 +388,7 @@ export const streamCursor: StreamFunction<"cursor-agent"> = (
 
 			const baseUrl = model.baseUrl || CURSOR_API_URL;
 			h2Client = http2.connect(baseUrl);
+			h2Client.on("error", error => settleH2(mapH2TransportError(error, baseUrl)));
 
 			h2Request = h2Client.request({
 				":method": "POST",
@@ -373,7 +406,6 @@ export const streamCursor: StreamFunction<"cursor-agent"> = (
 			stream.push({ type: "start", partial: output });
 
 			let pendingBuffer = Buffer.alloc(0);
-			let endStreamError: Error | null = null;
 			let currentTextBlock: (TextContent & { index: number }) | null = null;
 			let currentThinkingBlock: (ThinkingContent & { index: number }) | null = null;
 			let currentToolCall: ToolCallState | null = null;
@@ -410,8 +442,6 @@ export const streamCursor: StreamFunction<"cursor-agent"> = (
 				conversationStateCache.set(conversationId, checkpoint);
 			};
 
-			let resolveH2: (() => void) | undefined;
-
 			h2Request.on("data", (chunk: Buffer) => {
 				pendingBuffer = Buffer.concat([pendingBuffer, chunk]);
 
@@ -434,9 +464,6 @@ export const streamCursor: StreamFunction<"cursor-agent"> = (
 
 					try {
 						const serverMessage = fromBinary(AgentServerMessageSchema, messageBytes);
-						const isTurnEnded =
-							serverMessage.message.case === "interactionUpdate" &&
-							serverMessage.message.value.message?.case === "turnEnded";
 						void handleServerMessage(
 							serverMessage,
 							output,
@@ -452,14 +479,6 @@ export const streamCursor: StreamFunction<"cursor-agent"> = (
 						).catch(error => {
 							log("error", "handleServerMessage", { error: String(error) });
 						});
-
-						// Resolve only on explicit turnEnded. stopReason defaults to "stop"
-						// and is not a reliable signal for stream completion.
-						if (isTurnEnded && resolveH2) {
-							const r = resolveH2;
-							resolveH2 = undefined;
-							r();
-						}
 					} catch (e) {
 						log("error", "parseServerMessage", { error: String(e) });
 					}
@@ -481,35 +500,26 @@ export const streamCursor: StreamFunction<"cursor-agent"> = (
 
 			heartbeatTimer = setInterval(sendHeartbeat, 5000);
 
-			await new Promise<void>((resolve, reject) => {
-				resolveH2 = resolve;
-
-				h2Request!.on("trailers", trailers => {
-					const status = trailers["grpc-status"];
-					const msg = trailers["grpc-message"];
-					if (status && status !== "0") {
-						reject(new Error(`gRPC error ${status}: ${decodeURIComponent(String(msg || ""))}`));
-					}
-				});
-
-				h2Request!.on("end", () => {
-					resolveH2 = undefined;
-					if (endStreamError) {
-						reject(endStreamError);
-						return;
-					}
-					resolve();
-				});
-
-				h2Request!.on("error", reject);
-
-				if (options?.signal) {
-					options.signal.addEventListener("abort", () => {
-						h2Request?.close();
-						reject(new Error("Request was aborted"));
-					});
+			h2Request.on("trailers", trailers => {
+				const status = trailers["grpc-status"];
+				const msg = trailers["grpc-message"];
+				if (status && status !== "0" && !endStreamError) {
+					endStreamError = new Error(`gRPC error ${status}: ${decodeURIComponent(String(msg || ""))}`);
 				}
 			});
+
+			h2Request.on("end", () => settleH2());
+
+			h2Request.on("error", error => settleH2(mapH2TransportError(error, baseUrl)));
+
+			if (options?.signal) {
+				options.signal.addEventListener("abort", () => {
+					h2Request?.close();
+					settleH2(new Error("Request was aborted"));
+				});
+			}
+
+			await h2Completion.promise;
 
 			if (state.currentTextBlock) {
 				const idx = output.content.indexOf(state.currentTextBlock);
@@ -2614,7 +2624,7 @@ function buildGrpcRequest(
 		conversationId: state.conversationId,
 	});
 
-	options?.onPayload?.(runRequest);
+	options?.onPayload?.(runRequest, model);
 
 	// Tools are sent later via requestContext (exec handshake)
 

@@ -62,6 +62,28 @@ function baseContext(): Context {
 }
 
 describe("openai-completions compatibility", () => {
+	it("passes the exact request model to onPayload and preserves Moonshot K3's 131K output", async () => {
+		const model: Model<"openai-completions"> = {
+			...getBundledModel("openai", "gpt-4o-mini"),
+			api: "openai-completions",
+			provider: "moonshot",
+			baseUrl: "https://api.moonshot.ai/v1",
+			id: "kimi-k3",
+			maxTokens: 131_072,
+		};
+		let payload: unknown;
+		let receivedExactModel = false;
+		await streamOpenAICompletions(model, baseContext(), {
+			apiKey: "test-key",
+			signal: createAbortedSignal(),
+			onPayload: (requestPayload, requestModel) => {
+				payload = requestPayload;
+				receivedExactModel = requestModel === model;
+			},
+		}).result();
+		expect(receivedExactModel).toBe(true);
+		expect(Reflect.get(payload ?? {}, "max_completion_tokens")).toBe(131_072);
+	});
 	it("serializes assistant text content as a plain string", () => {
 		const model: Model<"openai-completions"> = {
 			...getBundledModel("openai", "gpt-4o-mini"),

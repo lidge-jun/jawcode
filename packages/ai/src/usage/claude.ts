@@ -96,22 +96,17 @@ function getNestedPayloadString(payload: Record<string, unknown>, key: string, n
 	return isRecord(nested) ? getPayloadString(nested, nestedKey) : undefined;
 }
 
-function extractUsageIdentity(payload: ClaudeUsageResponse, orgId?: string): { accountId?: string; email?: string } {
-	if (!isRecord(payload)) return { accountId: orgId };
+function extractUsageIdentity(payload: ClaudeUsageResponse): { accountId?: string; email?: string } {
+	if (!isRecord(payload)) return {};
 	const accountId =
 		getPayloadString(payload, "account_id") ??
 		getPayloadString(payload, "accountId") ??
 		getPayloadString(payload, "user_id") ??
 		getPayloadString(payload, "userId") ??
-		getPayloadString(payload, "org_id") ??
-		getPayloadString(payload, "orgId") ??
 		getNestedPayloadString(payload, "account", "uuid") ??
 		getNestedPayloadString(payload, "account", "id") ??
-		getNestedPayloadString(payload, "organization", "uuid") ??
-		getNestedPayloadString(payload, "organization", "id") ??
 		getNestedPayloadString(payload, "user", "uuid") ??
-		getNestedPayloadString(payload, "user", "id") ??
-		orgId;
+		getNestedPayloadString(payload, "user", "id");
 	const email =
 		getPayloadString(payload, "email") ??
 		getPayloadString(payload, "user_email") ??
@@ -390,9 +385,13 @@ async function fetchClaudeUsage(params: UsageFetchParams, ctx: UsageFetchContext
 	].filter((limit): limit is UsageLimit => limit !== null);
 
 	if (limits.length === 0) return null;
-	const identity = extractUsageIdentity(payload, orgId);
+	const identity = extractUsageIdentity(payload);
 	let accountId = identity.accountId ?? credential.accountId;
 	let email = identity.email ?? credential.email;
+	const credentialOrgId =
+		isRecord(credential.metadata) && typeof credential.metadata.orgId === "string"
+			? credential.metadata.orgId.trim() || undefined
+			: undefined;
 	if ((!accountId || !email) && !params.signal?.aborted) {
 		const profileIdentity = extractProfileIdentity(await fetchProfile(baseUrl, headers, ctx, params.signal));
 		accountId = accountId ?? profileIdentity.accountId;
@@ -406,8 +405,9 @@ async function fetchClaudeUsage(params: UsageFetchParams, ctx: UsageFetchContext
 		metadata: {
 			endpoint: url,
 			...(accountId ? { accountId } : {}),
+			...(!accountId ? { accountIdentityMissing: true } : {}),
 			...(email ? { email } : {}),
-			...(orgId ? { orgId } : {}),
+			...((credentialOrgId ?? orgId) ? { orgId: credentialOrgId ?? orgId } : {}),
 		},
 		raw: payload,
 	};

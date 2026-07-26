@@ -80,6 +80,17 @@ function captureBedrockPayload(
 }
 
 describe("issue #1373: Bedrock Claude thinkingDisplay", () => {
+	it("passes the exact request model as the second onPayload argument", async () => {
+		const model = adaptiveModel("anthropic.claude-opus-4-7");
+		let receivedExactModel = false;
+		void streamBedrock(model, baseContext, {
+			signal: abortedSignal(),
+			onPayload: (_payload, requestModel) => {
+				receivedExactModel = requestModel === model;
+			},
+		});
+		expect(receivedExactModel).toBe(true);
+	});
 	it("defaults adaptive thinking to display=summarized on Opus 4.7+", async () => {
 		const payload = await captureBedrockPayload(adaptiveModel("anthropic.claude-opus-4-7"), {
 			reasoning: Effort.High,
