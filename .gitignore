@@ -95,3 +95,10 @@ devlog/_upstream_omp/
 devlog/_gjc_chase/
 devlog/_omp_chase/
 packages/jwc/dist-node/
+
+# codexclaw runtime state — caches, binary blobs and tool-failure logs are machine-local.
+# These were never meant to be published; the repo is public, so keep future runs from
+# adding more. Files already tracked stay tracked until their publication is decided.
+.codexclaw/cache/
+.codexclaw/bridge.db
+.codexclaw/friction.jsonl
