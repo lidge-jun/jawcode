@@ -1,5 +1,9 @@
 /**
- * Verify archived chase cards carry valid closure and owner-path evidence.
+ * Verify archived chase cards carry mechanically related closure evidence:
+ * cited commits must exist, every commit must touch a declared owner, and every
+ * declared owner must be touched by a cited commit. This cannot verify that a
+ * closure claim is semantically true; card-level human/reviewer judgment remains
+ * required.
  * Run: bun struct_har/_scripts/chase-closure-integrity.ts
  */
 import * as fs from "node:fs/promises";
@@ -121,6 +125,7 @@ for (const card of cards) {
 		reasons.push("missing `Closed: YYYY-MM-DD` header line");
 	} else {
 		const hashes = parseImplementationHashes(body, closedLine);
+		const changedPathsByHash = new Map<string, string[]>();
 		if (hashes.length === 0) reasons.push("no cited JWC/implementing commit hash");
 
 		for (const hash of hashes) {
@@ -132,8 +137,18 @@ for (const card of cards) {
 			if (owners.length === 0) continue;
 			const tree = await git(["diff-tree", "--no-commit-id", "--name-only", "-r", hash]);
 			const changedPaths = tree.stdout.split(/\r?\n/).filter(Boolean);
+			changedPathsByHash.set(hash, changedPaths);
 			if (!changedPaths.some(changed => owners.some(owner => pathIntersects(changed, owner)))) {
-				reasons.push(`commit ${hash} touches none of: ${owners.join(", ")}`);
+				reasons.push(`commit-to-owner: commit ${hash} touches none of: ${owners.join(", ")}`);
+			}
+		}
+
+		for (const owner of owners) {
+			const supportingHashes = [...changedPathsByHash.entries()]
+				.filter(([, changedPaths]) => changedPaths.some(changed => pathIntersects(changed, owner)))
+				.map(([hash]) => hash);
+			if (supportingHashes.length === 0) {
+				reasons.push(`owner-to-commit: owner ${owner} is touched by none of the cited commits`);
 			}
 		}
 	}
