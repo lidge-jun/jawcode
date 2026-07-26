@@ -2,8 +2,8 @@
   "objective": "Jawcode upstream-chase loop on dev branch (2026-07-25). Outcome: (1) Refresh upstream chase — pull struct_har/gjc_origin (gajae-code) and struct_har/omp_origin (oh-my-pi) clones, compute commit deltas since last anchors (GJC 3ddf26079, OMP b0d04e517, both refreshed 2026-07-17), and document them as diff-level chase cards under struct_har/chase/ (10.NNN for GJC, 20.NNN for OMP) via parallel gpt-5.6-sol subagents in a docs-first cycle, updating the MOCs and 007_follow_index. (2) Implement every autonomous card (import/adapt/evidence-fill — no user decision needed) through persisted PABCD cycles, committing each completed B step; leave C/direction-decision cards untouched for the user. (3) Close implemented cards to struct_har/chase/_fin/10|20 with header evidence per repo convention. (4) Push dev to origin and merge dev into main, then push main — push+merge pre-approved by the user in this session. DONE = hash-set coverage of new upstream commits documented, autonomous cards implemented with gates green (bun run check:ts, focused tests, verify-g002-gates, rebrand-inventory --strict, check-visible-definitions), _fin moves complete, dev pushed, main merged and pushed with exact SHAs reported. BLOCKED = upstream remote unreachable. NEEDS_HUMAN = card requires product/direction decision. UNSAFE = anything touching TUI visual identity or release/publish flows. Out of scope: C decision cards, TUI visual identity, npm release. Housekeeping already landed: main merged into dev (3162bf8), post-merge gate repair (a446321) with all required gates green. First work-phase: chase refresh + docs loop.",
   "slug": "jawcode-upstream-chase-loop-on-dev-branch-2026-0",
   "createdAt": "2026-07-25T14:54:57.007Z",
-  "updatedAt": "2026-07-26T06:28:16.466Z",
-  "activeWorkPhaseId": "wp3",
+  "updatedAt": "2026-07-26T03:00:00.000Z",
+  "activeWorkPhaseId": "wp4",
   "workPhases": [
     {
       "id": "wp1",
@@ -58,7 +58,7 @@
     {
       "id": "wp3",
       "title": "Autonomous implementation PABCD cycles for A/import/adapt cards (no user decision needed)",
-      "status": "in_progress",
+      "status": "done",
       "tasks": [
         {
           "id": "wp3-t1",
@@ -92,8 +92,8 @@
         },
         {
           "id": "wp3-t7",
-          "title": "cycles 080+: 20.082, 20.107, 20.083 A-slice, 20.087, 20.088, 20.089, 10.110, 10.112, 20.102, 20.122, 10.117",
-          "status": "pending"
+          "title": "cycle 6 (080): residual correctness 7 packets (082 closeout)",
+          "status": "done"
         }
       ],
       "criteriaIds": [
@@ -103,7 +103,7 @@
     {
       "id": "wp4",
       "title": "_fin reconciliation: header evidence, Decision Slots, archive moves, MOC/index updates, full gates",
-      "status": "pending",
+      "status": "in_progress",
       "tasks": [
         {
           "id": "wp4-t1",
@@ -160,8 +160,8 @@
       "id": "c3",
       "scenario": "All autonomous (non-decision) cards implemented via persisted PABCD cycles",
       "expectedEvidence": "cxc orchestrate transitions per cycle, implementation commits, focused tests + check:ts green",
-      "capturedEvidence": "",
-      "status": "open"
+      "capturedEvidence": "6 PABCD cycles: 10.116 A-slice (031), 20.109 15/37 (042), stream/wire+cache 13 (052), providers 7 (062), catalog/registry 10 (072), residual correctness 7 packets (082). Every cycle P->A->B->C->D persisted with adversarial review; 12 reviewer-found blockers fixed incl. 3 Critical (credential quarantine bypass chain, fingerprint-header injection, dev-server-killing port recovery). check:ts exit=0 throughout.",
+      "status": "met"
     },
     {
       "id": "c4",
