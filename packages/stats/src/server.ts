@@ -56,6 +56,7 @@ interface StatsInstanceRecord extends ProcessIdentity {
 	version: number;
 	pid: number;
 	nonce: string;
+	identityVerified: boolean;
 }
 
 function instanceRecordPath(port: number): string {
@@ -105,7 +106,8 @@ async function readInstanceRecord(port: number): Promise<StatsInstanceRecord | n
 			typeof record.pid !== "number" ||
 			typeof record.startId !== "string" ||
 			typeof record.command !== "string" ||
-			typeof record.nonce !== "string"
+			typeof record.nonce !== "string" ||
+			typeof record.identityVerified !== "boolean"
 		) {
 			return null;
 		}
@@ -291,7 +293,7 @@ async function recoverStatsPort(port: number): Promise<"retry" | "reuse"> {
 	const record = await readInstanceRecord(port);
 	const identity = await readProcessIdentity(holder.pid);
 	if (
-		!record ||
+		record?.identityVerified !== true ||
 		record.pid !== holder.pid ||
 		!identity ||
 		record.startId !== identity.startId ||
@@ -607,13 +609,13 @@ function createDashboardServer(port: number, record: StatsInstanceRecord) {
 
 async function createOwnedDashboardServer(port: number) {
 	const identity = await readProcessIdentity(process.pid);
-	if (!identity) throw new Error("Cannot establish the current process identity for stats dashboard ownership.");
 	const record: StatsInstanceRecord = {
 		version: STATS_INSTANCE_VERSION,
 		pid: process.pid,
-		startId: identity.startId,
-		command: identity.command,
+		startId: identity?.startId ?? "",
+		command: identity?.command ?? "",
 		nonce: crypto.randomBytes(32).toString("hex"),
+		identityVerified: identity !== null,
 	};
 	const server = createDashboardServer(port, record);
 	const boundPort = server.port ?? port;

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, vi } from "bun:test";
 import { startServer } from "../src/server";
 
 const rawServers: Bun.Server<unknown>[] = [];
@@ -8,6 +8,7 @@ afterEach(async () => {
 	for (const stop of ownedStops.splice(0)) stop();
 	for (const server of rawServers.splice(0)) server.stop(true);
 	await Bun.sleep(10);
+	vi.restoreAllMocks();
 });
 
 describe("stats server occupied-port recovery", () => {
@@ -31,5 +32,14 @@ describe("stats server occupied-port recovery", () => {
 
 		await expect(startServer(foreign.port)).rejects.toThrow(/ownership could not be proven/);
 		expect((await fetch(`http://127.0.0.1:${foreign.port}`)).status).toBe(200);
+	});
+
+	it("starts on Windows even when process ownership identity cannot be verified", async () => {
+		vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+		const dashboard = await startServer(0);
+		ownedStops.push(dashboard.stop);
+
+		expect(dashboard.port).toBeGreaterThan(0);
+		expect((await fetch(`http://127.0.0.1:${dashboard.port}/api/stats/models`)).status).toBe(200);
 	});
 });
