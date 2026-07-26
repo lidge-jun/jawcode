@@ -12,9 +12,17 @@ external state, so the pre-push state is recorded before acting.
 
 ## BLOCKING FINDING — `.codexclaw/` runtime state would be published irreversibly
 
-`.codexclaw/` is tracked (133 files, **18MB**) with **no `.gitignore` rule**, and it is NOT yet on the remote
-(`git cat-file -e origin/dev:.codexclaw/cache/repomap/tags.v1/cache.db` fails). It entered the tree in a prior
-round's commit `26b4f4ef`, not by a deliberate decision to publish it.
+`.codexclaw/` is tracked (133 files, **18MB**) with no ignore rule covering the already-tracked files. It
+entered the tree in a prior round's commit `26b4f4ef`, not by a deliberate decision to publish it.
+
+**Correction (C-review):** an earlier draft claimed `.codexclaw/` is absent from BOTH remotes. That is wrong —
+`origin/main` already publishes 6 files: `bridge.db`, `friction.jsonl`, an interview JSONL, `session.md`, a
+session JSON, and `subagents.json`. So the accurate framing is not "publishing something entirely new" but
+"expanding an accidental exposure by ~18MB", including the 15MB cache DB, the `.val` blobs, every goalplan
+ledger, and this session's state — none of which is on either remote today.
+
+That correction does not weaken the hold: prior accidental exposure is not consent to a much larger one, and
+this is still the last moment to clean it without a public force-push.
 
 | path | size | nature |
 |---|---|---|
