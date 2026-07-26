@@ -12,11 +12,20 @@ import type { Context, Model } from "../src/types";
 
 const CONNECT_END_STREAM_FLAG = 0b00000010;
 
-type Scenario = "clean-without-turn-ended" | "coalesced" | "fragmented" | "late-connect-error" | "trailers";
+type Scenario =
+	| "clean-without-turn-ended"
+	| "coalesced"
+	| "fragmented"
+	| "late-connect-error"
+	| "late-normal-end"
+	| "silent-after-turn-ended"
+	| "trailers";
 
 let server: http2.Http2Server | undefined;
 const sessions = new Set<http2.Http2Session>();
 let scenario: Scenario = "coalesced";
+let destroyedSessionCount = 0;
+let sessionDestroyed = Promise.withResolvers<void>();
 
 function frameConnectMessage(data: Uint8Array, flags = 0): Buffer {
 	const frame = Buffer.alloc(5 + data.length);
@@ -58,10 +67,15 @@ function connectEndErrorFrame(): Buffer {
 }
 
 async function startServer(): Promise<string> {
+	sessionDestroyed = Promise.withResolvers<void>();
 	server = http2.createServer();
 	server.on("session", session => {
 		sessions.add(session);
-		session.on("close", () => sessions.delete(session));
+		session.on("close", () => {
+			sessions.delete(session);
+			destroyedSessionCount++;
+			sessionDestroyed.resolve();
+		});
 	});
 	server.on("stream", (stream, headers) => {
 		stream.on("data", () => undefined);
@@ -95,7 +109,18 @@ async function startServer(): Promise<string> {
 		} else {
 			stream.write(frames);
 		}
-		if (scenario === "late-connect-error") stream.write(connectEndErrorFrame());
+		if (scenario === "silent-after-turn-ended") return;
+		if (scenario === "late-connect-error") {
+			setTimeout(() => {
+				stream.write(connectEndErrorFrame());
+				stream.end();
+			}, 10);
+			return;
+		}
+		if (scenario === "late-normal-end") {
+			setTimeout(() => stream.end(), 10);
+			return;
+		}
 		stream.end();
 	});
 
@@ -125,10 +150,10 @@ function makeModel(baseUrl: string): Model<"cursor-agent"> {
 
 const context: Context = { messages: [{ role: "user", content: "terminal lifecycle", timestamp: 1 }] };
 
-async function runScenario(nextScenario: Scenario) {
+async function runScenario(nextScenario: Scenario, postTurnEndedTimeoutMs = 50) {
 	scenario = nextScenario;
 	const baseUrl = await startServer();
-	const stream = streamCursor(makeModel(baseUrl), context, { apiKey: "test-token" });
+	const stream = streamCursor(makeModel(baseUrl), context, { apiKey: "test-token", postTurnEndedTimeoutMs });
 	const eventTypes: string[] = [];
 	for await (const event of stream) eventTypes.push(event.type);
 	return { eventTypes, result: await stream.result() };
@@ -136,6 +161,7 @@ async function runScenario(nextScenario: Scenario) {
 
 afterEach(async () => {
 	scenario = "coalesced";
+	destroyedSessionCount = 0;
 	for (const session of sessions) session.destroy();
 	sessions.clear();
 	if (!server) return;
@@ -147,11 +173,26 @@ afterEach(async () => {
 });
 
 describe("Cursor terminal transport lifecycle", () => {
+	it("times out and destroys the session when the peer stays silent after turnEnded", async () => {
+		const { eventTypes, result } = await runScenario("silent-after-turn-ended", 20);
+		await sessionDestroyed.promise;
+		expect(eventTypes.at(-1)).toBe("error");
+		expect(result.errorMessage).toContain("did not end within 20ms after turnEnded");
+		expect(destroyedSessionCount).toBe(1);
+	});
+
 	it("fails when a CONNECT protocol error arrives after turnEnded", async () => {
-		const { eventTypes, result } = await runScenario("late-connect-error");
+		const { eventTypes, result } = await runScenario("late-connect-error", 50);
 		expect(eventTypes.at(-1)).toBe("error");
 		expect(eventTypes).not.toContain("done");
 		expect(result.errorMessage).toContain("Connect error unavailable: post-turn failure");
+		expect(result.errorMessage).not.toContain("did not end within");
+	});
+
+	it("succeeds when protocol end arrives inside the post-turnEnded window", async () => {
+		const { eventTypes, result } = await runScenario("late-normal-end", 50);
+		expect(eventTypes.at(-1)).toBe("done");
+		expect(result.stopReason).toBe("stop");
 	});
 
 	it("keeps clean protocol end without turnEnded as a successful compatibility behavior", async () => {

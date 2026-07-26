@@ -104,6 +104,9 @@ describe("Anthropic request fingerprint alignment", () => {
 		for (const baseUrl of [
 			"https://api.anthropic.com",
 			"https://API.ANTHROPIC.COM/",
+			"https://api.anthropic.com./v1",
+			"https://user@api.anthropic.com/v1",
+			"https://api.anthropic.com:443/v1",
 			"https://api.anthropic.com/v1",
 			"not a url",
 		]) {
@@ -117,15 +120,18 @@ describe("Anthropic request fingerprint alignment", () => {
 			expect(headers["X-Stainless-Runtime-Version"]).toBe("v24.3.0");
 		}
 
-		const cloudflare = buildAnthropicHeaders({
-			apiKey: "test-key",
-			baseUrl: "https://gateway.ai.cloudflare.com/v1/account/gateway/anthropic",
+		const cloudflareUnderCustomProvider = buildAnthropicClientOptions({
+			model: {
+				...ANTHROPIC_MODEL,
+				provider: "custom-anthropic",
+				baseUrl: "https://gateway.ai.cloudflare.com/v1/account/gateway/anthropic",
+				headers: { "X-Stainless-Runtime-Version": "custom-runtime" },
+				compat: { allowAnthropicHeaderOverrides: true },
+			},
+			apiKey: "sk-ant-oat-test",
 			isOAuth: true,
-			isCloudflareAiGateway: true,
-			allowAnthropicHeaderOverrides: true,
-			modelHeaders: { "X-Stainless-Runtime-Version": "custom-runtime" },
 		});
-		expect(cloudflare["X-Stainless-Runtime-Version"]).toBeUndefined();
+		expect(cloudflareUnderCustomProvider.defaultHeaders["X-Stainless-Runtime-Version"]).toBe("v24.3.0");
 	});
 
 	it("blocks redirects when custom OAuth fingerprint overrides are enabled", async () => {

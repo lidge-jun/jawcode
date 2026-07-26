@@ -68,7 +68,6 @@ describe("claudeUsageProvider retry contract", () => {
 		const report = await claudeUsageProvider.fetchUsage(params, makeContext(fetchMock));
 		expect(report).not.toBeNull();
 		expect(report?.metadata?.accountId).toBeUndefined();
-		expect(report?.metadata?.accountIdentityMissing).toBe(true);
 	});
 
 	it("retries on 429 and succeeds on a later attempt", async () => {

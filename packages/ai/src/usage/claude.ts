@@ -405,7 +405,6 @@ async function fetchClaudeUsage(params: UsageFetchParams, ctx: UsageFetchContext
 		metadata: {
 			endpoint: url,
 			...(accountId ? { accountId } : {}),
-			...(!accountId ? { accountIdentityMissing: true } : {}),
 			...(email ? { email } : {}),
 			...((credentialOrgId ?? orgId) ? { orgId: credentialOrgId ?? orgId } : {}),
 		},
