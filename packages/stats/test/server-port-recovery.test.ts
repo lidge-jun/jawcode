@@ -1,23 +1,19 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { startServer } from "../src/server";
 
-const servers: Bun.Server<unknown>[] = [];
+const rawServers: Bun.Server<unknown>[] = [];
+const ownedStops: Array<() => void> = [];
 
-afterEach(() => {
-	for (const server of servers.splice(0)) server.stop(true);
+afterEach(async () => {
+	for (const stop of ownedStops.splice(0)) stop();
+	for (const server of rawServers.splice(0)) server.stop(true);
+	await Bun.sleep(10);
 });
 
 describe("stats server occupied-port recovery", () => {
-	it("reuses an occupied port only when the responder has dashboard identity", async () => {
-		const existing = Bun.serve({
-			hostname: "127.0.0.1",
-			port: 0,
-			fetch: () =>
-				Response.json([], {
-					headers: { "x-jwc-stats-dashboard": "1" },
-				}),
-		});
-		servers.push(existing);
+	it("reuses a real JWC dashboard through its private ownership handshake", async () => {
+		const existing = await startServer(0);
+		ownedStops.push(existing.stop);
 
 		const recovered = await startServer(existing.port);
 		expect(recovered.port).toBe(existing.port);
@@ -25,14 +21,15 @@ describe("stats server occupied-port recovery", () => {
 		expect((await fetch(`http://127.0.0.1:${existing.port}/api/stats/models`)).status).toBe(200);
 	});
 
-	it("rejects a mismatched dashboard identity instead of reusing a foreign responder", async () => {
+	it("rejects a foreign listener even when it spoofs the old header and JSON shape", async () => {
 		const foreign = Bun.serve({
 			hostname: "127.0.0.1",
 			port: 0,
-			fetch: () => new Response("SPA fallback", { status: 200, headers: { "content-type": "text/html" } }),
+			fetch: () => Response.json([], { headers: { "x-jwc-stats-dashboard": "1" } }),
 		});
-		servers.push(foreign);
+		rawServers.push(foreign);
 
-		await expect(startServer(foreign.port)).rejects.toThrow(/held by the current process/);
+		await expect(startServer(foreign.port)).rejects.toThrow(/ownership could not be proven/);
+		expect((await fetch(`http://127.0.0.1:${foreign.port}`)).status).toBe(200);
 	});
 });
