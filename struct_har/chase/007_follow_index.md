@@ -143,7 +143,7 @@ Recommended order after Telegram MVP: **036/047 security-auth first**, then runt
 | C08 | 094 | [10.094 Telegram notification v2](./_fin/10/10.094_gjc_chase_telegram_notification_v2.md) | P2 | ✅ **_fin** |
 | C09 | 095 | [10.095 deep-interview/goal/ultragoal](./_fin/10/10.095_gjc_chase_deep_interview_goal_ultragoal.md) | P2 | ✅ **_fin** |
 | C10 | 096 | [10.096 session context-usage SSOT](./_fin/10/10.096_gjc_chase_session_context_usage_ssot.md) | P2 | ✅ **_fin** |
-| C04 | 090 | [10.090 prompt refactor/compact ralplan](./10.090_gjc_chase_prompt_refactor_compact_ralplan.md) | P2 | ⬜ active — closure withdrawn; no substantiating JWC implementation |
+| C04 | 090 | [10.090 prompt refactor/compact ralplan](./10.090_gjc_chase_prompt_refactor_compact_ralplan.md) | P2 | ⬜ active — shared prompt guidance landed; compact-core/discovery-shim anchors remain |
 | C13 | 099 | [10.099 RPC durable selection/pet](./_fin/10/10.099_gjc_chase_rpc_durable_selection_pet.md) | P3 | ✅ **_fin** |
 | C14 | 100 | [10.100 CI/release stabilization](./10.100_gjc_chase_ci_release_stabilization.md) | P3 | ⬜ |
 | C15 | 101 | [10.101 browser/psmux misc](./10.101_gjc_chase_browser_psmux_misc.md) | P3 | ⬜ |

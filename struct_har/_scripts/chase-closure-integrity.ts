@@ -73,6 +73,20 @@ function parseOwnerPaths(body: string): string[] {
 	return [...owners];
 }
 
+function parseDeclaredOwnerPaths(body: string): string[] {
+	const owners = new Set<string>();
+	for (const line of body.split(/\r?\n/)) {
+		if (!/^Owner paths:/i.test(line)) continue;
+		for (const owner of codePaths(line)) owners.add(owner);
+	}
+	return [...owners];
+}
+
+function isMeaningfulOwnerPath(ownerPath: string): boolean {
+	const segments = ownerPath.replace(/^\.\//, "").replace(/\/$/, "").split("/").filter(Boolean);
+	return segments.length >= 2;
+}
+
 function parseImplementationHashes(body: string, closedLine: string): string[] {
 	const hashes = new Set<string>();
 	for (const match of closedLine.matchAll(HASH)) {
@@ -112,7 +126,10 @@ const cards = await listCards();
 for (const card of cards) {
 	const body = await Bun.file(card.absolutePath).text();
 	const reasons: string[] = [];
-	const owners = parseOwnerPaths(body);
+	const parsedOwners = parseOwnerPaths(body);
+	const invalidOwners = parseDeclaredOwnerPaths(body).filter(owner => !isMeaningfulOwnerPath(owner));
+	const owners = parsedOwners.filter(isMeaningfulOwnerPath);
+	if (invalidOwners.length > 0) reasons.push(`owner paths too broad: ${invalidOwners.join(", ")}`);
 	if (owners.length === 0) reasons.push("UNDECLARED owner paths");
 	const closedLine = body.split(/\r?\n/).find(line => CLOSED_HEADER.test(line));
 	if (!closedLine) {
@@ -138,7 +155,15 @@ for (const card of cards) {
 
 	const declaresResidual = RESIDUAL_DECLARATION.test(body);
 	const markedPartial = PARTIAL_MARKER.test(body);
-	if (CLEAN_MARKER.test(body) && declaresResidual) reasons.push("clean CLOSED card declares a residual");
+	const markedClean = CLEAN_MARKER.test(body);
+	if (markedClean === markedPartial) {
+		reasons.push(
+			markedClean
+				? "archived card has both clean `CLOSED` and `ADAPT — partial implementation, tracked residual` markers"
+				: "archived card must have exactly one of clean `CLOSED` or `ADAPT — partial implementation, tracked residual`",
+		);
+	}
+	if (markedClean && declaresResidual) reasons.push("clean CLOSED card declares a residual");
 	if (declaresResidual && !markedPartial) reasons.push("residual card lacks `ADAPT — partial implementation, tracked residual`");
 
 	if (reasons.length > 0) offenses.push({ card: card.relativePath, reasons });
