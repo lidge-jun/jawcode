@@ -1,3 +1,4 @@
+import * as crypto from "node:crypto";
 import type { Dirent } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
@@ -34,35 +35,119 @@ const IS_BUN_COMPILED =
 
 const COMPILED_CLIENT_DIR_ROOT = path.join(os.tmpdir(), "gjc-stats-client");
 let compiledClientDirPromise: Promise<string> | null = null;
-const STATS_DASHBOARD_HEADER = "x-jwc-stats-dashboard";
 const STATS_PROBE_TIMEOUT_MS = 500;
 const PROCESS_EXIT_POLL_MS = 50;
 const PROCESS_EXIT_POLLS = 10;
-const RECLAIMABLE_IMAGES = new Set(["bun", "node", "jwc", "jawcode"]);
+const STATS_INSTANCE_VERSION = 1;
+const STATS_INSTANCE_DIR = path.join(os.tmpdir(), "jwc-stats-instances");
+const STATS_IDENTITY_PATH = "/.jwc/stats/identity";
 
 interface PortHolder {
 	pid: number;
 	image: string;
 }
 
-async function probeStatsDashboard(port: number): Promise<boolean> {
+interface ProcessIdentity {
+	startId: string;
+	command: string;
+}
+
+interface StatsInstanceRecord extends ProcessIdentity {
+	version: number;
+	pid: number;
+	nonce: string;
+}
+
+function instanceRecordPath(port: number): string {
+	return path.join(STATS_INSTANCE_DIR, `${port}.json`);
+}
+
+function identitySignature(record: StatsInstanceRecord, challenge: string): string {
+	return crypto
+		.createHmac("sha256", record.nonce)
+		.update(`${record.version}:${record.pid}:${record.startId}:${challenge}`)
+		.digest("hex");
+}
+
+async function readProcessIdentity(pid: number): Promise<ProcessIdentity | null> {
+	if (process.platform === "linux") {
+		try {
+			const stat = await Bun.file(`/proc/${pid}/stat`).text();
+			const fields = stat
+				.slice(stat.lastIndexOf(") ") + 2)
+				.trim()
+				.split(/\s+/);
+			const startId = fields[19];
+			const command = (await Bun.file(`/proc/${pid}/cmdline`).text()).replaceAll("\0", " ").trim();
+			return startId && command ? { startId, command } : null;
+		} catch {
+			return null;
+		}
+	}
+	if (process.platform === "darwin") {
+		const ps = $which("ps") ?? "/bin/ps";
+		const result = await $`${ps} -p ${pid} -o lstart= -o command=`.quiet().nothrow();
+		if (result.exitCode !== 0) return null;
+		const output = result.text().trim();
+		const match = /^(\S+\s+\S+\s+\d+\s+\d{2}:\d{2}:\d{2}\s+\d{4})\s+(.+)$/.exec(output);
+		return match?.[1] && match[2] ? { startId: match[1], command: match[2] } : null;
+	}
+	return null;
+}
+
+async function readInstanceRecord(port: number): Promise<StatsInstanceRecord | null> {
 	try {
-		const response = await fetch(`http://localhost:${port}/api/stats/models`, {
+		const value: unknown = JSON.parse(await Bun.file(instanceRecordPath(port)).text());
+		if (!value || typeof value !== "object") return null;
+		const record = value as Record<string, unknown>;
+		if (
+			record.version !== STATS_INSTANCE_VERSION ||
+			typeof record.pid !== "number" ||
+			typeof record.startId !== "string" ||
+			typeof record.command !== "string" ||
+			typeof record.nonce !== "string"
+		) {
+			return null;
+		}
+		return record as unknown as StatsInstanceRecord;
+	} catch {
+		return null;
+	}
+}
+
+async function writeInstanceRecord(port: number, record: StatsInstanceRecord): Promise<void> {
+	await fs.mkdir(STATS_INSTANCE_DIR, { recursive: true, mode: 0o700 });
+	const destination = instanceRecordPath(port);
+	const temporary = `${destination}.${process.pid}.${record.nonce}.tmp`;
+	await fs.writeFile(temporary, JSON.stringify(record), { encoding: "utf8", mode: 0o600 });
+	await fs.rename(temporary, destination);
+}
+
+async function removeInstanceRecord(port: number, nonce: string): Promise<void> {
+	const record = await readInstanceRecord(port);
+	if (record?.nonce !== nonce) return;
+	await fs.rm(instanceRecordPath(port), { force: true });
+}
+
+async function probeStatsDashboard(port: number, record: StatsInstanceRecord): Promise<boolean> {
+	const challenge = crypto.randomBytes(32).toString("hex");
+	try {
+		const response = await fetch(`http://127.0.0.1:${port}${STATS_IDENTITY_PATH}`, {
+			headers: { "x-jwc-stats-challenge": challenge },
 			signal: AbortSignal.timeout(STATS_PROBE_TIMEOUT_MS),
 		});
-		if (response.status !== 200) {
-			await response.body?.cancel();
-			return false;
-		}
-		if (response.headers.get(STATS_DASHBOARD_HEADER)) {
-			await response.body?.cancel();
-			return true;
-		}
-		if (!(response.headers.get("content-type") ?? "").includes("application/json")) {
-			await response.body?.cancel();
-			return false;
-		}
-		return Array.isArray(await response.json());
+		if (response.status !== 200) return false;
+		const body: unknown = await response.json();
+		if (!body || typeof body !== "object") return false;
+		const proof = body as Record<string, unknown>;
+		const expected = identitySignature(record, challenge);
+		return (
+			proof.version === record.version &&
+			proof.pid === record.pid &&
+			typeof proof.signature === "string" &&
+			proof.signature.length === expected.length &&
+			crypto.timingSafeEqual(Buffer.from(proof.signature), Buffer.from(expected))
+		);
 	} catch {
 		return false;
 	}
@@ -201,20 +286,29 @@ async function terminatePortHolder(holder: PortHolder): Promise<void> {
 }
 
 async function recoverStatsPort(port: number): Promise<"retry" | "reuse"> {
-	if (await probeStatsDashboard(port)) return "reuse";
 	const holder = await findPortHolder(port);
 	if (!holder) throw new Error(`Port ${port} is in use, but the listening process could not be identified.`);
-	if (holder.pid === process.pid) {
-		throw new Error(`Port ${port} is held by the current process (${holder.image}, PID ${holder.pid}).`);
+	const record = await readInstanceRecord(port);
+	const identity = await readProcessIdentity(holder.pid);
+	if (
+		!record ||
+		record.pid !== holder.pid ||
+		!identity ||
+		record.startId !== identity.startId ||
+		record.command !== identity.command
+	) {
+		throw new Error(
+			`Port ${port} is in use by another process (${holder.image}, PID ${holder.pid}); JWC ownership could not be proven, so it was not stopped.`,
+		);
 	}
-	const normalizedImage = holder.image
-		.toLowerCase()
-		.replace(/\.exe$/, "")
-		.replace(/ \(deleted\)$/, "");
-	if (!RECLAIMABLE_IMAGES.has(normalizedImage)) {
-		throw new Error(`Port ${port} is in use by ${holder.image} (PID ${holder.pid}); refusing to stop it.`);
+	if (await probeStatsDashboard(port, record)) return "reuse";
+	if (holder.pid === process.pid) {
+		throw new Error(
+			`Port ${port} is held by the current process but failed the JWC identity handshake; refusing to stop it.`,
+		);
 	}
 	await terminatePortHolder(holder);
+	await removeInstanceRecord(port, record.nonce);
 	return "retry";
 }
 
@@ -450,7 +544,7 @@ async function handleStatic(requestPath: string): Promise<Response> {
 	return new Response("Not Found", { status: 404 });
 }
 
-function createDashboardServer(port: number) {
+function createDashboardServer(port: number, record: StatsInstanceRecord) {
 	const server = Bun.serve({
 		hostname: "127.0.0.1",
 		port,
@@ -458,13 +552,22 @@ function createDashboardServer(port: number) {
 			const url = new URL(req.url);
 			const path = url.pathname;
 
-			// CORS headers for local development and dashboard identity probing.
+			// CORS headers for local development.
 			const corsHeaders: Record<string, string> = {
 				"Access-Control-Allow-Origin": "*",
 				"Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 				"Access-Control-Allow-Headers": "Content-Type",
-				[STATS_DASHBOARD_HEADER]: "1",
 			};
+
+			if (path === STATS_IDENTITY_PATH) {
+				const challenge = req.headers.get("x-jwc-stats-challenge");
+				if (!challenge || !/^[a-f0-9]{64}$/.test(challenge)) return new Response("Bad Request", { status: 400 });
+				return Response.json({
+					version: record.version,
+					pid: record.pid,
+					signature: identitySignature(record, challenge),
+				});
+			}
 
 			if (req.method === "OPTIONS") {
 				return new Response(null, { headers: corsHeaders });
@@ -502,6 +605,33 @@ function createDashboardServer(port: number) {
 	return server;
 }
 
+async function createOwnedDashboardServer(port: number) {
+	const identity = await readProcessIdentity(process.pid);
+	if (!identity) throw new Error("Cannot establish the current process identity for stats dashboard ownership.");
+	const record: StatsInstanceRecord = {
+		version: STATS_INSTANCE_VERSION,
+		pid: process.pid,
+		startId: identity.startId,
+		command: identity.command,
+		nonce: crypto.randomBytes(32).toString("hex"),
+	};
+	const server = createDashboardServer(port, record);
+	const boundPort = server.port ?? port;
+	try {
+		await writeInstanceRecord(boundPort, record);
+	} catch (error) {
+		server.stop(true);
+		throw error;
+	}
+	return {
+		port: boundPort,
+		stop: () => {
+			server.stop();
+			void removeInstanceRecord(boundPort, record.nonce);
+		},
+	};
+}
+
 /**
  * Start the HTTP server, reusing a verified live dashboard or reclaiming a stale JWC runtime.
  */
@@ -509,15 +639,13 @@ export async function startServer(port = 3847): Promise<{ port: number; stop: ()
 	await ensureClientBuild();
 
 	try {
-		const server = createDashboardServer(port);
-		return { port: server.port ?? port, stop: () => server.stop() };
+		return await createOwnedDashboardServer(port);
 	} catch (error) {
 		if (!(error instanceof Error && "code" in error && error.code === "EADDRINUSE")) throw error;
 		const recovery = await recoverStatsPort(port);
 		if (recovery === "reuse") return { port, stop: () => {} };
 		try {
-			const server = createDashboardServer(port);
-			return { port: server.port ?? port, stop: () => server.stop() };
+			return await createOwnedDashboardServer(port);
 		} catch (retryError) {
 			throw new Error(`Failed to start stats dashboard on port ${port} after reclaiming it.`, {
 				cause: retryError,
