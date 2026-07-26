@@ -1,10 +1,11 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { resolveProviderModels } from "../src/model-manager";
 import { openaiCodexModelManagerOptions } from "../src/provider-models/special";
 import type { FetchImpl, Model } from "../src/types";
+import { OpenAICodexTerminalOAuthError, refreshOpenAICodexToken } from "../src/utils/oauth/openai-codex";
 
 function codexPayload(ids: readonly string[]): Response {
 	return Response.json({ models: ids.map(slug => ({ slug, display_name: slug })) });
@@ -77,5 +78,38 @@ describe("Codex authoritative account discovery", () => {
 		);
 		expect(result.models.map(model => model.id)).toContain("bundled-prior");
 		expect(result.models.map(model => model.id)).not.toContain("partial");
+	});
+});
+
+describe("OpenAI Codex typed refresh errors", () => {
+	for (const [name, body, contentType] of [
+		["HTML script containing invalid_grant JSON text", '<script>{"error":"invalid_grant"}</script>', "text/html"],
+		["truncated invalid_grant JSON", '{"error":"invalid_grant"', "application/json"],
+	] as const) {
+		it(`${name} does not produce a terminal OAuth error`, async () => {
+			const fetchSpy = spyOn(globalThis, "fetch").mockResolvedValue(
+				new Response(body, { status: 401, headers: { "Content-Type": contentType } }),
+			);
+			try {
+				const failure = await refreshOpenAICodexToken("refresh").catch(error => error);
+				expect(failure).toBeInstanceOf(Error);
+				expect(failure).not.toBeInstanceOf(OpenAICodexTerminalOAuthError);
+			} finally {
+				fetchSpy.mockRestore();
+			}
+		});
+	}
+
+	it("produces a typed terminal error only from successfully parsed provider JSON", async () => {
+		const fetchSpy = spyOn(globalThis, "fetch").mockResolvedValue(
+			Response.json({ error: "invalid_grant", error_description: "refresh token revoked" }, { status: 400 }),
+		);
+		try {
+			const failure = await refreshOpenAICodexToken("refresh").catch(error => error);
+			expect(failure).toBeInstanceOf(OpenAICodexTerminalOAuthError);
+			expect(failure.code).toBe("invalid_grant");
+		} finally {
+			fetchSpy.mockRestore();
+		}
 	});
 });

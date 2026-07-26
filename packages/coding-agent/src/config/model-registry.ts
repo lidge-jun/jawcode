@@ -32,6 +32,7 @@ import {
 const DEFAULT_LOCAL_TOKEN = "lm-studio-local";
 
 import { registerOAuthProvider, unregisterOAuthProviders } from "@jawcode-dev/ai/utils/oauth";
+import { OpenAICodexTerminalOAuthError } from "@jawcode-dev/ai/utils/oauth/openai-codex";
 import type { OAuthCredentials, OAuthLoginCallbacks } from "@jawcode-dev/ai/utils/oauth/types";
 import { $pickenv, isRecord, logger } from "@jawcode-dev/utils";
 import { parseModelString, resolveProviderModelReference } from "../config/model-resolver";
@@ -71,21 +72,8 @@ export interface ModelRegistryOptions {
 	fetch?: FetchImpl;
 }
 
-const TERMINAL_OAUTH_ERROR_CODES = new Set([
-	"invalid_grant",
-	"invalid_token",
-	"revoked",
-	"revoked_token",
-	"token_revoked",
-	"refresh_token_revoked",
-]);
-
 function getTerminalOAuthRefreshErrorCode(error: unknown): string | undefined {
-	const message = error instanceof Error ? error.message : String(error);
-	const providerCode = /OpenAI Codex token refresh failed:\s+\d{3}\s+([a-z_][a-z0-9_]*)\b/i.exec(message)?.[1];
-	const jsonCode = /["']error["']\s*:\s*["']([a-z_][a-z0-9_]*)["']/i.exec(message)?.[1];
-	const code = (providerCode ?? jsonCode)?.toLowerCase();
-	return code && TERMINAL_OAUTH_ERROR_CODES.has(code) ? code : undefined;
+	return error instanceof OpenAICodexTerminalOAuthError ? error.code : undefined;
 }
 
 async function resolveCodexDiscoveryAccounts(

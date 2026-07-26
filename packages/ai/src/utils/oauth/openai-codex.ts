@@ -23,6 +23,50 @@ const DEVICE_POLL_SAFETY_MARGIN_MS = 3_000;
 /** Upper bound on device-code polling to avoid infinite loops on server errors. */
 const DEVICE_MAX_POLLS = 120;
 
+export type OpenAICodexTerminalOAuthErrorCode =
+	| "invalid_grant"
+	| "invalid_token"
+	| "revoked"
+	| "revoked_token"
+	| "token_revoked"
+	| "refresh_token_revoked";
+
+const TERMINAL_OAUTH_ERROR_CODES = new Set<OpenAICodexTerminalOAuthErrorCode>([
+	"invalid_grant",
+	"invalid_token",
+	"revoked",
+	"revoked_token",
+	"token_revoked",
+	"refresh_token_revoked",
+]);
+
+function isTerminalOAuthErrorCode(value: unknown): value is OpenAICodexTerminalOAuthErrorCode {
+	return typeof value === "string" && TERMINAL_OAUTH_ERROR_CODES.has(value as OpenAICodexTerminalOAuthErrorCode);
+}
+
+export class OpenAICodexTerminalOAuthError extends Error {
+	readonly code: OpenAICodexTerminalOAuthErrorCode;
+
+	constructor(code: OpenAICodexTerminalOAuthErrorCode, description?: string) {
+		super(`OpenAI Codex token refresh failed: ${code}${description ? `: ${description}` : ""}`);
+		this.name = "OpenAICodexTerminalOAuthError";
+		this.code = code;
+	}
+}
+
+function parseTerminalOAuthError(payload: unknown): {
+	code: OpenAICodexTerminalOAuthErrorCode;
+	description?: string;
+} | null {
+	if (typeof payload !== "object" || payload === null || Array.isArray(payload)) return null;
+	const record = payload as Record<string, unknown>;
+	if (!isTerminalOAuthErrorCode(record.error)) return null;
+	return {
+		code: record.error,
+		...(typeof record.error_description === "string" ? { description: record.error_description } : undefined),
+	};
+}
+
 type JwtPayload = {
 	[JWT_CLAIM_PATH]?: {
 		chatgpt_account_id?: string;
@@ -292,13 +336,13 @@ export async function refreshOpenAICodexToken(refreshToken: string): Promise<OAu
 	});
 
 	if (!response.ok) {
-		let detail = `${response.status}`;
 		try {
-			const body = (await response.json()) as { error?: string; error_description?: string };
-			if (body.error)
-				detail = `${response.status} ${body.error}${body.error_description ? `: ${body.error_description}` : ""}`;
-		} catch {}
-		throw new Error(`OpenAI Codex token refresh failed: ${detail}`);
+			const terminal = parseTerminalOAuthError(await response.json());
+			if (terminal) throw new OpenAICodexTerminalOAuthError(terminal.code, terminal.description);
+		} catch (error) {
+			if (error instanceof OpenAICodexTerminalOAuthError) throw error;
+		}
+		throw new Error(`OpenAI Codex token refresh failed: HTTP ${response.status}`);
 	}
 
 	const tokenData = (await response.json()) as {

@@ -3,6 +3,7 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import type { FetchImpl } from "@jawcode-dev/ai";
+import { OpenAICodexTerminalOAuthError } from "@jawcode-dev/ai/utils/oauth/openai-codex";
 import type { OAuthCredentials } from "@jawcode-dev/ai/utils/oauth/types";
 import { ModelRegistry } from "../src/config/model-registry";
 import { AuthStorage } from "../src/session/auth-storage";
@@ -123,6 +124,8 @@ describe("ModelRegistry Codex authoritative discovery", () => {
 		["proxy 401 HTML", "OpenAI Codex token refresh failed: 401 <html>proxy auth</html>"],
 		["403 rate limit", "OpenAI Codex token refresh failed: 403 rate limit exceeded"],
 		["malformed 401 body", "OpenAI Codex token refresh failed: 401 {not-json"],
+		["HTML script containing invalid_grant JSON text", '502 <script>...{"error":"invalid_grant"}...</script>'],
+		["truncated invalid_grant JSON", '401 {"error":"invalid_grant"'],
 	] as const) {
 		test(`${name} is transient and does not disable the credential`, async () => {
 			const registry = await useFailingRefresh(message);
@@ -178,7 +181,7 @@ describe("ModelRegistry Codex authoritative discovery", () => {
 		authStorage = await AuthStorage.create(path.join(tempDir, "auth-revoked.db"), {
 			refreshOAuthCredential: async (_provider, _id, credential): Promise<OAuthCredentials> => {
 				if (credential.accountId === "revoked") {
-					throw new Error("OpenAI Codex token refresh failed: 400 invalid_grant: refresh token revoked");
+					throw new OpenAICodexTerminalOAuthError("invalid_grant", "refresh token revoked");
 				}
 				return { ...credential, access: "healthy-fresh", expires: Date.now() + 60_000 };
 			},
