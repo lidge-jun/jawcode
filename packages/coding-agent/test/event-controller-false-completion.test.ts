@@ -92,8 +92,9 @@ describe("EventController settled agent_end outcome", () => {
 		expect(notification).not.toHaveBeenCalled();
 	});
 
-	it("uses the terminal assistant when a non-assistant message is last", () => {
-		new EventController(makeContext(successful)).sendCompletionNotification([assistant("error"), userMessage()]);
+	it("fails closed for a user message after a successful assistant on the interactive path", async () => {
+		const controller = new EventController(makeContext(successful));
+		await controller.handleEvent({ type: "agent_end", messages: [successful, userMessage()] });
 		expect(notification).not.toHaveBeenCalled();
 	});
 
@@ -102,8 +103,9 @@ describe("EventController settled agent_end outcome", () => {
 		expect(notification).not.toHaveBeenCalled();
 	});
 
-	it("fails closed for a tool-only settled tail", () => {
-		new EventController(makeContext(successful)).sendCompletionNotification([toolMessage()]);
+	it("fails closed for a tool result after a successful assistant on the interactive path", async () => {
+		const controller = new EventController(makeContext(successful));
+		await controller.handleEvent({ type: "agent_end", messages: [successful, toolMessage()] });
 		expect(notification).not.toHaveBeenCalled();
 	});
 
@@ -111,6 +113,26 @@ describe("EventController settled agent_end outcome", () => {
 		const context = makeContext(successful);
 		const controller = new EventController(context);
 		await controller.handleBackgroundEvent({ type: "agent_end", messages: [assistant("error")] });
+		expect(notification).not.toHaveBeenCalled();
+		expect(context.shutdown).toHaveBeenCalledTimes(1);
+	});
+
+	it("fails closed for a user message after a successful assistant on the background path", async () => {
+		const context = makeContext(successful);
+		await new EventController(context).handleBackgroundEvent({
+			type: "agent_end",
+			messages: [successful, userMessage()],
+		});
+		expect(notification).not.toHaveBeenCalled();
+		expect(context.shutdown).toHaveBeenCalledTimes(1);
+	});
+
+	it("fails closed for a tool result after a successful assistant on the background path", async () => {
+		const context = makeContext(successful);
+		await new EventController(context).handleBackgroundEvent({
+			type: "agent_end",
+			messages: [successful, toolMessage()],
+		});
 		expect(notification).not.toHaveBeenCalled();
 		expect(context.shutdown).toHaveBeenCalledTimes(1);
 	});

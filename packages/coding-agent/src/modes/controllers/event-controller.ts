@@ -1170,11 +1170,9 @@ export class EventController {
 		// errored — those are not "Task complete" events. Mirrors the gate
 		// already used by #currentContextTokens, #handleMessageEnd, and the
 		// retry / TTSR / compaction skip paths across agent-session.ts.
-		const last =
-			settledMessages !== undefined
-				? settledMessages.findLast((message): message is AssistantMessage => message.role === "assistant")
-				: this.ctx.session.getLastAssistantMessage?.();
-		if (settledMessages !== undefined && !last) return;
+		const terminal = settledMessages !== undefined ? settledMessages.at(-1) : undefined;
+		if (settledMessages !== undefined && terminal?.role !== "assistant") return;
+		const last = terminal?.role === "assistant" ? terminal : this.ctx.session.getLastAssistantMessage?.();
 		if (last?.stopReason === "aborted" || last?.stopReason === "error") return;
 
 		const sessionName = this.ctx.sessionManager.getSessionName();
