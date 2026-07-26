@@ -1,11 +1,11 @@
 {
-  "phase": "C",
+  "phase": "IDLE",
   "sessionId": "019f99aa-d87c-7c42-831c-747956a1c5be",
   "slug": "jawcode-upstream-chase-loop-on-dev-branch-2026-0",
-  "updatedAt": "2026-07-26T07:40:41.438Z",
+  "updatedAt": "2026-07-26T07:56:09.211Z",
   "flags": {
     "interview": false,
-    "auditPassed": true,
+    "auditPassed": false,
     "checkPassed": false
   },
   "supersededBy": null,
@@ -13,8 +13,8 @@
     "019f99ab-735a-7ec0-9142-1fc6e6466f5d",
     "019f9a2f-5950-75e2-a5bb-8939e5afe6eb"
   ],
-  "lastInjectedPhase": "C",
-  "orchestrationActive": true,
+  "lastInjectedPhase": null,
+  "orchestrationActive": false,
   "interview": null,
   "stopBlockPhase": null,
   "stopBlockCount": 0,

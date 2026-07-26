@@ -2,8 +2,8 @@
   "objective": "Jawcode upstream-chase loop on dev branch (2026-07-25). Outcome: (1) Refresh upstream chase — pull struct_har/gjc_origin (gajae-code) and struct_har/omp_origin (oh-my-pi) clones, compute commit deltas since last anchors (GJC 3ddf26079, OMP b0d04e517, both refreshed 2026-07-17), and document them as diff-level chase cards under struct_har/chase/ (10.NNN for GJC, 20.NNN for OMP) via parallel gpt-5.6-sol subagents in a docs-first cycle, updating the MOCs and 007_follow_index. (2) Implement every autonomous card (import/adapt/evidence-fill — no user decision needed) through persisted PABCD cycles, committing each completed B step; leave C/direction-decision cards untouched for the user. (3) Close implemented cards to struct_har/chase/_fin/10|20 with header evidence per repo convention. (4) Push dev to origin and merge dev into main, then push main — push+merge pre-approved by the user in this session. DONE = hash-set coverage of new upstream commits documented, autonomous cards implemented with gates green (bun run check:ts, focused tests, verify-g002-gates, rebrand-inventory --strict, check-visible-definitions), _fin moves complete, dev pushed, main merged and pushed with exact SHAs reported. BLOCKED = upstream remote unreachable. NEEDS_HUMAN = card requires product/direction decision. UNSAFE = anything touching TUI visual identity or release/publish flows. Out of scope: C decision cards, TUI visual identity, npm release. Housekeeping already landed: main merged into dev (3162bf8), post-merge gate repair (a446321) with all required gates green. First work-phase: chase refresh + docs loop.",
   "slug": "jawcode-upstream-chase-loop-on-dev-branch-2026-0",
   "createdAt": "2026-07-25T14:54:57.007Z",
-  "updatedAt": "2026-07-26T03:00:00.000Z",
-  "activeWorkPhaseId": "wp4",
+  "updatedAt": "2026-07-26T05:00:00.000Z",
+  "activeWorkPhaseId": "wp5",
   "workPhases": [
     {
       "id": "wp1",
@@ -103,17 +103,17 @@
     {
       "id": "wp4",
       "title": "_fin reconciliation: header evidence, Decision Slots, archive moves, MOC/index updates, full gates",
-      "status": "in_progress",
+      "status": "done",
       "tasks": [
         {
           "id": "wp4-t1",
           "title": "Move implemented cards to _fin with evidence headers",
-          "status": "pending"
+          "status": "done"
         },
         {
           "id": "wp4-t2",
           "title": "Run full required gates green",
-          "status": "pending"
+          "status": "done"
         }
       ],
       "criteriaIds": [
@@ -123,7 +123,7 @@
     {
       "id": "wp5",
       "title": "Push dev, merge dev into main, push main (user pre-approved), report exact SHAs",
-      "status": "pending",
+      "status": "in_progress",
       "tasks": [
         {
           "id": "wp5-t1",
@@ -167,8 +167,8 @@
       "id": "c4",
       "scenario": "Implemented cards archived to _fin with evidence; full gates green",
       "expectedEvidence": "_fin moves in git log, header ✅ markers, gate output",
-      "capturedEvidence": "",
-      "status": "open"
+      "capturedEvidence": "23 cards archived with Decision Slots A-F, scoped Closed: lines, explicit Owner paths and Implementation Evidence citing real JWC commits (1c458bf, c5d2d7f); counts corrected 21->16+7=23; _fin/INDEX regenerated (GJC 96 + OMP 63 = 159 exact); two verification gates added and hardened three times under adversarial review (ec6b418, e575093, a912f94, d99b1df); lifecycle violations 129->39 all from escalated id collisions; all required repo gates PASS; closeout 092",
+      "status": "met"
     },
     {
       "id": "c5",
