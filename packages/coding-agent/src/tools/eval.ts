@@ -523,6 +523,7 @@ export class EvalTool implements AgentTool<typeof evalSchema> {
 						await finalizeOutput();
 					} catch {}
 				}
+				await outputSink?.dispose();
 			}
 		})();
 
