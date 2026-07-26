@@ -336,11 +336,17 @@ export async function refreshOpenAICodexToken(refreshToken: string): Promise<OAu
 	});
 
 	if (!response.ok) {
-		try {
-			const terminal = parseTerminalOAuthError(await response.json());
-			if (terminal) throw new OpenAICodexTerminalOAuthError(terminal.code, terminal.description);
-		} catch (error) {
-			if (error instanceof OpenAICodexTerminalOAuthError) throw error;
+		// OAuth token endpoint protocol errors are returned as HTTP 400. Other
+		// statuses (especially 403, 429, and 5xx) can originate from proxies,
+		// WAFs, throttling, or transient upstream failures and must never disable
+		// a credential, regardless of a terminal-looking response body.
+		if (response.status === 400) {
+			try {
+				const terminal = parseTerminalOAuthError(await response.json());
+				if (terminal) throw new OpenAICodexTerminalOAuthError(terminal.code, terminal.description);
+			} catch (error) {
+				if (error instanceof OpenAICodexTerminalOAuthError) throw error;
+			}
 		}
 		throw new Error(`OpenAI Codex token refresh failed: HTTP ${response.status}`);
 	}

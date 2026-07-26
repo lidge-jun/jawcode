@@ -126,6 +126,9 @@ describe("ModelRegistry Codex authoritative discovery", () => {
 		["malformed 401 body", "OpenAI Codex token refresh failed: 401 {not-json"],
 		["HTML script containing invalid_grant JSON text", '502 <script>...{"error":"invalid_grant"}...</script>'],
 		["truncated invalid_grant JSON", '401 {"error":"invalid_grant"'],
+		["502 corporate WAF JSON", '502 application/json {"error":"invalid_grant","proxy":"corp-waf"}'],
+		["502 text/html valid JSON body", '502 text/html {"error":"invalid_grant"}'],
+		["429 terminal-looking body", '429 {"error":"invalid_grant"}'],
 	] as const) {
 		test(`${name} is transient and does not disable the credential`, async () => {
 			const registry = await useFailingRefresh(message);

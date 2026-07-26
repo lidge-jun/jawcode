@@ -100,6 +100,25 @@ describe("OpenAI Codex typed refresh errors", () => {
 		});
 	}
 
+	for (const [name, status, body, contentType] of [
+		["502 JSON from a corporate WAF", 502, '{"error":"invalid_grant","proxy":"corp-waf"}', "application/json"],
+		["502 text/html with a valid JSON body", 502, '{"error":"invalid_grant"}', "text/html"],
+		["429 with a terminal-looking body", 429, '{"error":"invalid_grant"}', "application/json"],
+	] as const) {
+		it(`${name} is transient regardless of body`, async () => {
+			const fetchSpy = spyOn(globalThis, "fetch").mockResolvedValue(
+				new Response(body, { status, headers: { "Content-Type": contentType } }),
+			);
+			try {
+				const failure = await refreshOpenAICodexToken("refresh").catch(error => error);
+				expect(failure).toBeInstanceOf(Error);
+				expect(failure).not.toBeInstanceOf(OpenAICodexTerminalOAuthError);
+			} finally {
+				fetchSpy.mockRestore();
+			}
+		});
+	}
+
 	it("produces a typed terminal error only from successfully parsed provider JSON", async () => {
 		const fetchSpy = spyOn(globalThis, "fetch").mockResolvedValue(
 			Response.json({ error: "invalid_grant", error_description: "refresh token revoked" }, { status: 400 }),
