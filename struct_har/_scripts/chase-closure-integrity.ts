@@ -58,24 +58,6 @@ function sectionLines(body: string, headingPattern: RegExp): string[] {
 function parseOwnerPaths(body: string): string[] {
 	const owners = new Set<string>();
 	for (const line of body.split(/\r?\n/)) {
-		if (/^Owner paths:/i.test(line)) {
-			for (const owner of codePaths(line)) owners.add(owner);
-		}
-	}
-
-	const ownerSections = sectionLines(
-		body,
-		/^(?:JWC\s+)?(?:Worktree Verification|Decision Slots?|Implementation Evidence|(?:Final )?Closure Evidence)(?:\s|$)/i,
-	);
-	for (const line of ownerSections) {
-		for (const owner of codePaths(line)) owners.add(owner);
-	}
-	return [...owners];
-}
-
-function parseDeclaredOwnerPaths(body: string): string[] {
-	const owners = new Set<string>();
-	for (const line of body.split(/\r?\n/)) {
 		if (!/^Owner paths:/i.test(line)) continue;
 		for (const owner of codePaths(line)) owners.add(owner);
 	}
@@ -83,8 +65,11 @@ function parseDeclaredOwnerPaths(body: string): string[] {
 }
 
 function isMeaningfulOwnerPath(ownerPath: string): boolean {
-	const segments = ownerPath.replace(/^\.\//, "").replace(/\/$/, "").split("/").filter(Boolean);
-	return segments.length >= 2;
+	const normalized = ownerPath.replace(/^\.\//, "").replace(/\/$/, "");
+	const finalSegment = normalized.split("/").at(-1) ?? "";
+	const isFile = /\.[a-z0-9]+$/i.test(finalSegment);
+	const isSourceModule = /\/(?:src|test)\/[^/]+(?:\/|$)/.test(`/${normalized}`);
+	return isFile || isSourceModule;
 }
 
 function parseImplementationHashes(body: string, closedLine: string): string[] {
@@ -127,7 +112,7 @@ for (const card of cards) {
 	const body = await Bun.file(card.absolutePath).text();
 	const reasons: string[] = [];
 	const parsedOwners = parseOwnerPaths(body);
-	const invalidOwners = parseDeclaredOwnerPaths(body).filter(owner => !isMeaningfulOwnerPath(owner));
+	const invalidOwners = parsedOwners.filter(owner => !isMeaningfulOwnerPath(owner));
 	const owners = parsedOwners.filter(isMeaningfulOwnerPath);
 	if (invalidOwners.length > 0) reasons.push(`owner paths too broad: ${invalidOwners.join(", ")}`);
 	if (owners.length === 0) reasons.push("UNDECLARED owner paths");
