@@ -71,12 +71,21 @@ export interface ModelRegistryOptions {
 	fetch?: FetchImpl;
 }
 
-function isDefinitiveOAuthRefreshFailure(error: unknown): boolean {
+const TERMINAL_OAUTH_ERROR_CODES = new Set([
+	"invalid_grant",
+	"invalid_token",
+	"revoked",
+	"revoked_token",
+	"token_revoked",
+	"refresh_token_revoked",
+]);
+
+function getTerminalOAuthRefreshErrorCode(error: unknown): string | undefined {
 	const message = error instanceof Error ? error.message : String(error);
-	return (
-		/invalid_grant|invalid_token|revoked|unauthorized|expired.*refresh|refresh.*expired/i.test(message) ||
-		(/\b(401|403)\b/.test(message) && !/timeout|network|fetch failed|ECONNREFUSED/i.test(message))
-	);
+	const providerCode = /OpenAI Codex token refresh failed:\s+\d{3}\s+([a-z_][a-z0-9_]*)\b/i.exec(message)?.[1];
+	const jsonCode = /["']error["']\s*:\s*["']([a-z_][a-z0-9_]*)["']/i.exec(message)?.[1];
+	const code = (providerCode ?? jsonCode)?.toLowerCase();
+	return code && TERMINAL_OAUTH_ERROR_CODES.has(code) ? code : undefined;
 }
 
 async function resolveCodexDiscoveryAccounts(
@@ -99,12 +108,17 @@ async function resolveCodexDiscoveryAccounts(
 			if (refreshed.credential.type !== "oauth") return null;
 			accounts.push({ accessToken: refreshed.credential.access, accountId: refreshed.credential.accountId });
 		} catch (error) {
-			if (!isDefinitiveOAuthRefreshFailure(error)) return null;
+			const terminalCode = getTerminalOAuthRefreshErrorCode(error);
+			if (!terminalCode) return null;
 			const message = error instanceof Error ? error.message : String(error);
-			authStorage.disableCredentialById(row.id, `oauth refresh failed: ${message}`);
+			const accountLabel = accountId ?? `credential ${row.id}`;
+			const disabledCause = `Codex account ${accountLabel} OAuth refresh failed with ${terminalCode}; recover with /login codex`;
+			authStorage.disableCredentialById(row.id, disabledCause);
 			logger.warn("Codex account quarantined after definitive OAuth refresh failure", {
 				credentialId: row.id,
-				accountId,
+				account: accountLabel,
+				recoveryCommand: "/login codex",
+				terminalCode,
 				error: message,
 			});
 		}
