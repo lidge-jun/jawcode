@@ -17,3 +17,14 @@ The audit's value was in attacking the SKIP decisions — four of them hid open,
 
 Skips CONFIRMED honest: `20.087` (no mnemopi surface, PTY drain covered), `20.088` (git availability layer; installer-specific anchor not portable), `10.110`, `10.112`.
 TUI exclusions verified complete: only `20.122/fe4dec9b9` and `44586a932` touch the protected `packages/tui/src/tui.ts`; no scoped anchor references `welcome.ts`.
+
+## Round 2 (same reviewer, post-synthesis) — GO-WITH-FIXES (4)
+
+| # | severity | disposition |
+|---|---|---|
+| 1 Packet D targeted the wrong seam | High | folded — `#emit()` already invokes listeners synchronously in order; the real reorder is between concurrent `#emitSessionEvent()` calls each awaiting an asymmetric `#emitExtensionEvent()`. Packet D now specifies a FIFO gate inside `#emitSessionEvent()` (ticket taken before extension delivery, released in `finally` incl. failure and deferred `agent_end`, `message_update` immediacy preserved, subscribers never globally awaited) and the test becomes asymmetric-extension-handler ordering |
+| 2 classification table contradicted the amendments | Medium | folded — table rows for 20.082 / 20.089 / 20.102 / 10.117 now name Packets D–G; residual qualified as "except the explicitly reactivated packets" |
+| 3 Packet E hard-error disposal unbounded | Medium | folded — the same finite consolidation budget is required on both success and hard-error disposal; C6 asserts it |
+| 4 Packet C concurrency untested | Medium | folded — C3 adds an in-place edit of an older message and an out-of-order retain (N+1 completing before N must not overwrite the newer record) |
+
+Write-set audit confirmed clean: A `tools/write.ts`; B `streaming-output.ts` + five executors; C `hindsight/state.ts`; D `agent-session.ts`; E `print-mode.ts` + stats server; F pruning + format; G `event-controller.ts`. D and G are runtime-adjacent but do not collide. Per the reviewer's note, every packet now names UNIQUE test files so parallel workers cannot pick the same one.
