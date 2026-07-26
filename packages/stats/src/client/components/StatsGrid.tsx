@@ -18,7 +18,8 @@ function formatExactNumber(value: number): string {
 	return value.toLocaleString();
 }
 
-const totalPromptCompletionTokens = (stats: AggregatedStats) => stats.totalInputTokens + stats.totalOutputTokens;
+const totalConversationTokens = (stats: AggregatedStats) =>
+	stats.totalInputTokens + stats.totalOutputTokens + stats.totalCacheReadTokens + stats.totalCacheWriteTokens;
 
 const statConfig = [
 	{
@@ -54,7 +55,8 @@ const statConfig = [
 		icon: Database,
 		color: "var(--accent-cyan)",
 		getValue: (s: AggregatedStats) => `${(s.cacheRate * 100).toFixed(1)}%`,
-		getDetail: (s: AggregatedStats) => `${formatCompactNumber(s.totalCacheReadTokens)} cached tokens`,
+		getDetail: (s: AggregatedStats) =>
+			`${formatCompactNumber(s.totalCacheReadTokens)} cache read · ${formatCompactNumber(s.totalCacheWriteTokens)} cache write`,
 	},
 	{
 		key: "inputTokens",
@@ -63,8 +65,8 @@ const statConfig = [
 		color: "var(--accent-violet)",
 		getValue: (s: AggregatedStats) => formatExactNumber(s.totalInputTokens),
 		getDetail: (s: AggregatedStats) =>
-			totalPromptCompletionTokens(s) > 0
-				? `${((s.totalInputTokens / totalPromptCompletionTokens(s)) * 100).toFixed(1)}% of prompt+completion`
+			totalConversationTokens(s) > 0
+				? `${((s.totalInputTokens / totalConversationTokens(s)) * 100).toFixed(1)}% of conversation total`
 				: "-",
 	},
 	{
@@ -74,8 +76,8 @@ const statConfig = [
 		color: "var(--accent-pink)",
 		getValue: (s: AggregatedStats) => formatExactNumber(s.totalOutputTokens),
 		getDetail: (s: AggregatedStats) =>
-			totalPromptCompletionTokens(s) > 0
-				? `${((s.totalOutputTokens / totalPromptCompletionTokens(s)) * 100).toFixed(1)}% of prompt+completion`
+			totalConversationTokens(s) > 0
+				? `${((s.totalOutputTokens / totalConversationTokens(s)) * 100).toFixed(1)}% of conversation total`
 				: "-",
 	},
 	{
@@ -92,8 +94,7 @@ const statConfig = [
 		icon: BarChart3,
 		color: "var(--accent-green)",
 		getValue: (s: AggregatedStats) => s.avgTokensPerSecond?.toFixed(1) ?? "-",
-		getDetail: (s: AggregatedStats) =>
-			`${formatCompactNumber(totalPromptCompletionTokens(s))} total prompt+completion`,
+		getDetail: (s: AggregatedStats) => `${formatCompactNumber(totalConversationTokens(s))} conversation tokens total`,
 	},
 	{
 		key: "ttft",
