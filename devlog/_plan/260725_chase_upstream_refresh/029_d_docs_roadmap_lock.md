@@ -38,5 +38,5 @@ Listed in 007_follow_index §2026-07-25 and 009_follow_tiers. Not touched autono
 
 ## wp4 queue additions discovered this cycle
 
-- 21 markerless _fin cards (from 753dc65/319c69d2): add closure headers (✅ _fin, Closed date, Decision Slots A–F) citing implementing commits (WP1–WP4 series ebaa081..5fb0837) or move back to active if claim unverifiable.
+- Markerless backlog is 23 total: 16 reproducible from the move history (10 keep in `_fin` + 5 commit-anchor remaps in `_fin` + 1 return to active) plus 7 legacy malformed cards (10.017, 10.020, 10.025, 10.026, 10.029, 20.002, 20.007) for a separate closure audit.
 - `_fin/INDEX.md` sync for all moves.

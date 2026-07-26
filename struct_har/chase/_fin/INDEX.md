@@ -1,208 +1,173 @@
-# chase `_fin` INDEX
+# Chase Finished Index
 
-완료된 `10.NNN` / `20.NNN` — 본문은 `_fin/10/` · `_fin/20/`.
+> Regenerated 2026-07-26 from the actual `struct_har/chase/_fin/10|20` inventory.
+> GJC 96 · OMP 63 · total 159.
 
-> Inventory refreshed 2026-07-02 against actual files: GJC `_fin/10` = 56, OMP `_fin/20` = 21. Duplicate NNNs are intentionally file-level rows.
+## GJC (96)
 
-## GJC `_fin/10`
+| id | card |
+| --- | --- |
+| 10.002 | [10.002_gjc_chase_ai_auth.md](./10/10.002_gjc_chase_ai_auth.md) |
+| 10.003 | [10.003_gjc_chase_cursor.md](./10/10.003_gjc_chase_cursor.md) |
+| 10.004 | [10.004_gjc_chase_session_compaction.md](./10/10.004_gjc_chase_session_compaction.md) |
+| 10.005 | [10.005_gjc_chase_task_subagent.md](./10/10.005_gjc_chase_task_subagent.md) |
+| 10.007 | [10.007_gjc_chase_team_profile_self_heal.md](./10/10.007_gjc_chase_team_profile_self_heal.md) |
+| 10.008 | [10.008_gjc_chase_rpc_lifecycle.md](./10/10.008_gjc_chase_rpc_lifecycle.md) |
+| 10.009 | [10.009_gjc_chase_pishell_utf8_fixup.md](./10/10.009_gjc_chase_pishell_utf8_fixup.md) |
+| 10.010 | [10.010_gjc_chase_harness_submit_readiness.md](./10/10.010_gjc_chase_harness_submit_readiness.md) |
+| 10.011 | [10.011_gjc_chase_receipt_spool.md](./10/10.011_gjc_chase_receipt_spool.md) |
+| 10.012 | [10.012_gjc_chase_goal_steering.md](./10/10.012_gjc_chase_goal_steering.md) |
+| 10.012 | [10.012_gjc_chase_perf_serialization.md](./10/10.012_gjc_chase_perf_serialization.md) |
+| 10.013 | [10.013_gjc_chase_assistant_msg_cache.md](./10/10.013_gjc_chase_assistant_msg_cache.md) |
+| 10.013 | [10.013_gjc_chase_perf_compaction.md](./10/10.013_gjc_chase_perf_compaction.md) |
+| 10.014 | [10.014_gjc_chase_perf_session_cache.md](./10/10.014_gjc_chase_perf_session_cache.md) |
+| 10.015 | [10.015_gjc_chase_context_maintenance_race.md](./10/10.015_gjc_chase_context_maintenance_race.md) |
+| 10.016 | [10.016_gjc_chase_tool_choice_fallback.md](./10/10.016_gjc_chase_tool_choice_fallback.md) |
+| 10.017 | [10.017_gjc_retired_fable_na.md](./10/10.017_gjc_retired_fable_na.md) |
+| 10.018 | [10.018_gjc_chase_rpc_registry_uds.md](./10/10.018_gjc_chase_rpc_registry_uds.md) |
+| 10.019 | [10.019_gjc_chase_gc_file_lock.md](./10/10.019_gjc_chase_gc_file_lock.md) |
+| 10.020 | [10.020_gjc_chase_deep_interview_semantics.md](./10/10.020_gjc_chase_deep_interview_semantics.md) |
+| 10.021 | [10.021_gjc_chase_goal_redteam_review.md](./10/10.021_gjc_chase_goal_redteam_review.md) |
+| 10.022 | [10.022_gjc_chase_goal_agent_busy_loop.md](./10/10.022_gjc_chase_goal_agent_busy_loop.md) |
+| 10.023 | [10.023_gjc_chase_task_notification_context.md](./10/10.023_gjc_chase_task_notification_context.md) |
+| 10.024 | [10.024_gjc_chase_coordinator_mcp_watch.md](./10/10.024_gjc_chase_coordinator_mcp_watch.md) |
+| 10.025 | [10.025_gjc_chase_perf_corpus_geobench.md](./10/10.025_gjc_chase_perf_corpus_geobench.md) |
+| 10.026 | [10.026_gjc_chase_rpc_issues_audit.md](./10/10.026_gjc_chase_rpc_issues_audit.md) |
+| 10.028 | [10.028_gjc_chase_notifications_sdk.md](./10/10.028_gjc_chase_notifications_sdk.md) |
+| 10.029 | [10.029_gjc_chase_notify_config_cli.md](./10/10.029_gjc_chase_notify_config_cli.md) |
+| 10.029 | [10.029_gjc_chase_process_lifecycle_hardening.md](./10/10.029_gjc_chase_process_lifecycle_hardening.md) |
+| 10.030 | [10.030_gjc_chase_telegram_managed_daemon.md](./10/10.030_gjc_chase_telegram_managed_daemon.md) |
+| 10.031 | [10.031_gjc_chase_telegram_threaded_surface.md](./10/10.031_gjc_chase_telegram_threaded_surface.md) |
+| 10.032 | [10.032_gjc_chase_telegram_remote_answers.md](./10/10.032_gjc_chase_telegram_remote_answers.md) |
+| 10.033 | [10.033_gjc_chase_telegram_session_lifecycle.md](./10/10.033_gjc_chase_telegram_session_lifecycle.md) |
+| 10.034 | [10.034_gjc_chase_telegram_media_file_transfer.md](./10/10.034_gjc_chase_telegram_media_file_transfer.md) |
+| 10.035 | [10.035_gjc_chase_notifications_adapters_docs.md](./10/10.035_gjc_chase_notifications_adapters_docs.md) |
+| 10.036 | [10.036_gjc_chase_ai_provider_auth_model_catalog.md](./10/10.036_gjc_chase_ai_provider_auth_model_catalog.md) |
+| 10.037 | [10.037_gjc_chase_runtime_process_lifecycle_hardening.md](./10/10.037_gjc_chase_runtime_process_lifecycle_hardening.md) |
+| 10.038 | [10.038_gjc_chase_rpc_control_plane_v2.md](./10/10.038_gjc_chase_rpc_control_plane_v2.md) |
+| 10.040 | [10.040_gjc_chase_compaction_pruning_resident_memory.md](./10/10.040_gjc_chase_compaction_pruning_resident_memory.md) |
+| 10.041 | [10.041_gjc_chase_tui_input_render_windows_psmux.md](./10/10.041_gjc_chase_tui_input_render_windows_psmux.md) |
+| 10.042 | [10.042_gjc_chase_deep_interview_ask_goal_state.md](./10/10.042_gjc_chase_deep_interview_ask_goal_state.md) |
+| 10.043 | [10.043_gjc_chase_web_search_insane_security.md](./10/10.043_gjc_chase_web_search_insane_security.md) |
+| 10.047 | [10.047_gjc_chase_security_privacy_guardrails.md](./10/10.047_gjc_chase_security_privacy_guardrails.md) |
+| 10.048 | [10.048_gjc_chase_dev_ci_release_packaging.md](./10/10.048_gjc_chase_dev_ci_release_packaging.md) |
+| 10.051 | [10.051_gjc_chase_agent_composer_toolcall_integrity.md](./10/10.051_gjc_chase_agent_composer_toolcall_integrity.md) |
+| 10.052 | [10.052_gjc_chase_docs_external_integrations.md](./10/10.052_gjc_chase_docs_external_integrations.md) |
+| 10.053 | [10.053_gjc_chase_local_provider_terminal_bell_windows.md](./10/10.053_gjc_chase_local_provider_terminal_bell_windows.md) |
+| 10.054 | [10.054_gjc_chase_local_provider_discovery.md](./10/10.054_gjc_chase_local_provider_discovery.md) |
+| 10.055 | [10.055_gjc_chase_codex_replay_stability.md](./10/10.055_gjc_chase_codex_replay_stability.md) |
+| 10.056 | [10.056_gjc_chase_terminal_bell_notifications.md](./10/10.056_gjc_chase_terminal_bell_notifications.md) |
+| 10.057 | [10.057_gjc_chase_windows_hardening.md](./10/10.057_gjc_chase_windows_hardening.md) |
+| 10.058 | [10.058_gjc_chase_status_line_misc_tooling.md](./10/10.058_gjc_chase_status_line_misc_tooling.md) |
+| 10.059 | [10.059_gjc_chase_deep_interview_ask_ralplan_gate.md](./10/10.059_gjc_chase_deep_interview_ask_ralplan_gate.md) |
+| 10.060 | [10.060_gjc_chase_tui_render_resilience_editor_submit.md](./10/10.060_gjc_chase_tui_render_resilience_editor_submit.md) |
+| 10.061 | [10.061_gjc_chase_tmux_team_windows_psmux_titles.md](./10/10.061_gjc_chase_tmux_team_windows_psmux_titles.md) |
+| 10.062 | [10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md](./10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md) |
+| 10.064 | [10.064_gjc_chase_telegram_daemon_entrypoint_notify.md](./10/10.064_gjc_chase_telegram_daemon_entrypoint_notify.md) |
+| 10.065 | [10.065_gjc_chase_prompt_self_awareness_grounding.md](./10/10.065_gjc_chase_prompt_self_awareness_grounding.md) |
+| 10.066 | [10.066_gjc_chase_composer_command_model_selector_ux.md](./10/10.066_gjc_chase_composer_command_model_selector_ux.md) |
+| 10.068 | [10.068_gjc_chase_tmux_telegram_session_resilience.md](./10/10.068_gjc_chase_tmux_telegram_session_resilience.md) |
+| 10.069 | [10.069_gjc_chase_provider_search_docs_model_support.md](./10/10.069_gjc_chase_provider_search_docs_model_support.md) |
+| 10.071 | [10.071_gjc_chase_search_utils_edit_safety.md](./10/10.071_gjc_chase_search_utils_edit_safety.md) |
+| 10.074 | [10.074_gjc_chase_notifications_telegram_v2_rich_streaming.md](./10/10.074_gjc_chase_notifications_telegram_v2_rich_streaming.md) |
+| 10.074a | [10.074a_gjc_chase_telegram_ask_ack_hardening.md](./10/10.074a_gjc_chase_telegram_ask_ack_hardening.md) |
+| 10.074b | [10.074b_gjc_chase_telegram_redaction_file_limits.md](./10/10.074b_gjc_chase_telegram_redaction_file_limits.md) |
+| 10.074c | [10.074c_gjc_chase_telegram_rich_messages_streaming.md](./10/10.074c_gjc_chase_telegram_rich_messages_streaming.md) |
+| 10.074d | [10.074d_gjc_chase_telegram_slash_commands_env.md](./10/10.074d_gjc_chase_telegram_slash_commands_env.md) |
+| 10.075 | [10.075_gjc_chase_ultragoal_pipeline_extragoal.md](./10/10.075_gjc_chase_ultragoal_pipeline_extragoal.md) |
+| 10.076 | [10.076_gjc_chase_tui_viewport_media_compose_v2.md](./10/10.076_gjc_chase_tui_viewport_media_compose_v2.md) |
+| 10.077 | [10.077_gjc_chase_context_perf_compaction_audit.md](./10/10.077_gjc_chase_context_perf_compaction_audit.md) |
+| 10.078 | [10.078_gjc_chase_skill_discovery_slash_commands.md](./10/10.078_gjc_chase_skill_discovery_slash_commands.md) |
+| 10.079 | [10.079_gjc_chase_subagent_fork_session_hardening.md](./10/10.079_gjc_chase_subagent_fork_session_hardening.md) |
+| 10.080 | [10.080_gjc_chase_model_provider_effort_fugu_safety.md](./10/10.080_gjc_chase_model_provider_effort_fugu_safety.md) |
+| 10.081 | [10.081_gjc_chase_session_vanish_postmortem_lifecycle.md](./10/10.081_gjc_chase_session_vanish_postmortem_lifecycle.md) |
+| 10.083 | [10.083_gjc_chase_gpt56_tier_models_catalog_embed.md](./10/10.083_gjc_chase_gpt56_tier_models_catalog_embed.md) |
+| 10.085 | [10.085_gjc_chase_provider_stream_oauth_integrity.md](./10/10.085_gjc_chase_provider_stream_oauth_integrity.md) |
+| 10.086 | [10.086_gjc_chase_tui_tmux_telegram_operator_ux.md](./10/10.086_gjc_chase_tui_tmux_telegram_operator_ux.md) |
+| 10.087 | [10.087_gjc_chase_sdk_lifecycle_ledger_hardening.md](./10/10.087_gjc_chase_sdk_lifecycle_ledger_hardening.md) |
+| 10.088 | [10.088_gjc_chase_security_prompt_control_token.md](./10/10.088_gjc_chase_security_prompt_control_token.md) |
+| 10.089 | [10.089_gjc_chase_model_preset_fallback_selection.md](./10/10.089_gjc_chase_model_preset_fallback_selection.md) |
+| 10.091 | [10.091_gjc_chase_tui_command_palette.md](./10/10.091_gjc_chase_tui_command_palette.md) |
+| 10.092 | [10.092_gjc_chase_tui_irc_sidebar_kitty_tmux.md](./10/10.092_gjc_chase_tui_irc_sidebar_kitty_tmux.md) |
+| 10.093 | [10.093_gjc_chase_coordinator_mcp_session_reaper.md](./10/10.093_gjc_chase_coordinator_mcp_session_reaper.md) |
+| 10.094 | [10.094_gjc_chase_telegram_notification_v2.md](./10/10.094_gjc_chase_telegram_notification_v2.md) |
+| 10.095 | [10.095_gjc_chase_deep_interview_goal_ultragoal.md](./10/10.095_gjc_chase_deep_interview_goal_ultragoal.md) |
+| 10.096 | [10.096_gjc_chase_session_context_usage_ssot.md](./10/10.096_gjc_chase_session_context_usage_ssot.md) |
+| 10.097 | [10.097_gjc_chase_grok_codex_benchmark_presets.md](./10/10.097_gjc_chase_grok_codex_benchmark_presets.md) |
+| 10.098 | [10.098_gjc_chase_codex_reasoning_thinking_sdk.md](./10/10.098_gjc_chase_codex_reasoning_thinking_sdk.md) |
+| 10.099 | [10.099_gjc_chase_rpc_durable_selection_pet.md](./10/10.099_gjc_chase_rpc_durable_selection_pet.md) |
+| 10.102 | [10.102_gjc_chase_agent_async_misc.md](./10/10.102_gjc_chase_agent_async_misc.md) |
+| 10.103 | [10.103_gjc_chase_provider_safety_transport.md](./10/10.103_gjc_chase_provider_safety_transport.md) |
+| 10.105 | [10.105_gjc_chase_routing_fallback_availability_cache.md](./10/10.105_gjc_chase_routing_fallback_availability_cache.md) |
+| 10.106 | [10.106_gjc_chase_config_ux_credential_setup.md](./10/10.106_gjc_chase_config_ux_credential_setup.md) |
+| 10.107 | [10.107_gjc_chase_context_compaction_ci.md](./10/10.107_gjc_chase_context_compaction_ci.md) |
+| 10.116 | [10.116_gjc_chase_natives_windows_platform.md](./10/10.116_gjc_chase_natives_windows_platform.md) |
+| 10.117 | [10.117_gjc_chase_ci_release_docs_test_evidence.md](./10/10.117_gjc_chase_ci_release_docs_test_evidence.md) |
 
-| NNN | 제목 | 파일 |
-|---|---|---|
-| 10.002 | 10.002 — gjc chase: packages/ai · auth (090) | [10/10.002_gjc_chase_ai_auth](./10/10.002_gjc_chase_ai_auth.md) |
-| 10.003 | 10.003 — gjc chase: cursor (081) | [10/10.003_gjc_chase_cursor](./10/10.003_gjc_chase_cursor.md) |
-| 10.004 | 10.004 — gjc chase: 세션 · compaction · harness | [10/10.004_gjc_chase_session_compaction](./10/10.004_gjc_chase_session_compaction.md) |
-| 10.005 | 10.005 — gjc chase: task · subagent | [10/10.005_gjc_chase_task_subagent](./10/10.005_gjc_chase_task_subagent.md) |
-| 10.007 | 10.007 — gjc chase: team `@gjc-profile` self-heal | [10/10.007_gjc_chase_team_profile_self_heal](./10/10.007_gjc_chase_team_profile_self_heal.md) |
-| 10.008 | 10.008 — gjc chase: RPC lifecycle · `get_state` payload | [10/10.008_gjc_chase_rpc_lifecycle](./10/10.008_gjc_chase_rpc_lifecycle.md) |
-| 10.009 | 10.009 — gjc chase: pi-shell bash fixup UTF-8 boundary panic | [10/10.009_gjc_chase_pishell_utf8_fixup](./10/10.009_gjc_chase_pishell_utf8_fixup.md) |
-| 10.010 | 10.010 — gjc chase: harness RPC submit readiness gate | [10/10.010_gjc_chase_harness_submit_readiness](./10/10.010_gjc_chase_harness_submit_readiness.md) |
-| 10.011 | 10.011 — gjc chase: harness receipt JSONL spool exporter | [10/10.011_gjc_chase_receipt_spool](./10/10.011_gjc_chase_receipt_spool.md) |
-| 10.012 | 10.012 — gjc chase: goal steering subsystem | [10/10.012_gjc_chase_goal_steering](./10/10.012_gjc_chase_goal_steering.md) |
-| 10.012 | 10.012 — gjc chase: perf(serialization) — clone equality 최적화 (#558) | [10/10.012_gjc_chase_perf_serialization](./10/10.012_gjc_chase_perf_serialization.md) |
-| 10.013 | 10.013 — gjc chase: assistant-message content block caching | [10/10.013_gjc_chase_assistant_msg_cache](./10/10.013_gjc_chase_assistant_msg_cache.md) |
-| 10.013 | 10.013 — gjc chase: perf(compaction) — token estimation 캐시 (#557) | [10/10.013_gjc_chase_perf_compaction](./10/10.013_gjc_chase_perf_compaction.md) |
-| 10.014 | 10.014 — gjc chase: perf(session) — resident text cache + EphemeralBlobStore (#548) | [10/10.014_gjc_chase_perf_session_cache](./10/10.014_gjc_chase_perf_session_cache.md) |
-| 10.015 | 10.015 — gjc chase: context maintenance race — task notification overflow 방지 (#570) | [10/10.015_gjc_chase_context_maintenance_race](./10/10.015_gjc_chase_context_maintenance_race.md) |
-| 10.016 | 10.016 — gjc chase: forced tool_choice capability + runtime 400 fallback (#561) | [10/10.016_gjc_chase_tool_choice_fallback](./10/10.016_gjc_chase_tool_choice_fallback.md) |
-| 10.017 | 10.017_gjc_retired_fable_na | [10/10.017_gjc_retired_fable_na](./10/10.017_gjc_retired_fable_na.md) |
-| 10.018 | 10.018 — gjc chase: RPC session registry + persistent UDS server | [10/10.018_gjc_chase_rpc_registry_uds](./10/10.018_gjc_chase_rpc_registry_uds.md) |
-| 10.020 | 10.020 — gjc chase: deep-interview semantics (reference-only) | [10/10.020_gjc_chase_deep_interview_semantics](./10/10.020_gjc_chase_deep_interview_semantics.md) |
-| 10.021 | 10.021 — gjc chase: ultragoal red-team verification + review mode | [10/10.021_gjc_chase_goal_redteam_review](./10/10.021_gjc_chase_goal_redteam_review.md) |
-| 10.022 | 10.022 — gjc chase: goal-mode `AgentBusyError` continuation loop | [10/10.022_gjc_chase_goal_agent_busy_loop](./10/10.022_gjc_chase_goal_agent_busy_loop.md) |
-| 10.023 | 10.023 — gjc chase: task notifications vs pre-prompt context maintenance | [10/10.023_gjc_chase_task_notification_context](./10/10.023_gjc_chase_task_notification_context.md) |
-| 10.024 | 10.024 — gjc chase: coordinator MCP event watch + Hermes snapshot | [10/10.024_gjc_chase_coordinator_mcp_watch](./10/10.024_gjc_chase_coordinator_mcp_watch.md) |
-| 10.025 | 10.025 — gjc chase: perf profiling corpus + geobench (reference) | [10/10.025_gjc_chase_perf_corpus_geobench](./10/10.025_gjc_chase_perf_corpus_geobench.md) |
-| 10.026 | 10.026 — gjc chase: RPC/unattended issues audit pack (design input) | [10/10.026_gjc_chase_rpc_issues_audit](./10/10.026_gjc_chase_rpc_issues_audit.md) |
-| 10.028 | 10.028 — gjc chase: notifications SDK core | [10/10.028_gjc_chase_notifications_sdk](./10/10.028_gjc_chase_notifications_sdk.md) |
-| 10.029 | 10.029 — gjc chase: notify setup/status config surface | [10/10.029_gjc_chase_notify_config_cli](./10/10.029_gjc_chase_notify_config_cli.md) |
-| 10.030 | 10.030 — gjc chase: managed Telegram daemon and singleton poller | [10/10.030_gjc_chase_telegram_managed_daemon](./10/10.030_gjc_chase_telegram_managed_daemon.md) |
-| 10.031 | 10.031 — gjc chase: Telegram threaded session surface | [10/10.031_gjc_chase_telegram_threaded_surface](./10/10.031_gjc_chase_telegram_threaded_surface.md) |
-| 10.032 | 10.032 — gjc chase: Telegram remote asks, buttons, free text, redaction | [10/10.032_gjc_chase_telegram_remote_answers](./10/10.032_gjc_chase_telegram_remote_answers.md) |
-| 10.033 | 10.033 — gjc chase: Telegram-driven session lifecycle (safe surface; execution deferred) | [10/10.033_gjc_chase_telegram_session_lifecycle](./10/10.033_gjc_chase_telegram_session_lifecycle.md) |
-| 10.034 | 10.034 — gjc chase: Telegram media, attachments, and `telegram_send` | [10/10.034_gjc_chase_telegram_media_file_transfer](./10/10.034_gjc_chase_telegram_media_file_transfer.md) |
-| 10.035 | 10.035 — gjc chase: notification adapters, docs, and release surface | [10/10.035_gjc_chase_notifications_adapters_docs](./10/10.035_gjc_chase_notifications_adapters_docs.md) |
-| 10.036 | 10.036 — gjc chase: AI provider auth and model catalog | [10/10.036_gjc_chase_ai_provider_auth_model_catalog](./10/10.036_gjc_chase_ai_provider_auth_model_catalog.md) |
-| 10.037 | 10.037 — gjc chase: runtime process lifecycle hardening | [10/10.037_gjc_chase_runtime_process_lifecycle_hardening](./10/10.037_gjc_chase_runtime_process_lifecycle_hardening.md) |
-| 10.038 | 10.038 — gjc chase: RPC control plane v2 | [10/10.038_gjc_chase_rpc_control_plane_v2](./10/10.038_gjc_chase_rpc_control_plane_v2.md) |
-| 10.051 | 10.051 — gjc chase: agent composer toolcall integrity | [10/10.051_gjc_chase_agent_composer_toolcall_integrity](./10/10.051_gjc_chase_agent_composer_toolcall_integrity.md) |
-| 10.040 | 10.040 — gjc chase: compaction pruning and resident memory | [10/10.040_gjc_chase_compaction_pruning_resident_memory](./10/10.040_gjc_chase_compaction_pruning_resident_memory.md) |
-| 10.041 | 10.041 — gjc chase: TUI input render Windows psmux — ADAPT inline/list-slot autocomplete | [10/10.041_gjc_chase_tui_input_render_windows_psmux](./10/10.041_gjc_chase_tui_input_render_windows_psmux.md) |
-| 10.043 | 10.043 — gjc chase: web search and public URL hardening | [10/10.043_gjc_chase_web_search_insane_security](./10/10.043_gjc_chase_web_search_insane_security.md) |
-| 10.047 | 10.047 — gjc chase: security/privacy guardrails | [10/10.047_gjc_chase_security_privacy_guardrails](./10/10.047_gjc_chase_security_privacy_guardrails.md) |
-| 10.048 | 10.048 — gjc chase: dev CI release packaging — ADAPT affected-path false-green guard | [10/10.048_gjc_chase_dev_ci_release_packaging](./10/10.048_gjc_chase_dev_ci_release_packaging.md) |
-| 10.052 | 10.052 — gjc chase: docs external integrations — ADAPT conservative integration matrix | [10/10.052_gjc_chase_docs_external_integrations](./10/10.052_gjc_chase_docs_external_integrations.md) |
-| 10.054 | 10.054 — gjc chase: local OpenAI-compatible provider discovery + fallback | [10/10.054_gjc_chase_local_provider_discovery](./10/10.054_gjc_chase_local_provider_discovery.md) |
-| 10.056 | 10.056 — gjc chase: terminal bell notifications + completion hook — ADAPT global-only command hook | [10/10.056_gjc_chase_terminal_bell_notifications](./10/10.056_gjc_chase_terminal_bell_notifications.md) |
-| 10.059 | 10.059 — gjc chase: deep-interview wording · ask gate · render guard — ADAPT+IMPORT 4 slices | [10/10.059_gjc_chase_deep_interview_ask_ralplan_gate](./10/10.059_gjc_chase_deep_interview_ask_ralplan_gate.md) |
-| 10.060 | 10.060 — gjc chase: TUI render resilience · Ctrl+Enter submit · status-line UX | [10/10.060_gjc_chase_tui_render_resilience_editor_submit](./10/10.060_gjc_chase_tui_render_resilience_editor_submit.md) |
-| 10.061 | 10.061 — gjc chase: tmux workspace titles · Windows/psmux team spawn reliability | [10/10.061_gjc_chase_tmux_team_windows_psmux_titles](./10/10.061_gjc_chase_tmux_team_windows_psmux_titles.md) |
-| 10.042 | 10.042 — gjc chase: deep-interview ask + goal state — ADAPT 1 slice (round-shape write guard) | [10/10.042_gjc_chase_deep_interview_ask_goal_state](./10/10.042_gjc_chase_deep_interview_ask_goal_state.md) |
-| 10.065 | 10.065 — gjc chase: system prompt self-awareness source grounding — ADAPT 1 slice (JWC-authored, identity-safe) | [10/10.065_gjc_chase_prompt_self_awareness_grounding](./10/10.065_gjc_chase_prompt_self_awareness_grounding.md) |
-| 10.062 | 10.062 — gjc chase: DeepInfra provider + service-tier · Gemini CLI user-agent alignment | [10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua](./10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md) |
-| 10.064 | 10.064 — gjc chase: compiled Telegram daemon entrypoint · Windows Terminal bell workaround | [10/10.064_gjc_chase_telegram_daemon_entrypoint_notify](./10/10.064_gjc_chase_telegram_daemon_entrypoint_notify.md) |
-| 10.057 | 10.057 — gjc chase: Windows hardening — ADAPT npm shims · worker PowerShell · error preservation | [10/10.057_gjc_chase_windows_hardening](./10/10.057_gjc_chase_windows_hardening.md) |
-| 10.069 | 10.069 — gjc chase: provider/search/docs/model support — evidence-close Tavily + Claude retry, reject reverted Aside | [10/10.069_gjc_chase_provider_search_docs_model_support](./10/10.069_gjc_chase_provider_search_docs_model_support.md) |
+## OMP (63)
 
-## OMP `_fin/20`
-
-| NNN | 제목 | 파일 |
-|---|---|---|
-| 20.002 | 20.002 — omp: worker · catalog | [20/20.002_omp_chase_worker_catalog](./20/20.002_omp_chase_worker_catalog.md) |
-| 20.003 | 20.003 — omp: memory · skills | [20/20.003_omp_chase_memory_skills](./20/20.003_omp_chase_memory_skills.md) |
-| 20.005 | 20.005 — omp chase: steering/queued follow-up 전달 보장 | [20/20.005_omp_chase_steering_delivery](./20/20.005_omp_chase_steering_delivery.md) |
-| 20.006 | 20.006 — omp chase: TUI 입력/표시 마이크로 수정 묶음 | [20/20.006_omp_chase_tui_input_micro_fixes](./20/20.006_omp_chase_tui_input_micro_fixes.md) |
-| 20.007 | 20.007 — omp chase: session layer modularization (reference) | [20/20.007_omp_chase_session_modularization](./20/20.007_omp_chase_session_modularization.md) |
-| 20.008 | 20.008 — omp chase: 15.12.3 → 15.13.0 pull delta index | [20/20.008_omp_chase_pull_15_13_delta](./20/20.008_omp_chase_pull_15_13_delta.md) |
-| 20.009 | 20.009 — omp chase: append-only context integrity — IMPORT 3 slices | [20/20.009_omp_chase_append_only_context_integrity](./20/20.009_omp_chase_append_only_context_integrity.md) |
-| 20.010 | 20.010 — omp chase: AI OAuth and reasoning replay (reference audit) | [20/20.010_omp_chase_ai_oauth_reasoning_replay](./20/20.010_omp_chase_ai_oauth_reasoning_replay.md) |
-| 20.011 | 20.011 — omp chase: TUI image drafts and terminal edges (reference audit) | [20/20.011_omp_chase_tui_image_drafts_terminal_edges](./20/20.011_omp_chase_tui_image_drafts_terminal_edges.md) |
-| 20.012 | 20.012 — omp chase: bash snapshot and env security (reference audit) | [20/20.012_omp_chase_bash_snapshot_env_security](./20/20.012_omp_chase_bash_snapshot_env_security.md) |
-| 20.013 | 20.013 — omp chase: plugin virtual registry bundle (reference audit) | [20/20.013_omp_chase_plugin_virtual_registry_bundle](./20/20.013_omp_chase_plugin_virtual_registry_bundle.md) |
-| 20.015 | 20.015 — omp chase: release/test leak hardening (track-only reference closure) | [20/20.015_omp_chase_release_test_leak_hardening](./20/20.015_omp_chase_release_test_leak_hardening.md) |
-| 20.019 | 20.019 — omp chase: codex/AI config (base URL · reasoning · verbosity · tiny role) — ADAPT 2 slices | [20/20.019_omp_chase_codex_ai_config](./20/20.019_omp_chase_codex_ai_config.md) |
-| 20.021 | 20.021 — omp chase: v2 streaming integrity — IMPORT 1 slice (partialJson terminal scrub) | [20/20.021_omp_chase_v2_streaming_integrity](./20/20.021_omp_chase_v2_streaming_integrity.md) |
-| 20.025 | 20.025 — omp chase: compaction/snapcompact caps + session-scope — IMPORT 1 slice (bounded edit snapshots) | [20/20.025_omp_chase_compaction_snapcompact_session_scope](./20/20.025_omp_chase_compaction_snapcompact_session_scope.md) |
-| 20.020 | 20.020 — omp chase: session title + LLM idle recap — ADAPT 1 slice (title casing reconciliation) | [20/20.020_omp_chase_session_title_idle_recap](./20/20.020_omp_chase_session_title_idle_recap.md) |
-| 20.023 | 20.023 — omp chase: AI providers · model catalog · per-family service-tier (reference-triage) | [20/20.023_omp_chase_ai_providers_catalog_service_tier](./20/20.023_omp_chase_ai_providers_catalog_service_tier.md) |
-| 20.014 | 20.014 — omp chase: goal compaction and provider concurrency (reference audit) | [20/20.014_omp_chase_goal_compaction_provider_concurrency](./20/20.014_omp_chase_goal_compaction_provider_concurrency.md) |
-| 20.027 | 20.027 — omp chase: system prompt · tester/sonic subagent · discovery rules — ADAPT 1 ADOPT (agent param optional+default), 5 defer/reject | [20/20.027_omp_chase_prompts_subagent_discovery_rules](./20/20.027_omp_chase_prompts_subagent_discovery_rules.md) |
-| 20.035 | 20.035 — omp chase: tool schema/task/TTS/stats — reference-triage, public schema change rejected | [20/20.035_omp_chase_tool_schema_task_tts_stats](./20/20.035_omp_chase_tool_schema_task_tts_stats.md) |
-
-## superseded (devlog)
-
-구 devlog-only 복사본 · [devlog/_fin/chase/superseded](../../../devlog/_plan/260612_jawcode_fork/phase1/_fin/chase/superseded/)
-
-## Jawdev chase expansion — 2026-06-26
-
-> Document: `struct_har/chase/_fin/INDEX.md`
-> Title: chase `_fin` INDEX
-> Lane: JWC coordination
-> Status: completed guardrail
-> Canonical source: `devlog/_gjc_chase/gajae-code + devlog/_omp_chase/oh-my-pi` (GJC dev/upstream/dev and OMP main/origin/main)
-> Primary patch surfaces: structure/, struct_har/chase/, devlog/_plan/
-
-### Why this is behind or can drift
-
-1. This card exists because JWC must reconcile a concrete upstream/reference behavior with the current Jawcode fork, not because file names happen to differ.
-2. The comparison source is devlog/_gjc_chase/gajae-code + devlog/_omp_chase/oh-my-pi; agents must not substitute `devlog/_upstream_*` or the root repository history as the chase baseline.
-3. The current drift risk is semantic: behavior, workflow state, command contract, persistence, or operator evidence can diverge even when a simple diff looks small.
-4. The fork also carries JWC-specific naming, `.jwc` state, and Jawdev workflow rules, so a direct copy from the source lane can be wrong.
-5. For active cards, the lag means JWC either lacks the source behavior, lacks a matching guard, or has not documented a conscious rejection.
-6. For completed cards, the lag can return when the source clone advances past the reviewed HEAD or when adjacent JWC code changes without updating this card.
-7. Index and MOC documents can drift by pointing agents at stale priority, stale branch names, stale clone paths, or already-finished work.
-8. The first Jawdev obligation is to restate the delta in JWC terms before touching implementation files.
-9. The second obligation is to decide whether the source behavior is a product requirement, a reference pattern, or a rejected mismatch.
-10. The third obligation is to bind the decision to a verification gate so later agents can prove the card is closed.
-
-### Where to patch
-
-1. Start from this document, then open the current source lane at `devlog/_gjc_chase/gajae-code + devlog/_omp_chase/oh-my-pi` and the matching JWC files under structure/, struct_har/chase/, devlog/_plan/.
-2. For GJC-sourced cards, compare against `devlog/_gjc_chase/gajae-code` on `dev` tracking `upstream/dev`.
-3. For OMP-sourced cards, compare against `devlog/_omp_chase/oh-my-pi` on `main` tracking `origin/main`.
-4. Patch only the JWC implementation surface after the delta is understood; do not edit the chase clone.
-5. Keep public command names, state directories, and user-facing examples JWC-first: `jwc`, `.jwc`, and `@jawcode-dev/*`.
-6. If a source path uses upstream names such as `gjc`, translate them through `008_gjc_jwc_naming_contract.md` before copying any behavior.
-7. If this card points to docs/index behavior, update `structure/`, `struct_har/chase/`, and the relevant devlog plan rather than product code.
-8. If this card points to runtime behavior, add or update the nearest package test before declaring the card finished.
-9. If the correct patch surface is outside structure/, struct_har/chase/, devlog/_plan/, record why the owner changed in the devlog before widening scope.
-10. Do not batch this card with unrelated chase cards unless a MOC explicitly says they form one PABCD bundle.
-
-### Decision needed before patching
-
-1. Decide whether to import the source behavior, adapt it to JWC, reject it, or split it into smaller cards.
-2. Decide whether the user-visible contract changes; if yes, update docs and tests with the same patch.
-3. Decide whether persistence/state migration is involved; if yes, identify the `.jwc` state files and rollback posture.
-4. Decide whether subagents must learn a new rule; if yes, promote the durable rule to `AGENTS.md` or `structure/`, not only this chase file.
-5. Decide whether the source behavior conflicts with the fork's TUI, workflow, or naming constraints.
-6. Decide whether this card is still active; if already implemented, move or keep it under `_fin` with evidence instead of reopening vague work.
-7. Decide which verification command is authoritative for the changed surface: focused test, `bun run check:tools`, `bun run check:ts`, smoke test, or manual artifact proof.
-8. Decide whether a failed broad check is caused by this card; unrelated failures must be recorded, not hidden.
-9. Decide whether the implementation needs a follow-up goal because the card implies more than one atomic patch.
-10. Decide what evidence will convince a read-only reviewer that the chase gap is actually closed.
-
-### Verification and done evidence
-
-1. Re-read this file after patching and verify the stated source lane still matches devlog/_gjc_chase/gajae-code + devlog/_omp_chase/oh-my-pi.
-2. Run a focused diff against the source lane and paste the relevant file anchors into the devlog or final report.
-3. Run the package-level focused test that proves the affected behavior, not just a broad lint pass.
-4. Run `bun run check:tools` for repository formatting/lint hygiene.
-5. Run `git diff --check` before committing to catch whitespace and conflict-marker mistakes.
-6. If `bun run check:ts` is relevant and fails, classify whether the failure is caused by the patch or a pre-existing dependency drift.
-7. Update this card's status line, MOC row, or `_fin` placement only after evidence exists.
-8. Add a devlog evidence note for the patch surface, tests, reviewer, and any known residual risks.
-9. Ask a read-only reviewer to challenge the closure if the patch touches runtime behavior, workflow state, or subagent routing.
-10. Commit only the card's intended docs/code/test files; preserve unrelated worktree changes.
-
-### Sub-agent handoff contract
-
-1. A sub-agent must start from the Project root `/Users/jun/Developer/new/700_projects/jawcode`, not from `~/.cli-jaw`.
-2. A sub-agent must read `AGENTS.md`, `structure/00_INDEX.md`, and this file before proposing implementation.
-3. A sub-agent must resolve the chase baseline from `devlog/_gjc_chase/gajae-code + devlog/_omp_chase/oh-my-pi` and verify the branch with `git status --short --branch`.
-4. A sub-agent must treat the source clone as read-only evidence unless the explicit task is to fast-forward that clone.
-5. A sub-agent must write the patch against JWC files only and must not stage clone contents.
-6. A sub-agent must preserve JWC naming and translate upstream identifiers through the naming contract.
-7. A sub-agent must report decisions in terms of import/adapt/reject/split, not as vague 'needs follow-up' text.
-8. A sub-agent must name the exact files that should change before editing them.
-9. A sub-agent must include verification output, not just an implementation summary.
-10. A sub-agent must leave this document more accurate than it found it whenever the card's status changes.
-
-### Minimum patch worksheet
-
-1. Source anchor checked: devlog/_gjc_chase/gajae-code + devlog/_omp_chase/oh-my-pi.
-2. Source branch checked: GJC dev/upstream/dev and OMP main/origin/main.
-3. JWC owner files listed before edit: structure/, struct_har/chase/, devlog/_plan/.
-4. Naming contract checked against `008_gjc_jwc_naming_contract.md`.
-5. Current MOC row checked for priority and status.
-6. Current devlog plans searched for prior implementation or rejection.
-7. Related tests searched before adding new tests.
-8. Runtime/state risk classified as none, local, or migration.
-9. User-facing command/help change classified as yes or no.
-10. Subagent instruction change classified as yes or no.
-11. Implementation option chosen: import, adapt, reject, or split.
-12. Rejection rationale written if source behavior is not adopted.
-13. Focused verification command selected.
-14. Broad hygiene command selected.
-15. Reviewer/audit route selected when risk is not local.
-16. Documentation update location selected: this card, MOC, `structure/`, or devlog.
-17. Commit scope listed before staging.
-18. Known unrelated failures separated from card failures.
-19. Completion evidence attached to final report.
-20. Card status changed only after evidence is present.
-
-### Decision log slots
-
-1. Decision A — source behavior classification: import / adapt / reject / split.
-2. Decision B — JWC naming impact: none / command text / state path / package namespace.
-3. Decision C — test impact: existing test update / new focused test / manual evidence only.
-4. Decision D — docs impact: chase only / structure promotion / AGENTS durable rule.
-5. Decision E — rollout impact: no migration / local state migration / user-visible behavior note.
-6. Decision F — residual risk: closed / monitored / intentionally deferred.
-7. Decision G — reviewer needed: no / docs / backend / frontend / architecture.
-8. Decision H — bundle policy: single-card commit / PABCD bundle / separate goal.
-
-### Done-state wording
-
-When this card is closed, the final note should say: preserve completed behavior and re-open only with new evidence.
-It should cite the source commit, JWC commit, files changed, focused verification, and any rejected source behavior.
-It should not say 'done' solely because the document is longer or because a broad lint command passed.
-It should leave enough evidence for a future agent to re-open the comparison without reading the whole chat history.
+| id | card |
+| --- | --- |
+| 20.002 | [20.002_omp_chase_worker_catalog.md](./20/20.002_omp_chase_worker_catalog.md) |
+| 20.003 | [20.003_omp_chase_memory_skills.md](./20/20.003_omp_chase_memory_skills.md) |
+| 20.005 | [20.005_omp_chase_steering_delivery.md](./20/20.005_omp_chase_steering_delivery.md) |
+| 20.006 | [20.006_omp_chase_tui_input_micro_fixes.md](./20/20.006_omp_chase_tui_input_micro_fixes.md) |
+| 20.007 | [20.007_omp_chase_session_modularization.md](./20/20.007_omp_chase_session_modularization.md) |
+| 20.008 | [20.008_omp_chase_pull_15_13_delta.md](./20/20.008_omp_chase_pull_15_13_delta.md) |
+| 20.009 | [20.009_omp_chase_append_only_context_integrity.md](./20/20.009_omp_chase_append_only_context_integrity.md) |
+| 20.010 | [20.010_omp_chase_advisor_review_lane.md](./20/20.010_omp_chase_advisor_review_lane.md) |
+| 20.010 | [20.010_omp_chase_ai_oauth_reasoning_replay.md](./20/20.010_omp_chase_ai_oauth_reasoning_replay.md) |
+| 20.011 | [20.011_omp_chase_tui_image_drafts_terminal_edges.md](./20/20.011_omp_chase_tui_image_drafts_terminal_edges.md) |
+| 20.012 | [20.012_omp_chase_bash_snapshot_env_security.md](./20/20.012_omp_chase_bash_snapshot_env_security.md) |
+| 20.013 | [20.013_omp_chase_plugin_virtual_registry_bundle.md](./20/20.013_omp_chase_plugin_virtual_registry_bundle.md) |
+| 20.014 | [20.014_omp_chase_extensions_plugins.md](./20/20.014_omp_chase_extensions_plugins.md) |
+| 20.014 | [20.014_omp_chase_goal_compaction_provider_concurrency.md](./20/20.014_omp_chase_goal_compaction_provider_concurrency.md) |
+| 20.015 | [20.015_omp_chase_release_test_leak_hardening.md](./20/20.015_omp_chase_release_test_leak_hardening.md) |
+| 20.016 | [20.016_omp_chase_advisor_thinking_dialect_session_title.md](./20/20.016_omp_chase_advisor_thinking_dialect_session_title.md) |
+| 20.016 | [20.016_omp_chase_review_pr_url.md](./20/20.016_omp_chase_review_pr_url.md) |
+| 20.019 | [20.019_omp_chase_codex_ai_config.md](./20/20.019_omp_chase_codex_ai_config.md) |
+| 20.020 | [20.020_omp_chase_session_title_idle_recap.md](./20/20.020_omp_chase_session_title_idle_recap.md) |
+| 20.021 | [20.021_omp_chase_v2_streaming_integrity.md](./20/20.021_omp_chase_v2_streaming_integrity.md) |
+| 20.023 | [20.023_omp_chase_ai_providers_catalog_service_tier.md](./20/20.023_omp_chase_ai_providers_catalog_service_tier.md) |
+| 20.024 | [20.024_omp_chase_mcp_oauth_reauth_flow.md](./20/20.024_omp_chase_mcp_oauth_reauth_flow.md) |
+| 20.025 | [20.025_omp_chase_compaction_snapcompact_session_scope.md](./20/20.025_omp_chase_compaction_snapcompact_session_scope.md) |
+| 20.027 | [20.027_omp_chase_prompts_subagent_discovery_rules.md](./20/20.027_omp_chase_prompts_subagent_discovery_rules.md) |
+| 20.028 | [20.028_omp_chase_web_search_provider_settings.md](./20/20.028_omp_chase_web_search_provider_settings.md) |
+| 20.033 | [20.033_omp_chase_session_patch_rewind_integrity.md](./20/20.033_omp_chase_session_patch_rewind_integrity.md) |
+| 20.035 | [20.035_omp_chase_tool_schema_task_tts_stats.md](./20/20.035_omp_chase_tool_schema_task_tts_stats.md) |
+| 20.037 | [20.037_omp_chase_session_async_plan_integrity.md](./20/20.037_omp_chase_session_async_plan_integrity.md) |
+| 20.038 | [20.038_omp_chase_hashline_tool_plugin_task_safety.md](./20/20.038_omp_chase_hashline_tool_plugin_task_safety.md) |
+| 20.041 | [20.041_omp_chase_codex_usage_self_heal_auth_rotation.md](./20/20.041_omp_chase_codex_usage_self_heal_auth_rotation.md) |
+| 20.042 | [20.042_omp_chase_litellm_catalog_vision_metadata.md](./20/20.042_omp_chase_litellm_catalog_vision_metadata.md) |
+| 20.043 | [20.043_omp_chase_skill_autocomplete_discovery_github.md](./20/20.043_omp_chase_skill_autocomplete_discovery_github.md) |
+| 20.044 | [20.044_omp_chase_plan_execution_agent_subagent_hooks.md](./20/20.044_omp_chase_plan_execution_agent_subagent_hooks.md) |
+| 20.045 | [20.045_omp_chase_model_catalog_gpt56_grok_effort.md](./20/20.045_omp_chase_model_catalog_gpt56_grok_effort.md) |
+| 20.046 | [20.046_omp_chase_codex_broker_blocks_responses_lite.md](./20/20.046_omp_chase_codex_broker_blocks_responses_lite.md) |
+| 20.047 | [20.047_omp_chase_xai_oauth_replay_reasoning.md](./20/20.047_omp_chase_xai_oauth_replay_reasoning.md) |
+| 20.048 | [20.048_omp_chase_agent_yield_abort_ask_timeout.md](./20/20.048_omp_chase_agent_yield_abort_ask_timeout.md) |
+| 20.049 | [20.049_omp_chase_oauth_refresh_serialization_mcp.md](./20/20.049_omp_chase_oauth_refresh_serialization_mcp.md) |
+| 20.051 | [20.051_omp_chase_model_hub_selector.md](./20/20.051_omp_chase_model_hub_selector.md) |
+| 20.052 | [20.052_omp_chase_catalog_pricing_routing.md](./20/20.052_omp_chase_catalog_pricing_routing.md) |
+| 20.053 | [20.053_omp_chase_auth_oauth_credential.md](./20/20.053_omp_chase_auth_oauth_credential.md) |
+| 20.054 | [20.054_omp_chase_provider_transport_schema.md](./20/20.054_omp_chase_provider_transport_schema.md) |
+| 20.055 | [20.055_omp_chase_model_resolver_fallback.md](./20/20.055_omp_chase_model_resolver_fallback.md) |
+| 20.056 | [20.056_omp_chase_vibe_mode.md](./20/20.056_omp_chase_vibe_mode.md) |
+| 20.057 | [20.057_omp_chase_ask_dialog.md](./20/20.057_omp_chase_ask_dialog.md) |
+| 20.060 | [20.060_omp_chase_agent_loop_tool_stream.md](./20/20.060_omp_chase_agent_loop_tool_stream.md) |
+| 20.062 | [20.062_omp_chase_plugin_mcp_discovery.md](./20/20.062_omp_chase_plugin_mcp_discovery.md) |
+| 20.065 | [20.065_omp_chase_browser_bash_commit.md](./20/20.065_omp_chase_browser_bash_commit.md) |
+| 20.066 | [20.066_omp_chase_collab_web_extension.md](./20/20.066_omp_chase_collab_web_extension.md) |
+| 20.067 | [20.067_omp_chase_usage_quota_spend_limit.md](./20/20.067_omp_chase_usage_quota_spend_limit.md) |
+| 20.071 | [20.071_omp_chase_warp_event_bridge.md](./20/20.071_omp_chase_warp_event_bridge.md) |
+| 20.072 | [20.072_omp_chase_cursor_advisor_xdev.md](./20/20.072_omp_chase_cursor_advisor_xdev.md) |
+| 20.074 | [20.074_omp_chase_ai_credential_redaction.md](./20/20.074_omp_chase_ai_credential_redaction.md) |
+| 20.075 | [20.075_omp_chase_coding_agent_tool_restoration.md](./20/20.075_omp_chase_coding_agent_tool_restoration.md) |
+| 20.076 | [20.076_omp_chase_session_plan_lifecycle.md](./20/20.076_omp_chase_session_plan_lifecycle.md) |
+| 20.077 | [20.077_omp_chase_plugins_commonjs_mcp.md](./20/20.077_omp_chase_plugins_commonjs_mcp.md) |
+| 20.079 | [20.079_omp_chase_codex_lite_telemetry.md](./20/20.079_omp_chase_codex_lite_telemetry.md) |
+| 20.081 | [20.081_omp_chase_ai_catalog_stream_auth.md](./20/20.081_omp_chase_ai_catalog_stream_auth.md) |
+| 20.083 | [20.083_omp_chase_tool_fs_shell_git_safety.md](./20/20.083_omp_chase_tool_fs_shell_git_safety.md) |
+| 20.107 | [20.107_omp_chase_compaction_retry_history_resilience.md](./20/20.107_omp_chase_compaction_retry_history_resilience.md) |
+| 20.109 | [20.109_omp_chase_tools_platform_runtime_hardening.md](./20/20.109_omp_chase_tools_platform_runtime_hardening.md) |
+| 20.122 | [20.122_omp_chase_tui_tool_lifecycle.md](./20/20.122_omp_chase_tui_tool_lifecycle.md) |
+| 20.124 | [20.124_omp_chase_ai_provider_stream_integrity.md](./20/20.124_omp_chase_ai_provider_stream_integrity.md) |
