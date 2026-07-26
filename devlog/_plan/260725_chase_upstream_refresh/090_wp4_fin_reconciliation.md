@@ -31,7 +31,7 @@ none has enough evidence to claim card-level closure.
 
 - **Keep in `_fin`, add closure header** (10): `10.091`, `10.094`, `10.099`, `10.105`, `20.047`, `20.053`, `20.055`, `20.057`, `20.067`, `20.079` — implementing commits are identifiable (`5fb0837`, `ddc0d2a`, `cace51e`, `5f82519`). **Each gets an explicit clean-vs-partial disposition**; `20.053`, `20.067`, `20.079` in particular still carry `TBD`/"parity unproven" text in the card body and may close ONLY as ADAPT-partial with an exact residual.
 - **Keep in `_fin` as ADAPT-partial after a commit-to-anchor remap** (5): `10.083`, `10.089`, `10.092`, `10.097`, `10.106` — the auditor showed real implementation exists (`ebaa081a` model catalog/thinking/profiles/selector, `ddc0d2a` resolver/preset/durable selection, `5fb0837` input/selector/interactive + notification daemon, `7ea2101` coordinator/terminal). Blanket "unsubstantiated" was an over-correction; each needs a residual naming what is genuinely unproven (e.g. `10.092` protected scroll/graphics, `10.097` Grok vendor + benchmark receipt, `10.106` credential auto-import).
-- **Return to ACTIVE** (1): `10.090` — upstream compact-core/shared-prompt structure has no substantiating implementation; a `_fin` card without evidence is worse than an active one.
+- **Return to ACTIVE** (1): `10.090` — shared role-agent/system-prompt guidance is substantiated by `4ad638bd`, `1eb6e3ea`, `61487047`, and `5058b9c0`, but upstream compact-core, dead discovery-plumbing removal, and MCP discovery-shim removal remain unimplemented. The partial evidence is recorded without overstating whole-card closure.
 - 10 + 5 + 1 = 16. The 7 legacy malformed cards (`10.017`, `10.020`, `10.025`, `10.026`, `10.029`, `20.002`, `20.007`) are audited separately and NOT folded into this count.
 
 ## Execution order
@@ -69,11 +69,11 @@ MOC row: `| NN.NNN | [slug](./_fin/10/NN.NNN_slug.md) | ✅ **_fin** — ADAPT p
 - D1: all 8 cycle cards carry A–F + `Closed:` + implementing commit hashes and live under `_fin/10|20`; every `Closed:` sentence is scoped ("implemented slice closed; named residual remains"), never a whole-card parity claim.
 - D2: 10 markerless cards gain closure headers with an explicit clean-vs-partial disposition; 5 remapped cards become ADAPT-partial with exact residuals; `10.090` returns to active with a reason line. 10 + 5 + 1 = 16 is asserted in the doc.
 - D3: the "21" claim is corrected wherever it appears; the 7 legacy malformed cards are listed as a separate audit item.
-- D4: `bun struct_har/_scripts/chase-lifecycle-check.ts` exits 0 (zero status/location mismatches, no duplicate ids, no broken MOC links, no missing MOC rows).
+- D4: phase gate is **no new lifecycle violations introduced by wp4**. The current script exits 1 with 39 pre-existing/blocking violations: 12 duplicate-id failures plus 27 status/location failures induced by those same collisions; broken links and missing MOC rows are zero. Full exit 0 requires the non-autonomous user decision to renumber the 12 colliding card pairs.
 - D5: `_fin/INDEX.md` matches the real inventory exactly (counts and rows).
 - D6: `git diff --check` clean; the repo-standard gates (`check-visible-definitions`, `verify-g002-gates`, `rebrand-inventory --strict`, `default-jwc-definitions`, `check:ts`) still pass as a baseline-health check — they are NOT the primary evidence for a docs-only change.
 - D7: docs-only diff — changed paths are confined to `devlog/**` and `struct_har/**`; no `packages/**` change.
-- D8: `bun struct_har/_scripts/chase-closure-integrity.ts` exits 0 — every `Closed:` hash exists AND touches a declared owner path of its card, and clean-vs-partial marking matches whether a residual is declared.
+- D8: phase gate is **every card closed in wp4 passes closure integrity and wp4 introduces no new integrity violation**. Both the pre-hardening and hardened scripts exit 1 with 136 legacy offending cards; hardening adds mandatory classification failures to the existing offending-card set without increasing its unique-card count. Full exit 0 requires a separate, non-autonomous legacy-evidence audit that substantiates each old closure or returns it active.
 - D9: every count and list cardinality edited in this phase is recomputed and asserted (16 = 10 + 5 + 1; 23 = 16 + 7; `_fin` inventory GJC/OMP totals).
 ## Verification scripts (D4/D8 must be executable, not aspirational)
 
