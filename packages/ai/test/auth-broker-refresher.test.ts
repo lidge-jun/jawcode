@@ -4,6 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { AuthBrokerRefresher, AuthStorage, SqliteAuthCredentialStore } from "../src";
 import * as oauthUtils from "../src/utils/oauth";
+import { OpenAICodexTerminalOAuthError } from "../src/utils/oauth/openai-codex";
 
 const ANTHROPIC_ENV = ["ANTHROPIC_API_KEY", "ANTHROPIC_OAUTH_TOKEN"] as const;
 const savedEnv: Partial<Record<(typeof ANTHROPIC_ENV)[number], string | undefined>> = {};
@@ -146,5 +147,59 @@ describe("AuthBrokerRefresher", () => {
 
 		expect(disableEvents).toHaveLength(0);
 		expect(storage.exportSnapshot().credentials).toHaveLength(1);
+	});
+
+	for (const [name, error] of [
+		["proxy 401 HTML", new Error("OpenAI Codex token refresh failed: 401 <html>proxy</html>")],
+		["403 rate limiting", new Error("OpenAI Codex token refresh failed: 403 rate limit exceeded")],
+	] as const) {
+		test(`keeps Codex credential active on ${name}`, async () => {
+			const now = 1_700_000_000_000;
+			store!.saveOAuth("openai-codex", {
+				access: "old",
+				refresh: "old-refresh",
+				expires: now + 60_000,
+				accountId: "codex-account",
+			});
+			const disableEvents: string[] = [];
+			storage = new AuthStorage(store!, {
+				refreshOAuthCredential: async () => {
+					throw error;
+				},
+				onCredentialDisabled: event => {
+					disableEvents.push(event.disabledCause);
+				},
+			});
+			await storage.reload();
+			await new AuthBrokerRefresher({ storage, refreshSkewMs: 5 * 60_000, now: () => now }).tick();
+
+			expect(disableEvents).toHaveLength(0);
+			expect(storage.exportSnapshot().credentials).toHaveLength(1);
+		});
+	}
+
+	test("disables Codex credential exactly once on typed terminal failure", async () => {
+		const now = 1_700_000_000_000;
+		store!.saveOAuth("openai-codex", {
+			access: "old",
+			refresh: "old-refresh",
+			expires: now + 60_000,
+			accountId: "codex-account",
+		});
+		const disableEvents: string[] = [];
+		storage = new AuthStorage(store!, {
+			refreshOAuthCredential: async () => {
+				throw new OpenAICodexTerminalOAuthError("invalid_grant", "refresh token revoked");
+			},
+			onCredentialDisabled: event => {
+				disableEvents.push(event.disabledCause);
+			},
+		});
+		await storage.reload();
+		await new AuthBrokerRefresher({ storage, refreshSkewMs: 5 * 60_000, now: () => now }).tick();
+
+		expect(disableEvents).toHaveLength(1);
+		expect(disableEvents[0]).toContain("invalid_grant");
+		expect(storage.exportSnapshot().credentials).toHaveLength(0);
 	});
 });
