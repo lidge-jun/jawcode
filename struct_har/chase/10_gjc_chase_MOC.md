@@ -158,8 +158,8 @@
 | 10.113 | [`tui_cli_terminal_interaction`](./10.113_gjc_chase_tui_cli_terminal_interaction.md) | ⬜ | P2 | TUI/CLI/terminal interaction (adapt, C bucket) | `3ddf26079..baa4dc76` |
 | 10.114 | [`ai_models_providers_retry`](./10.114_gjc_chase_ai_models_providers_retry.md) | ⬜ | P1 | AI/models/providers/retry (adapt, C bucket) | `3ddf26079..baa4dc76` |
 | 10.115 | [`tools_search_memory_plugins`](./10.115_gjc_chase_tools_search_memory_plugins.md) | ⬜ | P2 | tools/search/memory/plugins (split, B bucket) | `3ddf26079..baa4dc76` |
-| 10.116 | [`natives_windows_platform`](./10.116_gjc_chase_natives_windows_platform.md) | ⬜ | P1 | natives/Windows/platform (import, A bucket) | `3ddf26079..baa4dc76` |
-| 10.117 | [`ci_release_docs_test_evidence`](./10.117_gjc_chase_ci_release_docs_test_evidence.md) | ⬜ | P2 | CI/release/docs/test evidence (evidence-fill, A bucket) | `3ddf26079..baa4dc76` |
+| 10.116 | [natives_windows_platform](./_fin/10/10.116_gjc_chase_natives_windows_platform.md) | ✅ **_fin** — ADAPT partial; residual: native module ports + protected welcome/startup | P1 | natives/Windows/platform | `3ddf26079..baa4dc76` |
+| 10.117 | [ci_release_docs_test_evidence](./_fin/10/10.117_gjc_chase_ci_release_docs_test_evidence.md) | ✅ **_fin** — ADAPT partial; residual: screenshot bounding no-surface/adapt-needed | P2 | CI/release/docs/test evidence | `3ddf26079..baa4dc76` |
 
 > **260717 delta**: +18 cards (10.087–10.104), range `4a80bac9..3ddf26079` (v0.9.6→v0.11.1+, 302 non-merge).
 > **260717 delta (supplement)**: +3 cards (10.105–10.107), range `3ddf26079..904eab21c` (post-v0.11.1, 41 non-merge).
