@@ -85,6 +85,7 @@ export type AnthropicHeaderOptions = {
 	stream?: boolean;
 	modelHeaders?: Record<string, string>;
 	isCloudflareAiGateway?: boolean;
+	allowAnthropicHeaderOverrides?: boolean;
 };
 
 export function normalizeAnthropicBaseUrl(baseUrl?: string): string | undefined {
@@ -144,6 +145,16 @@ function isAnthropicApiBaseUrl(baseUrl?: string): boolean {
 	}
 }
 
+function isValidNonAnthropicBaseUrl(baseUrl?: string): boolean {
+	if (!baseUrl) return false;
+	try {
+		const url = new URL(baseUrl);
+		return (url.protocol === "https:" || url.protocol === "http:") && !isAnthropicApiBaseUrl(baseUrl);
+	} catch {
+		return false;
+	}
+}
+
 const sharedHeaders = {
 	"Accept-Encoding": "gzip, deflate, br, zstd",
 	Connection: "keep-alive",
@@ -159,9 +170,21 @@ export function buildAnthropicHeaders(options: AnthropicHeaderOptions): Record<s
 	const stream = options.stream ?? false;
 	const betaHeader = buildBetaHeader(claudeCodeBetaDefaults, extraBetas);
 	const acceptHeader = stream ? "text/event-stream" : "application/json";
-	const modelHeaders = Object.fromEntries(
-		Object.entries(options.modelHeaders ?? {}).filter(([key]) => !enforcedHeaderKeys.has(key.toLowerCase())),
-	);
+	const allowAnthropicHeaderOverrides =
+		oauthToken &&
+		options.allowAnthropicHeaderOverrides === true &&
+		!options.isCloudflareAiGateway &&
+		isValidNonAnthropicBaseUrl(options.baseUrl);
+	const modelHeaders: Record<string, string> = {};
+	const fingerprintOverrides: Record<string, string> = {};
+	for (const [key, value] of Object.entries(options.modelHeaders ?? {})) {
+		const normalizedKey = key.toLowerCase();
+		if (!enforcedHeaderKeys.has(normalizedKey)) {
+			modelHeaders[key] = value;
+		} else if (allowAnthropicHeaderOverrides && overridableAnthropicHeaderKeys.has(normalizedKey)) {
+			fingerprintOverrides[key] = value;
+		}
+	}
 
 	if (options.isCloudflareAiGateway) {
 		return {
@@ -178,7 +201,7 @@ export function buildAnthropicHeaders(options: AnthropicHeaderOptions): Record<s
 		const userAgent = isClaudeCodeClientUserAgent(incomingUserAgent)
 			? incomingUserAgent
 			: `claude-cli/${claudeCodeVersion} (external, cli)`;
-		return {
+		const oauthHeaders = {
 			...modelHeaders,
 			...claudeCodeHeaders,
 			Accept: acceptHeader,
@@ -187,6 +210,7 @@ export function buildAnthropicHeaders(options: AnthropicHeaderOptions): Record<s
 			"Anthropic-Beta": betaHeader,
 			"User-Agent": userAgent,
 		};
+		return allowAnthropicHeaderOverrides ? mergeHeaders(oauthHeaders, fingerprintOverrides) : oauthHeaders;
 	} else if (!isAnthropicApiBaseUrl(options.baseUrl)) {
 		const incomingUserAgent = getHeaderCaseInsensitive(options.modelHeaders, "User-Agent");
 		return {
@@ -430,6 +454,10 @@ const enforcedHeaderKeys = new Set(
 		"X-Api-Key",
 		"cf-aig-authorization",
 	].map(key => key.toLowerCase()),
+);
+
+const overridableAnthropicHeaderKeys = new Set(
+	[...Object.keys(claudeCodeHeaders), "Anthropic-Beta", "User-Agent", "X-App"].map(key => key.toLowerCase()),
 );
 
 const CLAUDE_BILLING_HEADER_PREFIX = "x-anthropic-billing-header:";
@@ -879,6 +907,7 @@ function getAnthropicCompat(
 	model: Model<"anthropic-messages">,
 ): Required<NonNullable<Model<"anthropic-messages">["compat"]>> {
 	return {
+		allowAnthropicHeaderOverrides: model.compat?.allowAnthropicHeaderOverrides ?? false,
 		disableStrictTools: model.compat?.disableStrictTools ?? false,
 		disableAdaptiveThinking: model.compat?.disableAdaptiveThinking ?? false,
 		supportsEagerToolInputStreaming: model.compat?.supportsEagerToolInputStreaming ?? true,
@@ -1705,7 +1734,14 @@ export function buildAnthropicClientOptions(args: AnthropicClientOptionsArgs): A
 		stream,
 		modelHeaders: mergeHeaders(model.headers, foundryCustomHeaders, headers, dynamicHeaders),
 		isCloudflareAiGateway: model.provider === "cloudflare-ai-gateway",
+		allowAnthropicHeaderOverrides: model.compat?.allowAnthropicHeaderOverrides,
 	});
+	const blockRedirects =
+		oauthToken && model.compat?.allowAnthropicHeaderOverrides === true && isValidNonAnthropicBaseUrl(baseUrl);
+	const requestFetch = debugFetch ?? args.fetch;
+	const fetchWithRedirectGuard: AnthropicSdkClientOptions["fetch"] | undefined = blockRedirects
+		? (input, init) => (requestFetch ?? globalThis.fetch)(input, { ...init, redirect: "error" })
+		: requestFetch;
 
 	if (model.provider === "cloudflare-ai-gateway") {
 		return {
@@ -1730,7 +1766,7 @@ export function buildAnthropicClientOptions(args: AnthropicClientOptionsArgs): A
 		dangerouslyAllowBrowser: true,
 		defaultHeaders,
 		logLevel: ANTHROPIC_SDK_LOG_LEVEL,
-		...(debugFetch ? { fetch: debugFetch } : {}),
+		...(fetchWithRedirectGuard ? { fetch: fetchWithRedirectGuard } : {}),
 		...(tlsFetchOptions ? { fetchOptions: tlsFetchOptions } : {}),
 	};
 }

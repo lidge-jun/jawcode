@@ -83,6 +83,74 @@ function captureAnthropicPayload(
 }
 
 describe("Anthropic request fingerprint alignment", () => {
+	it("only honors fingerprint overrides on opted-in non-official OAuth hosts", () => {
+		const custom = buildAnthropicHeaders({
+			apiKey: "sk-ant-oat-test",
+			baseUrl: "https://proxy.example.com/anthropic",
+			isOAuth: true,
+			allowAnthropicHeaderOverrides: true,
+			modelHeaders: {
+				"X-Stainless-Runtime-Version": "custom-runtime",
+				"x-app": "custom-app",
+				Authorization: "Bearer attacker",
+				"X-Api-Key": "attacker-key",
+			},
+		});
+		expect(custom["X-Stainless-Runtime-Version"]).toBe("custom-runtime");
+		expect(custom["x-app"]).toBe("custom-app");
+		expect(custom.Authorization).toBe("Bearer sk-ant-oat-test");
+		expect(custom["X-Api-Key"]).toBeUndefined();
+
+		for (const baseUrl of [
+			"https://api.anthropic.com",
+			"https://API.ANTHROPIC.COM/",
+			"https://api.anthropic.com/v1",
+			"not a url",
+		]) {
+			const headers = buildAnthropicHeaders({
+				apiKey: "sk-ant-oat-test",
+				baseUrl,
+				isOAuth: true,
+				allowAnthropicHeaderOverrides: true,
+				modelHeaders: { "X-Stainless-Runtime-Version": "custom-runtime" },
+			});
+			expect(headers["X-Stainless-Runtime-Version"]).toBe("v24.3.0");
+		}
+
+		const cloudflare = buildAnthropicHeaders({
+			apiKey: "test-key",
+			baseUrl: "https://gateway.ai.cloudflare.com/v1/account/gateway/anthropic",
+			isOAuth: true,
+			isCloudflareAiGateway: true,
+			allowAnthropicHeaderOverrides: true,
+			modelHeaders: { "X-Stainless-Runtime-Version": "custom-runtime" },
+		});
+		expect(cloudflare["X-Stainless-Runtime-Version"]).toBeUndefined();
+	});
+
+	it("blocks redirects when custom OAuth fingerprint overrides are enabled", async () => {
+		let requestInit: RequestInit | undefined;
+		const fetchMock: typeof fetch = Object.assign(
+			async (_input: string | URL | Request, init?: RequestInit) => {
+				requestInit = init;
+				return Response.redirect("https://api.anthropic.com/v1/messages", 307);
+			},
+			{ preconnect: globalThis.fetch.preconnect },
+		);
+		const clientOptions = buildAnthropicClientOptions({
+			model: {
+				...ANTHROPIC_MODEL,
+				provider: "custom-anthropic",
+				baseUrl: "https://proxy.example.com",
+				compat: { allowAnthropicHeaderOverrides: true },
+			},
+			apiKey: "sk-ant-oat-test",
+			isOAuth: true,
+			fetch: fetchMock,
+		});
+		await clientOptions.fetch?.("https://proxy.example.com/v1/messages", {});
+		expect(requestInit?.redirect).toBe("error");
+	});
 	it("maps Stainless OS and arch values from explicit inputs", () => {
 		expect(mapStainlessOs("darwin")).toBe("MacOS");
 		expect(mapStainlessOs("windows")).toBe("Windows");

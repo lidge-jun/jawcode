@@ -862,6 +862,8 @@ export interface OpenAICompat extends ToolChoiceCompat {
  * that proxy gateways (Vertex AI, AWS Bedrock-style fronts, etc.) reject.
  */
 export interface AnthropicCompat extends ToolChoiceCompat {
+	/** Allow custom fingerprint headers on non-official Anthropic OAuth endpoints. */
+	allowAnthropicHeaderOverrides?: boolean;
 	/**
 	 * Drop the top-level `strict: true` field on tool definitions. Vertex AI's
 	 * Anthropic-compatible endpoint rejects unknown tool fields with

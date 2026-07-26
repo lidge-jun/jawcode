@@ -341,8 +341,12 @@ export const streamGoogleGeminiCli: StreamFunction<"google-gemini-cli"> = (
 				headers: requestHeaders,
 			};
 
+			let selectedEndpointIndex = 0;
 			const response = await fetchWithRetry(
-				attempt => `${endpoints[Math.min(attempt, endpoints.length - 1)]}/v1internal:streamGenerateContent?alt=sse`,
+				attempt => {
+					selectedEndpointIndex = Math.min(attempt, endpoints.length - 1);
+					return `${endpoints[selectedEndpointIndex]}/v1internal:streamGenerateContent?alt=sse`;
+				},
 				{
 					method: "POST",
 					headers: requestHeaders,
@@ -361,8 +365,6 @@ export const streamGoogleGeminiCli: StreamFunction<"google-gemini-cli"> = (
 					response.status,
 				);
 			}
-			const requestUrl = response.url;
-
 			let started = false;
 			const ensureStarted = () => {
 				if (!started) {
@@ -531,53 +533,76 @@ export const streamGoogleGeminiCli: StreamFunction<"google-gemini-cli"> = (
 				return hasContent;
 			};
 
+			const emptyStreamRetryBudget = resolveRetryBudget(options?.streamMaxRetries, MAX_EMPTY_STREAM_RETRIES);
 			let receivedContent = false;
 			let currentResponse = response;
 
-			const emptyStreamRetryBudget = resolveRetryBudget(options?.streamMaxRetries, MAX_EMPTY_STREAM_RETRIES);
-			for (let emptyAttempt = 0; emptyAttempt <= emptyStreamRetryBudget; emptyAttempt++) {
-				if (options?.signal?.aborted) {
-					throw new Error("Request was aborted");
-				}
-
-				if (emptyAttempt > 0) {
-					const backoffMs = EMPTY_STREAM_BASE_DELAY_MS * 2 ** (emptyAttempt - 1);
-					try {
-						await scheduler.wait(backoffMs, { signal: options?.signal });
-					} catch {
-						// Normalize AbortError to expected message for consistent error handling
-						throw new Error("Request was aborted");
-					}
-
-					if (!requestUrl) {
-						throw new Error("Missing request URL");
-					}
-
+			// The request cap is additive, never HTTP-retries × empty-stream-retries:
+			// initial HTTP attempts + one initial request per later endpoint + each attempted
+			// endpoint's bounded empty-stream retries.
+			for (let endpointIndex = selectedEndpointIndex; endpointIndex < endpoints.length; endpointIndex++) {
+				const requestUrl = `${endpoints[endpointIndex]}/v1internal:streamGenerateContent?alt=sse`;
+				if (endpointIndex > selectedEndpointIndex) {
+					resetOutput();
 					currentResponse = await (options?.fetch ?? fetch)(requestUrl, {
 						method: "POST",
 						headers: requestHeaders,
 						body: requestBodyJson,
 						signal: options?.signal,
 					});
-
 					if (!currentResponse.ok) {
-						const retryErrorText = await currentResponse.text();
+						const errorText = await currentResponse.text();
 						throw withHttpStatus(
-							new Error(`Cloud Code Assist API error (${currentResponse.status}): ${retryErrorText}`),
+							new Error(
+								`Cloud Code Assist API error (${currentResponse.status}): ${extractErrorMessage(errorText)}`,
+							),
 							currentResponse.status,
 						);
 					}
 				}
 
-				const streamed = await streamResponse(currentResponse);
-				if (streamed) {
-					receivedContent = true;
-					break;
+				for (let emptyAttempt = 0; emptyAttempt <= emptyStreamRetryBudget; emptyAttempt++) {
+					if (options?.signal?.aborted) {
+						throw new Error("Request was aborted");
+					}
+
+					if (emptyAttempt > 0) {
+						const backoffMs = EMPTY_STREAM_BASE_DELAY_MS * 2 ** (emptyAttempt - 1);
+						try {
+							await scheduler.wait(backoffMs, { signal: options?.signal });
+						} catch {
+							// Normalize AbortError to expected message for consistent error handling
+							throw new Error("Request was aborted");
+						}
+
+						currentResponse = await (options?.fetch ?? fetch)(requestUrl, {
+							method: "POST",
+							headers: requestHeaders,
+							body: requestBodyJson,
+							signal: options?.signal,
+						});
+
+						if (!currentResponse.ok) {
+							const retryErrorText = await currentResponse.text();
+							throw withHttpStatus(
+								new Error(`Cloud Code Assist API error (${currentResponse.status}): ${retryErrorText}`),
+								currentResponse.status,
+							);
+						}
+					}
+
+					const streamed = await streamResponse(currentResponse);
+					if (streamed) {
+						receivedContent = true;
+						break;
+					}
+
+					if (emptyAttempt < emptyStreamRetryBudget) {
+						resetOutput();
+					}
 				}
 
-				if (emptyAttempt < emptyStreamRetryBudget) {
-					resetOutput();
-				}
+				if (receivedContent) break;
 			}
 
 			if (!receivedContent) {

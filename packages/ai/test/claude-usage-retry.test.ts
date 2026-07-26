@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "bun:test";
-import type { UsageFetchContext } from "../src/usage";
+import type { UsageFetchContext, UsageFetchParams } from "../src/usage";
 import { claudeUsageProvider } from "../src/usage/claude";
 
 const VALID_PAYLOAD = {
@@ -17,13 +17,14 @@ function makeContext(fetchImpl: typeof fetch, retryWait?: UsageFetchContext["ret
 	return { fetch: fetchImpl, retryWait };
 }
 
-function baseParams() {
+function baseParams(): UsageFetchParams {
 	return {
 		provider: "anthropic" as const,
 		credential: {
 			type: "oauth" as const,
 			accessToken: "oat-test",
-			accountId: "org_test",
+			accountId: "account_test",
+			metadata: { orgId: "org_stored" },
 			email: "user@example.com",
 			expiresAt: Date.now() + 60_000,
 		},
@@ -36,6 +37,39 @@ describe("claudeUsageProvider retry contract", () => {
 	});
 
 	const instantRetryWait: UsageFetchContext["retryWait"] = async () => {};
+
+	it("keeps stored account and organization identities separate", async () => {
+		const fetchMock = (async () =>
+			jsonResponse(200, VALID_PAYLOAD, { "anthropic-organization-id": "org_header" })) as unknown as typeof fetch;
+		const report = await claudeUsageProvider.fetchUsage(baseParams(), makeContext(fetchMock));
+		expect(report?.metadata?.accountId).toBe("account_test");
+		expect(report?.metadata?.orgId).toBe("org_stored");
+	});
+
+	it("falls back to profile account identity", async () => {
+		const fetchMock = (async (input: string | URL | Request) =>
+			String(input).endsWith("/profile")
+				? jsonResponse(200, { uuid: "profile_account" })
+				: jsonResponse(200, VALID_PAYLOAD)) as unknown as typeof fetch;
+		const params = baseParams();
+		params.credential.accountId = undefined;
+		const report = await claudeUsageProvider.fetchUsage(params, makeContext(fetchMock));
+		expect(report?.metadata?.accountId).toBe("profile_account");
+	});
+
+	it("returns an unmerged report when no account identity exists", async () => {
+		const fetchMock = (async (input: string | URL | Request) =>
+			String(input).endsWith("/profile")
+				? jsonResponse(200, {})
+				: jsonResponse(200, VALID_PAYLOAD)) as unknown as typeof fetch;
+		const params = baseParams();
+		params.credential.accountId = undefined;
+		params.credential.email = undefined;
+		const report = await claudeUsageProvider.fetchUsage(params, makeContext(fetchMock));
+		expect(report).not.toBeNull();
+		expect(report?.metadata?.accountId).toBeUndefined();
+		expect(report?.metadata?.accountIdentityMissing).toBe(true);
+	});
 
 	it("retries on 429 and succeeds on a later attempt", async () => {
 		let attempt = 0;
