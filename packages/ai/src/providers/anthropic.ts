@@ -135,21 +135,31 @@ function isClaudeCodeClientUserAgent(userAgent: string | undefined): userAgent i
 	return userAgent.toLowerCase().startsWith("claude-cli");
 }
 
+function normalizeHostname(hostname: string): string {
+	const lowercaseHostname = hostname.toLowerCase();
+	return lowercaseHostname.endsWith(".") ? lowercaseHostname.slice(0, -1) : lowercaseHostname;
+}
+
+function isProtectedAnthropicHostname(hostname: string): boolean {
+	const normalizedHostname = normalizeHostname(hostname);
+	return normalizedHostname === "api.anthropic.com" || normalizedHostname === "gateway.ai.cloudflare.com";
+}
+
 function isAnthropicApiBaseUrl(baseUrl?: string): boolean {
 	if (!baseUrl) return true;
 	try {
 		const url = new URL(baseUrl);
-		return url.protocol.toLowerCase() === "https:" && url.hostname.toLowerCase() === "api.anthropic.com";
+		return url.protocol.toLowerCase() === "https:" && normalizeHostname(url.hostname) === "api.anthropic.com";
 	} catch {
 		return false;
 	}
 }
 
-function isValidNonAnthropicBaseUrl(baseUrl?: string): boolean {
+function isValidOverrideBaseUrl(baseUrl?: string): boolean {
 	if (!baseUrl) return false;
 	try {
 		const url = new URL(baseUrl);
-		return (url.protocol === "https:" || url.protocol === "http:") && !isAnthropicApiBaseUrl(baseUrl);
+		return (url.protocol === "https:" || url.protocol === "http:") && !isProtectedAnthropicHostname(url.hostname);
 	} catch {
 		return false;
 	}
@@ -174,7 +184,7 @@ export function buildAnthropicHeaders(options: AnthropicHeaderOptions): Record<s
 		oauthToken &&
 		options.allowAnthropicHeaderOverrides === true &&
 		!options.isCloudflareAiGateway &&
-		isValidNonAnthropicBaseUrl(options.baseUrl);
+		isValidOverrideBaseUrl(options.baseUrl);
 	const modelHeaders: Record<string, string> = {};
 	const fingerprintOverrides: Record<string, string> = {};
 	for (const [key, value] of Object.entries(options.modelHeaders ?? {})) {
@@ -1737,7 +1747,7 @@ export function buildAnthropicClientOptions(args: AnthropicClientOptionsArgs): A
 		allowAnthropicHeaderOverrides: model.compat?.allowAnthropicHeaderOverrides,
 	});
 	const blockRedirects =
-		oauthToken && model.compat?.allowAnthropicHeaderOverrides === true && isValidNonAnthropicBaseUrl(baseUrl);
+		oauthToken && model.compat?.allowAnthropicHeaderOverrides === true && isValidOverrideBaseUrl(baseUrl);
 	const requestFetch = debugFetch ?? args.fetch;
 	const fetchWithRedirectGuard: AnthropicSdkClientOptions["fetch"] | undefined = blockRedirects
 		? (input, init) => (requestFetch ?? globalThis.fetch)(input, { ...init, redirect: "error" })

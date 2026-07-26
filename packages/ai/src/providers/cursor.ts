@@ -131,6 +131,9 @@ import {
 } from "./cursor/gen/agent_pb";
 
 export const CURSOR_API_URL = "https://api2.cursor.sh";
+// Protocol trailers normally follow turnEnded immediately. Thirty seconds preserves a generous
+// window for delayed proxy/gateway errors while bounding a peer that never closes the HTTP/2 stream.
+export const CURSOR_POST_TURN_ENDED_TIMEOUT_MS = 30_000;
 
 import { CURSOR_CLIENT_VERSION } from "./cursor/client-version";
 
@@ -144,6 +147,7 @@ export interface CursorOptions extends StreamOptions {
 	conversationId?: string;
 	execHandlers?: CursorExecHandlers;
 	onToolResult?: CursorToolResultHandler;
+	postTurnEndedTimeoutMs?: number;
 }
 
 const CONNECT_END_STREAM_FLAG = 0b00000010;
@@ -351,12 +355,17 @@ export const streamCursor: StreamFunction<"cursor-agent"> = (
 		let h2Client: http2.ClientHttp2Session | null = null;
 		let h2Request: http2.ClientHttp2Stream | null = null;
 		let heartbeatTimer: NodeJS.Timeout | null = null;
+		let postTurnEndedTimer: NodeJS.Timeout | null = null;
 		const h2Completion = Promise.withResolvers<void>();
 		let h2Settled = false;
 		let endStreamError: Error | null = null;
 		const settleH2 = (error?: unknown): void => {
 			if (h2Settled) return;
 			h2Settled = true;
+			if (postTurnEndedTimer) {
+				clearTimeout(postTurnEndedTimer);
+				postTurnEndedTimer = null;
+			}
 			if (error !== undefined) {
 				h2Completion.reject(error);
 				return;
@@ -387,6 +396,7 @@ export const streamCursor: StreamFunction<"cursor-agent"> = (
 			const requestContextTools = buildMcpToolDefinitions(context.tools);
 
 			const baseUrl = model.baseUrl || CURSOR_API_URL;
+			const postTurnEndedTimeoutMs = options?.postTurnEndedTimeoutMs ?? CURSOR_POST_TURN_ENDED_TIMEOUT_MS;
 			h2Client = http2.connect(baseUrl);
 			h2Client.on("error", error => settleH2(mapH2TransportError(error, baseUrl)));
 
@@ -464,6 +474,9 @@ export const streamCursor: StreamFunction<"cursor-agent"> = (
 
 					try {
 						const serverMessage = fromBinary(AgentServerMessageSchema, messageBytes);
+						const isTurnEnded =
+							serverMessage.message.case === "interactionUpdate" &&
+							serverMessage.message.value.message?.case === "turnEnded";
 						void handleServerMessage(
 							serverMessage,
 							output,
@@ -479,6 +492,21 @@ export const streamCursor: StreamFunction<"cursor-agent"> = (
 						).catch(error => {
 							log("error", "handleServerMessage", { error: String(error) });
 						});
+						if (isTurnEnded && !postTurnEndedTimer) {
+							postTurnEndedTimer = setTimeout(() => {
+								const timeoutError = new Error(
+									`Cursor HTTP/2 stream did not end within ${postTurnEndedTimeoutMs}ms after turnEnded`,
+								);
+								timeoutError.name = "CursorTransportError";
+								settleH2(timeoutError);
+								if (heartbeatTimer) {
+									clearInterval(heartbeatTimer);
+									heartbeatTimer = null;
+								}
+								h2Request?.destroy(timeoutError);
+								h2Client?.destroy(timeoutError);
+							}, postTurnEndedTimeoutMs);
+						}
 					} catch (e) {
 						log("error", "parseServerMessage", { error: String(e) });
 					}
@@ -571,6 +599,10 @@ export const streamCursor: StreamFunction<"cursor-agent"> = (
 			stream.push({ type: "error", reason: output.stopReason, error: output });
 			stream.end();
 		} finally {
+			if (postTurnEndedTimer) {
+				clearTimeout(postTurnEndedTimer);
+				postTurnEndedTimer = null;
+			}
 			if (heartbeatTimer) {
 				clearInterval(heartbeatTimer);
 				heartbeatTimer = null;
