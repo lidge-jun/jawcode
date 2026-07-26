@@ -18,34 +18,34 @@
 
 | NNN | 스코프 | 판정 |
 |---|---|---|
-| [10.065](./_fin/10/10.065_gjc_chase_prompt_self_awareness_grounding.md) | prompt self-awareness | ✅ _fin 260701 (ADAPT · content JWC-authored) |
-| [20.027](./_fin/20/20.027_omp_chase_prompts_subagent_discovery_rules.md) | prompts/subagent/discovery | ✅ _fin · ADAPT · 1 ADOPT (#5 agent-param), 5 defer |
-| [10.062](./_fin/10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md) | DeepInfra + Gemini UA | IMPORT ✅ _fin 260701 |
-| [10.054](./_fin/10/10.054_gjc_chase_local_provider_discovery.md) | local provider discovery | IMPORT ✅ _fin 260701 |
-| [20.023](./_fin/20/20.023_omp_chase_ai_providers_catalog_service_tier.md) | providers/catalog/service-tier | IMPORT/ADAPT ✅ _fin 260701 (reference-triage, no code) |
-| [20.019](./_fin/20/20.019_omp_chase_codex_ai_config.md) | codex/AI config | ADAPT ✅ _fin 260701 (base-url fix + textVerbosity; default-verbosity/tiny-role defer→③) |
-| [20.021](./_fin/20/20.021_omp_chase_v2_streaming_integrity.md) | v2 streaming integrity | ✅ _fin 260701 (IMPORT: partialJson terminal scrub) |
-| [20.009](./_fin/20/20.009_omp_chase_append_only_context_integrity.md) | append-only context integrity | ✅ _fin 260701 (IMPORT) |
-| [20.025](./_fin/20/20.025_omp_chase_compaction_snapcompact_session_scope.md) | snapcompact/session-scope | ✅ _fin 260701 (IMPORT: bounded edit snapshots; snapcompact/session-loader defer③) |
-| [20.020](./_fin/20/20.020_omp_chase_session_title_idle_recap.md) | session title/idle recap | ✅ _fin 260701 (ADAPT: title casing) |
-| [10.042](./_fin/10/10.042_gjc_chase_deep_interview_ask_goal_state.md) | deep-interview ask+goal-state | ✅ _fin 260701 (ADAPT) |
-| [10.059](./_fin/10/10.059_gjc_chase_deep_interview_ask_ralplan_gate.md) | ralplan ask gate + render guard | ✅ _fin 260701 (ADAPT+IMPORT) |
+| [10.065](./_fin/10/10.065_gjc_chase_prompt_self_awareness_grounding.md) | prompt self-awareness | ✅ **_fin** _fin 260701 (ADAPT · content JWC-authored) |
+| [20.027](./_fin/20/20.027_omp_chase_prompts_subagent_discovery_rules.md) | prompts/subagent/discovery | ✅ **_fin** _fin · ADAPT · 1 ADOPT (#5 agent-param), 5 defer |
+| [10.062](./_fin/10/10.062_gjc_chase_ai_provider_deepinfra_gemini_ua.md) | DeepInfra + Gemini UA | IMPORT ✅ **_fin** _fin 260701 |
+| [10.054](./_fin/10/10.054_gjc_chase_local_provider_discovery.md) | local provider discovery | IMPORT ✅ **_fin** _fin 260701 |
+| [20.023](./_fin/20/20.023_omp_chase_ai_providers_catalog_service_tier.md) | providers/catalog/service-tier | IMPORT/ADAPT ✅ **_fin** _fin 260701 (reference-triage, no code) |
+| [20.019](./_fin/20/20.019_omp_chase_codex_ai_config.md) | codex/AI config | ADAPT ✅ **_fin** _fin 260701 (base-url fix + textVerbosity; default-verbosity/tiny-role defer→③) |
+| [20.021](./_fin/20/20.021_omp_chase_v2_streaming_integrity.md) | v2 streaming integrity | ✅ **_fin** _fin 260701 (IMPORT: partialJson terminal scrub) |
+| [20.009](./_fin/20/20.009_omp_chase_append_only_context_integrity.md) | append-only context integrity | _fin 260701 (IMPORT) |
+| [20.025](./_fin/20/20.025_omp_chase_compaction_snapcompact_session_scope.md) | snapcompact/session-scope | ✅ **_fin** _fin 260701 (IMPORT: bounded edit snapshots; snapcompact/session-loader defer③) |
+| [20.020](./_fin/20/20.020_omp_chase_session_title_idle_recap.md) | session title/idle recap | ✅ **_fin** _fin 260701 (ADAPT: title casing) |
+| [10.042](./_fin/10/10.042_gjc_chase_deep_interview_ask_goal_state.md) | deep-interview ask+goal-state | ✅ **_fin** _fin 260701 (ADAPT) |
+| [10.059](./_fin/10/10.059_gjc_chase_deep_interview_ask_ralplan_gate.md) | ralplan ask gate + render guard | ✅ **_fin** _fin 260701 (ADAPT+IMPORT) |
 | [10.019](./_fin/10/10.019_gjc_chase_gc_file_lock.md) | jwc gc 명령 | ADAPT |
-| [20.028](./_fin/20/20.028_omp_chase_web_search_provider_settings.md) | web-search provider settings | ✅ _fin 260701 (IMPORT: DDG request-shape + CLI provider settings; gemini api-key defer③) |
-| [10.048](./_fin/10/10.048_gjc_chase_dev_ci_release_packaging.md) | dev/CI/release packaging | ✅ _fin 260701 (ADAPT: affected-path false-green guard) |
+| [20.028](./_fin/20/20.028_omp_chase_web_search_provider_settings.md) | web-search provider settings | ✅ **_fin** _fin 260701 (IMPORT: DDG request-shape + CLI provider settings; gemini api-key defer③) |
+| [10.048](./_fin/10/10.048_gjc_chase_dev_ci_release_packaging.md) | dev/CI/release packaging | ✅ **_fin** _fin 260701 (ADAPT: affected-path false-green guard) |
 
 > 추가 ① 후보(플랫폼/UX 말단) 구현 goal: 10.060 · 10.041 · 10.057 · 10.061 · 10.056 · 10.064 · 10.052 · 20.015 all closed.
 
 | NNN | 스코프 | 판정 |
 |---|---|---|
-| [10.060](./_fin/10/10.060_gjc_chase_tui_render_resilience_editor_submit.md) | TUI render resilience | ✅ _fin 260701 |
-| [10.041](./_fin/10/10.041_gjc_chase_tui_input_render_windows_psmux.md) | TUI input/render Windows psmux | ✅ _fin 260701 |
-| [10.057](./_fin/10/10.057_gjc_chase_windows_hardening.md) | Windows hardening | ✅ _fin 260701 |
-| [10.061](./_fin/10/10.061_gjc_chase_tmux_team_windows_psmux_titles.md) | tmux/team Windows psmux titles | ✅ _fin 260701 |
-| [10.056](./_fin/10/10.056_gjc_chase_terminal_bell_notifications.md) | terminal bell + completion hook | ✅ _fin 260701 (ADAPT: global-only command hook) |
-| [10.064](./_fin/10/10.064_gjc_chase_telegram_daemon_entrypoint_notify.md) | Telegram daemon entrypoint + Windows bell | ✅ _fin 260701 (ADAPT: hidden daemon adapter + Windows bell docs) |
-| [10.052](./_fin/10/10.052_gjc_chase_docs_external_integrations.md) | docs external integrations | ✅ _fin 260701 (ADAPT: conservative integration matrix + docs guards) |
-| [20.015](./_fin/20/20.015_omp_chase_release_test_leak_hardening.md) | release/test leak hardening | ✅ _fin 260701 (track-only reference closure; release implementation owned by 10.048) |
+| [10.060](./_fin/10/10.060_gjc_chase_tui_render_resilience_editor_submit.md) | TUI render resilience | ✅ **_fin** _fin 260701 |
+| [10.041](./_fin/10/10.041_gjc_chase_tui_input_render_windows_psmux.md) | TUI input/render Windows psmux | ✅ **_fin** _fin 260701 |
+| [10.057](./_fin/10/10.057_gjc_chase_windows_hardening.md) | Windows hardening | ✅ **_fin** _fin 260701 |
+| [10.061](./_fin/10/10.061_gjc_chase_tmux_team_windows_psmux_titles.md) | tmux/team Windows psmux titles | ✅ **_fin** _fin 260701 |
+| [10.056](./_fin/10/10.056_gjc_chase_terminal_bell_notifications.md) | terminal bell + completion hook | ✅ **_fin** _fin 260701 (ADAPT: global-only command hook) |
+| [10.064](./_fin/10/10.064_gjc_chase_telegram_daemon_entrypoint_notify.md) | Telegram daemon entrypoint + Windows bell | ✅ **_fin** _fin 260701 (ADAPT: hidden daemon adapter + Windows bell docs) |
+| [10.052](./_fin/10/10.052_gjc_chase_docs_external_integrations.md) | docs external integrations | ✅ **_fin** _fin 260701 (ADAPT: conservative integration matrix + docs guards) |
+| [20.015](./_fin/20/20.015_omp_chase_release_test_leak_hardening.md) | release/test leak hardening | _fin 260701 (track-only reference closure; release implementation owned by 10.048) |
 
 ## ② 기능 결정 필요 (게이트 유지)
 
@@ -89,19 +89,19 @@
 |---|---|
 | [10.110](./10.110_gjc_chase_sdk_acp_bridge_lifecycle.md) | SDK/ACP/bridge lifecycle |
 | [10.112](./10.112_gjc_chase_notifications_telegram_daemon.md) | notifications/Telegram daemon |
-| [10.116](./10.116_gjc_chase_natives_windows_platform.md) | natives/Windows/platform (A-slice — welcome.ts 제외) |
-| [10.117](./10.117_gjc_chase_ci_release_docs_test_evidence.md) | CI/release/docs evidence-fill |
-| [20.081](./20.081_omp_chase_ai_catalog_stream_auth.md) | AI catalog/stream/auth |
+| [10.116](./_fin/10/10.116_gjc_chase_natives_windows_platform.md) | natives/Windows/platform (A-slice — welcome.ts 제외) |
+| [10.117](./_fin/10/10.117_gjc_chase_ci_release_docs_test_evidence.md) | CI/release/docs evidence-fill |
+| [20.081](./_fin/20/20.081_omp_chase_ai_catalog_stream_auth.md) | AI catalog/stream/auth |
 | [20.082](./20.082_omp_chase_session_context_settings_persistence.md) | session/context/settings |
-| [20.083](./20.083_omp_chase_tool_fs_shell_git_safety.md) | tool/fs/shell/git safety (A-slice만 ①, config/policy는 ②) |
+| [20.083](./_fin/20/20.083_omp_chase_tool_fs_shell_git_safety.md) | tool/fs/shell/git safety (A-slice만 ①, config/policy는 ②) |
 | [20.087](./20.087_omp_chase_native_diff_search_memory_perf.md) | native diff/search/memory perf |
 | [20.088](./20.088_omp_chase_release_build_platform_ci.md) | release/build/platform/CI |
 | [20.089](./20.089_omp_chase_runtime_stats_logging_collab.md) | runtime/stats/logging/collab |
 | [20.102](./20.102_omp_chase_error_notifications_terminal_title.md) | error notifications/terminal title |
-| [20.107](./20.107_omp_chase_compaction_retry_history_resilience.md) | compaction/history resilience |
-| [20.109](./20.109_omp_chase_tools_platform_runtime_hardening.md) | tool/platform runtime hardening |
-| [20.122](./20.122_omp_chase_tui_tool_lifecycle.md) | TUI/tool lifecycle |
-| [20.124](./20.124_omp_chase_ai_provider_stream_integrity.md) | AI/provider stream integrity (A-slice만 ①, auth/tier는 ②) |
+| [20.107](./_fin/20/20.107_omp_chase_compaction_retry_history_resilience.md) | compaction/history resilience |
+| [20.109](./_fin/20/20.109_omp_chase_tools_platform_runtime_hardening.md) | tool/platform runtime hardening |
+| [20.122](./_fin/20/20.122_omp_chase_tui_tool_lifecycle.md) | TUI/tool lifecycle |
+| [20.124](./_fin/20/20.124_omp_chase_ai_provider_stream_integrity.md) | AI/provider stream integrity (A-slice만 ①, auth/tier는 ②) |
 
 ### ② 기능 결정 필요 (C bucket, 17장)
 

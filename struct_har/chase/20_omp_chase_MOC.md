@@ -40,34 +40,34 @@
 | memory | disabled-by-default local pipeline, Memory Guidance injection, `memory://`, extraction/consolidation, redaction, model-role fallback (`docs/memory.md:3-5,16-24,28-30,44-56,76-89,95-98`) | 99.01 후보 |
 | compaction pruning | superseded read pruning, useless-result elision, protected tools, 40k protect/20k min savings, suffix/idle prompt-cache-aware flush (`packages/agent/src/compaction/pruning.ts:19-39,48-70,108-138,146-165,171-215,243-274,284-331`) | 083/session 후보 |
 | steering delivery | yield-boundary `lateSteering` re-poll; settle-time stranded queue drain; steer image-normalization idle mirror (`packages/agent/src/agent-loop.ts:1066-1081`, `agent-session.ts:1432-1447,6373-6410,6599-6611`, `42ffc83`) | **[20.005](./_fin/20/20.005_omp_chase_steering_delivery.md)** — jwc 부분 보유, gjc 미수용 |
-| TUI 입력 micro | Esc draft clear + selector `resetDisplay` (`e914bf0`); double-esc history **revert** (`d055f64`); ast-edit status 공백 축약 (`3d646d8`) | **[20.006](./_fin/20/20.006_omp_chase_tui_input_micro_fixes.md)** ✅ _fin — Esc draft-clear+ast collapse 채택(jwc `a291199`), resetDisplay defer(`ui.resetDisplay()` 부재); collab/brew 비채택 |
+| TUI 입력 micro | Esc draft clear + selector `resetDisplay` (`e914bf0`); double-esc history **revert** (`d055f64`); ast-edit status 공백 축약 (`3d646d8`) | **[20.006](./_fin/20/20.006_omp_chase_tui_input_micro_fixes.md)** ✅ **_fin** _fin — Esc draft-clear+ast collapse 채택(jwc `a291199`), resetDisplay defer(`ui.resetDisplay()` 부재); collab/brew 비채택 |
 | OMP 15.12→15.13 | session split, auto-learn, STT/TTS, compaction UI | [20.008](./_fin/20/20.008_omp_chase_pull_15_13_delta.md) |
-| OMP v16.2.5→16.2.9 (175 commits, `ca9f2847e..b6c9747d4`) | 8 reference 클러스터: AI providers/catalog/service-tier, MCP oauth/reauth, compaction/snapcompact/session-scope, TUI loader/MCP-enable, prompts/subagent/discovery, web-search/provider, stats sync/perf, misc(dictation·binary·CJK font·yield·irc·windows) | [20.023](./_fin/20/20.023_omp_chase_ai_providers_catalog_service_tier.md)–[20.030](./20.030_omp_chase_misc_dictation_binary_font_yield_irc_win.md) reference-only (1:1 port ❌) — 미래 설계 입력 |
-| OMP v16.2.9→16.3.1 (433 commits, `b6c9747d4..0ea6ea630`) | 5 reference 클러스터: native/search pipeline, AI thinking/catalog/speech, session/patch/rewind integrity, TUI/collab/browser resilience, tool schema/task/TTS/stats | [20.031](./20.031_omp_chase_native_search_pipeline.md)–[20.034](./20.034_omp_chase_tui_collab_browser_resilience.md) active reference; [20.035](./_fin/20/20.035_omp_chase_tool_schema_task_tts_stats.md) ✅ _fin reference-triage |
+| OMP v16.2.5→16.2.9 (175 commits, `ca9f2847e..b6c9747d4`) | 8 reference 클러스터: AI providers/catalog/service-tier, MCP oauth/reauth, compaction/snapcompact/session-scope, TUI loader/MCP-enable, prompts/subagent/discovery, web-search/provider, stats sync/perf, misc(dictation·binary·CJK font·yield·irc·windows) | 20.023 archived reference through [20.030](./20.030_omp_chase_misc_dictation_binary_font_yield_irc_win.md) reference-only (1:1 port ❌) — 미래 설계 입력 |
+| OMP v16.2.9→16.3.1 (433 commits, `b6c9747d4..0ea6ea630`) | native/search through tool schema/task/TTS/stats | [20.031](./20.031_omp_chase_native_search_pipeline.md)–20.034 active reference; 20.035 archived reference |
 | OMP v16.3.1→16.3.4 (216 commits, `0ea6ea630..d0c1890a6`) | 5 reference clusters: AI catalog/auth/usage, session/async/plan integrity, hashline/tool/plugin/task safety, TUI/terminal/render resilience, robomp/ISO/sandbox/release references | [20.036](./20.036_omp_chase_ai_catalog_auth_usage.md)–[20.040](./20.040_omp_chase_robomp_iso_sandbox_release.md) active reference |
 | OMP v16.3.4→16.3.12 (541 commits, `d0c1890a6..f25ab54c5`) | 4 reference clusters: Codex usage self-heal/auth rotation, LiteLLM catalog/vision metadata, skill autocomplete/discovery/GitHub refs, plan execution/agent hooks/subagent/TTSR | [20.041](./_fin/20/20.041_omp_chase_codex_usage_self_heal_auth_rotation.md)–[20.044](./_fin/20/20.044_omp_chase_plan_execution_agent_subagent_hooks.md) active reference |
-| OMP v16.3.12→16.4.2 (140 non-merge commits, `f25ab54c5..7aa1d581c`) | 6 reference clusters: model catalog GPT-5.6/Grok-4.5/effort tiers, codex broker blocks/responses-lite/version headers, xAI OAuth device flow/replay/reasoning, agent yield/abort/ask-timeout integrity, OAuth refresh serialization/MCP discovery, TUI grid-render/tools/natives/config | [20.045](./_fin/20/20.045_omp_chase_model_catalog_gpt56_grok_effort.md)–[20.050](./20.050_omp_chase_tui_grid_render_tools_natives_config.md) active reference |
+| OMP v16.3.12→16.4.2 (140 non-merge commits, `f25ab54c5..7aa1d581c`) | 6 reference clusters: model catalog GPT-5.6/Grok-4.5/effort tiers, codex broker blocks/responses-lite/version headers, xAI OAuth device flow/replay/reasoning, agent yield/abort/ask-timeout integrity, OAuth refresh serialization/MCP discovery, TUI grid-render/tools/natives/config | 20.045 archived reference through [20.050](./20.050_omp_chase_tui_grid_render_tools_natives_config.md) active reference |
 
 ## 활성 (`20.NNN`)
 
 | NNN | 문서 | 스코프 | jaw | 상태 |
 |---|---|---|---|---|
 | 001 | [20.001_omp_chase_cycle.md](./20.001_omp_chase_cycle.md) | fetch·regen | struct_har | 🟡 |
-| 002 | [20.002_omp_chase_worker_catalog.md](./_fin/20/20.002_omp_chase_worker_catalog.md) | worker | 100 | ✅ _fin |
-| 003 | [20.003_omp_chase_memory_skills.md](./_fin/20/20.003_omp_chase_memory_skills.md) | memory·skills | 99.01 | ✅ _fin |
+| 002 | [20.002_omp_chase_worker_catalog.md](./_fin/20/20.002_omp_chase_worker_catalog.md) | worker | 100 | ✅ **_fin** _fin |
+| 003 | [20.003_omp_chase_memory_skills.md](./_fin/20/20.003_omp_chase_memory_skills.md) | memory·skills | 99.01 | ✅ **_fin** _fin |
 | 004 | [20.004_omp_chase_lsp_dap.md](./20.004_omp_chase_lsp_dap.md) | LSP/DAP | 081 | ⬜ |
-| 005 | [20.005_omp_chase_steering_delivery.md](./_fin/20/20.005_omp_chase_steering_delivery.md) | steer/followUp 전달 | session | ✅ _fin |
-| 006 | [20.006_omp_chase_tui_input_micro_fixes.md](./_fin/20/20.006_omp_chase_tui_input_micro_fixes.md) | Esc·ast status | 082·99.20 | ✅ _fin |
-| 007 | [20.007_omp_chase_session_modularization.md](./_fin/20/20.007_omp_chase_session_modularization.md) | session modules | 083 | ✅ _fin |
-| 008 | [20.008_omp_chase_pull_15_13_delta.md](./_fin/20/20.008_omp_chase_pull_15_13_delta.md) | 15.13 index | 횡단 | ✅ _fin |
-| 009 | [20.009_omp_chase_append_only_context_integrity.md](./_fin/20/20.009_omp_chase_append_only_context_integrity.md) | append-only context integrity | reference | ✅ **_fin** [20.009](./_fin/20/20.009_omp_chase_append_only_context_integrity.md) 260701 (IMPORT: stable-prefix + digest meta + malformed-call sanitizer) |
-| 010 | [20.010_omp_chase_ai_oauth_reasoning_replay.md](./_fin/20/20.010_omp_chase_ai_oauth_reasoning_replay.md) | AI OAuth/reasoning replay | reference | ✅ _fin |
-| 011 | [20.011_omp_chase_tui_image_drafts_terminal_edges.md](./_fin/20/20.011_omp_chase_tui_image_drafts_terminal_edges.md) | TUI image drafts/terminal edges | reference | ✅ _fin |
-| 012 | [20.012_omp_chase_bash_snapshot_env_security.md](./_fin/20/20.012_omp_chase_bash_snapshot_env_security.md) | bash snapshot/env security | reference | ✅ _fin |
-| 013 | [20.013_omp_chase_plugin_virtual_registry_bundle.md](./_fin/20/20.013_omp_chase_plugin_virtual_registry_bundle.md) | plugin virtual registry/bundle | reference | ✅ _fin |
-| 014 | [20.014_omp_chase_goal_compaction_provider_concurrency.md](./_fin/20/20.014_omp_chase_goal_compaction_provider_concurrency.md) | goal compaction/provider concurrency | reference | ✅ _fin |
-| 015 | [20.015_omp_chase_release_test_leak_hardening.md](./_fin/20/20.015_omp_chase_release_test_leak_hardening.md) | release/test leak hardening | reference | ✅ _fin |
-| 016 | [20.016_omp_chase_advisor_thinking_dialect_session_title.md](./_fin/20/20.016_omp_chase_advisor_thinking_dialect_session_title.md) | split index → 017-022 | reference | ✅ split |
+| 005 | [20.005_omp_chase_steering_delivery.md](./_fin/20/20.005_omp_chase_steering_delivery.md) | steer/followUp 전달 | session | ✅ **_fin** _fin |
+| 006 | [20.006_omp_chase_tui_input_micro_fixes.md](./_fin/20/20.006_omp_chase_tui_input_micro_fixes.md) | Esc·ast status | 082·99.20 | ✅ **_fin** _fin |
+| 007 | [20.007_omp_chase_session_modularization.md](./_fin/20/20.007_omp_chase_session_modularization.md) | session modules | 083 | ✅ **_fin** _fin |
+| 008 | [20.008_omp_chase_pull_15_13_delta.md](./_fin/20/20.008_omp_chase_pull_15_13_delta.md) | 15.13 index | 횡단 | ✅ **_fin** _fin |
+| 009 | [20.009_omp_chase_append_only_context_integrity.md](./_fin/20/20.009_omp_chase_append_only_context_integrity.md) | append-only context integrity | reference | [20.009](./_fin/20/20.009_omp_chase_append_only_context_integrity.md) 260701 (IMPORT: stable-prefix + digest meta + malformed-call sanitizer) |
+| 010 | [20.010_omp_chase_ai_oauth_reasoning_replay.md](./_fin/20/20.010_omp_chase_ai_oauth_reasoning_replay.md) | AI OAuth/reasoning replay | reference | ✅ **_fin** _fin |
+| 011 | [20.011_omp_chase_tui_image_drafts_terminal_edges.md](./_fin/20/20.011_omp_chase_tui_image_drafts_terminal_edges.md) | TUI image drafts/terminal edges | reference | _fin |
+| 012 | [20.012_omp_chase_bash_snapshot_env_security.md](./_fin/20/20.012_omp_chase_bash_snapshot_env_security.md) | bash snapshot/env security | reference | _fin |
+| 013 | [20.013_omp_chase_plugin_virtual_registry_bundle.md](./_fin/20/20.013_omp_chase_plugin_virtual_registry_bundle.md) | plugin virtual registry/bundle | reference | _fin |
+| 014 | [20.014_omp_chase_goal_compaction_provider_concurrency.md](./_fin/20/20.014_omp_chase_goal_compaction_provider_concurrency.md) | goal compaction/provider concurrency | reference | ✅ **_fin** _fin |
+| 015 | [20.015_omp_chase_release_test_leak_hardening.md](./_fin/20/20.015_omp_chase_release_test_leak_hardening.md) | release/test leak hardening | reference | _fin |
+| 016 | [20.016_omp_chase_advisor_thinking_dialect_session_title.md](./_fin/20/20.016_omp_chase_advisor_thinking_dialect_session_title.md) | split index → 017-022 | reference | ✅ **_fin** split |
 | 017 | [20.017_omp_chase_multi_advisor_runtime.md](./20.017_omp_chase_multi_advisor_runtime.md) | multi-advisor concurrent runtime (split←016) | reference | ⬜ |
 | 018 | [20.018_omp_chase_thinking_normalization.md](./20.018_omp_chase_thinking_normalization.md) | thinking/reasoning normalization (split←016) | reference | ⬜ |
 | 019 | [20.019_omp_chase_codex_ai_config.md](./_fin/20/20.019_omp_chase_codex_ai_config.md) | codex/AI config: base URL·reasoning·verbosity (split←016) | reference | ✅ **_fin** [20.019](./_fin/20/20.019_omp_chase_codex_ai_config.md) 260701 (ADAPT: base-url fix + textVerbosity) |
@@ -75,32 +75,32 @@
 | 021 | [20.021_omp_chase_v2_streaming_integrity.md](./_fin/20/20.021_omp_chase_v2_streaming_integrity.md) | v2 streaming integrity + replay (split←016) | reference | ✅ **_fin** [20.021](./_fin/20/20.021_omp_chase_v2_streaming_integrity.md) 260701 (IMPORT: partialJson terminal scrub) |
 | 022 | [20.022_omp_chase_ssh_tooling_ux.md](./20.022_omp_chase_ssh_tooling_ux.md) | ssh:// + tooling/UX expansions (split←016) | reference | ⬜ |
 | 023 | [20.023_omp_chase_ai_providers_catalog_service_tier.md](./_fin/20/20.023_omp_chase_ai_providers_catalog_service_tier.md) | AI providers/catalog/service-tier (v16.2.9←175 delta) | reference | ✅ **_fin** [20.023](./_fin/20/20.023_omp_chase_ai_providers_catalog_service_tier.md) 260701 (reference-triage, no code) |
-| 024 | [20.024_omp_chase_mcp_oauth_reauth_flow.md](./_fin/20/20.024_omp_chase_mcp_oauth_reauth_flow.md) | MCP oauth/reauth flow + cmd-shim launch | reference | ⬜ |
+| 024 | [20.024_omp_chase_mcp_oauth_reauth_flow.md](./_fin/20/20.024_omp_chase_mcp_oauth_reauth_flow.md) | MCP oauth/reauth flow + cmd-shim launch | reference | ✅ **_fin** |
 | 025 | [20.025_omp_chase_compaction_snapcompact_session_scope.md](./_fin/20/20.025_omp_chase_compaction_snapcompact_session_scope.md) | compaction/snapcompact caps + session-branch scope | reference | ✅ **_fin** [20.025](./_fin/20/20.025_omp_chase_compaction_snapcompact_session_scope.md) 260701 (IMPORT: bounded edit snapshots) |
 | 026 | [20.026_omp_chase_tui_input_loader_mcp_enable.md](./20.026_omp_chase_tui_input_loader_mcp_enable.md) | TUI loader re-arm/double-Esc + MCP enable | reference | ⬜ |
-| 027 | [20.027_omp_chase_prompts_subagent_discovery_rules.md](./_fin/20/20.027_omp_chase_prompts_subagent_discovery_rules.md) | prompts/subagent(tester·sonic)/discovery (identity-sensitive) | reference | ✅ _fin (1 ADOPT #5, 5 defer) |
+| 027 | [20.027_omp_chase_prompts_subagent_discovery_rules.md](./_fin/20/20.027_omp_chase_prompts_subagent_discovery_rules.md) | prompts/subagent(tester·sonic)/discovery (identity-sensitive) | reference | ✅ **_fin** _fin (1 ADOPT #5, 5 defer) |
 | 028 | [20.028_omp_chase_web_search_provider_settings.md](./_fin/20/20.028_omp_chase_web_search_provider_settings.md) | web-search DuckDuckGo + provider settings | reference | ✅ **_fin** [20.028](./_fin/20/20.028_omp_chase_web_search_provider_settings.md) 260701 (IMPORT: DDG browser-aligned request + CLI provider settings; gemini api-key defer③) |
 | 029 | [20.029_omp_chase_stats_sync_worker_perf.md](./20.029_omp_chase_stats_sync_worker_perf.md) | stats sync worker + perf index | reference | ⬜ |
 | 030 | [20.030_omp_chase_misc_dictation_binary_font_yield_irc_win.md](./20.030_omp_chase_misc_dictation_binary_font_yield_irc_win.md) | misc dictation/binary/font/yield/irc/windows | reference | ⬜ |
 | 031 | [20.031_omp_chase_native_search_pipeline.md](./20.031_omp_chase_native_search_pipeline.md) | native traversal/search pipeline | reference | ⬜ |
 | 032 | [20.032_omp_chase_ai_thinking_catalog_speech.md](./20.032_omp_chase_ai_thinking_catalog_speech.md) | AI thinking/catalog + speech | reference | ⬜ |
-| 033 | [20.033_omp_chase_session_patch_rewind_integrity.md](./_fin/20/20.033_omp_chase_session_patch_rewind_integrity.md) | session/patch/rewind integrity | reference | ⬜ |
+| 033 | [20.033_omp_chase_session_patch_rewind_integrity.md](./_fin/20/20.033_omp_chase_session_patch_rewind_integrity.md) | session/patch/rewind integrity | reference | ✅ **_fin** |
 | 034 | [20.034_omp_chase_tui_collab_browser_resilience.md](./20.034_omp_chase_tui_collab_browser_resilience.md) | TUI/collab/browser resilience | reference | ⬜ |
-| 035 | [20.035_omp_chase_tool_schema_task_tts_stats.md](./_fin/20/20.035_omp_chase_tool_schema_task_tts_stats.md) | tool schema/task/TTS/stats | reference | ✅ _fin 260702 (public schema reject; task/stats/voice split) |
+| 035 | [20.035_omp_chase_tool_schema_task_tts_stats.md](./_fin/20/20.035_omp_chase_tool_schema_task_tts_stats.md) | tool schema/task/TTS/stats | reference | ✅ **_fin** _fin 260702 (public schema reject; task/stats/voice split) |
 | 036 | [20.036_omp_chase_ai_catalog_auth_usage.md](./20.036_omp_chase_ai_catalog_auth_usage.md) | AI catalog/auth/usage | reference | ⬜ |
-| 037 | [20.037_omp_chase_session_async_plan_integrity.md](./_fin/20/20.037_omp_chase_session_async_plan_integrity.md) | session/async/plan integrity | reference | ⬜ |
-| 038 | [20.038_omp_chase_hashline_tool_plugin_task_safety.md](./_fin/20/20.038_omp_chase_hashline_tool_plugin_task_safety.md) | hashline/tool/plugin/task safety | reference | ⬜ |
+| 037 | [20.037_omp_chase_session_async_plan_integrity.md](./_fin/20/20.037_omp_chase_session_async_plan_integrity.md) | session/async/plan integrity | reference | ✅ **_fin** |
+| 038 | [20.038_omp_chase_hashline_tool_plugin_task_safety.md](./_fin/20/20.038_omp_chase_hashline_tool_plugin_task_safety.md) | hashline/tool/plugin/task safety | reference | ✅ **_fin** |
 | 039 | [20.039_omp_chase_tui_terminal_render_resilience.md](./20.039_omp_chase_tui_terminal_render_resilience.md) | TUI/terminal/render resilience | reference | ⬜ |
 | 040 | [20.040_omp_chase_robomp_iso_sandbox_release.md](./20.040_omp_chase_robomp_iso_sandbox_release.md) | robomp/ISO/sandbox/release references | reference | ⬜ |
-| 041 | [20.041_omp_chase_codex_usage_self_heal_auth_rotation.md](./_fin/20/20.041_omp_chase_codex_usage_self_heal_auth_rotation.md) | Codex usage self-heal/auth rotation/credential sharing | reference | ✅ _fin 260709 (reference-triage) |
-| 042 | [20.042_omp_chase_litellm_catalog_vision_metadata.md](./_fin/20/20.042_omp_chase_litellm_catalog_vision_metadata.md) | LiteLLM catalog/vision metadata/cache | reference | ✅ _fin 260709 (reference-triage) |
-| 043 | [20.043_omp_chase_skill_autocomplete_discovery_github.md](./_fin/20/20.043_omp_chase_skill_autocomplete_discovery_github.md) | skill autocomplete/discovery/GitHub refs | reference | ✅ _fin 260709 (reference-triage) |
-| 044 | [20.044_omp_chase_plan_execution_agent_subagent_hooks.md](./_fin/20/20.044_omp_chase_plan_execution_agent_subagent_hooks.md) | plan execution/agent hooks/subagent/TTSR | reference | ✅ _fin 260709 (reference-triage) |
-| 045 | [20.045_omp_chase_model_catalog_gpt56_grok_effort.md](./_fin/20/20.045_omp_chase_model_catalog_gpt56_grok_effort.md) | model catalog: GPT-5.6/Grok-4.5, tier routing, effort tiers | reference | ⬜ |
-| 046 | [20.046_omp_chase_codex_broker_blocks_responses_lite.md](./_fin/20/20.046_omp_chase_codex_broker_blocks_responses_lite.md) | codex broker block guards + responses-lite + cache affinity | reference | ⬜ |
-| 047 | [20.047_omp_chase_xai_oauth_replay_reasoning.md](./_fin/20/20.047_omp_chase_xai_oauth_replay_reasoning.md) | xAI OAuth device flow + replay shapes + reasoning | reference | ⬜ |
-| 048 | [20.048_omp_chase_agent_yield_abort_ask_timeout.md](./_fin/20/20.048_omp_chase_agent_yield_abort_ask_timeout.md) | agent yield/abort/ask-timeout + idle-watchdog integrity | reference | ⬜ |
-| 049 | [20.049_omp_chase_oauth_refresh_serialization_mcp.md](./_fin/20/20.049_omp_chase_oauth_refresh_serialization_mcp.md) | OAuth refresh serialization + MCP discovery/stdio | reference | ⬜ |
+| 041 | [20.041_omp_chase_codex_usage_self_heal_auth_rotation.md](./_fin/20/20.041_omp_chase_codex_usage_self_heal_auth_rotation.md) | Codex usage self-heal/auth rotation/credential sharing | reference | ✅ **_fin** _fin 260709 (reference-triage) |
+| 042 | [20.042_omp_chase_litellm_catalog_vision_metadata.md](./_fin/20/20.042_omp_chase_litellm_catalog_vision_metadata.md) | LiteLLM catalog/vision metadata/cache | reference | ✅ **_fin** _fin 260709 (reference-triage) |
+| 043 | [20.043_omp_chase_skill_autocomplete_discovery_github.md](./_fin/20/20.043_omp_chase_skill_autocomplete_discovery_github.md) | skill autocomplete/discovery/GitHub refs | reference | ✅ **_fin** _fin 260709 (reference-triage) |
+| 044 | [20.044_omp_chase_plan_execution_agent_subagent_hooks.md](./_fin/20/20.044_omp_chase_plan_execution_agent_subagent_hooks.md) | plan execution/agent hooks/subagent/TTSR | reference | ✅ **_fin** _fin 260709 (reference-triage) |
+| 045 | [20.045_omp_chase_model_catalog_gpt56_grok_effort.md](./_fin/20/20.045_omp_chase_model_catalog_gpt56_grok_effort.md) | model catalog: GPT-5.6/Grok-4.5, tier routing, effort tiers | reference | ✅ **_fin** |
+| 046 | [20.046_omp_chase_codex_broker_blocks_responses_lite.md](./_fin/20/20.046_omp_chase_codex_broker_blocks_responses_lite.md) | codex broker block guards + responses-lite + cache affinity | reference | ✅ **_fin** |
+| 047 | [20.047_omp_chase_xai_oauth_replay_reasoning.md](./_fin/20/20.047_omp_chase_xai_oauth_replay_reasoning.md) | xAI OAuth device flow + replay shapes + reasoning | reference | ✅ **_fin** |
+| 048 | [20.048_omp_chase_agent_yield_abort_ask_timeout.md](./_fin/20/20.048_omp_chase_agent_yield_abort_ask_timeout.md) | agent yield/abort/ask-timeout + idle-watchdog integrity | reference | ✅ **_fin** |
+| 049 | [20.049_omp_chase_oauth_refresh_serialization_mcp.md](./_fin/20/20.049_omp_chase_oauth_refresh_serialization_mcp.md) | OAuth refresh serialization + MCP discovery/stdio | reference | ✅ **_fin** |
 | 050 | [20.050_omp_chase_tui_grid_render_tools_natives_config.md](./20.050_omp_chase_tui_grid_render_tools_natives_config.md) | TUI grid render + tools/natives/config misc — **hub → 050a-e** (render/streaming/ACP · grep/read selectors · natives/bash/clipboard · config/extension/session/realm · providers/usage/orchestration) | reference | ⬜ split 260711 |
 | 20.051 | [`omp_chase_model_hub_selector`](./_fin/20/20.051_omp_chase_model_hub_selector.md) | ✅ **_fin** (evidence pending wp4) | P1 | model hub, floating selection, role management, search ranking | `7aa1d581c..b0d04e517` |
 | 20.052 | [`omp_chase_catalog_pricing_routing`](./_fin/20/20.052_omp_chase_catalog_pricing_routing.md) | ✅ **_fin** (evidence pending wp4) | P1 | Kimi 65K, MAI routes, GLM-5.2, OpenRouter catalog | `7aa1d581c..b0d04e517` |
@@ -289,3 +289,29 @@ When this card is closed, the final note should say: produce a focused patch or 
 It should cite the source commit, JWC commit, files changed, focused verification, and any rejected source behavior.
 It should not say 'done' solely because the document is longer or because a broad lint command passed.
 It should leave enough evidence for a future agent to re-open the comparison without reading the whole chat history.
+
+
+## Lifecycle reconciliation rows — 2026-07-26
+
+| id | card | status |
+| --- | --- | --- |
+| 20.050a | [20.050a_omp_chase_tui_render_streaming_acp](./20.050a_omp_chase_tui_render_streaming_acp.md) | ⬜ active |
+| 20.050b | [20.050b_omp_chase_grep_read_selector_budgets](./20.050b_omp_chase_grep_read_selector_budgets.md) | ⬜ active |
+| 20.050c | [20.050c_omp_chase_natives_bash_clipboard](./20.050c_omp_chase_natives_bash_clipboard.md) | ⬜ active |
+| 20.050d | [20.050d_omp_chase_config_extension_session_realm](./20.050d_omp_chase_config_extension_session_realm.md) | ⬜ active |
+| 20.050e | [20.050e_omp_chase_providers_usage_orchestration_misc](./20.050e_omp_chase_providers_usage_orchestration_misc.md) | ⬜ active |
+| 20.058 | [20.058_omp_chase_tui_render_streaming](./20.058_omp_chase_tui_render_streaming.md) | ⬜ active |
+| 20.059 | [20.059_omp_chase_advisor_steering](./20.059_omp_chase_advisor_steering.md) | ⬜ active |
+| 20.060 | [20.060_omp_chase_agent_loop_tool_stream](./_fin/20/20.060_omp_chase_agent_loop_tool_stream.md) | ✅ **_fin** |
+| 20.061 | [20.061_omp_chase_search_grep_tools](./20.061_omp_chase_search_grep_tools.md) | ⬜ active |
+| 20.062 | [20.062_omp_chase_plugin_mcp_discovery](./_fin/20/20.062_omp_chase_plugin_mcp_discovery.md) | ✅ **_fin** |
+| 20.063 | [20.063_omp_chase_session_settings_startup](./20.063_omp_chase_session_settings_startup.md) | ⬜ active |
+| 20.064 | [20.064_omp_chase_mnemopi_memory_eval](./20.064_omp_chase_mnemopi_memory_eval.md) | ⬜ active |
+| 20.065 | [20.065_omp_chase_browser_bash_commit](./_fin/20/20.065_omp_chase_browser_bash_commit.md) | ✅ **_fin** |
+| 20.066 | [20.066_omp_chase_collab_web_extension](./_fin/20/20.066_omp_chase_collab_web_extension.md) | ✅ **_fin** |
+| 20.068 | [20.068_omp_chase_tui_sixel_subagent_misc](./20.068_omp_chase_tui_sixel_subagent_misc.md) | ⬜ active |
+| 20.069 | [20.069_omp_chase_centralized_prompt_small_model](./20.069_omp_chase_centralized_prompt_small_model.md) | ⬜ active |
+| 20.070 | [20.070_omp_chase_ci_release_changelog](./20.070_omp_chase_ci_release_changelog.md) | ⬜ active |
+| 20.073 | [20.073_omp_chase_tui_rendering_status](./20.073_omp_chase_tui_rendering_status.md) | ⬜ active |
+| 20.078 | [20.078_omp_chase_bash_irc_registry](./20.078_omp_chase_bash_irc_registry.md) | ⬜ active |
+| 20.080 | [20.080_omp_chase_ci_style_changelog](./20.080_omp_chase_ci_style_changelog.md) | ⬜ active |
