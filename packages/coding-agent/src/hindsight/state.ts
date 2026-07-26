@@ -1,3 +1,4 @@
+import * as crypto from "node:crypto";
 import { logger } from "@jawcode-dev/utils";
 import type { AgentSession } from "../session/agent-session";
 import { type BankScope, ensureBankMission } from "./bank";
@@ -10,6 +11,7 @@ import {
 	type HindsightMessage,
 	prepareRetentionTranscript,
 	sliceLastTurnsByUserBoundary,
+	stripMemoryTags,
 	truncateRecallQuery,
 } from "./content";
 import {
@@ -31,6 +33,28 @@ interface PendingRetainItem {
 interface RecallOutcome {
 	context: string | null;
 	ok: boolean;
+}
+
+interface RetentionCacheRecord {
+	readonly digest: string;
+	readonly generation: number;
+	readonly messageCount: number;
+	readonly transcript: string;
+	readonly transcriptLength: number;
+}
+
+function retentionPrefixDigest(messages: HindsightMessage[], count: number): string {
+	const hash = crypto.createHash("sha256");
+	for (let index = 0; index < count; index++) {
+		const message = messages[index];
+		if (!message) break;
+		const content = stripMemoryTags(message.content).trim();
+		hash.update(`${message.role.length}:`);
+		hash.update(message.role);
+		hash.update(`${content.length}:`);
+		hash.update(content);
+	}
+	return hash.digest("hex");
 }
 
 export interface HindsightSessionStateOptions {
@@ -200,6 +224,8 @@ export class HindsightSessionState {
 	session: AgentSession;
 	missionsSet: Set<string>;
 	lastRetainedTurn: number;
+	#retentionCache: RetentionCacheRecord | undefined;
+	#retentionGeneration = 0;
 	hasRecalledForFirstTurn: boolean;
 	lastRecallSnippet?: string;
 	/** Cached `<mental_models>` block injected into developer instructions. */
@@ -235,12 +261,19 @@ export class HindsightSessionState {
 
 	setSessionId(sessionId: string): void {
 		this.sessionId = sessionId;
+		this.#invalidateRetentionCache();
 	}
 
 	resetConversationTracking(): void {
 		this.lastRetainedTurn = 0;
 		this.hasRecalledForFirstTurn = false;
 		this.lastRecallSnippet = undefined;
+		this.#invalidateRetentionCache();
+	}
+
+	#invalidateRetentionCache(): void {
+		this.#retentionGeneration += 1;
+		this.#retentionCache = undefined;
 	}
 
 	enqueueRetain(content: string, context?: string): void {
@@ -274,21 +307,40 @@ export class HindsightSessionState {
 		}
 	}
 
-	async retainSession(messages: HindsightMessage[]): Promise<void> {
+	async retainSession(messages: HindsightMessage[], bypassCache = false): Promise<void> {
+		const generation = ++this.#retentionGeneration;
 		const retainFullWindow = this.config.retainMode === "full-session";
-		let target: HindsightMessage[];
 		let documentId: string;
+		let transcript: string | null;
+		let nextCache: RetentionCacheRecord | undefined;
 
 		if (retainFullWindow) {
-			target = messages;
 			documentId = this.sessionId;
+			const cache = this.#retentionCache;
+			const cacheIsValid =
+				!bypassCache &&
+				cache !== undefined &&
+				cache.messageCount <= messages.length &&
+				cache.transcriptLength === cache.transcript.length &&
+				retentionPrefixDigest(messages, cache.messageCount) === cache.digest;
+			const prefix = cacheIsValid ? cache : undefined;
+			const { transcript: suffix } = prepareRetentionTranscript(messages.slice(prefix?.messageCount ?? 0), true);
+			if (!suffix) return;
+			transcript = prefix ? `${prefix.transcript}\n\n${suffix}` : suffix;
+			nextCache = Object.freeze({
+				digest: retentionPrefixDigest(messages, messages.length),
+				generation,
+				messageCount: messages.length,
+				transcript,
+				transcriptLength: transcript.length,
+			});
 		} else {
 			const windowTurns = this.config.retainEveryNTurns + this.config.retainOverlapTurns;
-			target = sliceLastTurnsByUserBoundary(messages, windowTurns);
+			const target = sliceLastTurnsByUserBoundary(messages, windowTurns);
 			documentId = `${this.sessionId}-${Date.now()}`;
+			({ transcript } = prepareRetentionTranscript(target, true));
 		}
 
-		const { transcript } = prepareRetentionTranscript(target, true);
 		if (!transcript) return;
 
 		await ensureBankMission(this.client, this.bankId, this.config, this.missionsSet);
@@ -299,6 +351,8 @@ export class HindsightSessionState {
 			tags: this.retainTags,
 			async: true,
 		});
+		if (generation !== this.#retentionGeneration) return;
+		this.#retentionCache = nextCache;
 	}
 
 	async maybeRetainOnAgentEnd(): Promise<void> {
@@ -332,7 +386,7 @@ export class HindsightSessionState {
 		const messages = extractMessages(this.session.sessionManager);
 		if (messages.length === 0) return;
 		try {
-			await this.retainSession(messages);
+			await this.retainSession(messages, true);
 			this.lastRetainedTurn = messages.filter(m => m.role === "user").length;
 		} catch (err) {
 			logger.warn("Hindsight: forced retain failed", {

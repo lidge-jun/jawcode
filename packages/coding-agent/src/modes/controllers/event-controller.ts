@@ -34,6 +34,7 @@ import { interruptHint } from "../shared";
 import { ringTerminalBell } from "../utils/terminal-bell";
 
 type AgentSessionEventKind = AgentSessionEvent["type"];
+type AgentEndMessages = Extract<AgentSessionEvent, { type: "agent_end" }>["messages"];
 
 const IRC_MESSAGE_VISIBLE_TTL_MS = 10_000;
 const COMPLETION_NOTIFY_COMMAND_TIMEOUT_MS = 10_000;
@@ -849,7 +850,7 @@ export class EventController {
 		}
 	}
 
-	async #handleAgentEnd(_event: Extract<AgentSessionEvent, { type: "agent_end" }>): Promise<void> {
+	async #handleAgentEnd(event: Extract<AgentSessionEvent, { type: "agent_end" }>): Promise<void> {
 		// 260703 WP3b-min: streaming off FIRST (unknown-mux no longer blocks),
 		// then one discrete flush moves deferred history into the scrollback.
 		this.ctx.ui.setStreamingActive?.(false);
@@ -889,7 +890,7 @@ export class EventController {
 		// rebuild made the final response visibly jump. It collapses at the next
 		// prompt submit instead (input-controller), where the screen changes anyway.
 		this.#scheduleIdleCompaction();
-		this.sendCompletionNotification();
+		this.sendCompletionNotification(event.messages);
 	}
 
 	async #handleAutoCompactionStart(
@@ -1160,7 +1161,7 @@ export class EventController {
 		}
 	}
 
-	sendCompletionNotification(): void {
+	sendCompletionNotification(settledMessages?: AgentEndMessages): void {
 		const isBackgrounded = this.ctx.isBackgrounded !== false;
 		const notify = settings.get("completion.notify");
 		if (notify === "off") return;
@@ -1169,7 +1170,9 @@ export class EventController {
 		// errored — those are not "Task complete" events. Mirrors the gate
 		// already used by #currentContextTokens, #handleMessageEnd, and the
 		// retry / TTSR / compaction skip paths across agent-session.ts.
-		const last = this.ctx.session.getLastAssistantMessage?.();
+		const last = settledMessages
+			? settledMessages.findLast((message): message is AssistantMessage => message.role === "assistant")
+			: this.ctx.session.getLastAssistantMessage?.();
 		if (last?.stopReason === "aborted" || last?.stopReason === "error") return;
 
 		const sessionName = this.ctx.sessionManager.getSessionName();

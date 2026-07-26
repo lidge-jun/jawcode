@@ -322,84 +322,87 @@ export async function runInteractiveBashPty(
 		headBytes: resolveOutputSinkHeadBytes(settings),
 		maxColumns: resolveOutputMaxColumns(settings),
 	});
-	const result = await ui.custom<BashInteractiveResult>(
-		(tui, uiTheme, _keybindings, done) => {
-			const session = new PtySession();
-			const component = new BashInteractiveOverlayComponent(options.command, uiTheme, () => tui.terminal.rows);
-			component.setSession(session);
-			let finished = false;
-			const finalize = (run: PtyRunResult) => {
-				if (finished) return;
-				finished = true;
-				component.setComplete({ exitCode: run.exitCode, cancelled: run.cancelled, timedOut: run.timedOut });
-				tui.requestRender();
-				void (async () => {
-					await component.flushOutput();
-					const summary = await sink.dump();
-					done({
-						exitCode: run.exitCode,
-						cancelled: run.cancelled,
-						timedOut: run.timedOut,
-						...summary,
-					});
-				})();
-			};
-			const cols = Math.max(20, tui.terminal.columns - 2);
-			const rows = Math.max(5, tui.terminal.rows - 4);
-			component.setHandlers(
-				data => {
-					try {
-						session.write(data);
-					} catch {
-						// ignore writes after command exits
-					}
-				},
-				() => {
-					try {
-						session.kill();
-					} catch {
-						// ignore
-					}
-				},
-				() => {
-					try {
-						session.kill();
-					} catch {
-						// ignore
-					}
-				},
-			);
-			void session
-				.start(
-					{
-						command: options.command,
-						cwd: options.cwd,
-						timeoutMs: options.timeoutMs,
-						env: {
-							...NON_INTERACTIVE_ENV,
-							...options.env,
+	try {
+		return await ui.custom<BashInteractiveResult>(
+			(tui, uiTheme, _keybindings, done) => {
+				const session = new PtySession();
+				const component = new BashInteractiveOverlayComponent(options.command, uiTheme, () => tui.terminal.rows);
+				component.setSession(session);
+				let finished = false;
+				const finalize = (run: PtyRunResult) => {
+					if (finished) return;
+					finished = true;
+					component.setComplete({ exitCode: run.exitCode, cancelled: run.cancelled, timedOut: run.timedOut });
+					tui.requestRender();
+					void (async () => {
+						await component.flushOutput();
+						const summary = await sink.dump();
+						done({
+							exitCode: run.exitCode,
+							cancelled: run.cancelled,
+							timedOut: run.timedOut,
+							...summary,
+						});
+					})();
+				};
+				const cols = Math.max(20, tui.terminal.columns - 2);
+				const rows = Math.max(5, tui.terminal.rows - 4);
+				component.setHandlers(
+					data => {
+						try {
+							session.write(data);
+						} catch {
+							// ignore writes after command exits
+						}
+					},
+					() => {
+						try {
+							session.kill();
+						} catch {
+							// ignore
+						}
+					},
+					() => {
+						try {
+							session.kill();
+						} catch {
+							// ignore
+						}
+					},
+				);
+				void session
+					.start(
+						{
+							command: options.command,
+							cwd: options.cwd,
+							timeoutMs: options.timeoutMs,
+							env: {
+								...NON_INTERACTIVE_ENV,
+								...options.env,
+							},
+							signal: options.signal,
+							cols,
+							rows,
+							shell: resolvedShell,
 						},
-						signal: options.signal,
-						cols,
-						rows,
-						shell: resolvedShell,
-					},
-					(err, chunk) => {
-						if (finished || err || !chunk) return;
-						component.appendOutput(chunk);
-						const normalizedChunk = normalizeCaptureChunk(chunk);
-						sink.push(normalizedChunk);
-						tui.requestRender();
-					},
-				)
-				.then(finalize)
-				.catch(error => {
-					sink.push(`PTY error: ${error instanceof Error ? error.message : String(error)}\n`);
-					finalize({ exitCode: undefined, cancelled: false, timedOut: false });
-				});
-			return component;
-		},
-		{ overlay: true },
-	);
-	return result;
+						(err, chunk) => {
+							if (finished || err || !chunk) return;
+							component.appendOutput(chunk);
+							const normalizedChunk = normalizeCaptureChunk(chunk);
+							sink.push(normalizedChunk);
+							tui.requestRender();
+						},
+					)
+					.then(finalize)
+					.catch(error => {
+						sink.push(`PTY error: ${error instanceof Error ? error.message : String(error)}\n`);
+						finalize({ exitCode: undefined, cancelled: false, timedOut: false });
+					});
+				return component;
+			},
+			{ overlay: true },
+		);
+	} finally {
+		await sink.dispose();
+	}
 }

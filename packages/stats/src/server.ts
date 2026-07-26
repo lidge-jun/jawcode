@@ -1,6 +1,8 @@
+import type { Dirent } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { $which } from "@jawcode-dev/utils";
 import { $ } from "bun";
 import {
 	getBehaviorDashboardStats,
@@ -32,6 +34,189 @@ const IS_BUN_COMPILED =
 
 const COMPILED_CLIENT_DIR_ROOT = path.join(os.tmpdir(), "gjc-stats-client");
 let compiledClientDirPromise: Promise<string> | null = null;
+const STATS_DASHBOARD_HEADER = "x-jwc-stats-dashboard";
+const STATS_PROBE_TIMEOUT_MS = 500;
+const PROCESS_EXIT_POLL_MS = 50;
+const PROCESS_EXIT_POLLS = 10;
+const RECLAIMABLE_IMAGES = new Set(["bun", "node", "jwc", "jawcode"]);
+
+interface PortHolder {
+	pid: number;
+	image: string;
+}
+
+async function probeStatsDashboard(port: number): Promise<boolean> {
+	try {
+		const response = await fetch(`http://localhost:${port}/api/stats/models`, {
+			signal: AbortSignal.timeout(STATS_PROBE_TIMEOUT_MS),
+		});
+		if (response.status !== 200) {
+			await response.body?.cancel();
+			return false;
+		}
+		if (response.headers.get(STATS_DASHBOARD_HEADER)) {
+			await response.body?.cancel();
+			return true;
+		}
+		if (!(response.headers.get("content-type") ?? "").includes("application/json")) {
+			await response.body?.cancel();
+			return false;
+		}
+		return Array.isArray(await response.json());
+	} catch {
+		return false;
+	}
+}
+
+async function findLinuxPortHolder(port: number): Promise<PortHolder | null> {
+	const socketInodes = new Set<string>();
+	for (const tablePath of ["/proc/net/tcp", "/proc/net/tcp6"]) {
+		let table: string;
+		try {
+			table = await Bun.file(tablePath).text();
+		} catch {
+			continue;
+		}
+		for (const line of table.split("\n").slice(1)) {
+			const fields = line.trim().split(/\s+/);
+			const localAddress = fields[1];
+			const state = fields[3];
+			const inode = fields[9];
+			if (!localAddress || state !== "0A" || !inode) continue;
+			const encodedPort = localAddress.slice(localAddress.lastIndexOf(":") + 1);
+			if (Number.parseInt(encodedPort, 16) === port) socketInodes.add(inode);
+		}
+	}
+	if (socketInodes.size === 0) return null;
+
+	let processes: Dirent[];
+	try {
+		processes = await fs.readdir("/proc", { withFileTypes: true });
+	} catch {
+		return null;
+	}
+	for (const entry of processes) {
+		if (!entry.isDirectory() || !/^\d+$/.test(entry.name)) continue;
+		const pid = Number.parseInt(entry.name, 10);
+		let descriptors: string[];
+		try {
+			descriptors = await fs.readdir(`/proc/${pid}/fd`);
+		} catch {
+			continue;
+		}
+		for (const descriptor of descriptors) {
+			try {
+				const target = await fs.readlink(`/proc/${pid}/fd/${descriptor}`);
+				const match = /^socket:\[(\d+)]$/.exec(target);
+				if (!match?.[1] || !socketInodes.has(match[1])) continue;
+				try {
+					return { pid, image: path.basename(await fs.readlink(`/proc/${pid}/exe`)) };
+				} catch {
+					const commandLine = await Bun.file(`/proc/${pid}/cmdline`).text();
+					const executable = commandLine.split("\0", 1)[0];
+					return { pid, image: executable ? path.basename(executable) : "unknown" };
+				}
+			} catch {}
+		}
+	}
+	return null;
+}
+
+async function findMacPortHolder(port: number): Promise<PortHolder | null> {
+	const lsof = $which("lsof") ?? ((await Bun.file("/usr/sbin/lsof").exists()) ? "/usr/sbin/lsof" : null);
+	if (!lsof) return null;
+	const selector = `-iTCP:${port}`;
+	const result = await $`${lsof} -nP ${selector} -sTCP:LISTEN -Fpc`.quiet().nothrow();
+	if (result.exitCode !== 0) return null;
+	let pid: number | null = null;
+	for (const line of result.text().split("\n")) {
+		if (line.startsWith("p")) {
+			const parsed = Number.parseInt(line.slice(1), 10);
+			pid = Number.isSafeInteger(parsed) ? parsed : null;
+		} else if (line.startsWith("c") && pid !== null) {
+			return { pid, image: line.slice(1) || "unknown" };
+		}
+	}
+	return null;
+}
+
+async function findWindowsPortHolder(port: number): Promise<PortHolder | null> {
+	const netstat = $which("netstat");
+	if (!netstat) return null;
+	const result = await $`${netstat} -ano -p TCP`.quiet().nothrow();
+	if (result.exitCode !== 0) return null;
+	let pid: number | null = null;
+	for (const line of result.text().split("\n")) {
+		const fields = line.trim().split(/\s+/);
+		if (fields[0]?.toUpperCase() !== "TCP" || fields[3]?.toUpperCase() !== "LISTENING") continue;
+		const localAddress = fields[1];
+		if (!localAddress || Number.parseInt(localAddress.slice(localAddress.lastIndexOf(":") + 1), 10) !== port)
+			continue;
+		const parsed = Number.parseInt(fields[4] ?? "", 10);
+		if (Number.isSafeInteger(parsed)) {
+			pid = parsed;
+			break;
+		}
+	}
+	if (pid === null) return null;
+	const tasklist = $which("tasklist");
+	if (!tasklist) return { pid, image: "unknown" };
+	const filter = `PID eq ${pid}`;
+	const task = await $`${tasklist} /FI ${filter} /FO CSV /NH`.quiet().nothrow();
+	if (task.exitCode !== 0) return { pid, image: "unknown" };
+	const imageMatch = /^"((?:[^"]|"")*)"/.exec(task.text().trim());
+	return { pid, image: imageMatch?.[1]?.replaceAll('""', '"') || "unknown" };
+}
+
+async function findPortHolder(port: number): Promise<PortHolder | null> {
+	if (process.platform === "linux") return findLinuxPortHolder(port);
+	if (process.platform === "darwin") return findMacPortHolder(port);
+	if (process.platform === "win32") return findWindowsPortHolder(port);
+	return null;
+}
+
+async function terminatePortHolder(holder: PortHolder): Promise<void> {
+	try {
+		process.kill(holder.pid, "SIGTERM");
+	} catch (error) {
+		if (error instanceof Error && "code" in error && error.code === "ESRCH") return;
+		throw new Error(`Failed to stop ${holder.image} (PID ${holder.pid})`, { cause: error });
+	}
+	for (let attempt = 0; attempt < PROCESS_EXIT_POLLS; attempt++) {
+		await Bun.sleep(PROCESS_EXIT_POLL_MS);
+		try {
+			process.kill(holder.pid, 0);
+		} catch (error) {
+			if (error instanceof Error && "code" in error && error.code === "ESRCH") return;
+			throw new Error(`Failed to inspect ${holder.image} (PID ${holder.pid})`, { cause: error });
+		}
+	}
+	try {
+		process.kill(holder.pid, "SIGKILL");
+	} catch (error) {
+		if (error instanceof Error && "code" in error && error.code === "ESRCH") return;
+		throw new Error(`Failed to kill ${holder.image} (PID ${holder.pid})`, { cause: error });
+	}
+	await Bun.sleep(PROCESS_EXIT_POLL_MS);
+}
+
+async function recoverStatsPort(port: number): Promise<"retry" | "reuse"> {
+	if (await probeStatsDashboard(port)) return "reuse";
+	const holder = await findPortHolder(port);
+	if (!holder) throw new Error(`Port ${port} is in use, but the listening process could not be identified.`);
+	if (holder.pid === process.pid) {
+		throw new Error(`Port ${port} is held by the current process (${holder.image}, PID ${holder.pid}).`);
+	}
+	const normalizedImage = holder.image
+		.toLowerCase()
+		.replace(/\.exe$/, "")
+		.replace(/ \(deleted\)$/, "");
+	if (!RECLAIMABLE_IMAGES.has(normalizedImage)) {
+		throw new Error(`Port ${port} is in use by ${holder.image} (PID ${holder.pid}); refusing to stop it.`);
+	}
+	await terminatePortHolder(holder);
+	return "retry";
+}
 
 function sanitizeArchivePath(archivePath: string): string | null {
 	const normalized = archivePath.replaceAll("\\", "/").replace(/^\.\//, "");
@@ -265,12 +450,7 @@ async function handleStatic(requestPath: string): Promise<Response> {
 	return new Response("Not Found", { status: 404 });
 }
 
-/**
- * Start the HTTP server.
- */
-export async function startServer(port = 3847): Promise<{ port: number; stop: () => void }> {
-	await ensureClientBuild();
-
+function createDashboardServer(port: number) {
 	const server = Bun.serve({
 		hostname: "127.0.0.1",
 		port,
@@ -278,11 +458,12 @@ export async function startServer(port = 3847): Promise<{ port: number; stop: ()
 			const url = new URL(req.url);
 			const path = url.pathname;
 
-			// CORS headers for local development
-			const corsHeaders = {
+			// CORS headers for local development and dashboard identity probing.
+			const corsHeaders: Record<string, string> = {
 				"Access-Control-Allow-Origin": "*",
 				"Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 				"Access-Control-Allow-Headers": "Content-Type",
+				[STATS_DASHBOARD_HEADER]: "1",
 			};
 
 			if (req.method === "OPTIONS") {
@@ -318,8 +499,29 @@ export async function startServer(port = 3847): Promise<{ port: number; stop: ()
 		},
 	});
 
-	return {
-		port: server.port ?? port,
-		stop: () => server.stop(),
-	};
+	return server;
+}
+
+/**
+ * Start the HTTP server, reusing a verified live dashboard or reclaiming a stale JWC runtime.
+ */
+export async function startServer(port = 3847): Promise<{ port: number; stop: () => void }> {
+	await ensureClientBuild();
+
+	try {
+		const server = createDashboardServer(port);
+		return { port: server.port ?? port, stop: () => server.stop() };
+	} catch (error) {
+		if (!(error instanceof Error && "code" in error && error.code === "EADDRINUSE")) throw error;
+		const recovery = await recoverStatsPort(port);
+		if (recovery === "reuse") return { port, stop: () => {} };
+		try {
+			const server = createDashboardServer(port);
+			return { port: server.port ?? port, stop: () => server.stop() };
+		} catch (retryError) {
+			throw new Error(`Failed to start stats dashboard on port ${port} after reclaiming it.`, {
+				cause: retryError,
+			});
+		}
+	}
 }

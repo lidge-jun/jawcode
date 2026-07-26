@@ -71,6 +71,27 @@ export interface WriteToolDetails {
 	meta?: OutputMeta;
 }
 
+const URI_LIKE_WRITE_TARGET_RE = /^([a-z][a-z0-9+.-]*):\/{1,2}(.*)$/i;
+const XD_MISSING_COLON_WRITE_TARGET_RE = /^xd\/{2}(.*)$/i;
+
+function assertWriteTargetAddressable(target: string, router: InternalUrlRouter): void {
+	if (path.win32.isAbsolute(target) || router.canHandle(target)) return;
+
+	const xdMissingColon = target.match(XD_MISSING_COLON_WRITE_TARGET_RE);
+	if (xdMissingColon) {
+		throw new ToolError(
+			`Unknown URI-like write target '${target}'. Did you mean 'xd://${xdMissingColon[1]}'? Prefix the path with './' to write it as a filesystem path.`,
+		);
+	}
+
+	const uriLike = target.match(URI_LIKE_WRITE_TARGET_RE);
+	if (!uriLike) return;
+	const suggestion = uriLike[1]?.toLowerCase().startsWith("xd") ? ` Did you mean 'xd://${uriLike[2]}'?` : "";
+	throw new ToolError(
+		`Unknown URI-like write target '${target}'.${suggestion} Prefix the path with './' to write it as a filesystem path.`,
+	);
+}
+
 /**
  * Strip hashline display prefixes from write content.
  *
@@ -709,6 +730,7 @@ export class WriteTool implements AgentTool<typeof writeSchema, WriteToolDetails
 				}
 				return result;
 			}
+			assertWriteTargetAddressable(path, internalRouter);
 			const resolvedArchivePath = await this.#resolveArchiveWritePath(path);
 			if (resolvedArchivePath) {
 				enforcePlanModeWrite(this.session, resolvedArchivePath.archivePath, {

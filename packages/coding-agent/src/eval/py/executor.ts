@@ -584,6 +584,7 @@ async function executeWithKernel(
 		logger.error("Python execution failed", { error: error.message });
 		throw error;
 	} finally {
+		await sink.dispose();
 		unregisterBridge?.();
 	}
 }

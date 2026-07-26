@@ -11,6 +11,13 @@ import type { AgentSession } from "../session/agent-session";
 import { isSilentAbort } from "../session/messages";
 import { initializeExtensions } from "./runtime-init";
 
+export const PRINT_MODE_DISPOSE_BUDGET_MS = 1_500;
+
+async function disposeWithinBudget(session: AgentSession): Promise<void> {
+	const timeout = Bun.sleep(PRINT_MODE_DISPOSE_BUDGET_MS);
+	await Promise.race([session.dispose(), timeout]);
+}
+
 /**
  * Options for print mode.
  */
@@ -111,6 +118,7 @@ export async function runPrintMode(session: AgentSession, options: PrintModeOpti
 					? formatContextOverflowError(assistantMsg, session.autoCompactionEnabled)
 					: sanitizeText(assistantMsg.errorMessage || `Request ${assistantMsg.stopReason}`);
 				const exitCode = isOverflow ? CONTEXT_OVERFLOW_EXIT_CODE : 1;
+				await disposeWithinBudget(session);
 				const flushed = process.stderr.write(`${errorLine}\n`);
 				if (flushed) {
 					process.exit(exitCode);
@@ -145,5 +153,5 @@ export async function runPrintMode(session: AgentSession, options: PrintModeOpti
 		});
 	});
 
-	await session.dispose();
+	await disposeWithinBudget(session);
 }

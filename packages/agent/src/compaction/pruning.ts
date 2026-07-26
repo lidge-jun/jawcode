@@ -4,6 +4,7 @@
 
 import type { ToolResultMessage } from "@jawcode-dev/ai";
 import type { Encoding } from "@jawcode-dev/natives";
+import { sanitizeText } from "@jawcode-dev/utils";
 import type { AgentMessage } from "../types";
 import { countMessageTokensNative, estimateTokens } from "./compaction";
 import type { SessionEntry, SessionMessageEntry } from "./entries";
@@ -66,7 +67,7 @@ function truncateField(value: string, maxLength: number): string {
 
 function resultDigest(message: ToolResultMessage): string | undefined {
 	const toolName = message.toolName.toLowerCase();
-	const text = firstTextContent(message);
+	const text = sanitizeText(firstTextContent(message));
 	if (toolName === "bash") {
 		const details = asRecord((message as ToolResultMessage & { details?: unknown }).details);
 		const exitCode = typeof details?.exitCode === "number" ? details.exitCode : message.isError ? 1 : 0;
@@ -90,7 +91,15 @@ function resultDigest(message: ToolResultMessage): string | undefined {
 				.join("; ") || "search digest unavailable"
 		);
 	}
-	return undefined;
+	if (message.isError !== true) return undefined;
+	if (text.trim().length === 0) return "error=tool result failed without text";
+	const evidence =
+		firstErrorLine(text) ??
+		text
+			.split(/\r?\n/)
+			.find(line => line.trim().length > 0)
+			?.trim();
+	return evidence ? `error=${evidence}` : undefined;
 }
 
 function createPrunedNotice(tokens: number, message?: ToolResultMessage): string {

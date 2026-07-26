@@ -677,6 +677,8 @@ export class OutputSink {
 	// Queue of chunks waiting for the file sink to be created.
 	#pendingFileWrites?: string[];
 	#fileReady = false;
+	#fileCreation?: Promise<void>;
+	#finalized = false;
 
 	readonly #artifactPath?: string;
 	readonly #artifactId?: string;
@@ -713,6 +715,7 @@ export class OutputSink {
 	 * synchronously. File sink writes are deferred and serialized internally.
 	 */
 	push(chunk: string): void {
+		if (this.#finalized) return;
 		chunk = sanitizeWithOptionalSixelPassthrough(chunk, sanitizeText);
 
 		// Unthrottled raw-chunk hook fires before any throttle/cap gating so
@@ -889,7 +892,7 @@ export class OutputSink {
 		// File sink not yet created — queue this chunk and kick off creation
 		if (!this.#pendingFileWrites) {
 			this.#pendingFileWrites = [chunk];
-			void this.#createFileSink();
+			this.#fileCreation = this.#createFileSink();
 		} else {
 			this.#pendingFileWrites.push(chunk);
 		}
@@ -973,7 +976,7 @@ export class OutputSink {
 		const noticeLine = notice ? `[${notice}]\n` : "";
 		const totalLines = this.#sawData ? this.#totalLines + 1 : 0;
 
-		if (this.#file) await this.#file.sink.end();
+		await this.#finalizeFile();
 
 		// Compose the visible output. With head retention, splice head + marker
 		// + tail when content was elided. Otherwise return the rolling buffer.
@@ -1034,6 +1037,24 @@ export class OutputSink {
 			columnTruncatedLines: this.#columnTruncatedLines > 0 ? this.#columnTruncatedLines : undefined,
 			artifactId: this.#file?.artifactId,
 		};
+	}
+
+	async #finalizeFile(): Promise<void> {
+		if (this.#finalized) return;
+		this.#finalized = true;
+		if (this.#fileCreation) {
+			await this.#fileCreation.catch(() => undefined);
+		}
+		if (!this.#file) return;
+		try {
+			await this.#file.sink.end();
+		} catch {
+			/* ignore disposal failures */
+		}
+	}
+
+	async dispose(): Promise<void> {
+		await this.#finalizeFile();
 	}
 }
 
