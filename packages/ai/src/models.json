@@ -40823,7 +40823,8 @@
 			"reasoning": true,
 			"input": [
 				"text",
-				"image"
+				"image",
+				"video"
 			],
 			"cost": {
 				"input": 0.3,
