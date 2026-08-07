@@ -836,11 +836,23 @@ function writeTerminalBreadcrumb(cwd: string, sessionFile: string): void {
 	write.catch(() => {});
 }
 
+/** What this terminal's breadcrumb points at, and whether that target is on disk yet. */
+interface TerminalBreadcrumbEntry {
+	sessionFile: string;
+	exists: boolean;
+}
+
 /**
  * Read the terminal breadcrumb for the current terminal, scoped to a cwd.
- * Returns the session file path if it exists and matches the cwd, null otherwise.
+ *
+ * Reports a MISSING target rather than hiding it. Session persistence is lazy —
+ * a session's JSONL is not written until an assistant message exists — so a
+ * breadcrumb pointing at a not-yet-materialized file is the normal state right
+ * after `/new`, not a stale pointer. Collapsing that case to `null` made
+ * `continueRecent` fall back to "most recent file in this directory", which is
+ * the transcript the user just cleared.
  */
-async function readTerminalBreadcrumb(cwd: string): Promise<string | null> {
+async function readTerminalBreadcrumbEntry(cwd: string): Promise<TerminalBreadcrumbEntry | null> {
 	const terminalId = getTerminalId();
 	if (!terminalId) return null;
 
@@ -852,13 +864,14 @@ async function readTerminalBreadcrumb(cwd: string): Promise<string | null> {
 
 		const breadcrumbCwd = lines[0];
 		const sessionFile = lines[1];
+		if (!breadcrumbCwd || !sessionFile) return null;
 
-		// Only return if cwd matches (user might have cd'd)
+		// Only honor the breadcrumb for the directory it was written in (the user
+		// may have cd'd); a different project legitimately falls back.
 		if (path.resolve(breadcrumbCwd) !== path.resolve(cwd)) return null;
 
-		// Verify the session file still exists
 		const stat = fs.statSync(sessionFile, { throwIfNoEntry: false });
-		if (stat?.isFile()) return sessionFile;
+		return { sessionFile, exists: stat?.isFile() === true };
 	} catch (err) {
 		if (!isEnoent(err)) logger.debug("Terminal breadcrumb read failed", { err });
 		// Breadcrumb doesn't exist or is corrupt — fall through
@@ -3919,8 +3932,16 @@ export class SessionManager {
 	): Promise<SessionManager> {
 		const dir = sessionDir ?? SessionManager.getDefaultSessionDir(cwd, undefined, storage);
 		// Prefer terminal-scoped breadcrumb (handles concurrent sessions correctly)
-		const terminalSession = await readTerminalBreadcrumb(cwd);
-		const mostRecent = terminalSession ?? (await findMostRecentSession(dir, storage));
+		const breadcrumb = await readTerminalBreadcrumbEntry(cwd);
+		// A breadcrumb whose target has not materialized yet marks a FRESH session:
+		// the user started one (typically via `/new`) and quit before any assistant
+		// output. Falling back to the most recent file on disk would hand back the
+		// transcript they just cleared, so honor the boundary and start clean.
+		const mostRecent = breadcrumb
+			? breadcrumb.exists
+				? breadcrumb.sessionFile
+				: undefined
+			: await findMostRecentSession(dir, storage);
 		const manager = new SessionManager(cwd, dir, true, storage);
 		if (mostRecent) {
 			await manager.#initSessionFile(mostRecent);
