@@ -13,6 +13,20 @@ const UNLISTED_CODEX_SLUGS = new Set(["codex-auto-review"]);
 const DEFAULT_CONTEXT_WINDOW = 272_000;
 const GPT_5_6_CONTEXT_WINDOW = 372_000;
 const DEFAULT_MAX_TOKENS = 128_000;
+/**
+ * Smallest reported context window we are willing to believe.
+ *
+ * `toPositiveInt` accepts anything above zero, so a backend returning a
+ * degraded, truncated or placeholder window was trusted verbatim — a reported
+ * `1` produced a one-token session that cannot hold even the system prompt,
+ * and silently poisoned compaction thresholds and the HUD with no error to
+ * explain it.
+ *
+ * The smallest real model on this transport is `gpt-5.3-codex-spark` at 128K,
+ * so this sits far below every legitimate value: it rejects nonsense without
+ * ever clamping a model that genuinely has a small window.
+ */
+const MIN_PLAUSIBLE_CONTEXT_WINDOW = 8_192;
 const DEFAULT_CODEX_CLIENT_VERSION = "0.99.0";
 const NPM_CODEX_LATEST_URL = "https://registry.npmjs.org/@openai%2Fcodex/latest";
 
@@ -270,9 +284,17 @@ function normalizeCodexModelEntry(entry: unknown, baseUrl: string): NormalizedCo
 	// what the session can actually hold.
 	const reportedWindow = toPositiveInt(payload.context_window);
 	const maxWindow = toPositiveInt(payload.max_context_window);
+	const reportedCapacity = Math.max(reportedWindow ?? 0, maxWindow ?? 0);
+	// Fall back to the model default when nothing was reported OR when what was
+	// reported is too small to be real. Trusting an implausible value is worse
+	// than using the default: the session breaks in a way that looks like a
+	// model problem rather than a discovery problem.
 	const contextWindow =
-		Math.max(reportedWindow ?? 0, maxWindow ?? 0) ||
-		(/^gpt-5\.6(?:-|$)/i.test(slug) ? GPT_5_6_CONTEXT_WINDOW : DEFAULT_CONTEXT_WINDOW);
+		reportedCapacity >= MIN_PLAUSIBLE_CONTEXT_WINDOW
+			? reportedCapacity
+			: /^gpt-5\.6(?:-|$)/i.test(slug)
+				? GPT_5_6_CONTEXT_WINDOW
+				: DEFAULT_CONTEXT_WINDOW;
 	const maxTokens = Math.min(DEFAULT_MAX_TOKENS, contextWindow);
 	const reasoning = supportsReasoning(payload.default_reasoning_level, payload.supported_reasoning_levels);
 	const input = normalizeInputModalities(payload.input_modalities);

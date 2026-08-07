@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Codex model discovery no longer trusts an implausibly small context window. Any positive value the backend reported was accepted as-is, so a degraded or placeholder response could hand back a window of a few hundred tokens — or one — leaving a session that cannot hold even its own system prompt, with compaction thresholds and the context display quietly wrong and nothing pointing at discovery as the cause. Values below a conservative floor now fall back to the model's default. Every real window, including the smallest model on this transport at 128K, is unaffected.
+
 - Switching to an Anthropic model after a turn from another provider on the same API no longer wedges the session. The previous turn's thinking signature was replayed verbatim because the check only compared API, not provider — and several providers speak `anthropic-messages`. Anthropic rejected the request as an invalid signature, and since the offending turn was still the most recent one, every retry failed the same way and the session fell back to another model until something else completed. Signatures from a different provider are now stripped; switching between models from the same provider is unaffected.
 
 ## [0.4.5] - 2026-06-12
