@@ -94,7 +94,7 @@
 | [20.081](./_fin/20/20.081_omp_chase_ai_catalog_stream_auth.md) | AI catalog/stream/auth |
 | [20.082](./20.082_omp_chase_session_context_settings_persistence.md) | session/context/settings |
 | [20.083](./_fin/20/20.083_omp_chase_tool_fs_shell_git_safety.md) | tool/fs/shell/git safety (A-slice만 ①, config/policy는 ②) |
-| [20.087](./20.087_omp_chase_native_diff_search_memory_perf.md) | native diff/search/memory perf |
+| [20.087](./_fin/20/20.087_omp_chase_native_diff_search_memory_perf.md) | native diff/search/memory perf |
 | [20.088](./20.088_omp_chase_release_build_platform_ci.md) | release/build/platform/CI |
 | [20.089](./_fin/20/20.089_omp_chase_runtime_stats_logging_collab.md) | runtime/stats/logging/collab |
 | [20.102](./_fin/20/20.102_omp_chase_error_notifications_terminal_title.md) | error notifications/terminal title |

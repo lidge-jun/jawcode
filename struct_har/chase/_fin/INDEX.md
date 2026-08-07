@@ -1,7 +1,7 @@
 # Chase Finished Index
 
 > Regenerated 2026-07-26 from the actual `struct_har/chase/_fin/10|20` inventory.
-> GJC 96 · OMP 65 · total 161.
+> GJC 96 · OMP 66 · total 162.
 
 ## GJC (96)
 
@@ -104,7 +104,7 @@
 | 10.116 | [10.116_gjc_chase_natives_windows_platform.md](./10/10.116_gjc_chase_natives_windows_platform.md) |
 | 10.117 | [10.117_gjc_chase_ci_release_docs_test_evidence.md](./10/10.117_gjc_chase_ci_release_docs_test_evidence.md) |
 
-## OMP (65)
+## OMP (66)
 
 | id | card |
 | --- | --- |
@@ -167,6 +167,7 @@
 | 20.079 | [20.079_omp_chase_codex_lite_telemetry.md](./20/20.079_omp_chase_codex_lite_telemetry.md) |
 | 20.081 | [20.081_omp_chase_ai_catalog_stream_auth.md](./20/20.081_omp_chase_ai_catalog_stream_auth.md) |
 | 20.083 | [20.083_omp_chase_tool_fs_shell_git_safety.md](./20/20.083_omp_chase_tool_fs_shell_git_safety.md) |
+| 20.087 | [20.087_omp_chase_native_diff_search_memory_perf.md](./20/20.087_omp_chase_native_diff_search_memory_perf.md) |
 | 20.089 | [20.089_omp_chase_runtime_stats_logging_collab.md](./20/20.089_omp_chase_runtime_stats_logging_collab.md) |
 | 20.102 | [20.102_omp_chase_error_notifications_terminal_title.md](./20/20.102_omp_chase_error_notifications_terminal_title.md) |
 | 20.107 | [20.107_omp_chase_compaction_retry_history_resilience.md](./20/20.107_omp_chase_compaction_retry_history_resilience.md) |

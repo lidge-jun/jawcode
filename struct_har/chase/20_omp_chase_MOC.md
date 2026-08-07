@@ -138,7 +138,7 @@
 | 20.084 | [`omp_chase_task_subagent_advisor_launch`](./20.084_omp_chase_task_subagent_advisor_launch.md) | ⬜ | P1 | task/subagent/advisor/launch (split, C) | `b0d04e517..v17.0.8` |
 | 20.085 | [`omp_chase_tui_render_input_markdown`](./20.085_omp_chase_tui_render_input_markdown.md) | ⬜ | P2 | TUI/render/input/Markdown (track-only, B) | `b0d04e517..v17.0.8` |
 | 20.086 | [`omp_chase_extensions_mcp_lsp_dap_browser`](./20.086_omp_chase_extensions_mcp_lsp_dap_browser.md) | ⬜ | P2 | extensions/MCP/LSP/DAP/browser (split, C) | `b0d04e517..v17.0.8` |
-| 20.087 | [`omp_chase_native_diff_search_memory_perf`](./20.087_omp_chase_native_diff_search_memory_perf.md) | ⬜ | P2 | native diff/search/memory perf (adapt, A) | `b0d04e517..v17.0.8` |
+| 20.087 | [omp_chase_native_diff_search_memory_perf](./_fin/20/20.087_omp_chase_native_diff_search_memory_perf.md) | ✅ **_fin** — ADAPT partial; residual: 22 named gaps + 2 NEEDS_HUMAN | P2 | native diff/search/memory perf (adapt, A) | `b0d04e517..v17.0.8` |
 | 20.088 | [`omp_chase_release_build_platform_ci`](./20.088_omp_chase_release_build_platform_ci.md) | ⬜ | P2 | release/build/platform/CI (adapt, A) | `b0d04e517..v17.0.8` |
 | 20.089 | [omp_chase_runtime_stats_logging_collab](./_fin/20/20.089_omp_chase_runtime_stats_logging_collab.md) | ✅ **_fin** — ADAPT partial; residual: 5 named operational gaps | P2 | runtime/stats/logging/collab (adapt, A) | `b0d04e517..v17.0.8` |
 | 20.090 | [`omp_chase_robomp_swarm_reference`](./20.090_omp_chase_robomp_swarm_reference.md) | ⬜ | P3 | robomp/swarm reference (track-only, B) | `b0d04e517..v17.0.8` |
