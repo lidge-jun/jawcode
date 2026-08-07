@@ -355,6 +355,22 @@ export type AgentSessionEventListener = (event: AgentSessionEvent) => void;
  * provider, model and the error identifiers makes recurring failures
  * diagnosable from the log alone. Non-error stops emit nothing.
  */
+/**
+ * True when a `todo_write` result carries an OLDER view than the live state.
+ *
+ * Result handling is asynchronous, so a later call in the same batch can commit
+ * before an earlier call's result is processed. Applying that earlier snapshot
+ * would roll back completions. Counting tasks is enough to catch the rollback
+ * without rejecting legitimate updates that add or complete work.
+ */
+export function isStaleTodoReplay(current: TodoPhase[], incoming: TodoPhase[]): boolean {
+	const countTasks = (phases: TodoPhase[]): number => phases.reduce((total, phase) => total + phase.tasks.length, 0);
+	const countCompleted = (phases: TodoPhase[]): number =>
+		phases.reduce((total, phase) => total + phase.tasks.filter(task => task.status === "completed").length, 0);
+	if (countTasks(incoming) < countTasks(current)) return true;
+	return countCompleted(incoming) < countCompleted(current);
+}
+
 export function logProviderTurnError(message: AssistantMessage): void {
 	if (message.stopReason !== "error") return;
 	logger.warn("agent turn ended with provider error", {
@@ -2361,8 +2377,19 @@ export class AgentSession {
 				if (toolName === "edit" && details?.path) {
 					this.#invalidateFileCacheForPath(details.path);
 				}
+				// `todo_write` commits its phases during execute(), but the tool may hold
+				// a DIFFERENT session object than this one (the SDK wires a `ToolSession`
+				// facade), so this result is the only bridge back for those callers.
+				//
+				// It is applied only when it does not shrink the live state: result
+				// handling is asynchronous, so a newer call in the same batch can already
+				// have committed, and replaying an older snapshot over it would silently
+				// undo completions the model just made.
 				if (toolName === "todo_write" && !isError && Array.isArray(details?.phases)) {
-					this.setTodoPhases(details.phases);
+					const incoming = details.phases;
+					if (!isStaleTodoReplay(this.getTodoPhases(), incoming)) {
+						this.setTodoPhases(incoming);
+					}
 				}
 				if (toolName === "todo_write" && isError) {
 					const errorText = content?.find(part => part.type === "text")?.text;
