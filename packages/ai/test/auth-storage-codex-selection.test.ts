@@ -367,6 +367,65 @@ describe("AuthStorage codex oauth ranking", () => {
 		expect(apiKey).toBe("api-acct-pro");
 	});
 
+	test("keeps a plan-gated session on its sticky account when headroom flips", async () => {
+		// A Pro-gated model always re-ranks, and ranking mixes a stable session
+		// hash with usage-derived weights. When 5h/7d headroom flips between two
+		// eligible Pro accounts, the same session hash can land on the sibling and
+		// overwrite the sticky binding — visible as /usage alternating accounts
+		// mid-session, with a cold-started prompt cache each time.
+		if (!authStorage) throw new Error("test setup failed");
+		const storage = authStorage;
+
+		await storage.set("openai-codex", [
+			{ type: "oauth", ...createCredential("acct-first", "first@example.com") },
+			{ type: "oauth", ...createCredential("acct-second", "second@example.com") },
+		]);
+
+		// Usage reports are TTL-cached, so the clock has to advance past the TTL
+		// for the second call to re-rank at all — otherwise it just replays the
+		// first ranking and the test proves nothing.
+		const base = Date.now();
+		let clockOffset = 0;
+		vi.spyOn(Date, "now").mockImplementation(() => base + clockOffset);
+
+		// `secondaryUsed` is the first usage key the ranker sorts on, so flipping
+		// it is what actually reorders the candidates.
+		const setUsage = (firstSecondary: number, secondSecondary: number): void => {
+			for (const [accountId, secondary] of [
+				["acct-first", firstSecondary],
+				["acct-second", secondSecondary],
+			] as const) {
+				const report = createCodexUsageReport({
+					accountId,
+					primary: { usedFraction: 0.2, resetInMs: 30 * 60 * 1000 },
+					secondary: { usedFraction: secondary, resetInMs: 6 * 24 * 60 * 60 * 1000 },
+				});
+				report.metadata = { ...report.metadata, planType: "pro" };
+				usageByAccount.set(accountId, report);
+			}
+		};
+
+		// First request establishes the sticky binding on the account with more
+		// headroom.
+		setUsage(0.1, 0.6);
+		const first = await storage.getApiKey("openai-codex", "session-spark-sticky", {
+			modelId: "gpt-5.3-codex-spark",
+		});
+		expect(first).toBe("api-acct-first");
+
+		// Headroom now favors the sibling, so ranking alone would move the session.
+		// It must not: switching mid-session cold-starts the server-side prompt
+		// cache for no benefit.
+		setUsage(0.6, 0.1);
+		// Far enough to expire the usage cache, but well inside the stickiness
+		// warm window so the pin is still meant to hold.
+		clockOffset = 20 * 60 * 1000;
+		const second = await storage.getApiKey("openai-codex", "session-spark-sticky", {
+			modelId: "gpt-5.3-codex-spark",
+		});
+		expect(second).toBe("api-acct-first");
+	});
+
 	test("routes codex spark to a single Plus account when no Pro is connected", async () => {
 		if (!authStorage) throw new Error("test setup failed");
 

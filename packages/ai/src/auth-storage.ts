@@ -2635,17 +2635,6 @@ export class AuthStorage {
 					.filter((selection): selection is { credential: OAuthCredential; index: number } => Boolean(selection))
 					.map(selection => ({ selection, usage: null, usageChecked: false }));
 
-		if (!shouldRank && sessionPreferredIndex !== undefined && !requiresProModel) {
-			const sessionPreferredCandidate = candidates.findIndex(
-				candidate =>
-					!this.#isCredentialBlocked(providerKey, candidate.selection.index) &&
-					candidate.selection.index === sessionPreferredIndex,
-			);
-			if (sessionPreferredCandidate > 0) {
-				const [preferred] = candidates.splice(sessionPreferredCandidate, 1);
-				candidates.unshift(preferred);
-			}
-		}
 		await Promise.all(
 			candidates.map(async candidate => {
 				if (Date.now() + OAUTH_REFRESH_SKEW_MS < candidate.selection.credential.expires) return;
@@ -2677,6 +2666,35 @@ export class AuthStorage {
 		// non-Pro accounts can still attempt Spark requests (e.g. trial/grandfathered access).
 		const enforceProRequirement =
 			requiresProModel && candidates.some(candidate => hasOpenAICodexProPlan(candidate.usage));
+
+		// Promote the session's sticky account back to the front AFTER ranking.
+		//
+		// A Pro-gated model always ranks (`requiresProModel` forces it), and
+		// ranking mixes a stable session hash with usage-derived weights — so when
+		// 5h/7d headroom flips between two eligible accounts, the same session hash
+		// lands on the sibling and the sticky binding is overwritten. That shows up
+		// as `/usage` alternating accounts mid-session and a cold-started prompt
+		// cache. Promoting here keeps the session on its account unless that
+		// account is blocked, or is ineligible while the Pro filter is actually
+		// being enforced.
+		//
+		// Gated on `sessionPreferredIsWarm`: an idle-expired pin deliberately
+		// re-ranks (the Anthropic 1h prompt-cache window), and promoting there
+		// would defeat the very re-ranking that window exists to allow.
+		if (sessionPreferredIndex !== undefined && sessionPreferredIsWarm) {
+			const sessionPreferredCandidate = candidates.findIndex(
+				candidate =>
+					!this.#isCredentialBlocked(providerKey, candidate.selection.index) &&
+					candidate.selection.index === sessionPreferredIndex,
+			);
+			if (sessionPreferredCandidate > 0) {
+				const preferred = candidates[sessionPreferredCandidate];
+				if (preferred && (!enforceProRequirement || hasOpenAICodexProPlan(preferred.usage))) {
+					candidates.splice(sessionPreferredCandidate, 1);
+					candidates.unshift(preferred);
+				}
+			}
+		}
 
 		const fallback = candidates[0];
 
