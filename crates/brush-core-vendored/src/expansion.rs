@@ -719,12 +719,62 @@ impl<'a, SE: extensions::ShellExtensions> WordExpander<'a, SE> {
 
 		tracing::debug!(target: trace_categories::EXPANSION, "Brace expansion pieces: {brace_expansion_pieces:?}");
 
-		let result = braceexpansion::generate_and_combine_brace_expansions(brace_expansion_pieces)
+		let expanded: Vec<String> =
+			braceexpansion::generate_and_combine_brace_expansions(brace_expansion_pieces)
+				.into_iter()
+				.map(|s| if s.is_empty() { "\"\"".into() } else { s })
+				.collect();
+
+		// Every brace result is its own word, so a leading `~` in ANY of them is at
+		// word start and must expand. Joining first and letting the parser see one
+		// string meant only the leading result qualified, so `~/{a,b}` produced
+		// `/home/u/a ~/b` where bash produces `/home/u/a /home/u/b`. Expand each
+		// piece's tilde prefix here, before the pieces are joined back together.
+		let result = expanded
 			.into_iter()
-			.map(|s| if s.is_empty() { "\"\"".into() } else { s })
+			.enumerate()
+			.map(|(index, piece)| {
+				// The first word keeps the parser's own word-start handling; only the
+				// subsequent ones lost it by being joined.
+				if index == 0 {
+					piece
+				} else {
+					self.expand_leading_tilde(piece)
+				}
+			})
 			.join(" ");
 
 		Ok(result.into())
+	}
+
+	/// Expand a leading `~` prefix in a brace-generated word.
+	///
+	/// Mirrors the parser's word-start rule: the prefix runs to the first `/`
+	/// (or the end of the word), and anything quoted or not starting with `~` is
+	/// returned untouched. A tilde that cannot be resolved is also left as-is,
+	/// matching shell behavior of passing an unresolvable `~user` through
+	/// literally.
+	fn expand_leading_tilde(&self, word: String) -> String {
+		if !self.parser_options.tilde_expansion_at_word_start || !word.starts_with('~') {
+			return word;
+		}
+		let (prefix, rest) = match word.find('/') {
+			Some(slash) => (&word[..slash], &word[slash..]),
+			None => (word.as_str(), ""),
+		};
+		let Ok(parsed) = brush_parser::word::parse(prefix, &self.parser_options) else {
+			return word;
+		};
+		let [only] = parsed.as_slice() else {
+			return word;
+		};
+		let brush_parser::word::WordPiece::TildeExpansion(tilde_expr) = &only.piece else {
+			return word;
+		};
+		match self.expand_tilde_expression(tilde_expr) {
+			Ok(home) => format!("{home}{rest}"),
+			Err(_) => word,
+		}
 	}
 
 	/// Apply tilde-expansion, parameter expansion, command substitution, and

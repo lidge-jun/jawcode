@@ -15,6 +15,7 @@
 - Extensions can now block the `resolve` tool like any other. It was added to the tool registry after the pass that wraps every tool for extension hooks, so it was the one entry that never fired the `tool_call` event — an extension that denies a call was simply not consulted for it.
 - OTLP log export now uses the logger provider JWC configures rather than the global one. `setGlobalLoggerProvider` keeps whatever provider was registered first, so in a host that had already set up OpenTelemetry — the normal order for an embedder — JWC's logs were emitted through someone else's provider, bypassing the exporter, resource and batch processor it had just built.
 - Codex web search now uses the endpoint configured for your `openai-codex` model instead of always calling `chatgpt.com`. Chat already honored a custom base URL, so anyone pointing the provider at a proxy or enterprise gateway had it respected for conversation and silently ignored for search, which sent their token to the vendor default. The endpoint is only adopted when the active session model is itself a Codex model.
+- `~` now expands in every word a brace expansion produces. `echo ~/{a,b}` used to yield `/home/you/a ~/b`, leaving every path after the first as a literal `~` — so a command like `cp ~/{one,two} dest` quietly operated on a directory actually named `~` instead of your home directory. Behavior is now identical to bash, including quoting and non-tilde brace expansions.
 
 ## [1.0.0] - 2026-06-16
 
