@@ -9,6 +9,7 @@
 - Fixed a stale-state replay that could roll back todo progress: `todo_write` results are now ordered by a monotonic revision rather than by comparing list sizes, so a late-arriving earlier result no longer resurrects completed tasks and a legitimate `rm`/`drop` is no longer discarded for making the list smaller.
 - The working directory reported to the model in the system prompt is now the absolute path rather than a `~`-shortened one, so tools that consume it resolve against the real location.
 - Calling `Settings.init()` a second time with a different `cwd`, `agentDir`, `inMemory` flag or overrides now logs a warning naming the conflicting fields instead of discarding them in silence. Embedders that pointed at one project and transparently got another had no way to see it. The singleton stays first-wins, and a bare `Settings.init()` — which means "use whatever is configured" — is still silent.
+- `/share` no longer leaves your full session transcript world-readable. The HTML export was written to a predictable path directly in the shared temp directory with default permissions, so on a multi-user machine any local account could read the whole conversation while the share was in flight. The export is now staged in an owner-only directory, created so an attacker-planted file cannot be reused, and the directory is removed afterwards. Cancelling a share also no longer deletes the export while `gh` is still uploading it, which previously let a cancelled share publish anyway.
 
 ## [1.0.0] - 2026-06-16
 

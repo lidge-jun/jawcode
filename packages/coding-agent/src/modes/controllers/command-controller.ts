@@ -117,20 +117,33 @@ export class CommandController {
 	}
 
 	async handleShareCommand(): Promise<void> {
-		const tmpFile = path.join(os.tmpdir(), `${Snowflake.next()}.html`);
-		const cleanupTempFile = async () => {
-			try {
-				await fs.rm(tmpFile, { force: true });
-			} catch {
-				// Ignore cleanup errors
-			}
-		};
+		// The export is the FULL session transcript. Writing it to a predictable
+		// path in the shared temp dir left it world-readable (Bun.write under the
+		// default umask yields 0644), so on a multi-user host every local account
+		// could read the conversation for as long as the share ran. Stage it in an
+		// owner-only directory instead, and create the file O_EXCL so a
+		// pre-created path cannot be hijacked.
+		let stagingDir: string;
+		let tmpFile: string;
 		try {
+			stagingDir = await fs.mkdtemp(path.join(os.tmpdir(), `${APP_NAME}-share-`));
+			if (process.platform !== "win32") await fs.chmod(stagingDir, 0o700);
+			tmpFile = path.join(stagingDir, "session.html");
+			const handle = await fs.open(tmpFile, "wx", 0o600);
+			await handle.close();
 			await this.ctx.session.exportToHtml(tmpFile);
+			if (process.platform !== "win32") await fs.chmod(tmpFile, 0o600);
 		} catch (error: unknown) {
 			this.ctx.showError(`Failed to export session: ${error instanceof Error ? error.message : "Unknown error"}`);
 			return;
 		}
+		const cleanupTempFile = async () => {
+			try {
+				await fs.rm(stagingDir, { force: true, recursive: true });
+			} catch {
+				// Ignore cleanup errors
+			}
+		};
 
 		try {
 			const customShare = await loadCustomShare();
@@ -197,22 +210,34 @@ export class CommandController {
 		this.ctx.ui.setFocus(loader);
 		this.ctx.ui.requestRender();
 
-		const restoreEditor = async () => {
+		const restoreEditorUi = () => {
 			loader.dispose();
 			this.ctx.editorContainer.clear();
 			this.ctx.editorContainer.addChild(this.ctx.editor);
 			this.ctx.ui.setFocus(this.ctx.editor);
+		};
+
+		const restoreEditor = async () => {
+			restoreEditorUi();
 			await cleanupTempFile();
 		};
 
+		// Cancellation restores the UI immediately, but must NOT delete the
+		// staging directory: `gh gist create` still holds the path and would
+		// happily publish the transcript after the user cancelled. The gist
+		// promise below owns cleanup once the child has actually exited.
 		loader.onAbort = () => {
-			void restoreEditor();
+			restoreEditorUi();
 			this.ctx.showStatus("Share cancelled");
 		};
 
 		try {
 			const result = await $`gh gist create --public=false ${tmpFile}`.quiet().nothrow();
-			if (loader.signal.aborted) return;
+			if (loader.signal.aborted) {
+				// The child has exited, so the export can finally be released.
+				await cleanupTempFile();
+				return;
+			}
 
 			await restoreEditor();
 
@@ -236,6 +261,8 @@ export class CommandController {
 			if (!loader.signal.aborted) {
 				await restoreEditor();
 				this.ctx.showError(`Failed to create gist: ${error instanceof Error ? error.message : "Unknown error"}`);
+			} else {
+				await cleanupTempFile();
 			}
 		}
 	}
