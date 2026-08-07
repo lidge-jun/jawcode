@@ -11,7 +11,7 @@
  * surviving buffer is the capped tail, so a multi-megabyte producer must still yield a
  * small result.
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, vi } from "bun:test";
 import { exec, NonZeroExitError, spawn } from "../src/ptree";
 
 /**
@@ -42,13 +42,14 @@ describe("ptree stderr retention", () => {
 		expect(result.stderr.length).toBeGreaterThan(0);
 	});
 
-	it("throws when full stderr is demanded but was not requested at spawn", async () => {
+	it("rejects when full stderr is demanded but was not requested at spawn", async () => {
 		// No `using` here: disposal would cancel the child while the rejection is still
 		// in flight and mask the error under test.
 		const child = spawn(noisyStderr(4, 16));
+		// `wait` is async, so callers see a rejected promise rather than a sync throw.
 		// Loud failure beats silently handing back a truncated tail for an explicit
 		// no-data-loss request.
-		expect(() => child.wait({ stderr: "full" })).toThrow(/Full stderr capture must be requested/);
+		await expect(child.wait({ stderr: "full" })).rejects.toThrow(/Full stderr capture must be requested/);
 		await child.wait();
 	});
 
@@ -71,6 +72,34 @@ describe("ptree stderr retention", () => {
 
 		expect(result.exitCode).toBe(0);
 		expect(result.stderr.length).toBe(lines * (size + 1));
+	});
+
+	it("never tees an exposed stderr stream for exec", async () => {
+		// The tee is the second unbounded buffer: exec would never read the exposed
+		// side, so forwarding stderr into the spawn options would reintroduce the leak
+		// by another route. Output assertions cannot see that, so watch the tee itself.
+		const teeSpy = vi.spyOn(ReadableStream.prototype, "tee");
+		try {
+			const result = await exec(noisyStderr(64, 128), { stderr: "full" });
+			expect(result.exitCode).toBe(0);
+			expect(teeSpy).not.toHaveBeenCalled();
+		} finally {
+			teeSpy.mockRestore();
+		}
+	});
+
+	it("exposes stderr without retaining raw chunks in stream mode", async () => {
+		// The long-lived RPC/MCP/SSH shape: consume the stream directly, never call
+		// wait({stderr:"full"}), and pay no retention cost.
+		// No `using`: disposal would cancel the child while the rejection below is still
+		// in flight and mask the assertion.
+		const child = spawn(noisyStderr(256, 1024), { stderr: "stream" });
+		expect(child.stderr).toBeDefined();
+		const streamed = await new Response(child.stderr).text();
+		expect(streamed.length).toBe(256 * 1025);
+
+		await expect(child.wait({ stderr: "full" })).rejects.toThrow(/Full stderr capture must be requested/);
+		await child.wait();
 	});
 
 	it("still bounds exec stderr when full capture is not requested", async () => {

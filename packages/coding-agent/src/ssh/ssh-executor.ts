@@ -82,7 +82,9 @@ export async function executeSSH(
 		signal: options?.signal,
 		timeout: options?.timeout,
 		stdin: "pipe",
-		stderr: "full",
+		// Stream-only: stderr is piped straight into the OutputSink below, so retaining
+		// raw chunks for a `wait({ stderr: "full" })` that never happens is pure waste.
+		stderr: "stream",
 	});
 
 	const settings = await Settings.init();

@@ -227,7 +227,9 @@ export class RpcClient {
 			cwd: this.options.cwd,
 			env: { ...Bun.env, ...this.options.env },
 			stdin: "pipe",
-			stderr: "full",
+			// Stream-only: the startup probe below reads `child.stderr` directly and this
+			// process is long-lived, so retaining every raw chunk would grow unboundedly.
+			stderr: "stream",
 		});
 		const startupStderrPromise = this.#process.stderr
 			? new Response(this.#process.stderr).text().catch(() => "")

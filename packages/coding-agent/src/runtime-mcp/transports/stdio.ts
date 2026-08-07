@@ -64,7 +64,9 @@ export class StdioTransport implements MCPTransport {
 			cwd: this.config.cwd ?? getProjectDir(),
 			env,
 			stdin: "pipe",
-			stderr: "full",
+			// Stream-only: `#startStderrLoop` reads the stream directly and MCP servers are
+			// long-lived, so retaining raw chunks nobody reads would grow unboundedly.
+			stderr: "stream",
 			name: `mcp:${this.config.command}`,
 		});
 

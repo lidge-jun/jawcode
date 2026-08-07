@@ -19,7 +19,7 @@ export interface SpawnOwnedOptions<In extends OwnedStdin = OwnedStdin> {
 	cwd?: string;
 	env?: Record<string, string | undefined>;
 	stdin?: In;
-	stderr?: "full" | null;
+	stderr?: "full" | "stream" | null;
 	signal?: AbortSignal;
 	gracefulMs?: number;
 	processGroup?: boolean;

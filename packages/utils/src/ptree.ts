@@ -344,7 +344,13 @@ type ChildSpawnOptions<In extends InMask = InMask> = Omit<
 > & {
 	signal?: AbortSignal;
 	detached?: boolean;
-	stderr?: "full" | null;
+	/**
+	 * `"full"`  — expose `child.stderr` AND retain raw chunks for `wait({ stderr: "full" })`.
+	 * `"stream"` — expose `child.stderr` only. Use this for long-lived processes that
+	 *              consume the stream themselves (RPC/MCP/SSH): retaining chunks nobody
+	 *              reads grows memory for the life of the process.
+	 */
+	stderr?: "full" | "stream" | null;
 };
 
 /**
@@ -366,7 +372,7 @@ function spawnInternal<In extends InMask = InMask>(
 		windowsHide: true,
 		...rest,
 	});
-	const cp = new ChildProcess(child, stderr === "full", retainFullStderr);
+	const cp = new ChildProcess(child, stderr === "full" || stderr === "stream", retainFullStderr);
 	if (signal) cp.attachSignal(signal);
 	if (timeout > 0) cp.attachTimeout(timeout);
 	return cp;
