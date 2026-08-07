@@ -8,6 +8,7 @@
 - Fixed streamed carriage-return handling in the CLI output sink: progress updates that end with a bare `\r` now close their line instead of being swallowed at end of stream, and carriage returns inside a sixel image payload are left untouched rather than rewritten as line boundaries.
 - Fixed a stale-state replay that could roll back todo progress: `todo_write` results are now ordered by a monotonic revision rather than by comparing list sizes, so a late-arriving earlier result no longer resurrects completed tasks and a legitimate `rm`/`drop` is no longer discarded for making the list smaller.
 - The working directory reported to the model in the system prompt is now the absolute path rather than a `~`-shortened one, so tools that consume it resolve against the real location.
+- Calling `Settings.init()` a second time with a different `cwd`, `agentDir`, `inMemory` flag or overrides now logs a warning naming the conflicting fields instead of discarding them in silence. Embedders that pointed at one project and transparently got another had no way to see it. The singleton stays first-wins, and a bare `Settings.init()` — which means "use whatever is configured" — is still silent.
 
 ## [1.0.0] - 2026-06-16
 

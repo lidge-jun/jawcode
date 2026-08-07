@@ -249,8 +249,24 @@ export class Settings {
 	 * Call once at startup before accessing `settings`.
 	 */
 	static init(options: SettingsOptions = {}): Promise<Settings> {
-		if (globalInstancePromise) return globalInstancePromise;
+		if (globalInstancePromise) {
+			const conflicts = conflictingSettingsOptions(globalInitOptions ?? {}, options);
+			if (conflicts.length > 0) {
+				// The singleton is intentionally first-wins: returning a second
+				// instance would split the config the rest of the process reads.
+				// But dropping a caller's explicit cwd/agentDir in silence means an
+				// embedder points at one project and transparently gets another, so
+				// say so once instead of failing invisibly.
+				logger.warn("Settings.init called again with conflicting options; keeping the existing instance", {
+					conflicts,
+					initialOptions: globalInitOptions,
+					requestedOptions: options,
+				});
+			}
+			return globalInstancePromise;
+		}
 
+		globalInitOptions = { ...options };
 		const instance = new Settings(options);
 		const promise = instance.#load();
 		globalInstancePromise = promise;
@@ -1020,6 +1036,39 @@ export function onAppendOnlyModeChanged(cb: (value: string) => void): () => void
 
 let globalInstance: Settings | null = null;
 let globalInstancePromise: Promise<Settings> | null = null;
+/** Options the winning `Settings.init()` call was made with. */
+let globalInitOptions: SettingsOptions | null = null;
+
+/**
+ * Names of the options whose values a later `Settings.init()` call would lose.
+ *
+ * A LATER caller that omits a field is not in conflict: `Settings.init()` with
+ * no arguments means "whatever is already configured", and 17 call sites do
+ * exactly that. Only a field the later caller explicitly set to a different
+ * value is a real conflict, so comparing whole option objects — by
+ * `JSON.stringify` or otherwise — would warn on ordinary startup.
+ */
+function conflictingSettingsOptions(initial: SettingsOptions, requested: SettingsOptions): string[] {
+	const conflicts: string[] = [];
+	for (const key of Object.keys(requested) as Array<keyof SettingsOptions>) {
+		const requestedValue = requested[key];
+		if (requestedValue === undefined) continue;
+		if (!sameSettingsOptionValue(initial[key], requestedValue)) conflicts.push(key);
+	}
+	return conflicts;
+}
+
+/** Structural comparison, so `overrides` is compared by content rather than identity. */
+function sameSettingsOptionValue(a: unknown, b: unknown): boolean {
+	if (a === b) return true;
+	if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+	const aKeys = Object.keys(a as Record<string, unknown>).sort();
+	const bKeys = Object.keys(b as Record<string, unknown>).sort();
+	if (aKeys.length !== bKeys.length || aKeys.some((key, index) => key !== bKeys[index])) return false;
+	return aKeys.every(key =>
+		sameSettingsOptionValue((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]),
+	);
+}
 
 export function isSettingsInitialized(): boolean {
 	return globalInstance !== null;
@@ -1033,6 +1082,7 @@ export function resetSettingsForTest(): void {
 	globalInstance?.cancelPendingSavesForTest();
 	globalInstance = null;
 	globalInstancePromise = null;
+	globalInitOptions = null;
 }
 
 /**
