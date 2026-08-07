@@ -1570,7 +1570,17 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 		} else if (!toolRegistry.has("resolve")) {
 			const resolveTool = await logger.time("createTools:resolve:session", HIDDEN_TOOLS.resolve, toolSession);
 			if (resolveTool) {
-				toolRegistry.set(resolveTool.name, wrapToolWithMetaNotice(resolveTool));
+				// This insert happens AFTER the pass above that wraps the whole
+				// registry, so it has to construct the wrapper itself. Without it
+				// `resolve` is the one registry entry that never fires the extension
+				// `tool_call` hook — and Cursor's exec handlers resolve straight out of
+				// this registry, so an extension that blocks the call is simply not
+				// consulted.
+				const noticed = wrapToolWithMetaNotice(resolveTool);
+				toolRegistry.set(
+					resolveTool.name,
+					extensionRunner ? (new ExtensionToolWrapper(noticed, extensionRunner) as unknown as Tool) : noticed,
+				);
 			}
 		}
 
