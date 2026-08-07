@@ -728,6 +728,21 @@ export class OutputSink {
 	 * ends the chunk is held until the next one, because the matching LF may simply
 	 * not have arrived yet — emitting eagerly there produces a blank line.
 	 */
+	/**
+	 * Emit the line boundary for a carriage return that ended the stream.
+	 *
+	 * The CR was held in case its LF arrived in the next chunk. At finalization
+	 * there is no next chunk, so dropping it would swallow the last progress
+	 * update entirely.
+	 */
+	#flushPendingCarriageReturn(): void {
+		if (!this.#pendingCarriageReturn) return;
+		this.#pendingCarriageReturn = false;
+		// Route through the normal path so buffer accounting, the tail window and
+		// the onChunk hook all see it exactly like any other output.
+		this.push(NL);
+	}
+
 	#normalizeCarriageReturns(text: string): string {
 		if (text.length === 0 || (!this.#pendingCarriageReturn && !text.includes(CR))) return text;
 
@@ -760,12 +775,15 @@ export class OutputSink {
 
 	push(chunk: string): void {
 		if (this.#finalized) return;
-		// Before sanitizing: `sanitizeText` DELETES a lone carriage return, which
-		// silently glues progress updates together ("50%\r75%\r100%" arrives as
-		// "50%75%100%"). Convert them to line boundaries first so the user sees the
-		// steps, while CRLF still collapses to a single newline.
-		chunk = this.#normalizeCarriageReturns(chunk);
-		chunk = sanitizeWithOptionalSixelPassthrough(chunk, sanitizeText);
+		// `sanitizeText` DELETES a lone carriage return, which silently glues
+		// progress updates together ("50%\r75%\r100%" arrives as "50%75%100%"), so
+		// CR is converted to a line boundary first.
+		//
+		// This runs INSIDE the sanitize callback, not before it: the sixel
+		// passthrough tokenizes image sequences out of the text first, and those
+		// payloads legitimately contain CR. Normalizing ahead of tokenization
+		// rewrites binary image data.
+		chunk = sanitizeWithOptionalSixelPassthrough(chunk, text => sanitizeText(this.#normalizeCarriageReturns(text)));
 
 		// Unthrottled raw-chunk hook fires before any throttle/cap gating so
 		// downstream consumers (e.g. AsyncJobManager.appendOutput) can record
@@ -1022,6 +1040,10 @@ export class OutputSink {
 	}
 
 	async dump(notice?: string): Promise<OutputSummary> {
+		// A carriage return held back for a possible split CRLF has no successor
+		// now, so emit its line boundary rather than dropping the final progress
+		// update ("a\r" must not arrive as "a").
+		this.#flushPendingCarriageReturn();
 		const noticeLine = notice ? `[${notice}]\n` : "";
 		const totalLines = this.#sawData ? this.#totalLines + 1 : 0;
 

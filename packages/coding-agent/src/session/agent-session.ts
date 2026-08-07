@@ -347,6 +347,64 @@ function isUnderProjectJwc(cwd: string, targetPath: string): boolean {
 export type AgentSessionEventListener = (event: AgentSessionEvent) => void;
 
 /**
+ * Upper bound on the provider error text kept in the log.
+ *
+ * Provider errors sometimes carry a whole HTML error page or an echoed request
+ * body. The log line exists to identify a recurring failure, so the first
+ * kilobyte is diagnostic and the rest is noise that can also smuggle
+ * credentials past the patterns below.
+ */
+const PROVIDER_ERROR_MESSAGE_MAX_LENGTH = 1024;
+
+/**
+ * Redaction passes applied to a raw provider error string, in order.
+ *
+ * The raw text is attacker- and provider-controlled and regularly echoes the
+ * failing request: `Authorization` headers, signed URLs and account emails all
+ * show up in real payloads. The log is a plaintext file that gets pasted into
+ * bug reports, so the secret-shaped spans are replaced before it is written.
+ */
+const PROVIDER_ERROR_REDACTIONS: readonly { pattern: RegExp; replacement: string }[] = [
+	// `Authorization: Bearer sk-...`, and the bare `Bearer <token>` form.
+	{ pattern: /\b(bearer|basic)\s+[\w\-._~+/]+=*/gi, replacement: "$1 [redacted]" },
+	// Key-bearing URL query params on signed or authenticated endpoints.
+	{
+		pattern: /([?&#](?:[\w-]*(?:key|token|secret|password|signature|sig|credential|auth)[\w-]*)=)[^&\s"'#]+/gi,
+		replacement: "$1[redacted]",
+	},
+	// The same names as JSON/header/env pairs: `"api_key": "sk-..."`, `x-api-key: ...`.
+	{
+		pattern: /\b([\w-]*(?:key|token|secret|password|credential)[\w-]*)(["']?\s*[:=]\s*["']?)[\w\-./+]{8,}/gi,
+		replacement: "$1$2[redacted]",
+	},
+	// Provider key literals that appear without a surrounding name.
+	{ pattern: /\b(sk|rk|pk)-[\w-]{8,}/gi, replacement: "$1-[redacted]" },
+	{ pattern: /\b(gh[pousr]|github_pat)_[\w]{8,}/g, replacement: "$1_[redacted]" },
+	{ pattern: /\bAIza[\w-]{8,}/g, replacement: "AIza[redacted]" },
+	// Account addresses echoed back by auth/billing errors.
+	{ pattern: /\b[\w.!#$%&'*+/=?^`{|}~-]+@[\w-]+(?:\.[\w-]+)+/g, replacement: "[redacted-email]" },
+];
+
+/**
+ * Strip credential- and PII-shaped spans out of a provider error message.
+ *
+ * Returns `undefined` unchanged so an absent message stays absent in the log
+ * rather than becoming an empty string.
+ */
+export function redactProviderErrorMessage(message: string | undefined): string | undefined {
+	if (message === undefined) return undefined;
+	let redacted = message;
+	for (const { pattern, replacement } of PROVIDER_ERROR_REDACTIONS) {
+		redacted = redacted.replace(pattern, replacement);
+	}
+	if (redacted.length > PROVIDER_ERROR_MESSAGE_MAX_LENGTH) {
+		const dropped = redacted.length - PROVIDER_ERROR_MESSAGE_MAX_LENGTH;
+		redacted = `${redacted.slice(0, PROVIDER_ERROR_MESSAGE_MAX_LENGTH)}… [+${dropped} chars truncated]`;
+	}
+	return redacted;
+}
+
+/**
  * Surface a provider-error turn in the main log.
  *
  * A session dying repeatedly on provider stream failures previously left no
@@ -360,12 +418,13 @@ export function logProviderTurnError(message: AssistantMessage): void {
 	logger.warn("agent turn ended with provider error", {
 		provider: message.provider,
 		model: message.model,
-		errorMessage: message.errorMessage,
+		errorMessage: redactProviderErrorMessage(message.errorMessage),
 		errorStatus: message.errorStatus,
 		// JWC names this `errorKind`; upstream's field is `errorId`.
 		errorKind: message.errorKind,
 	});
 }
+
 export type AsyncJobSnapshotItem = Pick<AsyncJob, "id" | "type" | "status" | "label" | "startTime" | "metadata">;
 
 export interface AsyncJobSnapshot {
