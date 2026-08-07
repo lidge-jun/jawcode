@@ -1,3 +1,4 @@
+import * as path from "node:path";
 import * as git from "../utils/git";
 import type { ASIData, ASIValue, MetricDirection, NumericMetricMap } from "./types";
 
@@ -219,10 +220,17 @@ export async function tryGitStatusResult(cwd: string): Promise<{ status: string;
 		// caller acts on.
 		const message = error instanceof Error ? error.message : String(error);
 		if (error instanceof git.GitCommandError && !error.result.launchFailure) {
-			// Distinguish "not a repo" from "repo we could not read". git says so
-			// itself; `repo.root` is no good here because it walks up to a parent
-			// repository and would misreport an unrelated directory as a repo.
-			if (/not a git repository/i.test(error.result.stderr || message)) return { status: "" };
+			// Distinguish "not a repo" from "repo we could not read" WITHOUT matching
+			// git's message: that text is localized (under a French locale the same
+			// condition reads "n'est un dépôt git"), and both conditions exit 128, so
+			// neither the wording nor the code can be trusted.
+			//
+			// `repo.root` walks upward, so a bare directory can resolve to a PARENT
+			// repository. Comparing the resolved root to the directory itself is what
+			// separates "this path is inside a repo we failed to read" from "this path
+			// merely sits under an unrelated repo".
+			const root = await git.repo.root(cwd).catch(() => null);
+			if (!root || path.resolve(root) !== path.resolve(cwd)) return { status: "" };
 		}
 		return { status: "", unavailable: message };
 	}
