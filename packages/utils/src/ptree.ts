@@ -97,7 +97,13 @@ export interface ExecResult {
 export class ChildProcess<In extends InMask = InMask> {
 	#nothrow = false;
 	#stderrTail = "";
-	#stderrChunks: Uint8Array[] = [];
+	/**
+	 * Raw stderr chunks, retained ONLY when full capture was requested at spawn time.
+	 * Undefined otherwise: a long-lived noisy subprocess (LSP/DAP/RPC) would
+	 * otherwise grow this array for the life of the process even though nothing
+	 * ever reads it, while `#stderrTail` is separately capped.
+	 */
+	#stderrChunks?: Uint8Array[];
 	#exitReason?: Exception;
 	#exitReasonPending?: Exception;
 	#stderrDone: Promise<void>;
@@ -107,8 +113,17 @@ export class ChildProcess<In extends InMask = InMask> {
 	constructor(
 		readonly proc: PipedSubprocess<In>,
 		readonly exposeStderr: boolean,
+		/**
+		 * Retain raw stderr for a later `wait({ stderr: "full" })`. Defaults to
+		 * `exposeStderr` so the public two-argument constructor keeps its behavior;
+		 * `exec()` sets it independently to retain WITHOUT teeing a public stream it
+		 * would never consume.
+		 */
+		retainFullStderr: boolean = exposeStderr,
 	) {
-		// Eagerly drain stderr into a truncated tail string + raw chunks.
+		if (retainFullStderr) this.#stderrChunks = [];
+		// Eagerly drain stderr into a truncated tail, retaining raw chunks only when
+		// full capture was explicitly requested.
 		const dec = new TextDecoder();
 		const trim = () => {
 			if (this.#stderrTail.length > NonZeroExitError.MAX_TRACE)
@@ -123,7 +138,7 @@ export class ChildProcess<In extends InMask = InMask> {
 		this.#stderrDone = (async () => {
 			try {
 				for await (const chunk of stderrStream) {
-					this.#stderrChunks.push(chunk);
+					this.#stderrChunks?.push(chunk);
 					this.#stderrTail += dec.decode(chunk, { stream: true });
 					trim();
 				}
@@ -255,10 +270,16 @@ export class ChildProcess<In extends InMask = InMask> {
 	async wait(opts?: WaitOptions): Promise<ExecResult> {
 		const { allowNonZero = false, allowAbort = false, stderr: stderrMode = "buffer" } = opts ?? {};
 
+		const stderrChunks = this.#stderrChunks;
+		if (stderrMode === "full" && !stderrChunks) {
+			// Silently returning the truncated tail would quietly lose data the caller
+			// explicitly asked not to lose, so fail loudly instead.
+			throw new Error('Full stderr capture must be requested when spawning the process (pass stderr: "full")');
+		}
 		const stdoutP = new Response(this.stdout).text();
 		const stderrP =
-			stderrMode === "full"
-				? this.#stderrDone.then(() => new TextDecoder().decode(Buffer.concat(this.#stderrChunks)))
+			stderrMode === "full" && stderrChunks
+				? this.#stderrDone.then(() => new TextDecoder().decode(Buffer.concat(stderrChunks)))
 				: this.#stderrDone.then(() => this.#stderrTail);
 
 		const [stdout, stderr] = await Promise.all([stdoutP, stderrP]);
@@ -326,8 +347,17 @@ type ChildSpawnOptions<In extends InMask = InMask> = Omit<
 	stderr?: "full" | null;
 };
 
-/** Spawn a child process with piped stdout/stderr. */
-export function spawn<In extends InMask = InMask>(cmd: string[], opts?: ChildSpawnOptions<In>): ChildProcess<In> {
+/**
+ * Internal spawn with independent control over stderr exposure and retention.
+ *
+ * `exec()` needs retention WITHOUT exposure: teeing a public stream it never reads
+ * would just move the unbounded buffering to the tee instead of the chunk array.
+ */
+function spawnInternal<In extends InMask = InMask>(
+	cmd: string[],
+	opts: ChildSpawnOptions<In> | undefined,
+	retainFullStderr: boolean,
+): ChildProcess<In> {
 	const { timeout = -1, signal, stderr, ...rest } = opts ?? {};
 	const child = Bun.spawn(cmd, {
 		stdin: "ignore",
@@ -336,10 +366,15 @@ export function spawn<In extends InMask = InMask>(cmd: string[], opts?: ChildSpa
 		windowsHide: true,
 		...rest,
 	});
-	const cp = new ChildProcess(child, stderr === "full");
+	const cp = new ChildProcess(child, stderr === "full", retainFullStderr);
 	if (signal) cp.attachSignal(signal);
 	if (timeout > 0) cp.attachTimeout(timeout);
 	return cp;
+}
+
+/** Spawn a child process with piped stdout/stderr. */
+export function spawn<In extends InMask = InMask>(cmd: string[], opts?: ChildSpawnOptions<In>): ChildProcess<In> {
+	return spawnInternal(cmd, opts, opts?.stderr === "full");
 }
 
 /** Options for exec. */
@@ -352,7 +387,9 @@ export async function exec(cmd: string[], opts?: ExecOptions): Promise<ExecResul
 	const { input, stderr, allowAbort, allowNonZero, ...spawnOpts } = opts ?? {};
 	const stdin = typeof input === "string" ? Buffer.from(input) : input;
 	const resolved: ChildSpawnOptions = stdin === undefined ? spawnOpts : { ...spawnOpts, stdin };
-	using child = spawn(cmd, resolved);
+	// `stderr` is deliberately NOT forwarded into the spawn options: that would tee an
+	// exposed stream this function never consumes. Retention is requested directly.
+	using child = spawnInternal(cmd, resolved, stderr === "full");
 	return await child.wait({ stderr, allowAbort, allowNonZero });
 }
 
