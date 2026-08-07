@@ -2046,6 +2046,14 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 		{
 			const originalDispose = session.dispose.bind(session);
 			session.dispose = async () => {
+				// Stop being a delivery target BEFORE teardown starts. Unregistering
+				// only in the `finally` leaves the ref carrying a live session for the
+				// whole duration of dispose — which does network and subprocess
+				// teardown, so it is not instantaneous — and `irc` happily picks a
+				// `running`/`idle` peer and calls into a session that is already
+				// shutting down. Detaching first closes that window; the `finally`
+				// still removes the ref entirely.
+				agentRegistry.detachSession(resolvedAgentId);
 				try {
 					await originalDispose();
 				} finally {
