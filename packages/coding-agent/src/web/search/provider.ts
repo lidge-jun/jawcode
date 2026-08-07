@@ -9,6 +9,7 @@
 // (error formatting, UI listings) do not force a load.
 
 import type { AuthStorage } from "@jawcode-dev/ai";
+import { logger } from "@jawcode-dev/utils";
 import type { SearchProvider } from "./providers/base";
 import type { SearchProviderId } from "./types";
 
@@ -246,6 +247,16 @@ export async function resolveProviderChain(
 		const provider = await getSearchProvider(preferredProvider);
 		if (await provider.isAvailable(authStorage)) {
 			chain.push(preferredProvider);
+		} else {
+			// An explicit choice that cannot run is worth saying out loud. The
+			// terminal DuckDuckGo fallback below keeps the search working, but
+			// silently substituting it means the user's configured provider appears
+			// to be in use when it never ran — and a missing credential looks like
+			// a provider that simply returns worse results.
+			logger.warn("preferred web-search provider is unavailable; falling back", {
+				preferred: preferredProvider,
+				reason: "isAvailable() returned false (missing credentials or disabled in settings)",
+			});
 		}
 	} else if (activeModelProvider) {
 		const nativeId = MODEL_PROVIDER_TO_SEARCH[activeModelProvider.toLowerCase()];
