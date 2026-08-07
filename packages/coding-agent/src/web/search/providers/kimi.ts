@@ -63,11 +63,13 @@ async function findApiKey(
 	const envKey = asTrimmed($env.MOONSHOT_SEARCH_API_KEY) ?? asTrimmed($env.KIMI_SEARCH_API_KEY);
 	if (envKey) return envKey;
 
-	return (
-		(await authStorage.getApiKey("moonshot", sessionId, { signal })) ??
-		(await authStorage.getApiKey("kimi-code", sessionId, { signal })) ??
-		null
-	);
+	// Kimi Code only. This endpoint is `api.kimi.com/coding`, which is a
+	// different credential system from the Moonshot Open Platform
+	// (`api.moonshot.ai`, `MOONSHOT_API_KEY`). Accepting a `moonshot` key here
+	// sent a valid Open Platform key to an endpoint that rejects it with 401,
+	// and because a provider failure demotes the engine, the user's *preferred*
+	// search provider silently fell back to another one.
+	return (await authStorage.getApiKey("kimi-code", sessionId, { signal })) ?? null;
 }
 
 async function callKimiSearch(
@@ -111,7 +113,7 @@ export async function searchKimi(params: KimiSearchParams): Promise<SearchRespon
 	const apiKey = await findApiKey(params.authStorage, params.sessionId, params.signal);
 	if (!apiKey) {
 		throw new Error(
-			"Kimi search credentials not found. Set MOONSHOT_SEARCH_API_KEY, KIMI_SEARCH_API_KEY, MOONSHOT_API_KEY, or login with 'gjc /login moonshot'.",
+			"Kimi search credentials not found. This endpoint needs a Kimi Code credential, not a Moonshot Open Platform key: set MOONSHOT_SEARCH_API_KEY or KIMI_SEARCH_API_KEY, or run '/login kimi-code'.",
 		);
 	}
 
@@ -151,10 +153,11 @@ export class KimiProvider extends SearchProvider {
 	readonly label = "Kimi";
 
 	isAvailable(authStorage: AuthStorage): boolean {
+		// Must match findApiKey(): advertising availability on a `moonshot`
+		// credential makes this provider selectable and then fail with 401.
 		return (
 			!!asTrimmed($env.MOONSHOT_SEARCH_API_KEY) ||
 			!!asTrimmed($env.KIMI_SEARCH_API_KEY) ||
-			authStorage.hasAuth("moonshot") ||
 			authStorage.hasAuth("kimi-code")
 		);
 	}
