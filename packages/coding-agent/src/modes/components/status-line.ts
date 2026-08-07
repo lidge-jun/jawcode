@@ -11,6 +11,7 @@ import * as git from "../../utils/git";
 import { getSessionAccentAnsi, getSessionAccentHex } from "../../utils/session-color";
 import { EMPTY_JOBS_SNAPSHOT, type JobsSnapshot } from "../jobs-observer";
 import { sanitizeStatusText } from "../shared";
+import { classifyQuotaWindow } from "./quota-window";
 import { renderSkillHudBar } from "./skill-hud/render";
 import {
 	canReuseCachedPr,
@@ -441,22 +442,27 @@ export class StatusLineComponent implements Component {
 			for (const limit of limits) {
 				if (!limit || typeof limit !== "object") continue;
 				const l = limit as {
-					scope?: { windowId?: string; tier?: string };
-					window?: { resetsAt?: number };
+					scope?: { windowId?: string; tier?: string; modelId?: string };
+					window?: { resetsAt?: number; durationMs?: number };
 					amount?: { usedFraction?: number };
 				};
 				const fraction = l.amount?.usedFraction;
 				if (typeof fraction !== "number") continue;
-				const windowId = l.scope?.windowId;
-				const tier = l.scope?.tier;
 				const resetsAt = l.window?.resetsAt;
-				if (windowId === "5h" && !tier && !fiveHour) {
+				// A per-model row is not the account-wide quota. Anthropic marks those
+				// with `tier` (opus/sonnet); openai-codex marks them with `modelId`
+				// while ALSO always setting `tier` to the plan slug — so keying on
+				// `tier` alone silently rejected every codex limit and its quota never
+				// appeared here at all.
+				if (l.scope?.modelId) continue;
+				const bucket = classifyQuotaWindow(l.scope?.windowId, l.window?.durationMs, l.scope?.tier);
+				if (bucket === "5h" && !fiveHour) {
 					fiveHour = {
 						percent: fraction * 100,
 						resetMinutes:
 							typeof resetsAt === "number" ? Math.max(0, Math.round((resetsAt - now) / 60_000)) : undefined,
 					};
-				} else if (windowId === "7d" && !tier && !sevenDay) {
+				} else if (bucket === "7d" && !sevenDay) {
 					sevenDay = {
 						percent: fraction * 100,
 						resetHours:
