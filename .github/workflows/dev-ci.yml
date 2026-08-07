@@ -58,6 +58,15 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: Run affected path checks and tests
         run: bun scripts/ci-dev-affected.ts
+      - name: musl target type check
+        # `libc::Ioctl` is `c_ulong` on glibc but `c_int` on musl, so a
+        # glibc-only build cannot catch a hardcoded ioctl request type. Only
+        # `pi-iso` is checked: the rest of the workspace needs a musl C
+        # toolchain for tree-sitter, which is not worth provisioning for a
+        # type-level guard.
+        run: |
+          rustup target add x86_64-unknown-linux-musl
+          cargo check -p pi-iso --target x86_64-unknown-linux-musl
 
   jwc-state-gates:
     name: jwc-state-gates

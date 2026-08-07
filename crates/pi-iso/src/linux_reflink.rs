@@ -80,7 +80,12 @@ mod imp {
 
 	use crate::{IsoError, IsoResult};
 
-	const FICLONE: libc::c_ulong = 0x4004_9409;
+	// `libc::ioctl`'s request parameter is `libc::Ioctl`, which is NOT the same
+	// type on every Linux target: glibc and uclibc alias it to `c_ulong`, musl
+	// aliases it to `c_int`. Hardcoding `c_ulong` therefore fails to compile on
+	// musl, which is a published release target. Naming the alias keeps this
+	// correct on both without a cfg fork.
+	const FICLONE: libc::Ioctl = 0x4004_9409;
 
 	pub fn start(lower: &Path, merged: &Path) -> IsoResult<()> {
 		let lower = canonical_existing_dir(lower)?;
