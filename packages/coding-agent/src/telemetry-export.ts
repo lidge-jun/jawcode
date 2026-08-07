@@ -123,7 +123,13 @@ async function registerProviders(signals: SignalConfig): Promise<void> {
 			processors: [new BatchLogRecordProcessor(new OTLPLogExporter())],
 		});
 		logs.setGlobalLoggerProvider(logProvider);
-		otelLogger = logs.getLogger("@jawcode-dev/coding-agent");
+		// Read the logger off OUR provider, not off the global. If a host already
+		// registered a logger provider — an embedder that configures OpenTelemetry
+		// before creating a session does exactly that — `setGlobalLoggerProvider`
+		// silently keeps the existing one, and `logs.getLogger()` would hand back a
+		// logger bound to it, bypassing the exporter, resource and batch processor
+		// configured right above.
+		otelLogger = logProvider.getLogger("@jawcode-dev/coding-agent");
 		unregisterLogSink = logger.registerLogSink(event => {
 			emitOtelLog(event.level, event.message, logAttributesFromContext(event.context), "jwc.log", event.timestamp);
 		});
