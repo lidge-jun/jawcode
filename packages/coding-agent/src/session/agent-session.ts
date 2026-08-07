@@ -338,6 +338,24 @@ export type AgentSessionEvent =
  */
 const SAFE_PATH_COMPONENT = /^[A-Za-z0-9_-][A-Za-z0-9._-]{0,63}$/;
 
+/**
+ * Whether a message is finished changing and can be cached by identity.
+ *
+ * Providers mutate a live assistant message while streaming — `content` blocks
+ * are pushed onto the same object — so caching one mid-flight would freeze a
+ * partial token count. An assistant message counts as settled only once it has
+ * real usage AND a terminal stop reason that is not an error, because the
+ * aborted/error paths can still be repaired or retried in place. Every other
+ * role is immutable once appended.
+ */
+function isSettledForTokenCache(message: AgentMessage): boolean {
+	if (message.role !== "assistant") return true;
+	const assistant = message as AssistantMessage;
+	if (assistant.stopReason === undefined) return false;
+	if (assistant.stopReason === "aborted" || assistant.stopReason === "error") return false;
+	return assistant.usage !== undefined;
+}
+
 function isUnderProjectJwc(cwd: string, targetPath: string): boolean {
 	const relative = path.relative(path.join(path.resolve(cwd), ".jwc"), path.resolve(targetPath));
 	return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
@@ -1072,6 +1090,11 @@ export class AgentSession {
 	#todoPhases: TodoPhase[] = [];
 	#titleGenerationAbortController = new AbortController();
 	#titleGeneration = 0;
+	/**
+	 * Per-message token estimates for messages that can no longer change.
+	 * WeakMap so a pruned or compacted-away message is collected with the entry.
+	 */
+	#messageTokenCache = new WeakMap<AgentMessage, { encoding: string; tokens: number }>();
 	#toolChoiceQueue = new ToolChoiceQueue();
 
 	// Bash execution state
@@ -10701,9 +10724,35 @@ export class AgentSession {
 		const encoding = this.model ? resolveModelEncoding(this.model) : undefined;
 		let total = 0;
 		for (const message of this.messages) {
-			total += encoding ? countMessageTokensNative(message, encoding) : estimateTokens(message);
+			total += this.#estimateSettledMessageTokens(message, encoding);
 		}
 		return total;
+	}
+
+	/**
+	 * Token estimate for one message, memoized once the message can no longer
+	 * change.
+	 *
+	 * Re-tokenizing the whole history every turn is the dominant cost in a long
+	 * session — measured here at ~3.5s for 6000 messages, paid up to twice per
+	 * turn during post-turn maintenance, over a prefix that by definition cannot
+	 * have changed.
+	 *
+	 * The cache is keyed on object identity, which is only sound for a message
+	 * that is finished: providers push blocks onto `content` of a live assistant
+	 * message while streaming, so an in-flight message would cache a partial
+	 * count and keep returning it. Hence the settle gate below.
+	 */
+	#estimateSettledMessageTokens(message: AgentMessage, encoding: Encoding | undefined): number {
+		const encodingKey = encoding ?? "";
+		const cached = this.#messageTokenCache.get(message);
+		if (cached?.encoding === encodingKey) return cached.tokens;
+
+		const tokens = encoding ? countMessageTokensNative(message, encoding) : estimateTokens(message);
+		if (isSettledForTokenCache(message)) {
+			this.#messageTokenCache.set(message, { encoding: encodingKey, tokens });
+		}
+		return tokens;
 	}
 
 	/**
