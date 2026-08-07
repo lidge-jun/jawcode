@@ -10,7 +10,7 @@
  * so throwing a bare `Error` crashed with a stack trace instead of printing help.
  */
 import { describe, expect, it } from "bun:test";
-import { CliParseError, Command, Flags } from "../src/cli";
+import { type CliConfig, CliParseError, Command, Flags } from "../src/cli";
 
 class Probe extends Command {
 	static flags = {
@@ -20,8 +20,10 @@ class Probe extends Command {
 	async run(): Promise<void> {}
 }
 
+const TEST_CONFIG: CliConfig = { bin: "jwc", version: "0.0.0-test", commands: new Map() };
+
 async function parseN(argv: string[]): Promise<number | undefined> {
-	const parsed = await new Probe(argv).parse(Probe);
+	const parsed = await new Probe(argv, TEST_CONFIG).parse(Probe);
 	return parsed.flags.n;
 }
 
@@ -79,7 +81,7 @@ describe("Flags.integer token validation", () => {
 	});
 
 	it("still applies a declared default when the flag is absent", async () => {
-		const parsed = await new Probe([]).parse(Probe);
+		const parsed = await new Probe([], TEST_CONFIG).parse(Probe);
 		expect(parsed.flags.withDefault).toBe(20);
 		expect(parsed.flags.n).toBeUndefined();
 	});

@@ -191,32 +191,59 @@ export function $legacyEnvIsolated(env: Record<string, string | undefined> = Bun
 	return env.JWC_ISOLATE_LEGACY_ENV === "1";
 }
 
-// 062.1 safety net: mirror JWC_* values onto their legacy GJC_* names at load
-// time so read sites that are not yet wired through $resolveEnv still honor
-// the canonical JWC_* spelling. Wired sites prefer JWC_* directly.
+/**
+ * Legacy prefixes a canonical `JWC_*` value is mirrored onto.
+ *
+ * `GJC_*` is the upstream fork name. `PI_*` predates it and is still what many
+ * read sites use directly (`$env.PI_PY`, `$flag("PI_PYTHON_SKIP_CHECK")`,
+ * `$env.PI_FORCE_IMAGE_PROTOCOL`, …). The docs only ever advertise the `JWC_*`
+ * spelling, so without this an operator following the published reference sets
+ * a variable that nothing reads and gets silence rather than an error.
+ */
+const LEGACY_ENV_PREFIXES = ["GJC_", "PI_"] as const;
+
+/**
+ * Suffixes that are never mirrored, because the `PI_*` name is an internal
+ * build marker rather than an operator-facing setting.
+ *
+ * `PI_COMPILED` is injected by `bun build --define` and makes
+ * `isCompiledBinary()` return true, which selects the compiled worker-spawn
+ * paths. Mirroring it would let a stray `JWC_COMPILED` misroute worker
+ * resolution in a normal dev run.
+ */
+const UNMIRRORED_ENV_SUFFIXES = new Set(["COMPILED"]);
+
+// 062.1 safety net: mirror JWC_* values onto their legacy names at load time so
+// read sites that are not yet wired through $resolveEnv still honor the
+// canonical JWC_* spelling. Wired sites prefer JWC_* directly.
 if (!$legacyEnvIsolated()) {
 	for (const key of Object.keys(Bun.env)) {
-		if (key.startsWith("JWC_")) {
-			const legacy = `GJC_${key.slice(4)}`;
+		if (!key.startsWith("JWC_")) continue;
+		const suffix = key.slice(4);
+		if (UNMIRRORED_ENV_SUFFIXES.has(suffix)) continue;
+		for (const prefix of LEGACY_ENV_PREFIXES) {
+			const legacy = `${prefix}${suffix}`;
 			if (Bun.env[legacy] === undefined) Bun.env[legacy] = Bun.env[key];
 		}
 	}
 }
 
 /**
- * Resolve a GJC_*-named variable through the jwc fork alias chain (062.1 M1):
- * `JWC_X ?? GJC_X`. Pass the legacy GJC_* key; the JWC_* canonical name is
- * derived. Non-GJC keys resolve as-is.
+ * Resolve a legacy-named variable through the jwc fork alias chain (062.1 M1):
+ * `JWC_X ?? <legacy>_X`. Pass the legacy `GJC_*` or `PI_*` key; the canonical
+ * `JWC_*` name is derived. Keys with neither prefix resolve as-is.
  */
-export function $resolveEnv(jwcKey: string): string | undefined {
-	if (jwcKey.startsWith("GJC_")) {
-		const jwcValue = Bun.env[`JWC_${jwcKey.slice(4)}`];
+export function $resolveEnv(legacyKey: string): string | undefined {
+	const prefix = LEGACY_ENV_PREFIXES.find(candidate => legacyKey.startsWith(candidate));
+	const suffix = prefix ? legacyKey.slice(prefix.length) : undefined;
+	if (prefix && suffix !== undefined && !UNMIRRORED_ENV_SUFFIXES.has(suffix)) {
+		const jwcValue = Bun.env[`JWC_${suffix}`];
 		if (jwcValue !== undefined) return jwcValue;
-		// Isolation mode: never fall back to inherited legacy GJC_* values —
+		// Isolation mode: never fall back to inherited legacy values —
 		// on a dual-install machine they may belong to upstream gajae-code.
 		if ($legacyEnvIsolated()) return undefined;
 	}
-	return Bun.env[jwcKey];
+	return Bun.env[legacyKey];
 }
 
 /**
