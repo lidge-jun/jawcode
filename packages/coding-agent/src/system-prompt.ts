@@ -19,7 +19,6 @@ import toneUhehe from "./prompts/identity/tone-uhehe.md" with { type: "text" };
 import customSystemPromptTemplate from "./prompts/system/custom-system-prompt.md" with { type: "text" };
 import projectPromptTemplate from "./prompts/system/project-prompt.md" with { type: "text" };
 import systemPromptTemplate from "./prompts/system/system-prompt.md" with { type: "text" };
-import { shortenPath } from "./tools/render-utils";
 import { AGENTS_MD_LIMIT, buildWorkspaceTree, type WorkspaceTree } from "./workspace-tree";
 
 interface AlwaysApplyRule {
@@ -594,7 +593,10 @@ export async function buildSystemPrompt(options: BuildSystemPromptOptions = {}):
 
 	const date = new Date().toISOString().slice(0, 10);
 	const dateTime = date;
-	const promptCwd = shortenPath(resolvedCwd.replace(/\\/g, "/"));
+	// The provider-facing cwd stays ABSOLUTE. `shortenPath` is display-only sugar
+	// for humans reading a terminal; handing the model `~/…` makes every path it
+	// derives home-relative, which then fails for any tool resolving it literally.
+	const promptCwd = resolvedCwd.replace(/\\/g, "/");
 
 	// Build tool metadata for system prompt rendering
 	// Priority: explicit list > tools map > defaults

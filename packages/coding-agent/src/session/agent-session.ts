@@ -345,6 +345,27 @@ function isUnderProjectJwc(cwd: string, targetPath: string): boolean {
 
 /** Listener function for agent session events */
 export type AgentSessionEventListener = (event: AgentSessionEvent) => void;
+
+/**
+ * Surface a provider-error turn in the main log.
+ *
+ * A session dying repeatedly on provider stream failures previously left no
+ * actionable trace outside the session transcript: the error fields lived on the
+ * assistant message and were never logged. One warn-level entry carrying
+ * provider, model and the error identifiers makes recurring failures
+ * diagnosable from the log alone. Non-error stops emit nothing.
+ */
+export function logProviderTurnError(message: AssistantMessage): void {
+	if (message.stopReason !== "error") return;
+	logger.warn("agent turn ended with provider error", {
+		provider: message.provider,
+		model: message.model,
+		errorMessage: message.errorMessage,
+		errorStatus: message.errorStatus,
+		// JWC names this `errorKind`; upstream's field is `errorId`.
+		errorKind: message.errorKind,
+	});
+}
 export type AsyncJobSnapshotItem = Pick<AsyncJob, "id" | "type" | "status" | "label" | "startTime" | "metadata">;
 
 export interface AsyncJobSnapshot {
@@ -2412,6 +2433,7 @@ export class AgentSession {
 				this.#lastSuccessfulYieldToolCallId = undefined;
 				return;
 			}
+			logProviderTurnError(msg);
 
 			// Invalidate GitHub Copilot credentials on auth failure so stale tokens
 			// aren't reused on the next request
