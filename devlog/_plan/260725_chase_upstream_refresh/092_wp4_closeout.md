@@ -7,16 +7,16 @@ two verification gates added. Two repository-wide findings escalated rather than
 |---|---|
 | P | `090_wp4_fin_reconciliation.md` — Pascal per-card evidence audit against the six cycle closeouts and real `git log` |
 | A | Halley GO-WITH-FIXES (5) → `091`: markerless arithmetic corrected (10+5+1=16), five cards remapped as ADAPT-partial instead of blanket-returned, clean-vs-partial required per card, two verification scripts specified |
-| B | `ec6b418` scripts, `1c458bf` 8 cycle cards, `c5d2d7f` 16 markerless + index rebuild + count correction |
-| C | Lorentz **FAIL** (4) → `e575093`; **GO-WITH-FIXES** (1) → `a912f94`; **GO-WITH-FIXES** (1) → `d99b1df`; final **PASS** |
+| B | `83047bb` scripts, `8e06964` 8 cycle cards, `28a4cfb` 16 markerless + index rebuild + count correction |
+| C | Lorentz **FAIL** (4) → `ef6446a`; **GO-WITH-FIXES** (1) → `e3ad73c`; **GO-WITH-FIXES** (1) → `2e8c1f2`; final **PASS** |
 
 ## The C-review chain — the reviewer broke our own gate three times
 
 | round | finding | fix |
 |---|---|---|
-| 1 | `10.116` cited `944f5d7` (AI test fixtures + sixel typing) as closure evidence for native-module scope; `10.090`'s "no substantiating implementation" ignored four real prompt commits; D4/D8 were claimed met while both scripts exited 1; the integrity script accepted `Owner paths: packages/` — any real commit satisfies it | unrelated commit removed; `10.090` claim made precise; D4/D8 restated as phase-scoped with residuals named; script rejects <2-segment owners and requires exactly one classification marker (`e575093`) |
-| 2 | owner paths were still INFERRED from Evidence prose, so `packages/ai` in a sentence bypassed the broadness rule | owner paths come exclusively from an explicit `Owner paths:` declaration; package roots rejected; must be a file or a `/src/`-`/test/` module dir (`a912f94`) |
-| 3 | intersection was existential — declare five owners, support one | bidirectional: every commit touches an owner AND every owner is touched by a commit; the script now documents that it cannot verify semantic truth (`d99b1df`) |
+| 1 | `10.116` cited `6e035ba` (AI test fixtures + sixel typing) as closure evidence for native-module scope; `10.090`'s "no substantiating implementation" ignored four real prompt commits; D4/D8 were claimed met while both scripts exited 1; the integrity script accepted `Owner paths: packages/` — any real commit satisfies it | unrelated commit removed; `10.090` claim made precise; D4/D8 restated as phase-scoped with residuals named; script rejects <2-segment owners and requires exactly one classification marker (`ef6446a`) |
+| 2 | owner paths were still INFERRED from Evidence prose, so `packages/ai` in a sentence bypassed the broadness rule | owner paths come exclusively from an explicit `Owner paths:` declaration; package roots rejected; must be a file or a `/src/`-`/test/` module dir (`e3ad73c`) |
+| 3 | intersection was existential — declare five owners, support one | bidirectional: every commit touches an owner AND every owner is touched by a commit; the script now documents that it cannot verify semantic truth (`2e8c1f2`) |
 
 Each round RAISED the legacy violation count. That is the correct direction: the gate got stricter, so more
 pre-existing cards are honestly exposed.

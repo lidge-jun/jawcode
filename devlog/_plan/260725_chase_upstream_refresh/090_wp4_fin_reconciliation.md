@@ -1,6 +1,6 @@
 # 090 — wp4: `_fin` reconciliation and lifecycle proof
 
-## Survey (P, 2026-07-26, HEAD `7f5a143`)
+## Survey (P, 2026-07-26, HEAD `ea67596`)
 
 Per-card evidence audit by sol surveyor (Pascal) against the six cycle closeouts (031/042/052/062/072/082)
 and real `git log` on the implementing paths.
@@ -8,7 +8,7 @@ and real `git log` on the implementing paths.
 ### Finding that changes the plan
 
 The canon claims **21 markerless `_fin` cards**; the tree does not support that number.
-`753dc65` moved 16 cards with no `✅`/`Closed:` header; `319c69d2` moved 17 of which 13 already carried `✅`.
+`1614a41` moved 16 cards with no `✅`/`Closed:` header; `0cf88f3d` moved 17 of which 13 already carried `✅`.
 Separately, 7 OLDER cards in `_fin` also lack a `✅` header (`10.017`, `10.020`, `10.025`, `10.026`, `10.029`,
 `20.002`, `20.007`). So the honest split is **16 reproducible + 7 legacy malformed = 23**, not 21. The count is
 corrected rather than padded.
@@ -29,8 +29,8 @@ none has enough evidence to claim card-level closure.
 > **A-audit corrections (091 synthesis).** The first draft said "keep 9" while listing 10 cards, and proposed
 > returning 6 cards to active when history actually substantiates 5 of them. Corrected below.
 
-- **Keep in `_fin`, add closure header** (10): `10.091`, `10.094`, `10.099`, `10.105`, `20.047`, `20.053`, `20.055`, `20.057`, `20.067`, `20.079` — implementing commits are identifiable (`5fb0837`, `ddc0d2a`, `cace51e`, `5f82519`). **Each gets an explicit clean-vs-partial disposition**; `20.053`, `20.067`, `20.079` in particular still carry `TBD`/"parity unproven" text in the card body and may close ONLY as ADAPT-partial with an exact residual.
-- **Keep in `_fin` as ADAPT-partial after a commit-to-anchor remap** (5): `10.083`, `10.089`, `10.092`, `10.097`, `10.106` — the auditor showed real implementation exists (`ebaa081a` model catalog/thinking/profiles/selector, `ddc0d2a` resolver/preset/durable selection, `5fb0837` input/selector/interactive + notification daemon, `7ea2101` coordinator/terminal). Blanket "unsubstantiated" was an over-correction; each needs a residual naming what is genuinely unproven (e.g. `10.092` protected scroll/graphics, `10.097` Grok vendor + benchmark receipt, `10.106` credential auto-import).
+- **Keep in `_fin`, add closure header** (10): `10.091`, `10.094`, `10.099`, `10.105`, `20.047`, `20.053`, `20.055`, `20.057`, `20.067`, `20.079` — implementing commits are identifiable (`925a3f5`, `bc1e8c3`, `4d3010c`, `e900660`). **Each gets an explicit clean-vs-partial disposition**; `20.053`, `20.067`, `20.079` in particular still carry `TBD`/"parity unproven" text in the card body and may close ONLY as ADAPT-partial with an exact residual.
+- **Keep in `_fin` as ADAPT-partial after a commit-to-anchor remap** (5): `10.083`, `10.089`, `10.092`, `10.097`, `10.106` — the auditor showed real implementation exists (`fa66b165` model catalog/thinking/profiles/selector, `bc1e8c3` resolver/preset/durable selection, `925a3f5` input/selector/interactive + notification daemon, `8a2c79b` coordinator/terminal). Blanket "unsubstantiated" was an over-correction; each needs a residual naming what is genuinely unproven (e.g. `10.092` protected scroll/graphics, `10.097` Grok vendor + benchmark receipt, `10.106` credential auto-import).
 - **Return to ACTIVE** (1): `10.090` — shared role-agent/system-prompt guidance is substantiated by `4ad638bd`, `1eb6e3ea`, `61487047`, and `5058b9c0`, but upstream compact-core, dead discovery-plumbing removal, and MCP discovery-shim removal remain unimplemented. The partial evidence is recorded without overstating whole-card closure.
 - 10 + 5 + 1 = 16. The 7 legacy malformed cards (`10.017`, `10.020`, `10.025`, `10.026`, `10.029`, `20.002`, `20.007`) are audited separately and NOT folded into this count.
 

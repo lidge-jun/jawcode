@@ -2,7 +2,7 @@
 
 ## Stale check (P, 2026-07-25)
 
-Full 37-anchor survey by sol surveyor (Laplace), each verified against the actual upstream diff and the current JWC tree (`5aba3c7`):
+Full 37-anchor survey by sol surveyor (Laplace), each verified against the actual upstream diff and the current JWC tree (`a06aae3`):
 
 | class | count | handling |
 |---|---|---|

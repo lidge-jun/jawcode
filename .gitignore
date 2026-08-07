@@ -96,9 +96,9 @@ devlog/_gjc_chase/
 devlog/_omp_chase/
 packages/jwc/dist-node/
 
-# codexclaw runtime state — caches, binary blobs and tool-failure logs are machine-local.
-# These were never meant to be published; the repo is public, so keep future runs from
-# adding more. Files already tracked stay tracked until their publication is decided.
-.codexclaw/cache/
-.codexclaw/bridge.db
-.codexclaw/friction.jsonl
+# codexclaw runtime state — machine-local scratch for the coding agent, not project history.
+# The repo is public, so the whole directory stays untracked: wp6 removed it from the
+# unpushed history rather than publishing 120MB of caches, session logs and evidence dumps
+# irreversibly. The files remain on disk; only Git ignores them. Publishing any subset later
+# is a deliberate `git add -f`, which keeps that decision the user's to make.
+.codexclaw/

@@ -6,17 +6,17 @@ Outcome: **DONE** (10 anchors implemented; 4 needs-redesign deferred; 1 needs-de
 |---|---|
 | P | `070_wp3_c5_catalog_registry.md` — Linnaeus per-anchor stale check on the post-cycle-4 tree (12 import / 4 needs-redesign / 1 needs-decision) |
 | A | Ampere GO-WITH-FIXES (5 blockers, 1 Critical) → `071` synthesis: workspace-scoped Codex identity REMOVED (JWC login soft-deletes all provider credentials before OAuth succeeds — real credential-loss risk), quarantine vs transient split, gateway resolver + alias window, selection precedence, offline refresh bounds |
-| B | Fermat (Q1 discovery), Feynman (Q2 selection/gateway), Mendel (Q3 ranking + stats, with an approved session-pin timestamp expansion); Q1 type errors returned and properly fixed (SnapshotCredential union narrowing, `FetchImpl` instead of `typeof fetch`); commits `bb3dcf0`, `d537eb8` |
+| B | Fermat (Q1 discovery), Feynman (Q2 selection/gateway), Mendel (Q3 ranking + stats, with an approved session-pin timestamp expansion); Q1 type errors returned and properly fixed (SnapshotCredential union narrowing, `FetchImpl` instead of `typeof fetch`); commits `938bec2`, `3563001` |
 | C | Herschel — **four rounds**: GO-WITH-FIXES ×3 then PASS. Each round reproduced a real bypass of the credential-quarantine classifier |
 
 ## The C-review chain (worth recording)
 
 | round | reviewer finding | fix |
 |---|---|---|
-| 1 | any error text containing `401`/`403` was "definitive" → a proxy/WAF response permanently soft-deletes a working credential (no re-enable path) | require a structured OAuth terminal code (`2eb5ef7`) |
-| 2 | the structured check was a REGEX over exception text → `<script>{"error":"invalid_grant"}</script>` and truncated JSON still quarantined | typed `OpenAICodexTerminalOAuthError`, thrown only from parsed JSON (`b055773`) |
-| 3 | every non-OK status was parsed → a WAF `502` with a valid JSON body still quarantined, contradicting our own 5xx-is-transient contract | gate on HTTP `400` only; 403/429/5xx categorically transient (`c9e843b`) |
-| 4 | discovery was hardened but request-time `getApiKey()` selection AND the background broker refresher still string-classified | typed-error gate on all three paths + full disable-call-site audit (`734b121`) |
+| 1 | any error text containing `401`/`403` was "definitive" → a proxy/WAF response permanently soft-deletes a working credential (no re-enable path) | require a structured OAuth terminal code (`a8ae137`) |
+| 2 | the structured check was a REGEX over exception text → `<script>{"error":"invalid_grant"}</script>` and truncated JSON still quarantined | typed `OpenAICodexTerminalOAuthError`, thrown only from parsed JSON (`63fbfbc`) |
+| 3 | every non-OK status was parsed → a WAF `502` with a valid JSON body still quarantined, contradicting our own 5xx-is-transient contract | gate on HTTP `400` only; 403/429/5xx categorically transient (`f39cb8b`) |
+| 4 | discovery was hardened but request-time `getApiKey()` selection AND the background broker refresher still string-classified | typed-error gate on all three paths + full disable-call-site audit (`c16c416`) |
 
 The worker's honesty mattered here: it reported the third path (`auth-broker/refresher.ts`) as outside its write set rather than claiming the guarantee, and scope was expanded to close it.
 

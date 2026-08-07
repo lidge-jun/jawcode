@@ -6,11 +6,11 @@ Docs-first cycle (wp2) closed 2026-07-25. 39 new chase cards documented and cano
 
 | item | evidence |
 |---|---|
-| GJC delta documented | 10 cards (10.108–10.117), 529/529 hash-set (47fd456) |
-| OMP delta documented | 29 cards (20.081–20.090, 20.101–20.112, 20.121–20.127), 1301/1301 hash-set across 3 bands (76202bf) |
-| canon sync | MOCs Reviewed-through bumped, 007 session state, 002 snapshot, 009 tiers, bands no-change evidence (775f8c3) |
-| stale-row repair | 28 MOC rows + 60+ broken canon links fixed (1022605); markerless-_fin batch queued to wp4 |
-| C adversarial review | R1 FAIL (6 blockers) → synthesis 024 → all folded (7e58d6c, da1ceec, db6eda2) → R2 GO-WITH-FIXES (1 Medium residual, folded) |
+| GJC delta documented | 10 cards (10.108–10.117), 529/529 hash-set (f0e7fcc) |
+| OMP delta documented | 29 cards (20.081–20.090, 20.101–20.112, 20.121–20.127), 1301/1301 hash-set across 3 bands (0d35728) |
+| canon sync | MOCs Reviewed-through bumped, 007 session state, 002 snapshot, 009 tiers, bands no-change evidence (8ee8d5a) |
+| stale-row repair | 28 MOC rows + 60+ broken canon links fixed (af69ea3); markerless-_fin batch queued to wp4 |
+| C adversarial review | R1 FAIL (6 blockers) → synthesis 024 → all folded (8520de6, 65a44be, c0227b5) → R2 GO-WITH-FIXES (1 Medium residual, folded) |
 | docs-only invariant | `git diff --name-only` for cycle touched only struct_har/chase + devlog + .codexclaw |
 
 Terminal outcome: **DONE** (docs cycle).

@@ -2,7 +2,7 @@
 
 ## Stale check (P, 2026-07-26)
 
-Mill's dual-card survey (verified per-anchor against upstream diffs and current tree `da952b3`):
+Mill's dual-card survey (verified per-anchor against upstream diffs and current tree `567bbdc`):
 
 - 20.081: 32 import / 14 already-fixed / 11 no-surface / 3 na (60 anchors)
 - 20.124: 9 import / 5 c-bucket (excluded per card amendment) / 1 no-surface (15 anchors)

@@ -1,7 +1,7 @@
 # chase — 갭 인벤토리 (횡단)
 
-> 스냅샷: gjc **`baa4dc76`** (`upstream/dev`, v0.11.10+) · jwc **`a446321`** (dev) · omp **`59619623`** (`origin/main`, v17.1.3) (2026-07-25 **chase pull refresh**).
-> **reviewed through**: GJC `3ddf26079..baa4dc76` · OMP `b0d04e517..59619623` · JWC `a446321`
+> 스냅샷: gjc **`baa4dc76`** (`upstream/dev`, v0.11.10+) · jwc **`1cef6e4`** (dev) · omp **`59619623`** (`origin/main`, v17.1.3) (2026-07-25 **chase pull refresh**).
+> **reviewed through**: GJC `3ddf26079..baa4dc76` · OMP `b0d04e517..59619623` · JWC `1cef6e4`
 > 260725 갱신 메모: 신규 카드 39장(GJC 10.108–10.117, OMP 20.081–20.127)은 기존 밴드 체계에 수렴 — 신규 갭 클래스 없음. 밴드 매트릭스 본체 재작성은 wp3 구현 사이클의 카드별 판정과 함께 갱신한다.
 > **명명**: [008_gjc_jwc_naming_contract.md](./008_gjc_jwc_naming_contract.md) — Python **`python/jwc-rpc`** (`jwc_rpc`); upstream만 `gjc-rpc`.
 > **RPC 실현성**: [devlog 03_rpc_bundle_feasibility_jwc_rpc](../../devlog/_fin/260614_chase_upstream_pull_priority_report/03_rpc_bundle_feasibility_jwc_rpc.md)

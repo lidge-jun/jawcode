@@ -6,10 +6,10 @@ Outcome: **DONE (partial with tracked residual)**.
 
 | phase | evidence |
 |---|---|
-| P | `030_wp3_c1_natives_platform.md` — stale check vs `ef0d29e`; 4 implement slices + 2 module defers + 1 exclusion |
-| A | Copernicus GO-WITH-FIXES (3 High) → all folded into 030 amendments (59f1067): slice 1 reclassified cache-optimization, slice 2 proven no-op (scenario matrix), slice 3 import-safe seam, slice 4 skip (no semantic counterpart) |
-| B | sol worker (Hume) implemented slices 1+3; main re-verified diff + tests (7e97976) |
-| C | Beauvoir FAIL (1 High: size-only reuse) → main fix: content-identity reuse (5e2bc50) → same-reviewer re-verify **PASS**; additional pre-existing check:ts failures fixed (944f5d7: 3 ai fixtures + sixel env typing) |
+| P | `030_wp3_c1_natives_platform.md` — stale check vs `d9eadb6`; 4 implement slices + 2 module defers + 1 exclusion |
+| A | Copernicus GO-WITH-FIXES (3 High) → all folded into 030 amendments (0100c5b): slice 1 reclassified cache-optimization, slice 2 proven no-op (scenario matrix), slice 3 import-safe seam, slice 4 skip (no semantic counterpart) |
+| B | sol worker (Hume) implemented slices 1+3; main re-verified diff + tests (e01a0a6) |
+| C | Beauvoir FAIL (1 High: size-only reuse) → main fix: content-identity reuse (b5a7074) → same-reviewer re-verify **PASS**; additional pre-existing check:ts failures fixed (6e035ba: 3 ai fixtures + sixel env typing) |
 
 ## Delivered
 

@@ -2,7 +2,7 @@
 
 ## Stale check (P, 2026-07-25)
 
-Card re-verified against current dev tree (`ef0d29e`). Findings change the implementation shape:
+Card re-verified against current dev tree (`d9eadb6`). Findings change the implementation shape:
 
 | anchor theme | upstream delta | JWC current state | verdict |
 |---|---|---|---|

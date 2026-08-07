@@ -7,10 +7,10 @@ Outcome: **DONE (partial with tracked residual)** — 15 of 37 anchors implement
 | phase | evidence |
 |---|---|
 | P | `040_wp3_c2_runtime_hardening.md` — Laplace 37-anchor survey (20 import / 3 already-fixed / 13 no-surface / 1 na-test) with path:line evidence per anchor |
-| A | Wegener GO-WITH-FIXES (6 blockers) → `041_wp3_c2_a_synthesis.md` (e51385d): approval slice + memory lifecycle descoped to design units, markdown default corrected to upstream contract, write-set deconflicted, mupdf gate upgraded |
-| B | 3 sol workers — T1 Popper 4/5 slices, T2 Volta 5/5, T3 Epicurus 2/3 (2451a2d); integration 7ea2101; mupdf RESIDUAL with build evidence (mupdf top-level await vs Bun 1.3.14 bundling; reverted cleanly), PDF image cache RESIDUAL (no JWC extraction path) |
-| C | Averroes FAIL (2 High) → main fixes: LSP stale-exit identity guard (709a996), bounded python replacement + full-startup envelope (709a996, 9828309) → re-verify **PASS** |
-| bonus | Erdos repaired all 26 pre-existing suite failures (d45b2d2e): fakeAuth getGeneration drift, SkillTool canonical state names, lsp.enabled default, ralplan→planphase contract |
+| A | Wegener GO-WITH-FIXES (6 blockers) → `041_wp3_c2_a_synthesis.md` (7127538): approval slice + memory lifecycle descoped to design units, markdown default corrected to upstream contract, write-set deconflicted, mupdf gate upgraded |
+| B | 3 sol workers — T1 Popper 4/5 slices, T2 Volta 5/5, T3 Epicurus 2/3 (ea0f834); integration 8a2c79b; mupdf RESIDUAL with build evidence (mupdf top-level await vs Bun 1.3.14 bundling; reverted cleanly), PDF image cache RESIDUAL (no JWC extraction path) |
+| C | Averroes FAIL (2 High) → main fixes: LSP stale-exit identity guard (56e3e04), bounded python replacement + full-startup envelope (56e3e04, d623c96) → re-verify **PASS** |
+| bonus | Erdos repaired all 26 pre-existing suite failures (fd7a9f0f): fakeAuth getGeneration drift, SkillTool canonical state names, lsp.enabled default, ralplan→planphase contract |
 
 ## Residual (card 20.109 Decision F)
 

@@ -1,6 +1,6 @@
 # 060 — wp3 cycle 4: provider transport + identity contracts (20.081 providers slice)
 
-## Stale check (P, 2026-07-26, HEAD `b5811d1`)
+## Stale check (P, 2026-07-26, HEAD `906cb3b`)
 
 Re-verified by sol surveyor (Plato) against the CURRENT tree — required because cycle 3 already modified
 `openai-responses.ts`, `openai-completions.ts`, `anthropic.ts`, `anthropic-messages-server*.ts`,

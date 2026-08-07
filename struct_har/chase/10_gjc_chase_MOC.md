@@ -26,7 +26,7 @@
 
 | gjc | jwc |
 |---|---|
-| `baa4dc76` (`upstream/dev`, v0.11.10+) | `a446321` (dev, 2026-07-25 chase refresh) |
+| `baa4dc76` (`upstream/dev`, v0.11.10+) | `1cef6e4` (dev, 2026-07-25 chase refresh) |
 
 > OMP head is intentionally not repeated here; see [20_omp_chase_MOC.md](./20_omp_chase_MOC.md).
 

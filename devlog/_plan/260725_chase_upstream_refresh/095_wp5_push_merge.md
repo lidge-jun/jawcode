@@ -13,7 +13,7 @@ external state, so the pre-push state is recorded before acting.
 ## BLOCKING FINDING — `.codexclaw/` runtime state would be published irreversibly
 
 `.codexclaw/` is tracked (133 files, **18MB**) with no ignore rule covering the already-tracked files. It
-entered the tree in a prior round's commit `26b4f4ef`, not by a deliberate decision to publish it.
+entered the tree in a prior round's commit `f399dada`, not by a deliberate decision to publish it.
 
 **Correction (C-review):** an earlier draft claimed `.codexclaw/` is absent from BOTH remotes. That is wrong —
 `origin/main` already publishes 6 files: `bridge.db`, `friction.jsonl`, an interview JSONL, `session.md`, a

@@ -24,7 +24,7 @@
 
 | omp | jwc |
 |---|---|
-| `59619623` (`origin/main`, v17.1.3) | `a446321` (dev, 2026-07-25 chase refresh) |
+| `59619623` (`origin/main`, v17.1.3) | `1cef6e4` (dev, 2026-07-25 chase refresh) |
 
 > GJC head is intentionally not repeated here; see [10_gjc_chase_MOC.md](./10_gjc_chase_MOC.md).
 

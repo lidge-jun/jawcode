@@ -13,8 +13,8 @@ Outcome: **NEEDS_HUMAN** — everything the loop can decide is done; the one rem
 
 | ref | SHA |
 |---|---|
-| local `dev` | `96e16d3b8be8158f6d518bb369fa3bb9288c4265` |
-| local `main` | `a84659828e2fcecbab8bd2d0e33e90d7b5e3dc53` |
+| local `dev` | `afadf7d72adcaf430056e91f4cf624fcbb2769cd` |
+| local `main` | `0cf88f3d3905cc1fc70067f2363d59fc28b8e012` |
 | remote `dev` | `c353d7b50cbd8cea2be86f5775f1ebd2372f24fa` |
 | remote `main` | `44c9fa8fa6a09f841ffd068bfffd142da5f49b6a` |
 

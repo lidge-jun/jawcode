@@ -17,7 +17,7 @@
 
 | WP | phase | content | status |
 |---|---|---|---|
-| wp1 | housekeeping | commit state, switch dev, merge main→dev (3162bf8), repair post-merge gates (a446321) | ✅ done (pre-loop, evidence in goalplan c1) |
+| wp1 | housekeeping | commit state, switch dev, merge main→dev (8566fa7), repair post-merge gates (1cef6e4) | ✅ done (pre-loop, evidence in goalplan c1) |
 | wp2 | docs-first cycle | pull clones, hash-set deltas, write chase cards via sol subagents, update MOCs + 007_follow_index — **this cycle's B**; its D locks the implementation roadmap | active |
 | wp3 | implementation cycles | one PABCD cycle per autonomous card cluster (decade doc per cluster, written at wp2 D) | pending |
 | wp4 | _fin reconciliation | header evidence, archive moves, MOC/index sync, full gates | pending |

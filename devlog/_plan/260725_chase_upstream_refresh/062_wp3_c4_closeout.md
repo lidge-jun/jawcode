@@ -6,8 +6,8 @@ Outcome: **DONE** (7 import anchors implemented; 1 already-fixed characterized; 
 |---|---|
 | P | `060_wp3_c4_provider_contracts.md` — Plato stale check against the post-cycle-3 tree: 7 import / 1 already-fixed (`aa4386d8c`) / 1 no-surface (`c1b8070ef`) |
 | A | Franklin GO-WITH-FIXES (6 blockers: 4 High, 2 Medium) → `061` synthesis: cursor strict `turnEnded` descoped to residual, anthropic compat field added to write set, kimi enumerated predicate, `onPayload` widened to 3 call sites, claude precedence pinned, google failover made structural |
-| B | Mencius (P1 google), Mill (P2 cursor), Leibniz (P3 contracts) → integration `55c25c7`; check:ts exit 0, ai 1792/1792, agent 280/280, coding-agent tools+registry 1288/1288 |
-| C | Kierkegaard GO-WITH-FIXES (2 High, one a REPRODUCED header-injection bypass) → fixes `95a0e83` → same-reviewer re-verify **PASS** (adversarial hostname probe across trailing-dot / percent-encoded dot / Unicode dot / uppercase / port / userinfo / backslash; cursor lifecycle suite ×5) |
+| B | Mencius (P1 google), Mill (P2 cursor), Leibniz (P3 contracts) → integration `d29af37`; check:ts exit 0, ai 1792/1792, agent 280/280, coding-agent tools+registry 1288/1288 |
+| C | Kierkegaard GO-WITH-FIXES (2 High, one a REPRODUCED header-injection bypass) → fixes `0323809` → same-reviewer re-verify **PASS** (adversarial hostname probe across trailing-dot / percent-encoded dot / Unicode dot / uppercase / port / userinfo / backslash; cursor lifecycle suite ×5) |
 
 ## Delivered
 

@@ -6,15 +6,15 @@ Outcome: **DONE** (7 packets landed; 4 of them existed only because the A-audit 
 |---|---|
 | P | `080_wp3_c6_residual_correctness.md` — Dewey triage of 11 remaining A-bucket cards: 3 genuine gaps, 7 skips, 1 escalated |
 | A | Laplace **FAIL** (7 blockers) → four SKIPs hid open user-facing bugs; scope 3→7 packets. Round 2 GO-WITH-FIXES (4): Packet D reseated from `#emit()` to a FIFO gate in `#emitSessionEvent()`, table reconciled, hard-error disposal bounded, concurrent-retain case added (`081`) |
-| B | 4 workers / 7 packets: Einstein (A+F), Huygens (B, with an approved fifth-owner correction — the plan's `eval/executor-base.ts` was a phantom path, the real owner is `tools/eval.ts`), Goodall (C+D), Kepler (E+G); integration `907043f` |
-| C | Bernoulli **FAIL** → 3 blockers (1 Critical) → `f58b0e3`; **FAIL again** → 2 more → `a6a5fe0`; final **PASS** |
+| B | 4 workers / 7 packets: Einstein (A+F), Huygens (B, with an approved fifth-owner correction — the plan's `eval/executor-base.ts` was a phantom path, the real owner is `tools/eval.ts`), Goodall (C+D), Kepler (E+G); integration `66276ac` |
+| C | Bernoulli **FAIL** → 3 blockers (1 Critical) → `b639035`; **FAIL again** → 2 more → `f669015`; final **PASS** |
 
 ## The C-review chain
 
 | round | finding | fix |
 |---|---|---|
-| 1 | **Critical**: stats port recovery killed any listener whose executable name matched a `bun`/`node`/`jwc` allowlist — an ordinary dev server on that port would be terminated. Plus a forgeable `x-jwc-stats-dashboard` header as "identity", and an incomplete false-completion fix | allowlist deleted; reclaim now needs a 0600 instance record matching PID + process start identity + exact command line PLUS a fresh 256-bit challenge answered by nonce-keyed HMAC-SHA256, failing closed otherwise; completion made authoritative on the settled payload (`f58b0e3`) |
-| 2 | `findLast(assistant)` skipped the real tail, so `[successfulAssistant, user]` / `[…, toolResult]` still notified; and the new ownership requirement made the stats dashboard unable to START on Windows | inspect the EXACT terminal message; Windows starts with `identityVerified:false` and simply never reclaims (`a6a5fe0`) |
+| 1 | **Critical**: stats port recovery killed any listener whose executable name matched a `bun`/`node`/`jwc` allowlist — an ordinary dev server on that port would be terminated. Plus a forgeable `x-jwc-stats-dashboard` header as "identity", and an incomplete false-completion fix | allowlist deleted; reclaim now needs a 0600 instance record matching PID + process start identity + exact command line PLUS a fresh 256-bit challenge answered by nonce-keyed HMAC-SHA256, failing closed otherwise; completion made authoritative on the settled payload (`b639035`) |
+| 2 | `findLast(assistant)` skipped the real tail, so `[successfulAssistant, user]` / `[…, toolResult]` still notified; and the new ownership requirement made the stats dashboard unable to START on Windows | inspect the EXACT terminal message; Windows starts with `identityVerified:false` and simply never reclaims (`f669015`) |
 | 3 | — | PASS: unverified records cannot enter reclaim (requires `=== true`), all tail shapes fail closed |
 
 ## Delivered

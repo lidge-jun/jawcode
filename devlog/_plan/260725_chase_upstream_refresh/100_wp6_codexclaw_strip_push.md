@@ -112,7 +112,7 @@ selected commits, 3 of which prune away, leaving a rewritten 27-commit chain sti
 |---|---|
 | rewrite touches published commits | scope excludes every advertised remote ref (branches + PR heads + tag); intersection measured at 0; re-verified immediately before push |
 | source content silently altered | `git diff` old-tip vs new-tip excluding `.codexclaw` must be empty |
-| `--prune-empty` drops a meaningful commit | exactly 12 of the 36 become empty, all `.codexclaw`-only, all with a selected single parent; the merge `3162bf8` is retained because only single-parent commits are pruned; the list is enumerated in the closeout |
+| `--prune-empty` drops a meaningful commit | exactly 12 of the 36 become empty, all `.codexclaw`-only, all with a selected single parent; the merge `8566fa7` is retained because only single-parent commits are pruned; the list is enumerated in the closeout |
 | docs cite dead SHAs | step 5 remaps all 56 via `--state-branch`, and the closure-integrity gate re-runs to prove every cited SHA resolves |
 | loop state deleted by `filter-branch`'s exit `read-tree -u` | step 0 copies `.codexclaw/` outside the repo first and restores it after |
 | backup graph accidentally republished | backups live under `refs/wp6-backup/`, which no push refspec or `--tags` touches |

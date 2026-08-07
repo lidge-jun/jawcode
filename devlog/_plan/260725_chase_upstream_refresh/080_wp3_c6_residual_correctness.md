@@ -1,6 +1,6 @@
 # 080 — wp3 cycle 6: residual correctness (final implementation cycle)
 
-## Scoping pass (P, 2026-07-26, HEAD `2018c9f`)
+## Scoping pass (P, 2026-07-26, HEAD `4d31225`)
 
 Triage of the remaining 11 A-bucket cards by sol surveyor (Dewey). The headline finding: after five
 implementation cycles **most remaining anchors are already covered, out-of-surface, or need a product
