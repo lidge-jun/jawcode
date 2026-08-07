@@ -201,12 +201,29 @@ function sanitizeAsiValue(value: unknown): ASIValue | undefined {
 	return undefined;
 }
 
-export async function tryGitStatus(cwd: string): Promise<string> {
+/**
+ * Read porcelain status, distinguishing "clean tree" from "could not inspect".
+ *
+ * Callers use this to decide which paths are dirty, so collapsing a failure into
+ * `""` makes an unreadable repo look pristine — which can drop a pre-run dirty
+ * set, hide off-scope edits, or report "nothing to revert" before a discard.
+ */
+export async function tryGitStatusResult(cwd: string): Promise<{ status: string; unavailable?: string }> {
 	try {
-		return await git.status(cwd, { porcelainV1: true, untrackedFiles: "all", z: true });
-	} catch {
-		return "";
+		return { status: await git.status(cwd, { porcelainV1: true, untrackedFiles: "all", z: true }) };
+	} catch (error) {
+		// Only a LAUNCH failure is "could not inspect". A non-repo or a real git
+		// error is a genuine answer and keeps the previous empty-status behavior,
+		// so non-git working directories are unaffected.
+		const launchFailure = error instanceof git.GitCommandError ? error.result.launchFailure : undefined;
+		if (!launchFailure) return { status: "" };
+		return { status: "", unavailable: launchFailure.message };
 	}
+}
+
+/** Display-only convenience: use {@link tryGitStatusResult} for any decision. */
+export async function tryGitStatus(cwd: string): Promise<string> {
+	return (await tryGitStatusResult(cwd)).status;
 }
 
 export async function tryGitPrefix(cwd: string): Promise<string> {

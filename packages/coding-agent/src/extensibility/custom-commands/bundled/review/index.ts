@@ -263,7 +263,11 @@ export class ReviewCommand implements CustomCommand {
 		switch (modeNum) {
 			case 1: {
 				// PR-style review against base branch
-				const branches = await getGitBranches(this.api);
+				const { branches, unavailable: branchesUnavailable } = await getGitBranches(this.api);
+				if (branchesUnavailable) {
+					ctx.ui.notify(`Could not list git branches: ${branchesUnavailable}`, "error");
+					return undefined;
+				}
 				if (branches.length === 0) {
 					ctx.ui.notify("No git branches found", "error");
 					return undefined;
@@ -347,7 +351,11 @@ export class ReviewCommand implements CustomCommand {
 
 			case 3: {
 				// Specific commit
-				const commits = await getRecentCommits(this.api, 20);
+				const { commits, unavailable: commitsUnavailable } = await getRecentCommits(this.api, 20);
+				if (commitsUnavailable) {
+					ctx.ui.notify(`Could not read git history: ${commitsUnavailable}`, "error");
+					return undefined;
+				}
 				if (commits.length === 0) {
 					ctx.ui.notify("No commits found", "error");
 					return undefined;
@@ -425,11 +433,12 @@ Use the Task tool with \`agent: "reviewer"\` to execute this review.`;
 	}
 }
 
-async function getGitBranches(api: CustomCommandAPI): Promise<string[]> {
+/** Same rule as {@link getGitStatus}: an empty list and "could not inspect" are different facts. */
+async function getGitBranches(api: CustomCommandAPI): Promise<{ branches: string[]; unavailable?: string }> {
 	try {
-		return await git.branch.list(api.cwd, { all: true });
-	} catch {
-		return [];
+		return { branches: await git.branch.list(api.cwd, { all: true }) };
+	} catch (error) {
+		return { branches: [], unavailable: error instanceof Error ? error.message : String(error) };
 	}
 }
 
@@ -456,11 +465,15 @@ async function getGitStatus(api: CustomCommandAPI): Promise<{ status: string; un
 	}
 }
 
-async function getRecentCommits(api: CustomCommandAPI, count: number): Promise<string[]> {
+/** Same rule as {@link getGitStatus}: no commits and "could not inspect" are different facts. */
+async function getRecentCommits(
+	api: CustomCommandAPI,
+	count: number,
+): Promise<{ commits: string[]; unavailable?: string }> {
 	try {
-		return await git.log.onelines(api.cwd, count);
-	} catch {
-		return [];
+		return { commits: await git.log.onelines(api.cwd, count) };
+	} catch (error) {
+		return { commits: [], unavailable: error instanceof Error ? error.message : String(error) };
 	}
 }
 

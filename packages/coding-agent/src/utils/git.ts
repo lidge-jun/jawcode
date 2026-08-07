@@ -1114,6 +1114,10 @@ export const ref = {
 		const repository = await resolveRepository(cwd);
 		if (repository && refName.startsWith("refs/")) return (await readRef(repository, refName)) !== null;
 		const result = await runCommand(cwd, ["show-ref", "--verify", "--quiet", refName], { readOnly: true, signal });
+		// "git could not run" is not "the ref does not exist" — callers decide branch
+		// creation and push targets from this, so do not answer a question we could
+		// not actually ask.
+		if (result.launchFailure) throw new GitCommandError(["show-ref", refName], result);
 		return result.exitCode === 0;
 	},
 
@@ -1245,6 +1249,9 @@ export const patch = {
 			readOnly: true,
 			signal: options.signal,
 		});
+		// Returning false here would tell the caller the patch conflicts, when git
+		// never got to look at it — task merging treats that as an unapplied patch.
+		if (result.launchFailure) throw new GitCommandError(["apply", "--check", patchPath], result);
 		return result.exitCode === 0;
 	},
 

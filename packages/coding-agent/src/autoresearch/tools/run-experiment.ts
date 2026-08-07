@@ -19,7 +19,7 @@ import {
 	parseAsiLines,
 	parseMetricLines,
 	tryGitPrefix,
-	tryGitStatus,
+	tryGitStatusResult,
 } from "../helpers";
 import { buildExperimentState } from "../state";
 import { openAutoresearchStorageIfExists } from "../storage";
@@ -80,7 +80,13 @@ export function createRunExperimentTool(
 			})();
 
 			const resolvedCommand = DEFAULT_HARNESS_COMMAND;
-			const preRunStatus = await tryGitStatus(ctx.cwd);
+			// A failed inspection must not be recorded as "nothing was dirty": the
+			// pre-run dirty set is what later scope checks are measured against.
+			const preRun = await tryGitStatusResult(ctx.cwd);
+			if (preRun.unavailable) {
+				throw new Error(`Could not read git status before the run: ${preRun.unavailable}`);
+			}
+			const preRunStatus = preRun.status;
 			const workDirPrefix = await tryGitPrefix(ctx.cwd);
 			const preRunDirtyPaths = parseWorkDirDirtyPaths(preRunStatus, workDirPrefix);
 

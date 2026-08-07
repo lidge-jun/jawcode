@@ -15,7 +15,7 @@ import {
 	pathMatchesSpec,
 	sanitizeAsi,
 	tryGitPrefix,
-	tryGitStatus,
+	tryGitStatusResult,
 } from "../helpers";
 import {
 	buildExperimentState,
@@ -106,9 +106,14 @@ export function createLogExperimentTool(
 				// so any currently-dirty path is the agent's iteration change. Off-branch we
 				// can't tell user dirt apart from agent edits, so we keep the (lossy)
 				// preRunDirtyPaths filter.
-				const statusText = await tryGitStatus(ctx.cwd);
+				// An unreadable status must not silently become "nothing was modified";
+				// this set decides what gets recorded as the iteration's changes.
+				const statusResult = await tryGitStatusResult(ctx.cwd);
+				if (statusResult.unavailable) {
+					throw new Error(`Could not read git status: ${statusResult.unavailable}`);
+				}
 				const workDirPrefix = await tryGitPrefix(ctx.cwd);
-				allModified = parseWorkDirDirtyPaths(statusText, workDirPrefix);
+				allModified = parseWorkDirDirtyPaths(statusResult.status, workDirPrefix);
 			} else {
 				const { modifiedTracked, modifiedUntracked } = await detectModifiedPaths(
 					ctx.cwd,
@@ -360,9 +365,14 @@ async function revertFailedExperiment(
 		}
 	}
 
-	const statusText = await tryGitStatus(cwd);
+	// Reporting "nothing to revert" because git could not be read would tell the
+	// user their changes were already gone.
+	const statusResult = await tryGitStatusResult(cwd);
+	if (statusResult.unavailable) {
+		return { error: `Could not read git status before discarding: ${statusResult.unavailable}` };
+	}
 	const workDirPrefix = await tryGitPrefix(cwd);
-	const { tracked, untracked } = computeRunModifiedPaths(preRunDirtyPaths, statusText, workDirPrefix);
+	const { tracked, untracked } = computeRunModifiedPaths(preRunDirtyPaths, statusResult.status, workDirPrefix);
 	const total = tracked.length + untracked.length;
 	if (total === 0) return { note: "nothing to revert" };
 	if (tracked.length > 0) {
@@ -386,9 +396,12 @@ async function detectModifiedPaths(
 	cwd: string,
 	preRunDirtyPaths: string[],
 ): Promise<{ modifiedTracked: string[]; modifiedUntracked: string[] }> {
-	const statusText = await tryGitStatus(cwd);
+	const statusResult = await tryGitStatusResult(cwd);
+	if (statusResult.unavailable) {
+		throw new Error(`Could not read git status: ${statusResult.unavailable}`);
+	}
 	const workDirPrefix = await tryGitPrefix(cwd);
-	const { tracked, untracked } = computeRunModifiedPaths(preRunDirtyPaths, statusText, workDirPrefix);
+	const { tracked, untracked } = computeRunModifiedPaths(preRunDirtyPaths, statusResult.status, workDirPrefix);
 	return { modifiedTracked: tracked, modifiedUntracked: untracked };
 }
 

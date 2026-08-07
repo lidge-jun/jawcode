@@ -31,6 +31,18 @@ describe("git helpers with a missing binary", () => {
 		expect(summary).toBeNull();
 	});
 
+	it("names the missing cwd as the cause, consumable by a caller", async () => {
+		const absent = path.join(os.tmpdir(), `jwc-missing-cwd-reason-${Date.now()}`);
+		// A checked command surfaces the typed reason through GitCommandError.result,
+		// which is what lets a decision-making caller tell "no changes" from
+		// "could not inspect".
+		const error = await git.status(absent).catch((err: unknown) => err);
+		expect(error).toBeInstanceOf(git.GitCommandError);
+		const failure = (error as InstanceType<typeof git.GitCommandError>).result.launchFailure;
+		expect(failure?.reason).toBe("cwd-missing");
+		expect(failure?.message).toContain(absent);
+	});
+
 	it("degrades soft read-only helpers instead of throwing when git cannot launch", async () => {
 		vi.spyOn(Bun, "spawn").mockImplementation(() => {
 			const error = new Error('Executable not found in $PATH: "git"');
@@ -54,6 +66,20 @@ describe("git helpers with a missing binary", () => {
 		// Top-level `status` is checked by design (runText -> runChecked) and must
 		// still reject — degrading it would be a silent lie about the tree.
 		await expect(git.status(process.cwd())).rejects.toThrow();
+	});
+
+	it("does not answer a ref question git never got to ask", async () => {
+		vi.spyOn(Bun, "spawn").mockImplementation(() => {
+			const error = new Error('Executable not found in $PATH: "git"');
+			(error as Error & { code?: string }).code = "ENOENT";
+			throw error;
+		});
+
+		// `refs/…` names resolve from the filesystem without spawning; a short name
+		// has to ask git, and `false` there would mean "that ref does not exist" —
+		// which drives branch creation and push targets. Unavailable must not
+		// masquerade as absent.
+		await expect(git.ref.exists(process.cwd(), "some-branch")).rejects.toThrow();
 	});
 });
 
