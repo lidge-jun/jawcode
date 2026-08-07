@@ -157,6 +157,21 @@ describe("terminal title runtime", () => {
 		expect(writes.at(-1)).toBe(`\x1b]0;${BRAND} > switched\x07`);
 	});
 
+	it("does not let an extension override survive a session replacement", () => {
+		// Every session-replacing path (new/switch/branch/handoff) must reassert the
+		// authoritative title. This proves the clearing contract those call sites rely
+		// on: without it the old session's extension title follows the user forever,
+		// because emit always prefers an override.
+		setSessionTerminalTitle("old-session", "/tmp/old");
+		setExtensionTerminalTitle("ext title from old session");
+		setTerminalTitleState("working");
+		expect(writes.at(-1)).toBe(`\x1b]0;ext title from old session\x07`);
+
+		setSessionTerminalTitle("new-session", "/tmp/new");
+		expect(writes.at(-1)).not.toContain("ext title from old session");
+		expect(writes.at(-1)).toContain("new-session");
+	});
+
 	it("renders the pre-state layout when the setting is disabled", () => {
 		setTerminalTitleStateEnabled(false);
 		setSessionTerminalTitle("myproj", "/tmp/myproj");

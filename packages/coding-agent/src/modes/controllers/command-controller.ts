@@ -1305,6 +1305,9 @@ export class CommandController {
 			this.ctx.updateEditorTopBorder();
 			this.ctx.updateEditorBorderColor();
 			await this.ctx.reloadTodos();
+			// Handoff starts a new session: reassert the authoritative terminal title so
+			// a stale extension override cannot follow the user into it.
+			setSessionTerminalTitle(this.ctx.sessionManager.getSessionName(), this.ctx.sessionManager.getCwd());
 
 			this.ctx.chatContainer.addChild(new Spacer(1));
 			this.ctx.chatContainer.addChild(

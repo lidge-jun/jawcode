@@ -30,7 +30,7 @@ import type { PlanApprovalDetails } from "../../plan-mode/approved-plan";
 import type { AgentSessionEvent } from "../../session/agent-session";
 import { isSilentAbort, readPendingDisplayTag } from "../../session/messages";
 import type { ResolveToolDetails } from "../../tools/resolve";
-import { setTerminalTitleState } from "../../utils/title-generator";
+import { setSessionTerminalTitle, setTerminalTitleState } from "../../utils/title-generator";
 import { interruptHint } from "../shared";
 import { ringTerminalBell } from "../utils/terminal-bell";
 
@@ -1036,6 +1036,9 @@ export class EventController {
 			this.ctx.statusLine.invalidate();
 			this.ctx.updateEditorTopBorder();
 			await this.ctx.reloadTodos();
+			// A handoff replaces the session, so the title is authoritative again —
+			// otherwise a stale extension override crosses into the new session.
+			setSessionTerminalTitle(this.ctx.sessionManager.getSessionName(), this.ctx.sessionManager.getCwd());
 			this.ctx.showStatus("Auto-handoff completed");
 		} else if (event.skipped) {
 			// Benign skip: no model selected, no candidate models available, or nothing
