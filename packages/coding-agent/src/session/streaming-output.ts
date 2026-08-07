@@ -12,6 +12,7 @@ export const DEFAULT_MAX_BYTES = 50 * 1024; // 50KB
 export const DEFAULT_MAX_COLUMN = 1024; // Max chars per grep match line
 
 const NL = "\n";
+const CR = "\r";
 const ELLIPSIS = "…";
 
 // =============================================================================
@@ -652,6 +653,11 @@ export class TailBuffer {
 export class OutputSink {
 	#buffer = "";
 	#bufferBytes = 0;
+	/**
+	 * A carriage return that ended the previous chunk, held back so a CRLF split
+	 * across a chunk boundary does not become two line breaks.
+	 */
+	#pendingCarriageReturn = false;
 	#head = "";
 	#headBytes = 0;
 	#headLines = 0; // newline count inside #head
@@ -714,8 +720,51 @@ export class OutputSink {
 	 * Push a chunk of output. The buffer management and onChunk callback run
 	 * synchronously. File sink writes are deferred and serialized internally.
 	 */
+	/**
+	 * Turn carriage-return progress updates into line boundaries.
+	 *
+	 * A lone CR means "redraw this line", so preserving it as a newline keeps each
+	 * update readable. CRLF is a single boundary and must not become two. A CR that
+	 * ends the chunk is held until the next one, because the matching LF may simply
+	 * not have arrived yet — emitting eagerly there produces a blank line.
+	 */
+	#normalizeCarriageReturns(text: string): string {
+		if (text.length === 0 || (!this.#pendingCarriageReturn && !text.includes(CR))) return text;
+
+		let cursor = 0;
+		let normalized = "";
+		if (this.#pendingCarriageReturn) {
+			this.#pendingCarriageReturn = false;
+			normalized = NL;
+			// The held CR was the first half of a split CRLF; swallow the LF.
+			if (text.startsWith(NL)) cursor = 1;
+		}
+
+		while (cursor < text.length) {
+			const carriageReturn = text.indexOf(CR, cursor);
+			if (carriageReturn === -1) {
+				normalized += text.substring(cursor);
+				break;
+			}
+			normalized += text.substring(cursor, carriageReturn);
+			if (carriageReturn === text.length - 1) {
+				this.#pendingCarriageReturn = true;
+				break;
+			}
+			normalized += NL;
+			// CRLF collapses to the single newline just emitted.
+			cursor = carriageReturn + (text[carriageReturn + 1] === NL ? 2 : 1);
+		}
+		return normalized;
+	}
+
 	push(chunk: string): void {
 		if (this.#finalized) return;
+		// Before sanitizing: `sanitizeText` DELETES a lone carriage return, which
+		// silently glues progress updates together ("50%\r75%\r100%" arrives as
+		// "50%75%100%"). Convert them to line boundaries first so the user sees the
+		// steps, while CRLF still collapses to a single newline.
+		chunk = this.#normalizeCarriageReturns(chunk);
 		chunk = sanitizeWithOptionalSixelPassthrough(chunk, sanitizeText);
 
 		// Unthrottled raw-chunk hook fires before any throttle/cap gating so
