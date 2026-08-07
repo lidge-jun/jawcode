@@ -1,5 +1,6 @@
 import { emergencyTerminalRestore } from "@jawcode-dev/tui";
 import { postmortem } from "@jawcode-dev/utils";
+import { disposeTerminalTitleState } from "../utils/title-generator";
 
 /**
  * Run modes for the coding agent.
@@ -31,5 +32,8 @@ export type {
 } from "./rpc/rpc-types";
 
 postmortem.register("terminal-restore", () => {
+	// Stop the run-state spinner FIRST: emergency restore hands the terminal back,
+	// and a pending interval tick would repaint an OSC title over the restored shell.
+	disposeTerminalTitleState();
 	emergencyTerminalRestore();
 });

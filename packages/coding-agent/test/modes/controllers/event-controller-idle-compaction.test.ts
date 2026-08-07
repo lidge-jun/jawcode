@@ -60,7 +60,13 @@ describe("EventController idle compaction teardown", () => {
 			statusLine: { invalidate: vi.fn() },
 			updateEditorTopBorder: vi.fn(),
 			editor: { getText: () => "" },
-			sessionManager: { getSessionName: () => undefined },
+			// `getCwd`/`getSessionId` are required: agent_end reaches
+			// sendCompletionNotification, which reads both for its payload.
+			sessionManager: {
+				getSessionName: () => undefined,
+				getCwd: () => process.cwd(),
+				getSessionId: () => "session-test",
+			},
 			session: {
 				isCompacting: false,
 				isStreaming: false,

@@ -53,7 +53,7 @@ import {
 import { addApiCompatibleProvider, formatProviderSetupResult } from "../../setup/provider-onboarding";
 import { BUILTIN_SLASH_COMMANDS_INTERNAL } from "../../slash-commands/builtin-registry";
 import { isSearchProviderPreference, setPreferredImageProvider, setPreferredSearchProvider } from "../../tools";
-import { setSessionTerminalTitle } from "../../utils/title-generator";
+import { setSessionTerminalTitle, setTerminalTitleStateEnabled } from "../../utils/title-generator";
 import type { SearchProviderId } from "../../web/search/types";
 import { AgentDashboard } from "../components/agent-dashboard";
 import { AssistantMessageComponent } from "../components/assistant-message";
@@ -818,6 +818,12 @@ export class SelectorController {
 				this.ctx.ui.setClearOnShrink(value as boolean);
 				break;
 
+			case "tui.titleState":
+				// Apply immediately: the title is a live surface, so waiting for the
+				// next startup would make the toggle look broken.
+				setTerminalTitleStateEnabled(value as boolean);
+				break;
+
 			case "autocompleteMaxVisible":
 				this.ctx.editor.setAutocompleteMaxVisible(typeof value === "number" ? value : Number(value));
 				break;
@@ -1219,6 +1225,9 @@ export class SelectorController {
 					this.ctx.chatContainer.clear();
 					this.ctx.renderInitialMessages();
 					this.ctx.editor.setText(result.selectedText);
+					// A branch is a new session file: reassert the authoritative title so
+					// a stale extension override cannot follow the user into it.
+					setSessionTerminalTitle(this.ctx.sessionManager.getSessionName(), this.ctx.sessionManager.getCwd());
 					done();
 					this.ctx.showStatus("Branched to new session");
 				},

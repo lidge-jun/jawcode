@@ -34,7 +34,11 @@ afterEach(() => {
 	resetSettingsForTest();
 });
 
-function makeContext(): InteractiveModeContext {
+function makeContext(options?: { isStreaming?: boolean }): InteractiveModeContext {
+	const session = {
+		getToolByName: () => undefined,
+		isStreaming: options?.isStreaming ?? true,
+	};
 	return {
 		isInitialized: true,
 		isBackgrounded: false,
@@ -47,14 +51,15 @@ function makeContext(): InteractiveModeContext {
 		liveToolContainer: { addChild: () => {}, removeChild: () => {}, clear: () => {} },
 		chatContainer: { addChild: () => {}, removeChild: () => {}, clear: () => {} },
 		statusContainer: { addChild: () => {}, removeChild: () => {}, clear: () => {} },
+		flushPendingModelSwitch: async () => {},
+		sendCompletionNotification: () => {},
+		editor: { getText: () => "" },
 		sessionManager: {
 			getSessionName: () => "test-session",
 			getCwd: () => process.cwd(),
 			getSessionId: () => "session-test",
 		},
-		session: {
-			getToolByName: () => undefined,
-		},
+		session,
 	} as unknown as InteractiveModeContext;
 }
 
@@ -69,6 +74,27 @@ function askEnd(toolCallId: string) {
 		toolName: "ask",
 		isError: false,
 		result: { content: [], details: undefined },
+	} as never;
+}
+
+function agentEnd() {
+	return { type: "agent_end", messages: [] } as never;
+}
+
+function planApprovalResolveEnd(toolCallId: string) {
+	return {
+		type: "tool_execution_end",
+		toolCallId,
+		toolName: "resolve",
+		isError: false,
+		result: {
+			content: [],
+			details: {
+				sourceToolName: "plan_approval",
+				action: "apply",
+				sourceResultDetails: { planFilePath: "/tmp/plan.md" },
+			},
+		},
 	} as never;
 }
 
@@ -103,5 +129,54 @@ describe("EventController — terminal title attention ownership", () => {
 		await controller.handleEvent(askStart("ask-1"));
 		await controller.handleEvent(askEnd("stale-id"));
 		expect(states.at(-1)).toBe("attention");
+	});
+
+	it("ignores a superseded agent_end while a newer turn is streaming", async () => {
+		const states: string[] = [];
+		vi.spyOn(titleGenerator, "setTerminalTitleState").mockImplementation(state => {
+			states.push(state);
+		});
+		// isStreaming true == a newer turn already started; the late agent_end from the
+		// previous turn must not repaint the title back to idle.
+		const controller = new EventController(makeContext({ isStreaming: true }));
+
+		await controller.handleEvent(agentEnd());
+		expect(states).not.toContain("idle");
+	});
+
+	it("settles to idle on a real agent_end", async () => {
+		const states: string[] = [];
+		vi.spyOn(titleGenerator, "setTerminalTitleState").mockImplementation(state => {
+			states.push(state);
+		});
+		const controller = new EventController(makeContext({ isStreaming: false }));
+
+		await controller.handleEvent(agentEnd());
+		expect(states.at(-1)).toBe("idle");
+	});
+
+	it("keeps plan-approval attention across the abort of its own turn", async () => {
+		const states: string[] = [];
+		vi.spyOn(titleGenerator, "setTerminalTitleState").mockImplementation(state => {
+			states.push(state);
+		});
+		// handlePlanApproval aborts the agent while its selector is still open, so the
+		// approval must outlive the agent_end that abort produces.
+		const approvalGate = Promise.withResolvers<void>();
+		const ctx = makeContext({ isStreaming: false });
+		(ctx as unknown as { handlePlanApproval: () => Promise<void> }).handlePlanApproval = () => approvalGate.promise;
+
+		const controller = new EventController(ctx);
+		const approval = controller.handleEvent(planApprovalResolveEnd("resolve-1"));
+		expect(states.at(-1)).toBe("attention");
+
+		// The abort's agent_end lands while the user is still answering.
+		await controller.handleEvent(agentEnd());
+		expect(states.at(-1)).toBe("attention");
+
+		approvalGate.resolve();
+		await approval;
+		// Only once the user answers does the title leave attention.
+		expect(states.at(-1)).toBe("idle");
 	});
 });

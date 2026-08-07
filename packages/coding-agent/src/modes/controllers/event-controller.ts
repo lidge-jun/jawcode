@@ -123,6 +123,12 @@ export class EventController {
 	 * would let the first resolution clear attention while another prompt still waits.
 	 */
 	#titleAttentionToolCallIds = new Set<string>();
+	/**
+	 * Attention ids that intentionally OUTLIVE their own turn. Plan approval aborts
+	 * the agent while its selector is still open, so the resulting `agent_end` must
+	 * not clear it — the user is still being asked something.
+	 */
+	#titleAttentionHeldAcrossTurn = new Set<string>();
 	/** 99.20.04 — active tool components currently rendered in the live zone. */
 	#liveToolComponents = new Set<ToolExecutionComponent>();
 	#readToolCallArgs = new Map<string, Record<string, unknown>>();
@@ -304,6 +310,7 @@ export class EventController {
 		// A new turn owns the attention set: any ids left by an aborted or errored
 		// turn must not keep the title stuck on `!`.
 		this.#titleAttentionToolCallIds.clear();
+		this.#titleAttentionHeldAcrossTurn.clear();
 		setTerminalTitleState("working");
 		if (this.ctx.retryEscapeHandler) {
 			this.ctx.editor.onEscape = this.ctx.retryEscapeHandler;
@@ -706,8 +713,9 @@ export class EventController {
 	}
 
 	/** Register a prompt that blocks the user and switch the terminal title to `attention`. */
-	#markTitleAttentionStart(toolCallId: string): void {
+	#markTitleAttentionStart(toolCallId: string, options?: { holdAcrossTurn?: boolean }): void {
 		this.#titleAttentionToolCallIds.add(toolCallId);
+		if (options?.holdAcrossTurn) this.#titleAttentionHeldAcrossTurn.add(toolCallId);
 		setTerminalTitleState("attention");
 	}
 
@@ -717,8 +725,12 @@ export class EventController {
 	 * must not clear attention while another prompt still waits on the user.
 	 */
 	#markTitleAttentionEnd(toolCallId: string): void {
+		this.#titleAttentionHeldAcrossTurn.delete(toolCallId);
 		if (this.#titleAttentionToolCallIds.delete(toolCallId) && this.#titleAttentionToolCallIds.size === 0) {
-			setTerminalTitleState("working");
+			// Back to `working` only if the agent is actually still running. A prompt
+			// that outlived its own turn (plan approval aborts the agent) settles to
+			// `idle` instead, so the title cannot claim work that is not happening.
+			setTerminalTitleState(this.ctx.session.isStreaming ? "working" : "idle");
 		}
 	}
 
@@ -880,8 +892,11 @@ export class EventController {
 					// Plan approval blocks on an interactive selector, so it is a second
 					// user-blocking surface alongside `ask`. It joins the same attention
 					// set (keyed by this resolve call) so nested prompts compose instead
-					// of racing. Upstream's `tools.approvalMode` API has no JWC analogue.
-					this.#markTitleAttentionStart(event.toolCallId);
+					// of racing. `holdAcrossTurn` is required because the approval handler
+					// aborts the agent while the selector is still open: the resulting
+					// `agent_end` must not clear an id the user is still answering.
+					// Upstream's `tools.approvalMode` API has no JWC analogue.
+					this.#markTitleAttentionStart(event.toolCallId, { holdAcrossTurn: true });
 					try {
 						await this.ctx.handlePlanApproval(planDetails);
 					} finally {
@@ -933,10 +948,20 @@ export class EventController {
 		// prompt submit instead (input-controller), where the screen changes anyway.
 		this.#scheduleIdleCompaction();
 		this.sendCompletionNotification(event.messages);
-		// The turn is settled: drop any attention ids an aborted prompt left behind
-		// and hand the terminal title back to the user's turn.
-		this.#titleAttentionToolCallIds.clear();
-		setTerminalTitleState("idle");
+		// Title ownership is decided LAST and only for a settled turn. Two races make
+		// this necessary:
+		//  - a superseded `agent_end` (the session already streams a newer turn) must
+		//    not repaint a fresh `agent_start` back to idle;
+		//  - plan approval aborts its own turn while the approval selector is still
+		//    open, so that `agent_end` must not clear an attention id that is still
+		//    genuinely blocking the user.
+		if (this.ctx.session.isStreaming) return;
+		for (const toolCallId of Array.from(this.#titleAttentionToolCallIds)) {
+			if (!this.#titleAttentionHeldAcrossTurn.has(toolCallId)) {
+				this.#titleAttentionToolCallIds.delete(toolCallId);
+			}
+		}
+		if (this.#titleAttentionToolCallIds.size === 0) setTerminalTitleState("idle");
 	}
 
 	async #handleAutoCompactionStart(

@@ -209,6 +209,9 @@ export class ExtensionUiController {
 				this.ctx.chatContainer.clear();
 				this.ctx.renderInitialMessages();
 				await this.ctx.reloadTodos();
+				// Branching creates a new session file, so it is authoritative too:
+				// resync the title or a stale extension override crosses into it.
+				setSessionTerminalTitle(this.ctx.sessionManager.getSessionName(), this.ctx.sessionManager.getCwd());
 				this.ctx.editor.setText(result.selectedText);
 				this.ctx.showStatus("Branched to new session");
 

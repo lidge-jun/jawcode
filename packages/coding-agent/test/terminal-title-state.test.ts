@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "bun:test";
 import {
 	buildTerminalTitleWithState,
 	disposeTerminalTitleState,
@@ -46,18 +46,20 @@ describe("buildTerminalTitleWithState", () => {
 
 describe("terminal title runtime", () => {
 	let writes: string[];
-	let writeSpy: ReturnType<typeof vi.spyOn> | undefined;
-	let originalIsTty: boolean | undefined;
+	let writeSpy: Mock<(chunk: unknown) => boolean> | undefined;
+	let originalIsTtyDescriptor: PropertyDescriptor | undefined;
 
 	beforeEach(() => {
 		writes = [];
-		originalIsTty = process.stdout.isTTY;
+		// Capture the exact descriptor: `isTTY` may not be an own property at all, and
+		// restoring only its value would leave one behind for other suites.
+		originalIsTtyDescriptor = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
 		// The OSC sink is TTY-guarded, so runtime behavior is unobservable without this.
 		Object.defineProperty(process.stdout, "isTTY", { value: true, configurable: true });
 		writeSpy = vi.spyOn(process.stdout, "write").mockImplementation((chunk: unknown) => {
 			writes.push(String(chunk));
 			return true;
-		});
+		}) as unknown as Mock<(chunk: unknown) => boolean>;
 		resetTerminalTitleStateForTest();
 	});
 
@@ -65,7 +67,11 @@ describe("terminal title runtime", () => {
 		disposeTerminalTitleState();
 		resetTerminalTitleStateForTest();
 		writeSpy?.mockRestore();
-		Object.defineProperty(process.stdout, "isTTY", { value: originalIsTty, configurable: true });
+		if (originalIsTtyDescriptor) {
+			Object.defineProperty(process.stdout, "isTTY", originalIsTtyDescriptor);
+		} else {
+			delete (process.stdout as { isTTY?: boolean }).isTTY;
+		}
 	});
 
 	it("emits an OSC title carrying the session label", () => {
@@ -81,19 +87,20 @@ describe("terminal title runtime", () => {
 		expect(writes.length).toBe(afterFirst);
 	});
 
+	// These few cases drive the real 80ms interval rather than a fake clock: the
+	// defect being guarded against IS a real timer surviving teardown, and a fake
+	// clock would prove only that a mock was cleared.
 	it("animates the spinner while working and stops for good once disposed", async () => {
 		setSessionTerminalTitle("myproj", "/tmp/myproj");
 		setTerminalTitleState("working");
-		// The interval is 80ms; wait long enough that several ticks must have landed.
-		await Bun.sleep(260);
-		const whileWorking = writes.length;
-		expect(whileWorking).toBeGreaterThan(1);
+		await Bun.sleep(200);
+		expect(writes.length).toBeGreaterThan(1);
 
 		disposeTerminalTitleState();
 		const afterDispose = writes.length;
-		await Bun.sleep(260);
-		// This is the teardown leak the plan's audit flagged: a pending tick must not
-		// re-emit an OSC title after the terminal has been handed back to the shell.
+		await Bun.sleep(200);
+		// The teardown leak the audit flagged: a pending tick must not re-emit an OSC
+		// title after the terminal has been handed back to the shell.
 		expect(writes.length).toBe(afterDispose);
 	});
 
@@ -102,6 +109,38 @@ describe("terminal title runtime", () => {
 		const afterIdle = writes.length;
 		await Bun.sleep(200);
 		expect(writes.length).toBe(afterIdle);
+	});
+
+	it("stops the spinner when the turn settles to idle", async () => {
+		setSessionTerminalTitle("myproj", "/tmp/myproj");
+		setTerminalTitleState("working");
+		await Bun.sleep(120);
+		setTerminalTitleState("idle");
+		expect(writes.at(-1)).toBe(`\x1b]0;${BRAND} > myproj\x07`);
+		const afterIdle = writes.length;
+		await Bun.sleep(200);
+		expect(writes.length).toBe(afterIdle);
+	});
+
+	it("stops the spinner when the setting is disabled mid-run", async () => {
+		setSessionTerminalTitle("myproj", "/tmp/myproj");
+		setTerminalTitleState("working");
+		await Bun.sleep(120);
+		setTerminalTitleStateEnabled(false);
+		expect(writes.at(-1)).toBe(`\x1b]0;${BRAND}: myproj\x07`);
+		const afterDisable = writes.length;
+		await Bun.sleep(200);
+		expect(writes.length).toBe(afterDisable);
+	});
+
+	it("resumes the spinner when the setting is re-enabled while working", async () => {
+		setSessionTerminalTitle("myproj", "/tmp/myproj");
+		setTerminalTitleState("working");
+		setTerminalTitleStateEnabled(false);
+		const afterDisable = writes.length;
+		setTerminalTitleStateEnabled(true);
+		await Bun.sleep(200);
+		expect(writes.length).toBeGreaterThan(afterDisable);
 	});
 
 	it("lets an extension title own the terminal against state changes", () => {
