@@ -252,13 +252,12 @@ async function tryReadHeadSha(cwd: string): Promise<string | null> {
 }
 
 async function detectPendingChanges(cwd: string): Promise<boolean> {
-	try {
-		const statusText = await git.status(cwd, { porcelainV1: true, untrackedFiles: "all", z: true });
-		const workDirPrefix = await git.show.prefix(cwd).catch(() => "");
-		return parseWorkDirDirtyPaths(statusText, workDirPrefix).length > 0;
-	} catch {
-		return false;
-	}
+	// Deliberately NOT try/catch-to-false. Reporting "no pending changes" because
+	// git could not be inspected would silently skip harness preservation, which is
+	// the opposite of safe: the caller must see the failure and decide.
+	const statusText = await git.status(cwd, { porcelainV1: true, untrackedFiles: "all", z: true });
+	const workDirPrefix = await git.show.prefix(cwd).catch(() => "");
+	return parseWorkDirDirtyPaths(statusText, workDirPrefix).length > 0;
 }
 
 function buildHarnessCommitMessage(goal: string | null, name: string): string {

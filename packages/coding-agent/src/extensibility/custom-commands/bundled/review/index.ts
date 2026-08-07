@@ -302,7 +302,11 @@ export class ReviewCommand implements CustomCommand {
 
 			case 2: {
 				// Uncommitted changes - combine staged and unstaged
-				const status = await getGitStatus(this.api);
+				const { status, unavailable } = await getGitStatus(this.api);
+				if (unavailable) {
+					ctx.ui.notify(`Could not read git status: ${unavailable}`, "error");
+					return undefined;
+				}
 				if (!status.trim()) {
 					ctx.ui.notify("No uncommitted changes found", "warning");
 					return undefined;
@@ -437,11 +441,18 @@ async function getCurrentBranch(api: CustomCommandAPI): Promise<string> {
 	}
 }
 
-async function getGitStatus(api: CustomCommandAPI): Promise<string> {
+/**
+ * Read `git status`, distinguishing "clean tree" from "could not inspect".
+ *
+ * Swallowing the failure into `""` made the caller announce "No uncommitted
+ * changes found" when git was simply missing — a confident wrong answer about
+ * the user's working tree.
+ */
+async function getGitStatus(api: CustomCommandAPI): Promise<{ status: string; unavailable?: string }> {
 	try {
-		return await git.status(api.cwd);
-	} catch {
-		return "";
+		return { status: await git.status(api.cwd) };
+	} catch (error) {
+		return { status: "", unavailable: error instanceof Error ? error.message : String(error) };
 	}
 }
 

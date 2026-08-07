@@ -19,6 +19,23 @@ export interface GitCommandResult {
 	exitCode: number;
 	stdout: string;
 	stderr: string;
+	/**
+	 * Set when the git process could not be launched at all (binary missing, or a
+	 * cwd that does not exist) rather than running and failing.
+	 *
+	 * This is deliberately NOT folded into `exitCode`: real git can return 127 via
+	 * an alias, so an exit code cannot distinguish "git says no" from "git never
+	 * ran". Cosmetic callers may ignore this; callers that make decisions from the
+	 * result must not report a confident answer when it is set — "no changes" and
+	 * "could not inspect" are different facts.
+	 */
+	launchFailure?: GitLaunchFailure;
+}
+
+/** Why a git process could not be launched. */
+export interface GitLaunchFailure {
+	reason: "git-not-found" | "cwd-missing" | "launch-failed";
+	message: string;
 }
 
 export interface GitRepository {
@@ -178,6 +195,37 @@ function ensureAvailable(): void {
 	}
 }
 
+/**
+ * A git process that never ran, shaped like a failed run so existing
+ * `exitCode !== 0` branches keep working, but tagged so callers that make
+ * decisions can tell the difference.
+ *
+ * Exit 128 is git's own "fatal" code and is used here only so untagged legacy
+ * branches behave sanely; `launchFailure` is the authoritative signal.
+ */
+function launchFailureResult(reason: GitLaunchFailure["reason"], message: string): GitCommandResult {
+	return { exitCode: 128, stdout: "", stderr: message, launchFailure: { reason, message } };
+}
+
+/**
+ * Name the cause of a spawn failure without over-claiming.
+ *
+ * A missing binary and a missing cwd both surface as ENOENT. The checks run only
+ * AFTER the spawn already failed — a pre-flight would both slow the happy path
+ * and still race — and when neither check explains it, the failure is reported
+ * generically rather than guessing which resource disappeared.
+ */
+function diagnoseLaunchFailure(cwd: string, error: unknown): GitCommandResult {
+	const detail = error instanceof Error ? error.message : String(error);
+	if (!$which("git")) {
+		return launchFailureResult("git-not-found", "git is not installed.");
+	}
+	if (!fs.existsSync(cwd)) {
+		return launchFailureResult("cwd-missing", `Working directory does not exist: ${cwd}`);
+	}
+	return launchFailureResult("launch-failed", `Failed to launch git: ${detail}`);
+}
+
 function formatCommandFailure(
 	args: readonly string[],
 	result: Pick<GitCommandResult, "exitCode" | "stdout" | "stderr">,
@@ -195,15 +243,21 @@ async function runCommand(
 	options: CommandOptions = {},
 ): Promise<GitCommandResult> {
 	const commandArgs = withShortLivedGitConfig(options.readOnly ? withNoOptionalLocks(args) : [...args]);
-	const child = Bun.spawn(["git", ...commandArgs], {
-		cwd,
-		env: options.env ? { ...process.env, GIT_OPTIONAL_LOCKS: "0", ...options.env } : undefined,
-		signal: options.signal,
-		stdin: normalizeStdin(options.stdin),
-		stdout: "pipe",
-		stderr: "pipe",
-		windowsHide: true,
-	});
+	const stdin = normalizeStdin(options.stdin);
+	let child: Bun.Subprocess<"ignore" | Uint8Array, "pipe", "pipe">;
+	try {
+		child = Bun.spawn(["git", ...commandArgs], {
+			cwd,
+			env: options.env ? { ...process.env, GIT_OPTIONAL_LOCKS: "0", ...options.env } : undefined,
+			signal: options.signal,
+			stdin,
+			stdout: "pipe",
+			stderr: "pipe",
+			windowsHide: true,
+		});
+	} catch (error) {
+		return diagnoseLaunchFailure(cwd, error);
+	}
 
 	if (!child.stdout || !child.stderr) {
 		throw new Error("Failed to capture git command output.");
