@@ -1,5 +1,9 @@
 /**
- * Windows `.cmd`/`.bat` launch construction for MCP stdio servers.
+ * Windows `.cmd`/`.bat` launch construction for any child-process launcher.
+ *
+ * Originally written for MCP stdio servers, but nothing here is MCP-specific:
+ * every launcher that spawns a PATH-resolved command needs it, because the two
+ * facts below are properties of Bun and `cmd.exe`, not of any one subsystem.
  *
  * Two facts drive this module:
  *

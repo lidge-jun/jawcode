@@ -18,7 +18,7 @@ import {
 	escapeCmdBatchArg,
 	isWindowsBatchTarget,
 	resolveWindowsBatchLaunch,
-} from "../src/runtime-mcp/transports/windows-batch-launch";
+} from "../src/runtime/windows-batch-launch";
 
 const isWindows = process.platform === "win32";
 

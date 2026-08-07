@@ -1,6 +1,7 @@
 import { isEnoent, logger, untilAborted } from "@jawcode-dev/utils";
 import { formatCrashDiagnosticNotice, writeCrashReport } from "../debug/crash-diagnostics";
 import { spawnOwnedProcess } from "../runtime/process-lifecycle";
+import { resolveWindowsBatchLaunch } from "../runtime/windows-batch-launch";
 import { ToolAbortError, throwIfAborted } from "../tools/tool-errors";
 import { applyWorkspaceEdit } from "./edits";
 import { getLspmuxCommand, isLspmuxSupported } from "./lspmux";
@@ -469,11 +470,19 @@ export async function getOrCreateClient(config: ServerConfig, cwd: string, initT
 			? await getLspmuxCommand(baseCommand, baseArgs)
 			: { command: baseCommand, args: baseArgs };
 
-		const owner = spawnOwnedProcess([command, ...args], {
+		// Language servers are commonly npm-installed, so on Windows `command`
+		// routinely resolves to a `.cmd` shim (`typescript-language-server.cmd`,
+		// `pyright.cmd`, a bare `npx`). Bun hands that path to `CreateProcessW`,
+		// which cannot launch batch files at all — the server simply never starts.
+		// Route those through `cmd.exe` with the same BatBadBut-safe escaping the
+		// MCP transport uses.
+		const batchLaunch = resolveWindowsBatchLaunch(command, args);
+		const owner = spawnOwnedProcess(batchLaunch?.argv ?? [command, ...args], {
 			cwd,
 			stdin: "pipe",
 			env: env ? { ...Bun.env, ...env } : undefined,
 			name: `lsp:${config.command}`,
+			...(batchLaunch ? { windowsVerbatimArguments: true } : {}),
 		});
 		const proc = owner.child;
 

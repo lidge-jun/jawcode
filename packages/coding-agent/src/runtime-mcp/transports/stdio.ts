@@ -8,6 +8,7 @@
 import { getProjectDir, readJsonl, Snowflake } from "@jawcode-dev/utils";
 import type { OwnedProcess } from "../../runtime/process-lifecycle";
 import { spawnOwnedProcess } from "../../runtime/process-lifecycle";
+import { resolveWindowsBatchLaunch } from "../../runtime/windows-batch-launch";
 import type {
 	JsonRpcError,
 	JsonRpcMessage,
@@ -18,7 +19,6 @@ import type {
 	MCPTransport,
 } from "../../runtime-mcp/types";
 import { toJsonRpcError } from "../../runtime-mcp/types";
-import { resolveWindowsBatchLaunch } from "./windows-batch-launch";
 
 /**
  * Stdio transport for MCP servers.

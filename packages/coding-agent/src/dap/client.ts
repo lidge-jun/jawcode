@@ -1,6 +1,7 @@
 import { logger, ptree } from "@jawcode-dev/utils";
 import { formatCrashDiagnosticNotice, writeCrashReport } from "../debug/crash-diagnostics";
 import { NON_INTERACTIVE_ENV } from "../exec/non-interactive-env";
+import { resolveWindowsBatchLaunch } from "../runtime/windows-batch-launch";
 import { ToolAbortError } from "../tools/tool-errors";
 import type {
 	DapCapabilities,
@@ -116,11 +117,18 @@ export class DapClient {
 			...Bun.env,
 			...NON_INTERACTIVE_ENV,
 		};
-		const proc = ptree.spawn([adapter.resolvedCommand, ...adapter.args], {
+		// Debug adapters are frequently npm-installed, so `resolvedCommand` can be
+		// a Windows `.cmd` shim. Bun cannot launch batch files directly, so route
+		// those through `cmd.exe` with the shared BatBadBut-safe escaping. The two
+		// socket variants below are unix-socket paths and cannot be reached on
+		// Windows, so they are deliberately left alone.
+		const batchLaunch = resolveWindowsBatchLaunch(adapter.resolvedCommand, adapter.args);
+		const proc = ptree.spawn(batchLaunch?.argv ?? [adapter.resolvedCommand, ...adapter.args], {
 			cwd,
 			stdin: "pipe",
 			env,
 			detached: true,
+			...(batchLaunch ? { windowsVerbatimArguments: true } : {}),
 		});
 		const client = new DapClient(adapter, cwd, proc);
 		proc.exited.then(() => {
