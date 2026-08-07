@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { CONFIG_DIR_NAME, getConfigAgentDirName, getProjectDir } from "@jawcode-dev/utils";
+import { $env, CONFIG_DIR_NAME, getConfigAgentDirName, getProjectDir, isCompiledBinary } from "@jawcode-dev/utils";
 import { expandTilde } from "./tools/path-utils";
 
 export * from "./config/config-file";
@@ -19,18 +19,27 @@ const PROJECT_CONFIG_PRIORITY = [{ dir: CONFIG_DIR_NAME }, { dir: ".gemini" }];
  * Walk up from import.meta.dir until we find package.json, or fall back to cwd.
  */
 export function getPackageDir(): string {
-	// Allow override via environment variable (useful for Nix/Guix where store paths tokenize poorly)
-	const envDir = process.env.GJC_PACKAGE_DIR ?? process.env.PI_PACKAGE_DIR;
+	// Read through `$env` rather than `process.env`: the JWC_* → legacy mirror
+	// runs at env-module load, so a raw `process.env` lookup misses the
+	// documented `JWC_PACKAGE_DIR` spelling entirely and silently ignores it.
+	const envDir = $env.JWC_PACKAGE_DIR ?? $env.GJC_PACKAGE_DIR ?? $env.PI_PACKAGE_DIR;
 	if (envDir) {
 		return expandTilde(envDir);
 	}
 
-	let dir = import.meta.dir;
-	while (dir !== path.dirname(dir)) {
-		if (fs.existsSync(path.join(dir, "package.json"))) {
-			return dir;
+	// Inside a `bun build --compile` binary, `import.meta.dir` points into the
+	// embedded `$bunfs` virtual filesystem. There is no `package.json` to find
+	// there, so the walk below would traverse to the root and fall through —
+	// returning the user's cwd as if it were the package directory. Take the
+	// fallback deliberately instead of arriving at it by accident.
+	if (!isCompiledBinary()) {
+		let dir = import.meta.dir;
+		while (dir !== path.dirname(dir)) {
+			if (fs.existsSync(path.join(dir, "package.json"))) {
+				return dir;
+			}
+			dir = path.dirname(dir);
 		}
-		dir = path.dirname(dir);
 	}
 	// Fallback to project dir (docs/examples won't be found, but that's fine)
 	return getProjectDir();
