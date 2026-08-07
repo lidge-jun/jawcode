@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Switching to an Anthropic model after a turn from another provider on the same API no longer wedges the session. The previous turn's thinking signature was replayed verbatim because the check only compared API, not provider — and several providers speak `anthropic-messages`. Anthropic rejected the request as an invalid signature, and since the offending turn was still the most recent one, every retry failed the same way and the session fell back to another model until something else completed. Signatures from a different provider are now stripped; switching between models from the same provider is unaffected.
+
 ## [0.4.5] - 2026-06-12
 
 ### Changed

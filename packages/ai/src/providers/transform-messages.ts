@@ -300,7 +300,16 @@ export function transformMessages<TApi extends Api>(
 			const mustPreserveLatestAnthropicThinking =
 				index === latestAssistantIndex &&
 				model.api === "anthropic-messages" &&
-				assistantMsg.api === "anthropic-messages";
+				assistantMsg.api === "anthropic-messages" &&
+				// Anthropic's byte-for-byte replay rule covers the TARGET provider's own
+				// latest response, not any response on the same api. Several providers
+				// speak `anthropic-messages` (anthropic, zai, opencode-zen), so matching
+				// on api alone replayed a foreign provider's thinking signature verbatim
+				// and Anthropic 400'd with `Invalid signature in thinking block`. The
+				// poisoned turn stays latest, so every retry failed identically and the
+				// session wedged onto its fallback model. Same-provider model switches
+				// still keep their signed latest turn.
+				assistantMsg.provider === model.provider;
 			const isAnthropicReplay = model.api === "anthropic-messages";
 			// Aborted/errored messages may contain partially-streamed thinking blocks.
 			// Anthropic requires thinking/redacted_thinking bytes in replayed assistant
