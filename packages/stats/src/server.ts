@@ -93,7 +93,69 @@ async function readProcessIdentity(pid: number): Promise<ProcessIdentity | null>
 		const match = /^(\S+\s+\S+\s+\d+\s+\d{2}:\d{2}:\d{2}\s+\d{4})\s+(.+)$/.exec(output);
 		return match?.[1] && match[2] ? { startId: match[1], command: match[2] } : null;
 	}
+	if (process.platform === "win32") return readWindowsProcessIdentity(pid);
 	return null;
+}
+
+/**
+ * Windows equivalent of the `/proc` start-time + cmdline pair.
+ *
+ * Without this, `readProcessIdentity` returned null on win32, so
+ * `recoverStatsPort` could never prove ownership: `jwc stats` refused to reuse
+ * its OWN running dashboard and refused to reclaim its own stale port, leaving
+ * the user with a permanently unusable port and a message about an
+ * unidentifiable process.
+ *
+ * `CreationDate` plus `CommandLine` is the same identity pair the POSIX
+ * branches use — a recycled PID gets a different creation timestamp, which is
+ * what makes the check meaningful rather than a PID comparison.
+ */
+async function readWindowsProcessIdentity(pid: number): Promise<ProcessIdentity | null> {
+	const wmic = $which("wmic");
+	if (wmic) {
+		const query = `ProcessId=${pid}`;
+		const result = await $`${wmic} process where ${query} get CommandLine,CreationDate /FORMAT:LIST`
+			.quiet()
+			.nothrow();
+		if (result.exitCode === 0) {
+			const identity = parseWmicProcessIdentity(result.text());
+			if (identity) return identity;
+		}
+	}
+	// wmic is deprecated and absent on newer Windows images, so fall back to
+	// PowerShell rather than losing the capability on exactly those systems.
+	const powershell = $which("powershell") ?? $which("pwsh");
+	if (!powershell) return null;
+	const script = [
+		`$p = Get-CimInstance Win32_Process -Filter "ProcessId=${pid}";`,
+		"if (-not $p) { exit 1 };",
+		'Write-Output ("CreationDate=" + $p.CreationDate);',
+		'Write-Output ("CommandLine=" + $p.CommandLine);',
+	].join(" ");
+	const result = await $`${powershell} -NoProfile -NonInteractive -Command ${script}`.quiet().nothrow();
+	if (result.exitCode !== 0) return null;
+	return parseWmicProcessIdentity(result.text());
+}
+
+/**
+ * Parse the shared `Key=Value` line shape emitted by both Windows probes.
+ *
+ * Exported for tests: the probes themselves shell out to Windows-only binaries,
+ * so the parsing — where the real bugs live — has to be reachable elsewhere.
+ */
+export function parseWmicProcessIdentity(output: string): ProcessIdentity | null {
+	let startId: string | undefined;
+	let command: string | undefined;
+	for (const line of output.split("\n")) {
+		const separator = line.indexOf("=");
+		if (separator < 0) continue;
+		const key = line.slice(0, separator).trim().toLowerCase();
+		const value = line.slice(separator + 1).trim();
+		if (!value) continue;
+		if (key === "creationdate") startId = value;
+		else if (key === "commandline") command = value;
+	}
+	return startId && command ? { startId, command } : null;
 }
 
 async function readInstanceRecord(port: number): Promise<StatsInstanceRecord | null> {

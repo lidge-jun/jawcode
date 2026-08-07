@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `jwc stats` now works on Windows when the port is already taken. Ownership of a listening process could not be established there at all, so the dashboard would neither reuse an instance it had already started nor reclaim a port left behind by a crashed one — it just reported that the process could not be identified, and the port stayed unusable. Process identity is now read via `wmic`, falling back to PowerShell on systems where `wmic` has been removed. Ownership still has to be proven before anything is stopped, so a foreign listener is left alone.
+
 ## [0.4.5] - 2026-06-12
 
 - Version aligned with the 0.4.5 monorepo release; no functional changes in this package.

@@ -107,3 +107,5 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: MCP Windows shim launch tests
         run: bun test packages/coding-agent/test/mcp-windows-shim.test.ts
+      - name: Stats dashboard port recovery on Windows
+        run: bun test packages/stats/test/windows-process-identity.test.ts packages/stats/test/server-port-recovery.test.ts
