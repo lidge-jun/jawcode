@@ -24,6 +24,58 @@ export function detectRecordingTools(): string[] {
 
 // ── ffmpeg dshow device detection ──────────────────────────────────
 
+/**
+ * Linux audio input backends, in the order we prefer them.
+ *
+ * PipeWire is the default on current Fedora/Ubuntu, and a PipeWire-only box
+ * has no `pulse` input device at all — `ffmpeg -f pulse` exits immediately
+ * there. ALSA is the fallback for minimal systems with no sound server. Pulse
+ * stays in the middle because it is still the most widely present, and because
+ * PipeWire's pulse compatibility layer answers to it.
+ */
+const LINUX_FFMPEG_INPUTS = ["pipewire", "pulse", "alsa"] as const;
+
+/** What `-f <format> -i <input>` should be on Linux. */
+interface LinuxAudioInput {
+	format: string;
+	device: string;
+}
+
+let cachedLinuxAudioInput: LinuxAudioInput | undefined;
+
+/**
+ * Pick a Linux ffmpeg input backend that this ffmpeg build actually supports.
+ *
+ * `ffmpeg -devices` lists the input/output devices compiled into the binary,
+ * which is cheap and does not open the audio hardware. When the probe fails
+ * for any reason we fall back to `pulse` — the previous hardcoded value — so
+ * this can only widen the set of working systems, never narrow it.
+ */
+async function detectLinuxAudioInput(): Promise<LinuxAudioInput> {
+	if (cachedLinuxAudioInput) return cachedLinuxAudioInput;
+
+	let available = "";
+	try {
+		const result = await $`ffmpeg -hide_banner -devices`.quiet().nothrow();
+		available = `${result.stdout.toString()}${result.stderr.toString()}`;
+	} catch {
+		// Probe unavailable — fall through to the historical default.
+	}
+
+	const supported = LINUX_FFMPEG_INPUTS.find(format => new RegExp(`\\b${format}\\b`).test(available));
+	const format = supported ?? "pulse";
+	// `alsa` has no "default sink" concept the way the sound servers do; its
+	// conventional default PCM is literally named `default` too, so one device
+	// string covers all three.
+	cachedLinuxAudioInput = { format, device: "default" };
+	return cachedLinuxAudioInput;
+}
+
+/** @internal Reset the probe cache between tests. */
+export function __resetLinuxAudioInputCacheForTest(): void {
+	cachedLinuxAudioInput = undefined;
+}
+
 async function detectWindowsAudioDevice(): Promise<string> {
 	const result = await $`ffmpeg -f dshow -list_devices true -i dummy`.quiet().nothrow();
 	const output = result.stderr.toString();
@@ -94,12 +146,13 @@ async function startFFmpegRecording(outputPath: string): Promise<RecordingHandle
 			outputPath,
 		];
 	} else {
+		const linuxInput = await detectLinuxAudioInput();
 		args = [
 			"ffmpeg",
 			"-f",
-			"pulse",
+			linuxInput.format,
 			"-i",
-			"default",
+			linuxInput.device,
 			"-ar",
 			"16000",
 			"-ac",
