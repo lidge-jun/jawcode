@@ -165,6 +165,7 @@ export async function getOrCreateSnapshot(
 			stderr: "ignore",
 			timeout: SNAPSHOT_TIMEOUT_MS,
 			killSignal: "SIGKILL",
+			windowsHide: true,
 		});
 
 		await child.exited;

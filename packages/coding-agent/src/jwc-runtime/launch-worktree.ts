@@ -71,6 +71,7 @@ function branchExists(repoRoot: string, branchName: string): boolean {
 		cwd: repoRoot,
 		stdout: "ignore",
 		stderr: "ignore",
+		windowsHide: true,
 	});
 	return result.exitCode === 0;
 }

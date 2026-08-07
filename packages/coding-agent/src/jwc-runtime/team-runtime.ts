@@ -1763,6 +1763,7 @@ function branchExists(repoRoot: string, branchName: string): boolean {
 			cwd: repoRoot,
 			stdout: "ignore",
 			stderr: "ignore",
+			windowsHide: true,
 		}).exitCode === 0
 	);
 }
@@ -2211,6 +2212,7 @@ async function rollbackCreatedWorktrees(workers: JwcTeamWorker[]): Promise<void>
 				cwd: worker.worktree_repo_root,
 				stdout: "ignore",
 				stderr: "ignore",
+				windowsHide: true,
 			});
 }
 async function removeCleanCreatedWorktrees(workers: JwcTeamWorker[]): Promise<void> {
@@ -2220,6 +2222,7 @@ async function removeCleanCreatedWorktrees(workers: JwcTeamWorker[]): Promise<vo
 				cwd: worker.worktree_repo_root,
 				stdout: "ignore",
 				stderr: "ignore",
+				windowsHide: true,
 			});
 }
 

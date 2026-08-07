@@ -118,6 +118,9 @@ async function openBrowserHandle(kind: BrowserKind, opts: AcquireBrowserOptions)
 			stdout: "ignore",
 			stderr: "ignore",
 			stdin: "ignore",
+			// The browser draws its own window; this suppresses the extra console
+			// window Windows would otherwise attach to the launcher process.
+			windowsHide: true,
 		});
 		child.unref();
 		subprocess = child;

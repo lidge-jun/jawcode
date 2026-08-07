@@ -688,6 +688,12 @@ export default class Harness extends Command {
 			stdout: "ignore",
 			stderr: "ignore",
 			stdin: "ignore",
+			// Pure background daemon: stdio is discarded and the child is unref'd,
+			// so there is nothing for a console window to show. Without this,
+			// Windows pops one up for a process the user never asked to see — and
+			// every other background spawn in the tree (lsp, lspmux, git, plugin
+			// installer) already sets it.
+			windowsHide: true,
 		});
 		child.unref();
 		const live = await this.#waitForOwner(root, sessionId);
