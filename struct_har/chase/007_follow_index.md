@@ -11,6 +11,8 @@
 
 > **신규 카드 39**: GJC 10 (10.108–10.117, 529 commits `3ddf26079..baa4dc76`) · OMP 29 (20.081–20.090 / 20.101–20.112 / 20.121–20.127, 1301 commits `b0d04e517..59619623`). 해시셋 커버리지 독립 검증 완료(uncovered=0, extraneous=0). 증거: [devlog 001_delta_evidence](../../devlog/_plan/260725_chase_upstream_refresh/001_delta_evidence.md) + coverage notes 020–023.
 > **자율 구현 대상 (A bucket)**: GJC 10.110(SDK/ACP/bridge) · 10.112(notifications/Telegram daemon) · 10.116(natives/Windows, A-slice — welcome.ts 제외) · 10.117(CI/release/docs evidence-fill); OMP 20.081·20.082·20.083(A-slice)·20.087·20.088·20.089·20.102·20.107·20.109·20.122·20.124(A-slice).
+>
+> **진행 (2026-08-07, wp7)**: 20.102 종료 — 터미널 타이틀 run-state 구현 후 `_fin/20`으로 이동(ADAPT 부분 종료). 남은 잔여는 opt-in 터미널 에러 알림이며 별도 사이클로 넘겼다. 미착수 A 카드는 GJC 10.110·10.112, OMP 20.082·20.087·20.088·20.089 여섯 장.
 > **보류 (B)**: 10.109 · 10.115 · 20.085 · 20.090 · 20.110 · 20.112 · 20.127. **사용자 결정 (C)**: 10.108 · 10.111 · 10.113 · 10.114 · 20.084 · 20.086 · 20.101 · 20.103–20.106 · 20.108 · 20.111 · 20.121 · 20.123 · 20.125 · 20.126.
 > **정본 정합성 수리**: markerless backlog는 **23장**이다. 재현 가능한 16장은 10 keep + 5 commit-anchor remap + 1 active 복귀(10.090)로 정리하며, legacy malformed 7장(10.017, 10.020, 10.025, 10.026, 10.029, 20.002, 20.007)은 별도 closure audit 대상으로 둔다.
 

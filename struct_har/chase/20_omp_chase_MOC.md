@@ -143,7 +143,7 @@
 | 20.089 | [`omp_chase_runtime_stats_logging_collab`](./20.089_omp_chase_runtime_stats_logging_collab.md) | ⬜ | P2 | runtime/stats/logging/collab (adapt, A) | `b0d04e517..v17.0.8` |
 | 20.090 | [`omp_chase_robomp_swarm_reference`](./20.090_omp_chase_robomp_swarm_reference.md) | ⬜ | P3 | robomp/swarm reference (track-only, B) | `b0d04e517..v17.0.8` |
 | 20.101 | [`omp_chase_secret_placeholder_redaction`](./20.101_omp_chase_secret_placeholder_redaction.md) | ⬜ | P1 | secret placeholder identity/redaction (adapt, C) | `v17.0.8..v17.1.0` |
-| 20.102 | [`omp_chase_error_notifications_terminal_title`](./20.102_omp_chase_error_notifications_terminal_title.md) | ⬜ | P2 | error notifications + terminal title (adapt, A) | `v17.0.8..v17.1.0` |
+| 20.102 | [omp_chase_error_notifications_terminal_title](./_fin/20/20.102_omp_chase_error_notifications_terminal_title.md) | ✅ **_fin** — ADAPT partial; residual: opt-in terminal error notifications | P2 | error notifications + terminal title (adapt, A) | `v17.0.8..v17.1.0` |
 | 20.103 | [`omp_chase_workspace_roots_session_lifecycle`](./20.103_omp_chase_workspace_roots_session_lifecycle.md) | ⬜ | P1 | workspace roots + session lifecycle (adapt, C) | `v17.0.8..v17.1.0` |
 | 20.104 | [`omp_chase_task_todo_subagent_quiescence`](./20.104_omp_chase_task_todo_subagent_quiescence.md) | ⬜ | P1 | task/todo/subagent quiescence (split, C) | `v17.0.8..v17.1.0` |
 | 20.105 | [`omp_chase_providers_oauth_usage_fallback`](./20.105_omp_chase_providers_oauth_usage_fallback.md) | ⬜ | P1 | providers/OAuth/usage/fallback (split, C) | `v17.0.8..v17.1.0` |

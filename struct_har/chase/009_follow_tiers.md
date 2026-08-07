@@ -97,7 +97,7 @@
 | [20.087](./20.087_omp_chase_native_diff_search_memory_perf.md) | native diff/search/memory perf |
 | [20.088](./20.088_omp_chase_release_build_platform_ci.md) | release/build/platform/CI |
 | [20.089](./20.089_omp_chase_runtime_stats_logging_collab.md) | runtime/stats/logging/collab |
-| [20.102](./20.102_omp_chase_error_notifications_terminal_title.md) | error notifications/terminal title |
+| [20.102](./_fin/20/20.102_omp_chase_error_notifications_terminal_title.md) | error notifications/terminal title |
 | [20.107](./_fin/20/20.107_omp_chase_compaction_retry_history_resilience.md) | compaction/history resilience |
 | [20.109](./_fin/20/20.109_omp_chase_tools_platform_runtime_hardening.md) | tool/platform runtime hardening |
 | [20.122](./_fin/20/20.122_omp_chase_tui_tool_lifecycle.md) | TUI/tool lifecycle |
