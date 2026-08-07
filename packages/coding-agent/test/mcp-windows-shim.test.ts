@@ -80,6 +80,26 @@ describe("cmd.exe argument escaping", () => {
 		expect(escapeCmdBatchArg("-y")).toBe("-y");
 		expect(escapeCmdBatchArg("@upstash/context7-mcp@latest")).toBe("@upstash/context7-mcp@latest");
 	});
+
+	it("quotes cmd.exe token separators so one argument cannot split into two", () => {
+		// `,` `;` `=` and whitespace all delimit tokens for cmd.exe. Leaving them
+		// unquoted silently turns `--define=a,b` into several arguments.
+		for (const separator of [",", ";", "=", " ", "\t"]) {
+			const escaped = escapeCmdBatchArg(`a${separator}b`);
+			expect(escaped.startsWith('"')).toBe(true);
+			expect(escaped.endsWith('"')).toBe(true);
+		}
+	});
+
+	it("keeps a hostile argument inside its quoted region", () => {
+		// Each attempt tries to close the quote early so `&whoami` lands unquoted.
+		for (const hostile of ['a"&x', 'a\\"&x', 'a\\\\"&x', '"', "%"]) {
+			const escaped = escapeCmdBatchArg(hostile);
+			const quoteCount = (escaped.match(/"/g) ?? []).length;
+			// A balanced count means no stray quote terminated the region early.
+			expect(quoteCount % 2).toBe(0);
+		}
+	});
 });
 
 describe("cmd.exe argv construction", () => {

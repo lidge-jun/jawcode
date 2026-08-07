@@ -26,10 +26,14 @@ import * as path from "node:path";
 const WINDOWS_BATCH_EXTENSIONS = new Set([".bat", ".cmd"]);
 
 /**
- * Characters that are safe unquoted for both `cmd.exe` and `CommandLineToArgvW`.
+ * Characters safe to leave unquoted for both `cmd.exe` and `CommandLineToArgvW`.
  * Anything outside this set forces quoting.
+ *
+ * `,` and `;` and `=` are deliberately EXCLUDED even though they look harmless:
+ * `cmd.exe` treats them as token separators, so an unquoted `a,b` would arrive at
+ * the program as two arguments instead of one. This mirrors upstream's set.
  */
-const CMD_SAFE_ARG = /^[A-Za-z0-9_\-+.,:/\\=@]+$/;
+const CMD_SAFE_ARG = /^[A-Za-z0-9#$*+\-./:?@\\_]+$/;
 
 /**
  * Neutralize a literal `%` so `cmd.exe` cannot expand `%VAR%`.
