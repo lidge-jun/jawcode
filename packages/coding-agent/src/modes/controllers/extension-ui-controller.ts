@@ -23,7 +23,7 @@ import { HookSelectorComponent } from "../../modes/components/hook-selector";
 import { getAvailableThemesWithPaths, getThemeByName, setTheme, type Theme, theme } from "../../modes/theme/theme";
 import type { InteractiveModeContext } from "../../modes/types";
 import { classifyHookSelectorBellEvent, ringTerminalBell } from "../../modes/utils/terminal-bell";
-import { setSessionTerminalTitle, setTerminalTitle } from "../../utils/title-generator";
+import { setExtensionTerminalTitle, setSessionTerminalTitle } from "../../utils/title-generator";
 
 const MAX_WIDGET_LINES = 10;
 const HOOK_SELECTOR_MOUSE_REPORTING_DISABLE = "\x1b[?1000l\x1b[?1006l";
@@ -55,7 +55,10 @@ export class ExtensionUiController {
 			setStatus: (key, text) => this.setHookStatus(key, text),
 			setWorkingMessage: message => this.ctx.setWorkingMessage(message),
 			setWidget: (key, content, options) => this.setHookWidget(key, content, options),
-			setTitle: title => setTerminalTitle(title),
+			// Routed through the override slot so a run-state spinner tick cannot
+			// clobber an extension-set title. Cleared by the next authoritative
+			// session title (rename, new session, switch).
+			setTitle: title => setExtensionTerminalTitle(title),
 			custom: (factory, options) => this.showHookCustom(factory, options),
 			setEditorText: text => this.ctx.editor.setText(text),
 			pasteToEditor: text => {
@@ -189,6 +192,9 @@ export class ExtensionUiController {
 					new Text(`${theme.fg("accent", `${theme.status.success} New session started`)}`, 1, 1),
 				);
 				await this.ctx.reloadTodos();
+				// A session replacement is authoritative: resync the title so a stale
+				// extension override cannot survive into the new session.
+				setSessionTerminalTitle(this.ctx.sessionManager.getSessionName(), this.ctx.sessionManager.getCwd());
 				this.ctx.ui.requestRender();
 
 				return { cancelled: false };
@@ -236,6 +242,8 @@ export class ExtensionUiController {
 				this.ctx.chatContainer.clear();
 				this.ctx.renderInitialMessages();
 				await this.ctx.reloadTodos();
+				// Same rule as newSession: the switched-to session owns the title.
+				setSessionTerminalTitle(this.ctx.sessionManager.getSessionName(), this.ctx.sessionManager.getCwd());
 				return { cancelled: false };
 			},
 		};

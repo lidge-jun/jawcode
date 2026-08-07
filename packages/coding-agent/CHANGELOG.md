@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - Added a `/tone` slash command with persona tone presets (`sarcastic`, `savage`, `deadpan`, `hype`, `uhehe`) plus a `custom` paste-your-own lane, persisted as `identity.tone`/`identity.toneCustom` and rendered as a `## Tone` section in the system prompt identity block (devlog 260702_tone_command).
+- Added a run-state indicator to the terminal title so a backgrounded tab shows whether a session is busy or waiting on you: the separator between the brand and the session label animates as a spinner while the agent works, shows `>` when it is your turn, and `!` when the agent is blocked on a prompt. Gated by the new `tui.titleState` setting (default on); turning it off restores the previous `🦈: label` layout. Titles set by extensions keep ownership of the terminal until the app establishes a new session title.
 
 ## [1.0.0] - 2026-06-16
 

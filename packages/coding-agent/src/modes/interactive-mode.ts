@@ -88,7 +88,13 @@ import { ToolError } from "../tools/tool-errors";
 import type { EventBus } from "../utils/event-bus";
 import { getEditorCommand, openInEditor } from "../utils/external-editor";
 import { getSessionAccentAnsi, getSessionAccentHex } from "../utils/session-color";
-import { popTerminalTitle, pushTerminalTitle, setSessionTerminalTitle } from "../utils/title-generator";
+import {
+	disposeTerminalTitleState,
+	popTerminalTitle,
+	pushTerminalTitle,
+	setSessionTerminalTitle,
+	setTerminalTitleStateEnabled,
+} from "../utils/title-generator";
 import type { AssistantMessageComponent } from "./components/assistant-message";
 import { BackgroundFooterDetailComponent } from "./components/background-footer-detail";
 import { BackgroundFooterPanel } from "./components/background-footer-panel";
@@ -658,6 +664,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.ui.onResizeSettled = () => rebuildTranscriptForResize(this);
 		this.ui.start();
 		pushTerminalTitle();
+		setTerminalTitleStateEnabled(this.settings.get("tui.titleState"));
 		setSessionTerminalTitle(this.sessionManager.getSessionName(), this.sessionManager.getCwd());
 		this.updateEditorChrome();
 		this.#syncEditorMaxHeight();
@@ -2081,6 +2088,9 @@ export class InteractiveMode implements InteractiveModeContext {
 			this.loadingAnimation.stop();
 			this.loadingAnimation = undefined;
 		}
+		// Idempotent: `shutdown()` already disposed before restoring the title, but
+		// direct-stop paths reach here without passing through it.
+		disposeTerminalTitleState();
 		this.#cleanupMicAnimation();
 		this.#cancelGoalContinuation();
 		if (this.#sttController) {
@@ -2147,6 +2157,10 @@ export class InteractiveMode implements InteractiveModeContext {
 		// Drain any in-flight Kitty key release events before stopping.
 		// This prevents escape sequences from leaking to the parent shell over slow SSH.
 		await this.ui.terminal.drainInput(1000);
+		// Stop the run-state spinner BEFORE restoring the shell's title: a pending
+		// tick would otherwise re-emit an OSC title after `popTerminalTitle()` has
+		// handed the terminal back, leaving the parent shell with a stale spinner tab.
+		disposeTerminalTitleState();
 		popTerminalTitle();
 		this.stop();
 

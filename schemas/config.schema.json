@@ -479,6 +479,11 @@
 					"description": "Wrap file paths in OSC 8 hyperlinks for terminal-native click-to-open (auto: detect support; off: never; always: unconditional)",
 					"default": "auto"
 				},
+				"titleState": {
+					"type": "boolean",
+					"description": "Carry the agent run state in the terminal title separator: an animated spinner while working, > when it is your turn, ! when the agent is waiting on you",
+					"default": true
+				},
 				"composerPin": {
 					"type": "boolean",
 					"description": "Keep the input composer pinned to the terminal bottom, filling the gap above with blank space (default: on for jwc)"

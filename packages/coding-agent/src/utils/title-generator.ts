@@ -272,7 +272,151 @@ export function setTerminalTitle(title: string): void {
 }
 
 export function setSessionTerminalTitle(sessionName: string | undefined, cwd?: string): void {
-	setTerminalTitle(formatSessionTerminalTitle(sessionName, cwd));
+	// An authoritative session title always wins over a transient extension override.
+	terminalTitleRuntime.extensionOverride = undefined;
+	terminalTitleRuntime.label = sanitizeTerminalTitlePart(sessionName) ?? getFallbackTerminalTitle(cwd);
+	emitTerminalTitle();
+}
+
+/**
+ * Set the terminal title from an extension's `setTitle()`. Unlike the session base
+ * title this owns the terminal verbatim, so a spinner tick or state change cannot
+ * rewrite it. Cleared as soon as the app establishes an authoritative session title
+ * via {@link setSessionTerminalTitle} (rename, new session, session switch).
+ */
+export function setExtensionTerminalTitle(title: string): void {
+	terminalTitleRuntime.extensionOverride = title;
+	emitTerminalTitle();
+}
+
+export type TerminalTitleState = "idle" | "working" | "attention";
+
+/**
+ * Separator glyphs carrying the run state between the brand and the session label.
+ * The brand itself stays bare — the separator slot expresses the state instead.
+ * Spinner frames are declared locally rather than read from the theme's symbol set:
+ * importing that here would create a `utils -> modes` cycle.
+ */
+const TITLE_SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"] as const;
+const TITLE_SPINNER_INTERVAL_MS = 80;
+/** The user's turn: the title reads like a shell prompt awaiting input. */
+const TITLE_IDLE_SEPARATOR = ">";
+/** The agent is blocked on the user (ask / approval prompt). */
+const TITLE_ATTENTION_SEPARATOR = "!";
+
+const terminalTitleRuntime: {
+	label: string | undefined;
+	state: TerminalTitleState;
+	frame: number;
+	enabled: boolean;
+	timer: NodeJS.Timeout | undefined;
+	lastEmitted: string | undefined;
+	extensionOverride: string | undefined;
+} = {
+	label: undefined,
+	state: "idle",
+	frame: 0,
+	enabled: true,
+	timer: undefined,
+	lastEmitted: undefined,
+	extensionOverride: undefined,
+};
+
+/**
+ * Compose the terminal title from the brand, a state-carrying separator, and the
+ * session label. Pure (no I/O) so the state->separator contract is unit-testable:
+ *   - `idle` (your turn): `🦈 > label`
+ *   - `working`:          `🦈 ⠋ label`  — spinner frames animate the separator
+ *   - `attention`:        `🦈 ! label`  — agent blocked on you
+ *   - disabled:           `🦈: label`   — the pre-state layout
+ * Without a label the separator trails the brand (`🦈 >`) so the state stays visible.
+ */
+export function buildTerminalTitleWithState(
+	label: string | undefined,
+	state: TerminalTitleState,
+	frame: number,
+	enabled: boolean,
+): string {
+	if (!enabled) return label ? `${DEFAULT_TERMINAL_TITLE}: ${label}` : DEFAULT_TERMINAL_TITLE;
+	const separator =
+		state === "working"
+			? TITLE_SPINNER_FRAMES[frame % TITLE_SPINNER_FRAMES.length]
+			: state === "attention"
+				? TITLE_ATTENTION_SEPARATOR
+				: TITLE_IDLE_SEPARATOR;
+	return label ? `${DEFAULT_TERMINAL_TITLE} ${separator} ${label}` : `${DEFAULT_TERMINAL_TITLE} ${separator}`;
+}
+
+function emitTerminalTitle(): void {
+	// An extension override owns the terminal verbatim; spinner ticks and state
+	// changes must not clobber it. Still deduped through `lastEmitted`.
+	const next =
+		terminalTitleRuntime.extensionOverride ??
+		buildTerminalTitleWithState(
+			terminalTitleRuntime.label,
+			terminalTitleRuntime.state,
+			terminalTitleRuntime.frame,
+			terminalTitleRuntime.enabled,
+		);
+	if (next === terminalTitleRuntime.lastEmitted) return;
+	terminalTitleRuntime.lastEmitted = next;
+	setTerminalTitle(next);
+}
+
+function stopTerminalTitleSpinner(): void {
+	if (terminalTitleRuntime.timer) {
+		clearInterval(terminalTitleRuntime.timer);
+		terminalTitleRuntime.timer = undefined;
+	}
+}
+
+function startTerminalTitleSpinner(): void {
+	if (terminalTitleRuntime.timer || !process.stdout.isTTY) return;
+	terminalTitleRuntime.timer = setInterval(() => {
+		terminalTitleRuntime.frame = (terminalTitleRuntime.frame + 1) % TITLE_SPINNER_FRAMES.length;
+		emitTerminalTitle();
+	}, TITLE_SPINNER_INTERVAL_MS);
+	// Never keep the event loop alive for a cosmetic animation.
+	terminalTitleRuntime.timer.unref?.();
+}
+
+/**
+ * Reflect the agent run state in the terminal title's separator. Gated off by the
+ * `tui.titleState` setting.
+ */
+export function setTerminalTitleState(state: TerminalTitleState): void {
+	terminalTitleRuntime.state = state;
+	if (state === "working" && terminalTitleRuntime.enabled) startTerminalTitleSpinner();
+	else stopTerminalTitleSpinner();
+	emitTerminalTitle();
+}
+
+/** Enable/disable the run-state separator (driven by the `tui.titleState` setting). */
+export function setTerminalTitleStateEnabled(enabled: boolean): void {
+	terminalTitleRuntime.enabled = enabled;
+	if (enabled && terminalTitleRuntime.state === "working") startTerminalTitleSpinner();
+	else stopTerminalTitleSpinner();
+	emitTerminalTitle();
+}
+
+/**
+ * Stop the spinner timer. Called on UI teardown BEFORE `popTerminalTitle()`, and
+ * again from `stop()`; it is idempotent so the double call is harmless and no exit
+ * path can leave a tick pending after the terminal is handed back to the shell.
+ */
+export function disposeTerminalTitleState(): void {
+	stopTerminalTitleSpinner();
+}
+
+/** Test-only: reset module-level title runtime between cases. */
+export function resetTerminalTitleStateForTest(): void {
+	stopTerminalTitleSpinner();
+	terminalTitleRuntime.label = undefined;
+	terminalTitleRuntime.state = "idle";
+	terminalTitleRuntime.frame = 0;
+	terminalTitleRuntime.enabled = true;
+	terminalTitleRuntime.lastEmitted = undefined;
+	terminalTitleRuntime.extensionOverride = undefined;
 }
 
 /**

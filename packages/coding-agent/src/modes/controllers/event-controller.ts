@@ -30,6 +30,7 @@ import type { PlanApprovalDetails } from "../../plan-mode/approved-plan";
 import type { AgentSessionEvent } from "../../session/agent-session";
 import { isSilentAbort, readPendingDisplayTag } from "../../session/messages";
 import type { ResolveToolDetails } from "../../tools/resolve";
+import { setTerminalTitleState } from "../../utils/title-generator";
 import { interruptHint } from "../shared";
 import { ringTerminalBell } from "../utils/terminal-bell";
 
@@ -115,6 +116,13 @@ export class EventController {
 	#renderedCustomMessages = new Set<string>();
 	#lastIntent: string | undefined = undefined;
 	#backgroundToolCallIds = new Set<string>();
+	/**
+	 * Tool call ids currently blocking on the user (ask prompts, plan approval).
+	 * Tools run concurrently, so more than one prompt can be outstanding: the title
+	 * only returns to `working` once the LAST of them resolves. Tracking a single id
+	 * would let the first resolution clear attention while another prompt still waits.
+	 */
+	#titleAttentionToolCallIds = new Set<string>();
 	/** 99.20.04 — active tool components currently rendered in the live zone. */
 	#liveToolComponents = new Set<ToolExecutionComponent>();
 	#readToolCallArgs = new Map<string, Record<string, unknown>>();
@@ -277,6 +285,8 @@ export class EventController {
 	}
 
 	async #handleAgentStart(_event: Extract<AgentSessionEvent, { type: "agent_start" }>): Promise<void> {
+		// Attention ownership: more than one prompt can block the user at once, so the
+		// title only leaves `attention` when the last outstanding id resolves.
 		// 260704: preamble first — chat rows must never commit above an
 		// in-frame banner (reading order), and committing it moves the banner
 		// to the scrollback seam (top-flow layout, no banner-vs-chat gap).
@@ -291,6 +301,10 @@ export class EventController {
 		this.#readToolCallArgs.clear();
 		this.#readToolCallAssistantComponents.clear();
 		this.#lastAssistantComponent = undefined;
+		// A new turn owns the attention set: any ids left by an aborted or errored
+		// turn must not keep the title stuck on `!`.
+		this.#titleAttentionToolCallIds.clear();
+		setTerminalTitleState("working");
 		if (this.ctx.retryEscapeHandler) {
 			this.ctx.editor.onEscape = this.ctx.retryEscapeHandler;
 			this.ctx.retryEscapeHandler = undefined;
@@ -691,8 +705,26 @@ export class EventController {
 		this.ctx.ui.requestRender();
 	}
 
+	/** Register a prompt that blocks the user and switch the terminal title to `attention`. */
+	#markTitleAttentionStart(toolCallId: string): void {
+		this.#titleAttentionToolCallIds.add(toolCallId);
+		setTerminalTitleState("attention");
+	}
+
+	/**
+	 * Release one blocking prompt. The title returns to `working` only once the LAST
+	 * outstanding prompt resolves — tools run concurrently, so an earlier resolution
+	 * must not clear attention while another prompt still waits on the user.
+	 */
+	#markTitleAttentionEnd(toolCallId: string): void {
+		if (this.#titleAttentionToolCallIds.delete(toolCallId) && this.#titleAttentionToolCallIds.size === 0) {
+			setTerminalTitleState("working");
+		}
+	}
+
 	async #handleToolExecutionStart(event: Extract<AgentSessionEvent, { type: "tool_execution_start" }>): Promise<void> {
 		this.#updateWorkingMessageFromIntent(event.intent);
+		if (event.toolName === "ask") this.#markTitleAttentionStart(event.toolCallId);
 		if (!this.ctx.pendingTools.has(event.toolCallId)) {
 			if (event.toolName === "read" && readArgsHaveTarget(event.args) && !readArgsTargetInternalUrl(event.args)) {
 				this.#trackReadToolCall(event.toolCallId, event.args);
@@ -766,6 +798,7 @@ export class EventController {
 	}
 
 	async #handleToolExecutionEnd(event: Extract<AgentSessionEvent, { type: "tool_execution_end" }>): Promise<void> {
+		if (event.toolName === "ask") this.#markTitleAttentionEnd(event.toolCallId);
 		if (event.toolName === "read") {
 			if (this.#inlineReadToolImages(event.toolCallId, event.result)) {
 				const component = this.ctx.pendingTools.get(event.toolCallId);
@@ -844,7 +877,16 @@ export class EventController {
 			if (details?.sourceToolName === "plan_approval" && details.action === "apply") {
 				const planDetails = details.sourceResultDetails as PlanApprovalDetails | undefined;
 				if (planDetails) {
-					await this.ctx.handlePlanApproval(planDetails);
+					// Plan approval blocks on an interactive selector, so it is a second
+					// user-blocking surface alongside `ask`. It joins the same attention
+					// set (keyed by this resolve call) so nested prompts compose instead
+					// of racing. Upstream's `tools.approvalMode` API has no JWC analogue.
+					this.#markTitleAttentionStart(event.toolCallId);
+					try {
+						await this.ctx.handlePlanApproval(planDetails);
+					} finally {
+						this.#markTitleAttentionEnd(event.toolCallId);
+					}
 				}
 			}
 		}
@@ -891,6 +933,10 @@ export class EventController {
 		// prompt submit instead (input-controller), where the screen changes anyway.
 		this.#scheduleIdleCompaction();
 		this.sendCompletionNotification(event.messages);
+		// The turn is settled: drop any attention ids an aborted prompt left behind
+		// and hand the terminal title back to the user's turn.
+		this.#titleAttentionToolCallIds.clear();
+		setTerminalTitleState("idle");
 	}
 
 	async #handleAutoCompactionStart(

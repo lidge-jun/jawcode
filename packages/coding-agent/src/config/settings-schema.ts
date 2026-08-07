@@ -743,6 +743,17 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
+	"tui.titleState": {
+		type: "boolean",
+		default: true,
+		ui: {
+			tab: "appearance",
+			label: "Terminal Title Run State",
+			description:
+				"Carry the agent run state in the terminal title separator: an animated spinner while working, > when it is your turn, ! when the agent is waiting on you",
+		},
+	},
+
 	// Unset = brand default (jwc: pinned, engine brand: legacy flow). Devlog 083.7.
 	"tui.composerPin": {
 		type: "boolean",
