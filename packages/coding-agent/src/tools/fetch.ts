@@ -552,7 +552,6 @@ async function renderHtmlToText(
 		mode: "group" as const,
 		allowNonZero: true,
 		allowAbort: true,
-		stderr: "full" as const,
 		signal,
 	};
 

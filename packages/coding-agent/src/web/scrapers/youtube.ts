@@ -176,7 +176,6 @@ export const handleYouTube: SpecialHandler = async (
 		signal,
 		allowNonZero: true,
 		allowAbort: true,
-		stderr: "full" as const,
 	};
 
 	// Fetch video metadata

@@ -256,7 +256,6 @@ async function installPythonPackage(pkg: string, signal?: AbortSignal): Promise<
 				signal,
 				allowNonZero: true,
 				allowAbort: true,
-				stderr: "full",
 			});
 			if (result.exitCode === 0) return true;
 		}
@@ -268,7 +267,6 @@ async function installPythonPackage(pkg: string, signal?: AbortSignal): Promise<
 				signal,
 				allowNonZero: true,
 				allowAbort: true,
-				stderr: "full",
 			});
 			return result.exitCode === 0;
 		}
