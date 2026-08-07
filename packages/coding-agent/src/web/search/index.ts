@@ -154,6 +154,8 @@ interface ExecuteSearchOptions {
 	sessionModel?: string;
 	/** Session model provider (e.g. "openai-codex"). */
 	sessionModelProvider?: string;
+	/** Session model base URL, so a provider sharing that backend honors a configured endpoint. */
+	sessionModelBaseUrl?: string;
 	/** "deep" = 180s async; "fast" (default) = provider-class sync timeouts. */
 	depth?: "fast" | "deep" | undefined;
 	/** Explicit timeout override for providers; deep passes 180_000, fast uses provider class defaults. */
@@ -187,6 +189,7 @@ function buildProviderSearchParams(
 		sessionId: options.sessionId,
 		sessionModel: options.sessionModel,
 		sessionModelProvider: options.sessionModelProvider,
+		sessionModelBaseUrl: options.sessionModelBaseUrl,
 		depth: options.depth,
 		timeoutMs: options.timeoutMs,
 		reasoningEffort: options.reasoningEffort as "none" | "low" | "medium" | "high" | undefined,
@@ -358,6 +361,7 @@ export class WebSearchTool implements AgentTool<typeof webSearchSchema, SearchRe
 			this.#session.getActiveModelString?.(),
 		);
 		const sessionModel = this.#session.model?.id;
+		const sessionModelBaseUrl = this.#session.model?.baseUrl;
 
 		// Apply explicit user timeout overrides without letting schema defaults
 		// collapse provider class defaults back into one uniform ceiling.
@@ -394,6 +398,7 @@ export class WebSearchTool implements AgentTool<typeof webSearchSchema, SearchRe
 						activeModelProvider,
 						sessionModel,
 						sessionModelProvider: activeModelProvider,
+						sessionModelBaseUrl,
 						depth,
 						timeoutMs,
 						reasoningEffort: effectiveEffort,
@@ -423,6 +428,7 @@ export class WebSearchTool implements AgentTool<typeof webSearchSchema, SearchRe
 			activeModelProvider,
 			sessionModel,
 			sessionModelProvider: activeModelProvider,
+			sessionModelBaseUrl,
 			depth,
 			timeoutMs,
 			reasoningEffort: effectiveEffort,
@@ -468,6 +474,7 @@ export const webSearchCustomTool: CustomTool<typeof webSearchSchema, SearchRende
 			activeModelProvider: ctx.model?.provider,
 			sessionModel: ctx.model?.id,
 			sessionModelProvider: ctx.model?.provider,
+			sessionModelBaseUrl: ctx.model?.baseUrl,
 			depth,
 			timeoutMs,
 			reasoningEffort: effectiveEffort,

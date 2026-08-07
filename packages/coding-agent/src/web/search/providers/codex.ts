@@ -17,6 +17,7 @@ import type { SearchParams } from "./base";
 import { SearchProvider } from "./base";
 import { classifyProviderHttpError, withHardTimeout } from "./utils";
 
+/** Vendor default, used only when the session model does not name its own endpoint. */
 const CODEX_BASE_URL = "https://chatgpt.com/backend-api";
 const CODEX_RESPONSES_PATH = "/codex/responses";
 const DEEP_CODEX_MODEL = "gpt-5.5";
@@ -274,6 +275,22 @@ async function findCodexAuth(
 /**
  * Builds HTTP headers for OpenAI code backend API requests.
  */
+/**
+ * Endpoint for a Codex web search.
+ *
+ * The chat path already honors `model.baseUrl` and only falls back to the
+ * vendor constant. Search hardcoded the constant, so a user pointing
+ * `openai-codex` at a proxy or enterprise gateway had it respected for
+ * conversation and silently bypassed for search — sending their token to
+ * chatgpt.com instead. Trailing slashes are trimmed so a configured
+ * `.../backend-api/` does not produce a doubled separator.
+ */
+export function resolveCodexSearchBaseUrl(sessionModelBaseUrl?: string): string {
+	const configured = sessionModelBaseUrl?.trim();
+	if (!configured) return CODEX_BASE_URL;
+	return configured.replace(/\/+$/, "");
+}
+
 function buildCodexHeaders(accessToken: string, accountId: string): Record<string, string> {
 	return {
 		Authorization: `Bearer ${accessToken}`,
@@ -302,6 +319,8 @@ async function callCodexSearch(
 		modelId: string;
 		timeoutMs?: number;
 		reasoningEffort?: string;
+		/** Endpoint of the active session model; falls back to the vendor default. */
+		baseUrl?: string;
 	},
 ): Promise<{
 	answer: string;
@@ -310,7 +329,7 @@ async function callCodexSearch(
 	requestId: string;
 	usage?: { inputTokens: number; outputTokens: number; totalTokens: number };
 }> {
-	const url = `${CODEX_BASE_URL}${CODEX_RESPONSES_PATH}`;
+	const url = `${resolveCodexSearchBaseUrl(options.baseUrl)}${CODEX_RESPONSES_PATH}`;
 	const headers = buildCodexHeaders(auth.accessToken, auth.accountId);
 
 	const requestedModel = options.modelId;
@@ -532,6 +551,10 @@ export async function searchCodex(params: SearchParams): Promise<SearchResponse>
 				searchContextSize: params.searchContextSize ?? "high",
 				modelId,
 				timeoutMs: params.timeoutMs,
+				// Only honor the session model's endpoint when the session model is
+				// actually a Codex model; an Anthropic session must not redirect
+				// Codex search at Anthropic's base URL.
+				baseUrl: params.sessionModelProvider === "openai-codex" ? params.sessionModelBaseUrl : undefined,
 				// Priority: deep override > settings > env > none.
 				reasoningEffort: deepReasoningEffort ?? params.reasoningEffort ?? undefined,
 			});

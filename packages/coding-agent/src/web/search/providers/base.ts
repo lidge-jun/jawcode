@@ -65,6 +65,16 @@ export interface SearchParams {
 	sessionModelProvider?: string | undefined;
 
 	/**
+	 * Base URL of the active session model.
+	 *
+	 * A provider that talks to the same backend as the session model must honor
+	 * the endpoint the user configured for it. Without this a custom or proxied
+	 * endpoint is respected for chat and silently ignored for search, which then
+	 * sends the user's token to the vendor default.
+	 */
+	sessionModelBaseUrl?: string | undefined;
+
+	/**
 	 * Search depth tier. `"fast"` (default) uses provider-class timeouts:
 	 * short direct APIs and longer LLM search; `"deep"` = async 180s with
 	 * heavier models. The caller (WebSearchTool) handles the async job wrapper.
