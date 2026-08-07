@@ -212,12 +212,19 @@ export async function tryGitStatusResult(cwd: string): Promise<{ status: string;
 	try {
 		return { status: await git.status(cwd, { porcelainV1: true, untrackedFiles: "all", z: true }) };
 	} catch (error) {
-		// Only a LAUNCH failure is "could not inspect". A non-repo or a real git
-		// error is a genuine answer and keeps the previous empty-status behavior,
-		// so non-git working directories are unaffected.
-		const launchFailure = error instanceof git.GitCommandError ? error.result.launchFailure : undefined;
-		if (!launchFailure) return { status: "" };
-		return { status: "", unavailable: launchFailure.message };
+		// Only ONE case is a genuine empty answer: the cwd is not a repository at
+		// all, so there is nothing to report. Everything else — a failed launch, a
+		// corrupt index, dubious ownership, permission failure — means git could not
+		// tell us the state, and reporting a clean tree there would be a lie the
+		// caller acts on.
+		const message = error instanceof Error ? error.message : String(error);
+		if (error instanceof git.GitCommandError && !error.result.launchFailure) {
+			// Distinguish "not a repo" from "repo we could not read". git says so
+			// itself; `repo.root` is no good here because it walks up to a parent
+			// repository and would misreport an unrelated directory as a repo.
+			if (/not a git repository/i.test(error.result.stderr || message)) return { status: "" };
+		}
+		return { status: "", unavailable: message };
 	}
 }
 

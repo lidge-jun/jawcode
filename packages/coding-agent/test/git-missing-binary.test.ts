@@ -79,7 +79,26 @@ describe("git helpers with a missing binary", () => {
 		// has to ask git, and `false` there would mean "that ref does not exist" —
 		// which drives branch creation and push targets. Unavailable must not
 		// masquerade as absent.
-		await expect(git.ref.exists(process.cwd(), "some-branch")).rejects.toThrow();
+		const error = await git.ref.exists(process.cwd(), "some-branch").catch((err: unknown) => err);
+		// Assert the typed failure, not merely "it rejected" — a raw ENOENT would
+		// also reject, and that is the bug being fixed.
+		expect(error).toBeInstanceOf(git.GitCommandError);
+		// The exact reason depends on whether git is installed on the host; what
+		// matters is that the failure is typed rather than answered as `false`.
+		expect((error as InstanceType<typeof git.GitCommandError>).result.launchFailure).toBeDefined();
+	});
+
+	it("refuses to call a patch unappliable when git never ran", async () => {
+		vi.spyOn(Bun, "spawn").mockImplementation(() => {
+			const error = new Error('Executable not found in $PATH: "git"');
+			(error as Error & { code?: string }).code = "ENOENT";
+			throw error;
+		});
+
+		// `false` here makes task merging treat the patch as conflicted.
+		const error = await git.patch.canApply(process.cwd(), "/tmp/nonexistent.patch").catch((err: unknown) => err);
+		expect(error).toBeInstanceOf(git.GitCommandError);
+		expect((error as InstanceType<typeof git.GitCommandError>).result.launchFailure).toBeDefined();
 	});
 });
 
