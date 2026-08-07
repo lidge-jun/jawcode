@@ -221,11 +221,6 @@ export async function tryGitStatusResult(cwd: string): Promise<{ status: string;
 	}
 }
 
-/** Display-only convenience: use {@link tryGitStatusResult} for any decision. */
-export async function tryGitStatus(cwd: string): Promise<string> {
-	return (await tryGitStatusResult(cwd)).status;
-}
-
 export async function tryGitPrefix(cwd: string): Promise<string> {
 	try {
 		return await git.show.prefix(cwd);
