@@ -6253,7 +6253,15 @@ export class AgentSession {
 	async generateTitle(firstMessage: string): Promise<string | null> {
 		if (this.#isDisposed) return null;
 		const generation = this.#titleGeneration;
-		const sessionId = this.sessionManager.getSessionId();
+		// Credential selection is session-sticky, keyed on the session id. Passing
+		// the raw session-manager id here meant the title request resolved
+		// credentials under a DIFFERENT key than every other request in the
+		// session whenever a provider session id is set, quietly defeating the
+		// stickiness and its prompt-cache warmth.
+		const sessionId = this.sessionId;
+		// The staleness guard below must compare the same thing it captured, so
+		// snapshot the manager id separately rather than reusing `sessionId`.
+		const sessionFileId = this.sessionManager.getSessionId();
 		const signal = this.#titleGenerationAbortController.signal;
 		const title = await generateSessionTitle(
 			firstMessage,
@@ -6268,7 +6276,7 @@ export class AgentSession {
 			this.#isDisposed ||
 			signal.aborted ||
 			generation !== this.#titleGeneration ||
-			sessionId !== this.sessionManager.getSessionId()
+			sessionFileId !== this.sessionManager.getSessionId()
 		) {
 			return null;
 		}
