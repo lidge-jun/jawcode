@@ -48,4 +48,26 @@ describe("autoresearch git status availability", () => {
 		expect(result.status).toBe("");
 		expect(result.unavailable).toBeUndefined();
 	});
+
+	it("reports unavailable when repository metadata is malformed", async () => {
+		// git emits the SAME "not a git repository" text here as for a genuine
+		// non-repo, so classifying on that message would call a broken repository
+		// clean. Resolving the root instead separates them.
+		const dir = makeTempDir("jwc-nohead-repo-");
+		Bun.spawnSync(["git", "init", "-q", "."], { cwd: dir });
+		fs.rmSync(path.join(dir, ".git", "HEAD"));
+
+		const result = await tryGitStatusResult(dir);
+		expect(result.status).toBe("");
+		expect(result.unavailable).toBeDefined();
+	});
+
+	it("reports unavailable for a directory that only looks like a repository", async () => {
+		const dir = makeTempDir("jwc-fake-git-");
+		fs.mkdirSync(path.join(dir, ".git"));
+
+		const result = await tryGitStatusResult(dir);
+		expect(result.status).toBe("");
+		expect(result.unavailable).toBeDefined();
+	});
 });
