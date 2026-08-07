@@ -355,22 +355,6 @@ export type AgentSessionEventListener = (event: AgentSessionEvent) => void;
  * provider, model and the error identifiers makes recurring failures
  * diagnosable from the log alone. Non-error stops emit nothing.
  */
-/**
- * True when a `todo_write` result carries an OLDER view than the live state.
- *
- * Result handling is asynchronous, so a later call in the same batch can commit
- * before an earlier call's result is processed. Applying that earlier snapshot
- * would roll back completions. Counting tasks is enough to catch the rollback
- * without rejecting legitimate updates that add or complete work.
- */
-export function isStaleTodoReplay(current: TodoPhase[], incoming: TodoPhase[]): boolean {
-	const countTasks = (phases: TodoPhase[]): number => phases.reduce((total, phase) => total + phase.tasks.length, 0);
-	const countCompleted = (phases: TodoPhase[]): number =>
-		phases.reduce((total, phase) => total + phase.tasks.filter(task => task.status === "completed").length, 0);
-	if (countTasks(incoming) < countTasks(current)) return true;
-	return countCompleted(incoming) < countCompleted(current);
-}
-
 export function logProviderTurnError(message: AssistantMessage): void {
 	if (message.stopReason !== "error") return;
 	logger.warn("agent turn ended with provider error", {
@@ -1024,6 +1008,8 @@ export class AgentSession {
 	// Todo completion reminder state
 	#todoReminderCount = 0;
 	#lastGoalReminderAssistantTimestamp: number | undefined = undefined;
+	/** Highest `todo_write` revision applied from a tool result; guards stale replays. */
+	#lastTodoRevision = 0;
 	#todoPhases: TodoPhase[] = [];
 	#titleGenerationAbortController = new AbortController();
 	#titleGeneration = 0;
@@ -2369,7 +2355,13 @@ export class AgentSession {
 			if (event.message.role === "toolResult") {
 				const { toolName, details, isError, content } = event.message as {
 					toolName?: string;
-					details?: { path?: string; phases?: TodoPhase[]; report?: string; startedAt?: string };
+					details?: {
+						path?: string;
+						phases?: TodoPhase[];
+						revision?: number;
+						report?: string;
+						startedAt?: string;
+					};
 					isError?: boolean;
 					content?: Array<TextContent | ImageContent>;
 				};
@@ -2381,14 +2373,16 @@ export class AgentSession {
 				// a DIFFERENT session object than this one (the SDK wires a `ToolSession`
 				// facade), so this result is the only bridge back for those callers.
 				//
-				// It is applied only when it does not shrink the live state: result
-				// handling is asynchronous, so a newer call in the same batch can already
-				// have committed, and replaying an older snapshot over it would silently
-				// undo completions the model just made.
+				// Ordered by the result's `revision` rather than by comparing list sizes:
+				// `rm`/`drop` shrink the list legitimately, so a size heuristic would
+				// silently discard real removals. Result handling is asynchronous, so an
+				// earlier call's result can arrive after a later one has committed; only
+				// a monotonic token distinguishes the two.
 				if (toolName === "todo_write" && !isError && Array.isArray(details?.phases)) {
-					const incoming = details.phases;
-					if (!isStaleTodoReplay(this.getTodoPhases(), incoming)) {
-						this.setTodoPhases(incoming);
+					const revision = details.revision;
+					if (revision === undefined || revision >= this.#lastTodoRevision) {
+						if (revision !== undefined) this.#lastTodoRevision = revision;
+						this.setTodoPhases(details.phases);
 					}
 				}
 				if (toolName === "todo_write" && isError) {

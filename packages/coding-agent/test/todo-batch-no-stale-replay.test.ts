@@ -11,13 +11,8 @@
  * race, so it fails if the replay is reintroduced.
  */
 import { describe, expect, it } from "bun:test";
-import { isStaleTodoReplay } from "@jawcode-dev/coding-agent/session/agent-session";
 import { TodoWriteTool } from "@jawcode-dev/coding-agent/tools";
 import type { TodoPhase } from "@jawcode-dev/coding-agent/tools/todo-write";
-
-function phase(tasks: Array<{ content: string; status: string }>): TodoPhase {
-	return { name: "work", tasks } as unknown as TodoPhase;
-}
 
 /** Minimal session surface the tool actually touches. */
 function createTodoSession() {
@@ -61,49 +56,34 @@ describe("todo_write batch state", () => {
 	});
 });
 
-describe("stale todo replay detection", () => {
-	it("rejects a snapshot with fewer completions than the live state", () => {
-		const live = [
-			phase([
-				{ content: "a", status: "completed" },
-				{ content: "b", status: "completed" },
-			]),
-		];
-		const older = [
-			phase([
-				{ content: "a", status: "completed" },
-				{ content: "b", status: "in_progress" },
-			]),
-		];
-		// This is the rollback: an earlier call's result arriving after a later one.
-		expect(isStaleTodoReplay(live, older)).toBe(true);
+describe("todo_write result revision", () => {
+	it("increases monotonically so results carry their ordering", async () => {
+		const session = createTodoSession();
+		const tool = new TodoWriteTool(session as never);
+
+		await tool.execute("i", { ops: [{ op: "init", list: [{ phase: "work", items: ["a", "b", "c"] }] }] } as never);
+		const revisions: number[] = [];
+		for (const task of ["a", "b"]) {
+			const result = await tool.execute(`d-${task}`, { ops: [{ op: "done", task }] } as never);
+			revisions.push((result.details as { revision: number }).revision);
+		}
+
+		// Ordering is what lets the session drop an earlier result that lands late.
+		// Comparing list SIZES cannot, because `rm` shrinks the list on purpose.
+		expect(revisions).toEqual([2, 3]);
 	});
 
-	it("rejects a snapshot that lost tasks entirely", () => {
-		const live = [
-			phase([
-				{ content: "a", status: "completed" },
-				{ content: "b", status: "pending" },
-			]),
-		];
-		const older = [phase([{ content: "a", status: "completed" }])];
-		expect(isStaleTodoReplay(live, older)).toBe(true);
-	});
+	it("still reports a revision when an op legitimately removes a task", async () => {
+		const session = createTodoSession();
+		const tool = new TodoWriteTool(session as never);
+		await tool.execute("i", { ops: [{ op: "init", list: [{ phase: "work", items: ["a", "b", "c"] }] }] } as never);
 
-	it("accepts a genuine forward update", () => {
-		const live = [phase([{ content: "a", status: "in_progress" }])];
-		const next = [
-			phase([
-				{ content: "a", status: "completed" },
-				{ content: "b", status: "pending" },
-			]),
-		];
-		// Bridging a tool that holds a different session object must still work.
-		expect(isStaleTodoReplay(live, next)).toBe(false);
-	});
+		const removed = await tool.execute("rm", { ops: [{ op: "rm", task: "b" }] } as never);
+		const details = removed.details as { phases: TodoPhase[]; revision: number };
+		const remaining = details.phases.flatMap(entry => (entry as unknown as { tasks: unknown[] }).tasks);
 
-	it("accepts an identical snapshot", () => {
-		const live = [phase([{ content: "a", status: "completed" }])];
-		expect(isStaleTodoReplay(live, live)).toBe(false);
+		// A size-based staleness heuristic would have discarded this real removal.
+		expect(remaining).toHaveLength(2);
+		expect(details.revision).toBe(2);
 	});
 });

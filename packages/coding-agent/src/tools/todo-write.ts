@@ -38,6 +38,15 @@ export interface TodoPhase {
 export interface TodoWriteToolDetails {
 	phases: TodoPhase[];
 	storage: "session" | "memory";
+	/**
+	 * Monotonic per-tool counter identifying this commit.
+	 *
+	 * Tool results are handled asynchronously, so an earlier call's result can
+	 * arrive after a later one already committed. Comparing counts cannot tell
+	 * those apart from a legitimate `rm`/`drop`, which shrinks the list on
+	 * purpose — only an ordering token can.
+	 */
+	revision: number;
 }
 
 // =============================================================================
@@ -500,6 +509,8 @@ export class TodoWriteTool implements AgentTool<typeof todoWriteSchema, TodoWrit
 	readonly concurrency = "exclusive";
 	readonly strict = true;
 	readonly loadMode = "discoverable";
+	/** Increments on every commit so results carry their ordering. */
+	#revision = 0;
 	constructor(private readonly session: ToolSession) {
 		this.description = prompt.render(todoWriteDescription);
 	}
@@ -515,10 +526,11 @@ export class TodoWriteTool implements AgentTool<typeof todoWriteSchema, TodoWrit
 		const { phases: updated, errors } = applyParams(previousPhases, params);
 		this.session.setTodoPhases?.(updated);
 		const storage = this.session.getSessionFile() ? "session" : "memory";
+		this.#revision += 1;
 
 		return {
 			content: [{ type: "text", text: formatSummary(updated, errors) }],
-			details: { phases: updated, storage },
+			details: { phases: updated, storage, revision: this.#revision },
 			isError: errors.length > 0 ? true : undefined,
 		};
 	}
