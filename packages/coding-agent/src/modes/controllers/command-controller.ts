@@ -984,6 +984,10 @@ export class CommandController {
 		this.ctx.updateEditorTopBorder();
 
 		const newSessionId = this.ctx.session.sessionId;
+		// Fork assigns a new session id and file, so it is a session replacement like
+		// new/switch/branch/handoff: reassert the authoritative title or a stale
+		// extension override follows the user into the fork.
+		setSessionTerminalTitle(this.ctx.sessionManager.getSessionName(), this.ctx.sessionManager.getCwd());
 		this.ctx.chatContainer.addChild(new Spacer(1));
 		this.ctx.chatContainer.addChild(
 			new Text(
