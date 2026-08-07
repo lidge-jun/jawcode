@@ -25,6 +25,31 @@ export enum Reason {
 const callbackList: ((reason: Reason) => Promise<void> | void)[] = [];
 // Tracks cleanup run state (to prevent recursion/reentry issues)
 let cleanupStage: "idle" | "running" | "complete" = "idle";
+// Registration id per callback, so a stuck cleanup can be named in the log.
+const callbackIds = new WeakMap<(reason: Reason) => Promise<void> | void, string>();
+
+/**
+ * How long all cleanup callbacks together may take before the process gives up
+ * waiting on them.
+ *
+ * Every fatal path — SIGINT, SIGTERM, uncaughtException, unhandledRejection —
+ * awaits cleanup BEFORE `process.exit`, so a single callback that never settles
+ * makes Ctrl-C do nothing at all and the user has to kill the process. Real
+ * callbacks unmount SSHFS, close SSH connections and flush OTLP exports over
+ * the network, so the budget is generous: it exists to bound a hang, not to
+ * cut short slow-but-progressing teardown.
+ *
+ * `JWC_CLEANUP_TIMEOUT_MS` overrides it; `0` disables the watchdog entirely for
+ * anyone who would rather hang than risk a truncated teardown.
+ */
+export const CLEANUP_TIMEOUT_MS = resolveCleanupTimeoutMs();
+
+function resolveCleanupTimeoutMs(): number {
+	const raw = Bun.env.JWC_CLEANUP_TIMEOUT_MS ?? Bun.env.PI_CLEANUP_TIMEOUT_MS;
+	if (raw === undefined) return 10_000;
+	const parsed = Number(raw.trim());
+	return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : 10_000;
+}
 
 /**
  * Internal: runs all registered cleanup callbacks for the given reason.
@@ -49,19 +74,50 @@ function runCleanup(reason: Reason): Promise<void> {
 
 	// Call .cleanup() for each callback that is still "armed".
 	// Use Promise.try to handle sync/async, but only those armed.
-	const promises = callbackList.toReversed().map(callback => {
-		return Promise.try(() => callback(reason));
+	const ordered = callbackList.toReversed();
+	const pending = new Set<string>();
+	const promises = ordered.map((callback, position) => {
+		const id = callbackIds.get(callback) ?? `callback#${position}`;
+		pending.add(id);
+		return Promise.try(() => callback(reason)).finally(() => {
+			pending.delete(id);
+		});
 	});
 
-	return Promise.allSettled(promises).then(results => {
+	const settled = Promise.allSettled(promises).then(results => {
 		for (const result of results) {
 			if (result.status === "rejected") {
 				const err = result.reason instanceof Error ? result.reason : new Error(String(result.reason));
 				logger.error("Cleanup callback failed", { err, stack: err.stack });
 			}
 		}
+	});
+
+	// Bound the wait. A callback that never settles must not hold the process
+	// hostage on a path whose whole purpose is to exit.
+	return raceCleanupAgainstTimeout(settled, pending).then(() => {
 		cleanupStage = "complete";
 	});
+}
+
+/**
+ * Resolve when cleanup settles, or when the budget expires — whichever is first.
+ *
+ * The timer is `unref`'d so that on a normal, fast shutdown it cannot be the
+ * thing keeping the event loop alive.
+ */
+function raceCleanupAgainstTimeout(settled: Promise<void>, pending: Set<string>): Promise<void> {
+	if (CLEANUP_TIMEOUT_MS <= 0) return settled;
+	const { promise, resolve } = Promise.withResolvers<void>();
+	const timer = setTimeout(() => {
+		logger.error("Cleanup timed out; exiting with callbacks still pending", {
+			timeoutMs: CLEANUP_TIMEOUT_MS,
+			pending: [...pending],
+		});
+		resolve();
+	}, CLEANUP_TIMEOUT_MS);
+	timer.unref?.();
+	return Promise.race([settled.then(() => clearTimeout(timer)), promise]);
 }
 
 // Register signal and error event handlers to trigger cleanup before exit.
@@ -166,6 +222,7 @@ export function register(id: string, callback: (reason: Reason) => void | Promis
 
 	// Register callback as "armed" (active).
 	callbackList.push(exec);
+	callbackIds.set(exec, id);
 	return cancel;
 }
 

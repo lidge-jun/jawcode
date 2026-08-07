@@ -441,6 +441,12 @@ These are consumed via `@gajae-code/utils/dirs` and affect where coding-agent st
 
 Current implementation: `JWC_BASH_NO_LOGIN`/`ANTHROPIC_MODEL_BASH_NO_LOGIN` are active; when either is set, `getShellArgs()` returns `['-c']`.
 
+### Shutdown
+
+| Variable                  | Default | Behavior                                                                                     |
+| ------------------------- | ------- | -------------------------------------------------------------------------------------------- |
+| `JWC_CLEANUP_TIMEOUT_MS`  | `10000` | Total budget for all shutdown cleanup callbacks. Every fatal path awaits cleanup before exiting, so this bounds how long a stuck callback can delay Ctrl-C. Set `0` to wait indefinitely. Callbacks still pending at the deadline are named in the log. |
+
 ---
 
 ## 8) UI/theme/session detection (auto-detected env)
