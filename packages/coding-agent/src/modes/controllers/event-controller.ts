@@ -60,7 +60,20 @@ function completionNotifyShellCommand(command: string): string[] {
 
 function cleanNotificationEnvValue(value: string | undefined, max = 4000): string {
 	if (!value) return "";
-	return value.replaceAll("\0", "").slice(0, max);
+	let cleaned = value.replaceAll("\0", "");
+	if (process.platform === "win32") {
+		// These values carry MODEL-generated text, and the notify command is run
+		// through `cmd.exe /c`. If the user's command interpolates
+		// `%JWC_NOTIFICATION_BODY%`, cmd.exe expands it BEFORE parsing operators —
+		// so a `&` or `|` in assistant output would chain a new command. The command
+		// string is user-authored; the expanded line is not.
+		//
+		// Length clamping is not an injection defense, so neutralize the characters
+		// that give cmd.exe its meaning. Non-Windows shells expand inside double
+		// quotes differently and are left untouched.
+		cleaned = cleaned.replaceAll(/[%!&|^<>"\r\n]/g, " ");
+	}
+	return cleaned.slice(0, max);
 }
 
 function buildCompletionNotifyEnv(payload: CompletionNotifyPayload): Record<string, string> {

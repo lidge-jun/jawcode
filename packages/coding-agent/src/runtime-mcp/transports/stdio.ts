@@ -18,6 +18,7 @@ import type {
 	MCPTransport,
 } from "../../runtime-mcp/types";
 import { toJsonRpcError } from "../../runtime-mcp/types";
+import { resolveWindowsBatchLaunch } from "./windows-batch-launch";
 
 /**
  * Stdio transport for MCP servers.
@@ -60,7 +61,13 @@ export class StdioTransport implements MCPTransport {
 			...this.config.env,
 		};
 
-		this.#process = spawnOwnedProcess([this.config.command, ...args], {
+		// On Windows a bare `npx` resolves to `npx.cmd`, which CreateProcessW cannot
+		// execute — the server simply never starts. Routing through `cmd.exe` fixes
+		// that, but only safely with the escaping this resolver applies.
+		const batchLaunch = resolveWindowsBatchLaunch(this.config.command, args, { comspec: Bun.env.COMSPEC });
+		const argv = batchLaunch?.argv ?? [this.config.command, ...args];
+
+		this.#process = spawnOwnedProcess(argv, {
 			cwd: this.config.cwd ?? getProjectDir(),
 			env,
 			stdin: "pipe",
@@ -68,6 +75,7 @@ export class StdioTransport implements MCPTransport {
 			// long-lived, so retaining raw chunks nobody reads would grow unboundedly.
 			stderr: "stream",
 			name: `mcp:${this.config.command}`,
+			windowsVerbatimArguments: batchLaunch?.windowsVerbatimArguments,
 		});
 
 		this.#connected = true;

@@ -345,6 +345,14 @@ type ChildSpawnOptions<In extends InMask = InMask> = Omit<
 	signal?: AbortSignal;
 	detached?: boolean;
 	/**
+	 * Pass the command line to Windows verbatim instead of letting libuv quote it.
+	 *
+	 * Only for callers that have already built a `cmd.exe`-escaped line themselves:
+	 * libuv's quoting targets `CommandLineToArgvW`, not `cmd.exe`, so re-quoting an
+	 * escaped batch launch corrupts arguments and reopens the injection it closed.
+	 */
+	windowsVerbatimArguments?: boolean;
+	/**
 	 * `"full"`  — expose `child.stderr` AND retain raw chunks for `wait({ stderr: "full" })`.
 	 * `"stream"` — expose `child.stderr` only. Use this for long-lived processes that
 	 *              consume the stream themselves (RPC/MCP/SSH): retaining chunks nobody

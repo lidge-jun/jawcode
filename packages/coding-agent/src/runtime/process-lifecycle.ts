@@ -24,6 +24,11 @@ export interface SpawnOwnedOptions<In extends OwnedStdin = OwnedStdin> {
 	gracefulMs?: number;
 	processGroup?: boolean;
 	name?: string;
+	/**
+	 * Forwarded to the launcher for callers that pre-built a `cmd.exe`-escaped
+	 * command line (Windows batch shims). See `ChildSpawnOptions`.
+	 */
+	windowsVerbatimArguments?: boolean;
 }
 
 export interface AwaitExitResult {
@@ -88,6 +93,7 @@ export function spawnOwnedProcess<In extends OwnedStdin = "ignore">(
 		stdin: opts.stdin ?? ("ignore" as In),
 		stderr: opts.stderr,
 		detached: useGroup,
+		windowsVerbatimArguments: opts.windowsVerbatimArguments,
 	});
 	const pgid = useGroup ? child.pid : undefined;
 
