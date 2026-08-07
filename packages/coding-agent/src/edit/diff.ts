@@ -5,7 +5,7 @@
  * used when not in patch mode.
  */
 
-import { createRequire } from "node:module";
+import { diffLines as nativeDiffLines } from "@jawcode-dev/natives";
 import * as Diff from "diff";
 import { resolveToCwd } from "../tools/path-utils";
 import { DEFAULT_FUZZY_THRESHOLD, EditMatchError, findMatch } from "./modes/replace";
@@ -64,7 +64,6 @@ type DiffLinePart = {
 
 type DiffLinesFn = (oldStr: string, newStr: string) => DiffLinePart[];
 
-const require = createRequire(import.meta.url);
 const DIFF_LINES_TEST_OVERRIDE_UNSET = Symbol("DIFF_LINES_TEST_OVERRIDE_UNSET");
 
 let cachedNativeDiffLines: DiffLinesFn | null | undefined;
@@ -79,12 +78,12 @@ function resolveNativeDiffLines(): DiffLinesFn | undefined {
 		return cachedNativeDiffLines ?? undefined;
 	}
 
-	try {
-		const natives = require("@jawcode-dev/natives") as { diffLines?: unknown };
-		cachedNativeDiffLines = typeof natives.diffLines === "function" ? (natives.diffLines as DiffLinesFn) : null;
-	} catch {
-		cachedNativeDiffLines = null;
-	}
+	// Static ESM import, like every other native consumer in the tree. This used to
+	// use `createRequire`, which could never resolve: the natives package declares
+	// an `import`-only `exports` condition, so the require threw MODULE_NOT_FOUND
+	// and was silently swallowed as "native unavailable" — leaving every diff on the
+	// pure-JS path the native port exists to replace.
+	cachedNativeDiffLines = typeof nativeDiffLines === "function" ? (nativeDiffLines as DiffLinesFn) : null;
 
 	return cachedNativeDiffLines ?? undefined;
 }

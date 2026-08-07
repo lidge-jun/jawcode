@@ -12,6 +12,7 @@
 //! no `ignoreWhitespace`, no `ignoreCase`, no `newlineIsToken`,
 //! no `stripTrailingCr`, no `oneChangePerToken`, exact `===` token equality.
 
+use napi::{JsString, bindgen_prelude::*};
 use napi_derive::napi;
 
 /// One diff component, mirroring jsdiff's change object (sans `count`, which
@@ -270,9 +271,36 @@ fn diff_tokens(old_toks: &[&str], new_toks: &[&str]) -> Vec<LineDiffPart> {
 /// Compute a line-level diff byte-identical to jsdiff `Diff.diffLines(old,
 /// new)` with default options. Returns ordered `{added, removed, value}` parts.
 #[napi]
-pub fn diff_lines(old_str: String, new_str: String) -> Vec<LineDiffPart> {
-	let old_ranges = tokenize_ranges(&old_str);
-	let new_ranges = tokenize_ranges(&new_str);
+pub fn diff_lines(old_str: JsString, new_str: JsString) -> Result<Vec<LineDiffPart>> {
+	Ok(diff_lines_impl(&strict_utf16_to_string(old_str)?, &strict_utf16_to_string(new_str)?))
+}
+
+/// Decode a JS string strictly: an unpaired surrogate is rejected rather than
+/// replaced with U+FFFD.
+///
+/// napi's default `String` conversion is lossy, which made this function return
+/// a diff whose text differed from its input while the jsdiff fallback
+/// preserved it — two engines disagreeing on the same content. Rejecting lets
+/// the caller's existing fallback take over so both paths agree.
+fn strict_utf16_to_string(text: JsString) -> Result<String> {
+	let utf16 = text.into_utf16()?;
+	let mut units = utf16.as_slice();
+	// napi-rs exposes `utf16_len() + 1` units with one synthetic trailing NUL.
+	// Strip exactly that terminator; a legitimate trailing U+0000 is preserved.
+	if units.last() == Some(&0) {
+		units = &units[..units.len() - 1];
+	}
+	String::from_utf16(units).map_err(|_| {
+		Error::new(
+			Status::InvalidArg,
+			"ill-formed UTF-16 input (unpaired surrogate); caller must fall back to a JS diff",
+		)
+	})
+}
+
+fn diff_lines_impl(old_str: &str, new_str: &str) -> Vec<LineDiffPart> {
+	let old_ranges = tokenize_ranges(old_str);
+	let new_ranges = tokenize_ranges(new_str);
 	let old_toks: Vec<&str> = old_ranges.iter().map(|&(s, e)| &old_str[s..e]).collect();
 	let new_toks: Vec<&str> = new_ranges.iter().map(|&(s, e)| &new_str[s..e]).collect();
 	diff_tokens(&old_toks, &new_toks)

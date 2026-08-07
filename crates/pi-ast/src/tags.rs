@@ -187,7 +187,7 @@ fn dedup_tags(tags: &mut Vec<Tag>) {
 	});
 }
 
-fn tags_query(language: SupportLang) -> Option<&'static str> {
+const fn tags_query(language: SupportLang) -> Option<&'static str> {
 	match language {
 		SupportLang::JavaScript => Some(include_str!("../resources/tags/javascript.scm")),
 		SupportLang::Rust => Some(include_str!("../resources/tags/rust.scm")),
