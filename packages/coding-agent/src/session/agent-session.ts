@@ -5679,6 +5679,18 @@ export class AgentSession {
 		if (this.#pendingNextTurnMessages.length === 0) {
 			return;
 		}
+		// A session transition (`/new`, clearContext, compact, model/session switch,
+		// dispose) calls #disconnectFromAgent() BEFORE `await abort()`. Prompting a
+		// queued hidden message inside that window snapshots the still-old context,
+		// starts a provider turn that races agent.reset(), and once the session
+		// reconnects appends that late output to the FRESH session — a reply to a
+		// cancelled request in a conversation that is supposed to have started clean.
+		// A disconnected session also has no listener to render or persist the result.
+		// The transition owns the queue; the messages stay queued for the
+		// post-transition state (reset drops them, an explicit prompt flushes them).
+		if (this.#unsubscribeAgent === undefined) {
+			return;
+		}
 
 		const queuedMessages = [...this.#pendingNextTurnMessages];
 		this.#pendingNextTurnMessages = [];
