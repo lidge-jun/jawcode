@@ -69,6 +69,37 @@ export const Args = {
 };
 
 /**
+ * A complete integer token: optional sign, then digits, and nothing else.
+ *
+ * `Number.parseInt` stops at the first character it cannot use and returns the
+ * prefix it managed to read, so `12abc` becomes `12` and `3.9` becomes `3`.
+ * For a CLI that is the wrong default: a mistyped `--limit 3.9` should be
+ * corrected by the user, not silently reinterpreted as a different request.
+ */
+const INTEGER_TOKEN = /^[+-]?\d+$/;
+
+/**
+ * Parse one `Flags.integer` value, rejecting anything that is not exactly an
+ * integer the runtime can represent.
+ *
+ * Range is deliberately NOT checked here. `--port 0` legitimately asks for an
+ * OS-assigned ephemeral port, and whether a flag accepts negatives is
+ * per-command semantics that the shared parser cannot know. This validates the
+ * token, and each consumer validates its own domain.
+ */
+function parseIntegerFlag(raw: string, name: string): number {
+	const token = raw.trim();
+	if (!INTEGER_TOKEN.test(token)) {
+		throw new CliParseError(`Expected an integer for --${name}, got "${raw}"`);
+	}
+	const value = Number(token);
+	if (!Number.isSafeInteger(value)) {
+		throw new CliParseError(`Expected --${name} to be within the safe integer range, got "${raw}"`);
+	}
+	return value;
+}
+
+/**
  * Thrown when CLI argument/flag parsing or validation fails (unknown flag,
  * bad option value, missing required arg, etc.). `run()` catches this to print
  * the message and render usage instead of crashing as an uncaught exception.
@@ -211,11 +242,7 @@ export abstract class Command {
 				if (raw === undefined || typeof raw === "boolean") {
 					flags[name] = desc.default ?? undefined;
 				} else {
-					const n = Number.parseInt(raw as string, 10);
-					if (Number.isNaN(n)) {
-						throw new Error(`Expected integer for --${name}, got "${raw}"`);
-					}
-					flags[name] = n;
+					flags[name] = parseIntegerFlag(raw as string, name);
 				}
 			} else if (desc.kind === "boolean") {
 				flags[name] =
