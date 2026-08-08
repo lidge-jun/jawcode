@@ -488,18 +488,52 @@ export class AgentDashboard extends Container {
 		}
 	}
 
+	/**
+	 * Names this dashboard is entitled to rewrite.
+	 *
+	 * Both persist paths rebuild a whole settings value from `#allAgents`, but
+	 * `#allAgents` holds only the visible agents — `filterVisibleAgents` drops
+	 * every `hide: true` definition. Rewriting wholesale therefore deletes the
+	 * persisted state of agents the user never saw, and both keys have live
+	 * consumers outside this screen, so the deletion silently re-enables a
+	 * disabled agent and reverts its model override.
+	 *
+	 * An entry is owned only if it names an agent currently listed here. An
+	 * unlisted name is left exactly as found: it may belong to a hidden agent,
+	 * or to one that is simply not discoverable right now (a plugin root that
+	 * failed to load, a project directory not yet reachable). Absence from this
+	 * screen is not a decision to forget the setting.
+	 *
+	 * Preservation reads the GLOBAL layer, not the merged view. `set()` writes
+	 * global, while `override()` installs a session-only runtime layer that
+	 * `get()` merges on top — model profiles and registry bindings use exactly
+	 * that. Carrying entries over from the merged view would promote those
+	 * session-only values into the user's persisted config the first time
+	 * anything on this screen is touched. Project-scoped entries need no
+	 * special handling: `set()` never rewrites the project layer.
+	 */
+	#managedAgentNames(): Set<string> {
+		return new Set(this.#allAgents.map(agent => agent.name));
+	}
+
 	#persistDisabledAgents(): void {
 		if (!this.#settingsManager) return;
-		const disabled = this.#allAgents
-			.filter(agent => agent.disabled)
-			.map(agent => agent.name)
-			.sort((a, b) => a.localeCompare(b));
+		const managed = this.#managedAgentNames();
+		const persisted = (this.#settingsManager.getGlobal("task.disabledAgents") as string[] | undefined) ?? [];
+		const preserved = persisted.filter(name => !managed.has(name));
+		const rebuilt = this.#allAgents.filter(agent => agent.disabled).map(agent => agent.name);
+		const disabled = Array.from(new Set([...preserved, ...rebuilt])).sort((a, b) => a.localeCompare(b));
 		this.#settingsManager.set("task.disabledAgents", disabled);
 	}
 
 	#persistModelOverrides(): void {
 		if (!this.#settingsManager) return;
+		const managed = this.#managedAgentNames();
 		const overrides: Record<string, string> = {};
+		const persisted = this.#settingsManager.getGlobal("task.agentModelOverrides") ?? {};
+		for (const [name, value] of Object.entries(persisted)) {
+			if (!managed.has(name)) overrides[name] = value;
+		}
 		for (const agent of this.#allAgents) {
 			const value = agent.overrideModel?.trim();
 			if (value) {
