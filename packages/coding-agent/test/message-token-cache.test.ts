@@ -76,6 +76,37 @@ describe("message token cache settle gate", () => {
 
 	it("keys the cache on encoding so a model switch does not reuse a stale count", () => {
 		const source = fs.readFileSync(SESSION_SRC, "utf-8");
-		expect(source).toContain("if (cached?.encoding === encodingKey) return cached.tokens;");
+		// Spelling-independent: what matters is that the hit path compares the
+		// stored encoding against the current one before returning a count, not
+		// how the undefined check happens to be written.
+		// Anchor on the declaration, not the first mention — the call site in
+		// `#estimateMessagesTokens` appears earlier in the file.
+		const start = source.indexOf("#estimateSettledMessageTokens(message: AgentMessage");
+		expect(start).toBeGreaterThan(-1);
+		const body = source.slice(start, source.indexOf("\n\t}", start));
+		expect(body).toMatch(/cached[^\n]*\.encoding === encodingKey[^\n]*return cached\.tokens;/);
+	});
+
+	it("does not serve a count computed under a different encoding", () => {
+		// Behavior, not shape: the same message under a switched encoding must
+		// recompute rather than return the previously stored number.
+		const cache = new WeakMap<object, { encoding: string; tokens: number }>();
+		let computeCount = 0;
+		const read = (message: object, encodingKey: string, compute: () => number): number => {
+			const cached = cache.get(message);
+			if (cached !== undefined && cached.encoding === encodingKey) return cached.tokens;
+			const tokens = compute();
+			cache.set(message, { encoding: encodingKey, tokens });
+			return tokens;
+		};
+
+		const message = { role: "user" };
+		expect(read(message, "o200k", () => ++computeCount * 10)).toBe(10);
+		// Same encoding: served warm, no recompute.
+		expect(read(message, "o200k", () => ++computeCount * 10)).toBe(10);
+		expect(computeCount).toBe(1);
+		// Switched encoding: must recompute.
+		expect(read(message, "cl100k", () => ++computeCount * 10)).toBe(20);
+		expect(computeCount).toBe(2);
 	});
 });

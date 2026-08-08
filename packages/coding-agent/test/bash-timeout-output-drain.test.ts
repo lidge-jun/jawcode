@@ -37,10 +37,9 @@ describe("bash timeout output drainage", () => {
 		// timeout. Chunks in flight when `acceptingChunks` flips are the ones at
 		// risk, and they are exactly the tail that explains where the command got
 		// stuck.
-		const result = await executeBash(
-			"i=0; while [ $i -lt 400 ]; do echo LINE_$i; i=$((i+1)); done; sleep 30",
-			{ timeout: 1500 },
-		);
+		const result = await executeBash("i=0; while [ $i -lt 400 ]; do echo LINE_$i; i=$((i+1)); done; sleep 30", {
+			timeout: 1500,
+		});
 
 		expect(result.timedOut).toBe(true);
 		expect(result.output).toContain("LINE_0");

@@ -37,8 +37,7 @@ async function findUnhiddenSilentSpawns(): Promise<SilentSpawn[]> {
 		const file = path.join(SRC_ROOT, relative);
 		const source = fs.readFileSync(file, "utf-8");
 		const pattern = /Bun\.spawn(?:Sync)?\(/g;
-		let match: RegExpExecArray | null;
-		while ((match = pattern.exec(source))) {
+		for (let match = pattern.exec(source); match !== null; match = pattern.exec(source)) {
 			const window = source.slice(match.index, match.index + 900);
 			const close = window.indexOf("});");
 			const block = close > 0 ? window.slice(0, close) : window;

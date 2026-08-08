@@ -11,9 +11,9 @@
  * Upstream hit the same shape with mounted `xd://` devices (oh-my-pi #5650).
  */
 import { describe, expect, it } from "bun:test";
+import type { AgentTool } from "@jawcode-dev/agent-core";
 import type { ExtensionRunner } from "@jawcode-dev/coding-agent/extensibility/extensions/runner";
 import { ExtensionToolWrapper } from "@jawcode-dev/coding-agent/extensibility/extensions/wrapper";
-import type { AgentTool } from "@jawcode-dev/agent-core";
 
 const SDK_SOURCE_PATH = new URL("../src/sdk.ts", import.meta.url).pathname;
 

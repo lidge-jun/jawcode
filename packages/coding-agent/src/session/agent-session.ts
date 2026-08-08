@@ -120,7 +120,7 @@ export interface ForkContextSeedOptions {
 	signal?: AbortSignal;
 }
 
-import { MacOSPowerAssertion } from "@jawcode-dev/natives";
+import { type Encoding, MacOSPowerAssertion } from "@jawcode-dev/natives";
 import {
 	extractRetryHint,
 	isEnoent,
@@ -10746,7 +10746,7 @@ export class AgentSession {
 	#estimateSettledMessageTokens(message: AgentMessage, encoding: Encoding | undefined): number {
 		const encodingKey = encoding ?? "";
 		const cached = this.#messageTokenCache.get(message);
-		if (cached?.encoding === encodingKey) return cached.tokens;
+		if (cached !== undefined && cached.encoding === encodingKey) return cached.tokens;
 
 		const tokens = encoding ? countMessageTokensNative(message, encoding) : estimateTokens(message);
 		if (isSettledForTokenCache(message)) {

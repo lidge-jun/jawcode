@@ -45,7 +45,9 @@ describe("codex search endpoint resolution", () => {
 
 		expect(urlLine).toBeDefined();
 		expect(urlLine).toContain("resolveCodexSearchBaseUrl(");
-		expect(urlLine).not.toContain("${CODEX_BASE_URL}");
+		// Assembled rather than written literally: a bare `${...}` in a plain
+		// string trips biome's noTemplateCurlyInString.
+		expect(urlLine).not.toContain(`$\{CODEX_BASE_URL}`);
 	});
 
 	it("only honors the endpoint for a Codex session model", async () => {

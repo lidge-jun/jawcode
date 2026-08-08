@@ -52,10 +52,8 @@ const user: UserMessage = { role: "user", content: "continue", timestamp: Date.n
 
 function thinkingBlocks(messages: Message[]): { type: string; thinkingSignature?: string }[] {
 	const assistant = messages.find(message => message.role === "assistant") as AssistantMessage | undefined;
-	return (assistant?.content ?? []).filter(
-		(block): block is { type: string; thinkingSignature?: string } =>
-			block.type === "thinking" || block.type === "redactedThinking",
-	);
+	const blocks = (assistant?.content ?? []) as { type: string; thinkingSignature?: string }[];
+	return blocks.filter(block => block.type === "thinking" || block.type === "redactedThinking");
 }
 
 describe("foreign thinking signatures on the latest turn", () => {
