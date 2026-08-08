@@ -142,6 +142,91 @@ export { CURSOR_CLIENT_VERSION } from "./cursor/client-version";
 const conversationStateCache = new Map<string, ConversationStateStructure>();
 const conversationBlobStores = new Map<string, Map<string, Uint8Array>>();
 
+/**
+ * Upper bound on retained conversation caches.
+ *
+ * Both maps are module-global and previously had no delete anywhere, so a
+ * long-lived process accumulated the full conversation state and blob store of
+ * every conversation it ever streamed. The per-conversation dedupe noted on
+ * `deterministicMessageId` bounds blob IDs *within* one conversation; it says
+ * nothing about accumulation across them.
+ *
+ * Eviction is least-recently-used by re-insertion order: a `Map` iterates in
+ * insertion order, and every cache read re-inserts, so the first key is the
+ * least recently touched. The bound is generous because evicting a live
+ * conversation only costs a rebuild from `context.messages`, never correctness.
+ */
+const MAX_CACHED_CONVERSATIONS = 32;
+
+/**
+ * Cache identity for one conversation.
+ *
+ * NOT the wire `conversationId`, which the server owns and which must keep
+ * whatever value the caller supplied. This is the local cache key only.
+ *
+ * The wire id alone is not a safe cache key: it falls back to the host session
+ * id, which is stable across a model switch and across accounts, so two
+ * different models in one session collided on a single cached
+ * `ConversationStateStructure`. That state carries model-specific content —
+ * `buildCursorSystemPromptJsons` varies its output by model id, since composer
+ * models get an extra edit-discipline prompt — plus todos, file states and
+ * summary archives. The kiro provider already qualifies its own conversation
+ * identity by account, provider and model for the same reason.
+ *
+ * The api key is hashed, never stored or logged, and only to separate accounts.
+ */
+export function conversationCacheKeyForTest(
+	conversationId: string,
+	model: Model<"cursor-agent">,
+	apiKey: string,
+): string {
+	return conversationCacheKey(conversationId, model, apiKey);
+}
+
+function conversationCacheKey(conversationId: string, model: Model<"cursor-agent">, apiKey: string): string {
+	return createHash("sha256")
+		.update(`${createHash("sha256").update(apiKey).digest("hex")}:${model.provider}:${model.id}:${conversationId}`)
+		.digest("hex")
+		.slice(0, 32);
+}
+
+/** Exported for tests: the LRU bound applied to both conversation caches. */
+export const CURSOR_MAX_CACHED_CONVERSATIONS = MAX_CACHED_CONVERSATIONS;
+
+/** Exported for tests: drives the same read/write helpers the stream path uses. */
+export function conversationCacheForTest(): {
+	read: (key: string) => string | undefined;
+	write: (key: string, value: string) => void;
+	keys: () => string[];
+} {
+	const cache = new Map<string, string>();
+	return {
+		read: key => touchConversationCache(cache, key),
+		write: (key, value) => storeConversationCache(cache, key, value),
+		keys: () => Array.from(cache.keys()),
+	};
+}
+
+/** Read through a conversation cache, refreshing recency on a hit. */
+function touchConversationCache<T>(cache: Map<string, T>, key: string): T | undefined {
+	const value = cache.get(key);
+	if (value === undefined) return undefined;
+	cache.delete(key);
+	cache.set(key, value);
+	return value;
+}
+
+/** Write a conversation cache, evicting the least recently used entries. */
+function storeConversationCache<T>(cache: Map<string, T>, key: string, value: T): void {
+	cache.delete(key);
+	cache.set(key, value);
+	while (cache.size > MAX_CACHED_CONVERSATIONS) {
+		const oldest = cache.keys().next();
+		if (oldest.done) break;
+		cache.delete(oldest.value);
+	}
+}
+
 export interface CursorOptions extends StreamOptions {
 	customSystemPrompt?: string;
 	conversationId?: string;
@@ -384,15 +469,17 @@ export const streamCursor: StreamFunction<"cursor-agent"> = (
 			}
 
 			const conversationId = options?.conversationId ?? options?.sessionId ?? crypto.randomUUID();
-			const blobStore = conversationBlobStores.get(conversationId) ?? new Map<string, Uint8Array>();
-			conversationBlobStores.set(conversationId, blobStore);
-			const cachedState = conversationStateCache.get(conversationId);
+			// Local caches are keyed per account+model; the wire id is unchanged.
+			const cacheKey = conversationCacheKey(conversationId, model, apiKey);
+			const blobStore = touchConversationCache(conversationBlobStores, cacheKey) ?? new Map<string, Uint8Array>();
+			storeConversationCache(conversationBlobStores, cacheKey, blobStore);
+			const cachedState = touchConversationCache(conversationStateCache, cacheKey);
 			const { requestBytes, conversationState } = buildGrpcRequest(model, context, options, {
 				conversationId,
 				blobStore,
 				conversationState: cachedState,
 			});
-			conversationStateCache.set(conversationId, conversationState);
+			storeConversationCache(conversationStateCache, cacheKey, conversationState);
 			const requestContextTools = buildMcpToolDefinitions(context.tools);
 
 			const baseUrl = model.baseUrl || CURSOR_API_URL;
@@ -449,7 +536,10 @@ export const streamCursor: StreamFunction<"cursor-agent"> = (
 			};
 
 			const onConversationCheckpoint = (checkpoint: ConversationStateStructure) => {
-				conversationStateCache.set(conversationId, checkpoint);
+				// Same key as the read above. Writing the wire id here would put the
+				// server-echoed checkpoint back under an unqualified key and reopen
+				// the cross-model collision from the other side.
+				storeConversationCache(conversationStateCache, cacheKey, checkpoint);
 			};
 
 			h2Request.on("data", (chunk: Buffer) => {
