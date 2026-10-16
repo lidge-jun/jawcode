@@ -2124,6 +2124,7 @@ function createOpenCodeApiResolution(
 }
 
 const OPENCODE_GO_BASE_PATH = "https://opencode.ai/zen/go";
+const DEEPSEEK_V4_CONTEXT_WINDOW = 1_048_576;
 const OPENCODE_ZEN_API_RESOLUTION = createOpenCodeApiResolution("https://opencode.ai/zen");
 const OPENCODE_GO_CHAT_COMPLETIONS_MODEL_IDS = [
 	"deepseek-v4-flash",
@@ -2290,6 +2291,12 @@ const MODELS_DEV_PROVIDER_DESCRIPTORS_CORE: readonly ModelsDevProviderDescriptor
 		// Only ship the v4 family as built-ins; older deepseek-chat / deepseek-reasoner
 		// ids are kept off the catalog until the issue thread asks for them.
 		filterModel: (id, m) => m.tool_call === true && id.startsWith("deepseek-v4"),
+		// models.dev rounds the V4 window to 1,000,000; DeepSeek's own agent
+		// integration config (api-docs.deepseek.com/quick_start/agent_integrations/codex)
+		// sets context_window = 1,048,576. Pin it so regenerating models.json or
+		// refreshing from models.dev does not revert to the rounded value.
+		transformModel: model =>
+			model.id.startsWith("deepseek-v4") ? { ...model, contextWindow: DEEPSEEK_V4_CONTEXT_WINDOW } : model,
 		compat: {
 			// DeepSeek V4 only accepts `high`/`max`; map lower GJC levels upward so
 			// subagent "minimal" turns stay in documented thinking mode instead of
