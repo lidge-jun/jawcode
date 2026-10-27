@@ -400,7 +400,9 @@ function getCacheControl(
 }
 
 // Stealth mode: Mimic Anthropic Code headers and tool prefixing.
-export const claudeCodeVersion = "2.1.63";
+// Anthropic gates newer models behind a minimum client version and answers older ones with HTTP 400
+// claude_code_version_too_old (claude-opus-5-5 requires 2.1.280 or newer), so keep this at a current release.
+export const claudeCodeVersion = "2.1.311";
 export const claudeToolPrefix: string = "proxy_";
 export const claudeCodeSystemInstruction = "You are a Claude agent, built on Anthropic's Claude Agent SDK.";
 

@@ -6,6 +6,8 @@
 
 - Switching to an Anthropic model after a turn from another provider on the same API no longer wedges the session. The previous turn's thinking signature was replayed verbatim because the check only compared API, not provider — and several providers speak `anthropic-messages`. Anthropic rejected the request as an invalid signature, and since the offending turn was still the most recent one, every retry failed the same way and the session fell back to another model until something else completed. Signatures from a different provider are now stripped; switching between models from the same provider is unaffected.
 
+- Claude Opus 5.5 works again over Claude OAuth. Requests identified themselves as Claude Code 2.1.63, and Anthropic answers that model from any client older than 2.1.280 with HTTP 400 `claude_code_version_too_old`, so every turn failed while Sonnet 5.5 on the same login kept working. The `claude-cli` User-Agent and the billing header now report Claude Code 2.1.311, and the usage endpoint reads the same constant instead of a second hardcoded copy.
+
 ## [0.4.5] - 2026-06-12
 
 ### Changed

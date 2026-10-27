@@ -325,6 +325,26 @@ describe("Anthropic request fingerprint alignment", () => {
 		expect(systemBlocks[0]?.text).toBe("Stay concise.");
 	});
 
+	it("signs OAuth requests with a Claude Code version Anthropic accepts for Opus 5.5", async () => {
+		// Anthropic refuses claude-opus-5-5 from older clients with HTTP 400 claude_code_version_too_old,
+		// "version 2.1.280 or newer is required", and reads the version from the billing header first.
+		const headers = buildAnthropicHeaders({ apiKey: "sk-ant-oat-test", isOAuth: true, stream: true });
+		const userAgentVersion = /^claude-cli\/(\d+\.\d+\.\d+) /.exec(headers["User-Agent"] ?? "")?.[1];
+
+		const payload = (await captureAnthropicPayload(
+			{ ...ANTHROPIC_MODEL, id: "claude-opus-5-5", name: "Claude Opus 5.5" },
+			{
+				systemPrompt: ["Stay concise."],
+				messages: [{ role: "user", content: "Hi", timestamp: Date.now() }],
+			},
+		)) as { system?: Array<{ type: string; text?: string }> };
+		const billing = payload.system?.find(block => block.text?.startsWith("x-anthropic-billing-header:"))?.text;
+		const billingVersion = /cc_version=(\d+\.\d+\.\d+)\./.exec(billing ?? "")?.[1];
+
+		expect(billingVersion).toBe(userAgentVersion);
+		expect(Bun.semver.satisfies(billingVersion ?? "0.0.0", ">=2.1.280")).toBe(true);
+	});
+
 	it("accepts uppercase hex in the user hash segment", () => {
 		const userId =
 			"user_ABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCD_account_12345678-1234-1234-1234-1234567890ab_session_abcdefab-cdef-abcd-efab-cdefabcdef12";
