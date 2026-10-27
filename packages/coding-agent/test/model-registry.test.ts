@@ -2544,6 +2544,32 @@ describe("ModelRegistry", () => {
 		expect(registry.find("ollama-cloud", "deepseek-v4-pro")?.maxTokens).toBe(384_000);
 	});
 
+	// OAuth-discovered catalogs are per account, so a model the account gained after this build shipped
+	// exists only in the cache until a refresh runs, and `jwc --model` resolves before any refresh.
+	test.each([
+		["openai-codex", "openai-codex-responses", "gpt-6.1-sol"],
+		["google-gemini-cli", "google-gemini-cli", "gemini-cached-only"],
+		["google-antigravity", "google-gemini-cli", "antigravity-cached-only"],
+	] as const)("loads cached %s discovery models on startup", (provider, api, id) => {
+		const cachedModel: Model = {
+			id,
+			name: id,
+			api,
+			provider,
+			baseUrl: "https://example.invalid",
+			reasoning: true,
+			input: ["text", "image"],
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+			contextWindow: 872_000,
+			maxTokens: 128_000,
+		};
+		writeModelCache(provider, Date.now(), [cachedModel], true, "", cacheDbPath);
+
+		const registry = new ModelRegistry(authStorage, modelsJsonPath);
+
+		expect(registry.find(provider, id)?.contextWindow).toBe(872_000);
+	});
+
 	test("preserves request shaping and wire aliases when replacing a built-in model", () => {
 		writeRawModelsJson({
 			openai: {
